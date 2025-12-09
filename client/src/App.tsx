@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import Schedule from "@/pages/Schedule";
 import Accounts from "@/pages/Accounts";
 import Analytics from "@/pages/Analytics";
+import AIEngines from "@/pages/AIEngines";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/schedule" component={Schedule} />
       <Route path="/accounts" component={Accounts} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/ai-engines" component={AIEngines} />
       <Route component={NotFound} />
     </Switch>
   );

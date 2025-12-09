@@ -17,6 +17,33 @@ export const MOCK_CHANNELS = [
   { id: 7, platform: "linkedin", name: "Alex Chen", handle: "in/alexchen", followers: "5.4K", status: "disconnected" },
 ];
 
+export const MOCK_AI_ENGINES = [
+  { 
+    id: 1, 
+    name: "Steve.AI", 
+    type: "Avatar Video Generation", 
+    status: "connected", 
+    description: "Generates lip-synced talking avatars",
+    logo: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=150&q=80" 
+  },
+  { 
+    id: 2, 
+    name: "Dola AI", 
+    type: "Cinematic Visuals", 
+    status: "connected", 
+    description: "Creates high-quality 3D scenes and background visuals",
+    logo: "https://images.unsplash.com/photo-1633419461186-7d40a23933a7?auto=format&fit=crop&w=150&q=80" 
+  },
+  { 
+    id: 3, 
+    name: "OpenAI GPT-4", 
+    type: "Text & Strategy", 
+    status: "connected", 
+    description: "Writes captions, hashtags, and content strategy",
+    logo: "https://images.unsplash.com/photo-1692312349581-8a5316db048c?auto=format&fit=crop&w=150&q=80" 
+  }
+];
+
 export const MOCK_STATS = [
   { label: "Total Followers", value: "181.7K", change: "+12%", trend: "up" },
   { label: "Impressions", value: "2.4M", change: "+25%", trend: "up" },
