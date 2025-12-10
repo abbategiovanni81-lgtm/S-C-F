@@ -20,26 +20,26 @@ export const MOCK_CHANNELS = [
 export const MOCK_AI_ENGINES = [
   { 
     id: 1, 
-    name: "Steve.AI", 
-    type: "Avatar Video Generation", 
+    name: "ElevenLabs Studio", 
+    type: "Video, Voice & SFX", 
     status: "connected", 
-    description: "Generates lip-synced talking avatars",
+    description: "All-in-one suite: Generates cinematic video (Sora/Veo), voiceovers, and sound effects.",
     logo: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=150&q=80" 
   },
   { 
     id: 2, 
-    name: "Dola AI", 
-    type: "Cinematic Visuals", 
+    name: "Steve.AI", 
+    type: "Talking Avatars", 
     status: "connected", 
-    description: "Creates high-quality 3D scenes and background visuals",
-    logo: "https://images.unsplash.com/photo-1633419461186-7d40a23933a7?auto=format&fit=crop&w=150&q=80" 
+    description: "Specialized engine for lip-synced talking head videos.",
+    logo: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=150&q=80" 
   },
   { 
     id: 3, 
     name: "OpenAI GPT-4", 
-    type: "Text & Strategy", 
+    type: "Strategy & Copy", 
     status: "connected", 
-    description: "Writes captions, hashtags, and content strategy",
+    description: "Writes captions, hashtags, and content strategy.",
     logo: "https://images.unsplash.com/photo-1692312349581-8a5316db048c?auto=format&fit=crop&w=150&q=80" 
   }
 ];

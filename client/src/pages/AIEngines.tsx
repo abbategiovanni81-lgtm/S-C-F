@@ -22,10 +22,10 @@ export default function AIEngines() {
               <div className="absolute -top-10 left-6 w-16 h-16 rounded-xl bg-background border border-border shadow-sm flex items-center justify-center z-20 overflow-hidden p-2">
                 {engine.name === 'OpenAI GPT-4' ? (
                   <div className="w-full h-full bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">GPT</div>
-                ) : engine.name === 'Steve.AI' ? (
-                  <div className="w-full h-full bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">S.AI</div>
+                ) : engine.name === 'ElevenLabs Studio' ? (
+                  <div className="w-full h-full bg-zinc-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">11</div>
                 ) : (
-                  <div className="w-full h-full bg-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">DOLA</div>
+                  <div className="w-full h-full bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">S.AI</div>
                 )}
               </div>
               
