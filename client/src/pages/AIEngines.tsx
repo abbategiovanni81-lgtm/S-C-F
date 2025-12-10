@@ -24,8 +24,8 @@ export default function AIEngines() {
                   <div className="w-full h-full bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">GPT</div>
                 ) : engine.name === 'ElevenLabs Studio' ? (
                   <div className="w-full h-full bg-zinc-900 rounded-lg flex items-center justify-center text-white font-bold text-xs">11</div>
-                ) : engine.name === 'HypeUGC' ? (
-                  <div className="w-full h-full bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">HYPE</div>
+                ) : engine.name === 'HypeUGC + Fal.ai' ? (
+                  <div className="w-full h-full bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">FAL</div>
                 ) : (
                   <div className="w-full h-full bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xs">S.AI</div>
                 )}

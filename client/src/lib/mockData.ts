@@ -28,10 +28,10 @@ export const MOCK_AI_ENGINES = [
   },
   { 
     id: 2, 
-    name: "HypeUGC", 
-    type: "UGC & Avatars", 
+    name: "HypeUGC + Fal.ai", 
+    type: "Avatar Pipeline", 
     status: "connected", 
-    description: "Cost-effective UGC video generation. Pay-per-video model with AI avatars.",
+    description: "HypeUGC generates the base video (Free), Fal.ai handles the lip-sync (Paid API).",
     logo: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=150&q=80" 
   },
   { 
