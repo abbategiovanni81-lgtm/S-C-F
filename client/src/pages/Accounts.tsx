@@ -162,6 +162,18 @@ export default function Accounts() {
                       </span>
                     )}
                   </div>
+                  {account.platform === "YouTube" && account.isConnected === "connected" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-3 text-xs"
+                      onClick={() => window.location.href = "/api/auth/google"}
+                      data-testid={`button-add-another-youtube-${account.id}`}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Another Channel
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );

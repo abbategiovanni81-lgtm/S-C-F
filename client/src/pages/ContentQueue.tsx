@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import type { GeneratedContent } from "@shared/schema";
+import type { GeneratedContent, SocialAccount } from "@shared/schema";
 
 export default function ContentQueue() {
   const queryClient = useQueryClient();
@@ -28,6 +28,7 @@ export default function ContentQueue() {
     description: "",
     tags: "",
     privacyStatus: "private" as "private" | "unlisted" | "public",
+    accountId: "",
   });
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
 
@@ -43,12 +44,15 @@ export default function ContentQueue() {
     queryKey: ["/api/content?status=rejected"],
   });
 
-  const { data: socialAccounts = [] } = useQuery<any[]>({
+  const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
     queryKey: ["/api/social-accounts?userId=demo-user"],
   });
 
-  const youtubeAccount = socialAccounts.find((a: any) => a.platform === "YouTube" && a.isConnected === "connected");
-  const hasYouTubeTokens = youtubeAccount?.accessToken && youtubeAccount?.refreshToken;
+  const youtubeAccounts = useMemo(() => 
+    socialAccounts.filter((a) => a.platform === "YouTube" && a.isConnected === "connected"),
+    [socialAccounts]
+  );
+  const hasYouTubeAccounts = youtubeAccounts.length > 0 && youtubeAccounts.some(a => a.accessToken && a.refreshToken);
 
   const invalidateContentQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
@@ -91,7 +95,7 @@ export default function ContentQueue() {
       setPublishDialogOpen(false);
       setSelectedContent(null);
       setSelectedVideoFile(null);
-      setPublishForm({ title: "", description: "", tags: "", privacyStatus: "private" });
+      setPublishForm({ title: "", description: "", tags: "", privacyStatus: "private", accountId: "" });
     },
     onError: (error: Error) => {
       toast({
@@ -109,6 +113,7 @@ export default function ContentQueue() {
       description: content.caption || "",
       tags: content.hashtags?.join(", ") || "",
       privacyStatus: "private",
+      accountId: youtubeAccounts.length > 0 ? youtubeAccounts[0].id : "",
     });
     setSelectedVideoFile(null);
     setPublishDialogOpen(true);
@@ -130,6 +135,9 @@ export default function ContentQueue() {
     formData.append("description", publishForm.description);
     formData.append("tags", JSON.stringify(publishForm.tags.split(",").map(t => t.trim()).filter(Boolean)));
     formData.append("privacyStatus", publishForm.privacyStatus);
+    if (publishForm.accountId) {
+      formData.append("accountId", publishForm.accountId);
+    }
 
     uploadMutation.mutate(formData);
   };
@@ -241,7 +249,7 @@ export default function ContentQueue() {
 
         {content.status === "approved" && content.platforms.includes("YouTube") && (
           <div className="pt-2">
-            {hasYouTubeTokens ? (
+            {hasYouTubeAccounts ? (
               <Button
                 className="w-full bg-red-600 hover:bg-red-700"
                 onClick={() => openPublishDialog(content)}
@@ -351,6 +359,27 @@ export default function ContentQueue() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {youtubeAccounts.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="youtube-channel">YouTube Channel</Label>
+                <Select
+                  value={publishForm.accountId}
+                  onValueChange={(value) => setPublishForm(prev => ({ ...prev, accountId: value }))}
+                >
+                  <SelectTrigger data-testid="select-youtube-channel">
+                    <SelectValue placeholder="Select channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {youtubeAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.accountName || account.accountHandle || "YouTube Channel"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="video-file">Video File</Label>
               <div className="flex gap-2">
