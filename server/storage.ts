@@ -30,6 +30,7 @@ export interface IStorage {
 
   getSocialAccountsByUser(userId: string): Promise<SocialAccount[]>;
   getSocialAccountByPlatform(userId: string, platform: string): Promise<SocialAccount | undefined>;
+  getSocialAccountByPlatformAccountId(userId: string, platform: string, platformAccountId: string): Promise<SocialAccount | undefined>;
   createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
   updateSocialAccount(id: string, data: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: string): Promise<void>;
@@ -119,6 +120,17 @@ export class DatabaseStorage implements IStorage {
   async getSocialAccountByPlatform(userId: string, platform: string): Promise<SocialAccount | undefined> {
     const result = await db.select().from(socialAccounts)
       .where(and(eq(socialAccounts.userId, userId), eq(socialAccounts.platform, platform)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getSocialAccountByPlatformAccountId(userId: string, platform: string, platformAccountId: string): Promise<SocialAccount | undefined> {
+    const result = await db.select().from(socialAccounts)
+      .where(and(
+        eq(socialAccounts.userId, userId), 
+        eq(socialAccounts.platform, platform),
+        eq(socialAccounts.platformAccountId, platformAccountId)
+      ))
       .limit(1);
     return result[0];
   }

@@ -365,11 +365,13 @@ export async function registerRoutes(
       const tokens = await getTokensFromCode(code);
       const channelInfo = await getChannelInfo(tokens.access_token!);
 
-      // Store or update the connected YouTube account
+      // Store or update the connected YouTube account (supports multiple channels)
       const userId = "demo-user";
       await storage.ensureUser(userId);
       
-      const existingAccount = await storage.getSocialAccountByPlatform(userId, "YouTube");
+      const existingAccount = channelInfo.channelId 
+        ? await storage.getSocialAccountByPlatformAccountId(userId, "YouTube", channelInfo.channelId)
+        : null;
       
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
@@ -380,7 +382,6 @@ export async function registerRoutes(
           accessToken: tokens.access_token || null,
           refreshToken: tokens.refresh_token || existingAccount.refreshToken,
           tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
-          platformAccountId: channelInfo.channelId || null,
         });
       } else {
         await storage.createSocialAccount({
@@ -454,7 +455,15 @@ export async function registerRoutes(
   app.post("/api/youtube/upload", upload.single("video"), async (req, res) => {
     try {
       const userId = "demo-user";
-      const account = await storage.getSocialAccountByPlatform(userId, "YouTube");
+      const { accountId } = req.body;
+      
+      let account;
+      if (accountId) {
+        const accounts = await storage.getSocialAccountsByUser(userId);
+        account = accounts.find(a => a.id === accountId && a.platform === "YouTube");
+      } else {
+        account = await storage.getSocialAccountByPlatform(userId, "YouTube");
+      }
       
       if (!account?.accessToken) {
         return res.status(401).json({ error: "YouTube not connected or tokens expired. Please reconnect your YouTube account." });
