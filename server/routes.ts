@@ -15,6 +15,11 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Health check endpoint for deployment
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Brand Brief endpoints
   app.get("/api/brand-briefs", async (req, res) => {
     try {
