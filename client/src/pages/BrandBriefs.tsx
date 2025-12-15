@@ -1,0 +1,325 @@
+import { useState } from "react";
+import { Layout } from "@/components/layout/Layout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Plus, Sparkles, Edit2, Loader2, Lightbulb } from "lucide-react";
+import type { BrandBrief } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+
+const PLATFORMS = ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn", "Facebook"];
+const FREQUENCIES = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+
+const DEMO_USER_ID = "demo-user";
+
+export default function BrandBriefs() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [generatingForBrief, setGeneratingForBrief] = useState<string | null>(null);
+  const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([]);
+  const [showIdeasForBrief, setShowIdeasForBrief] = useState<string | null>(null);
+
+  const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
+    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+  });
+
+  const createBriefMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/brand-briefs", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`] });
+      setIsDialogOpen(false);
+      setSelectedPlatforms([]);
+      toast({ title: "Brand brief created successfully!" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to create brand brief", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const invalidateContentQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/content?status=approved"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/content?status=rejected"] });
+  };
+
+  const generateContentMutation = useMutation({
+    mutationFn: async ({ briefId, topic }: { briefId: string; topic?: string }) => {
+      const res = await apiRequest("POST", "/api/generate-content", {
+        briefId,
+        contentType: "both",
+        topic,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      toast({ title: "Content generated! Check the Content Queue." });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to generate content", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const generateIdeasMutation = useMutation({
+    mutationFn: async (briefId: string) => {
+      const res = await apiRequest("POST", "/api/generate-ideas", { briefId, count: 5 });
+      return res.json();
+    },
+    onSuccess: (data, briefId) => {
+      setGeneratedIdeas(data.ideas || []);
+      setShowIdeasForBrief(briefId);
+    },
+    onError: (error) => {
+      toast({ title: "Failed to generate ideas", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    createBriefMutation.mutate({
+      userId: DEMO_USER_ID,
+      name: formData.get("name"),
+      brandVoice: formData.get("brandVoice"),
+      targetAudience: formData.get("targetAudience"),
+      contentGoals: formData.get("contentGoals"),
+      postingFrequency: formData.get("postingFrequency"),
+      platforms: selectedPlatforms,
+    });
+  };
+
+  const togglePlatform = (platform: string) => {
+    setSelectedPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
+    );
+  };
+
+  const handleGenerateContent = (briefId: string) => {
+    setGeneratingForBrief(briefId);
+    generateContentMutation.mutate({ briefId }, {
+      onSettled: () => setGeneratingForBrief(null),
+    });
+  };
+
+  return (
+    <Layout title="Brand Briefs">
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-muted-foreground">
+          Create brand profiles to generate consistent, on-brand content across all platforms.
+        </p>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-create-brief">
+              <Plus className="w-4 h-4 mr-2" />
+              New Brand Brief
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create Brand Brief</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Brand Name</Label>
+                <Input id="name" name="name" placeholder="My Brand" required data-testid="input-name" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="brandVoice">Brand Voice</Label>
+                <Textarea
+                  id="brandVoice"
+                  name="brandVoice"
+                  placeholder="Describe your brand's tone and personality (e.g., Professional yet approachable, witty, educational...)"
+                  required
+                  data-testid="input-brand-voice"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="targetAudience">Target Audience</Label>
+                <Textarea
+                  id="targetAudience"
+                  name="targetAudience"
+                  placeholder="Describe your ideal audience (e.g., Tech-savvy millennials interested in productivity...)"
+                  required
+                  data-testid="input-target-audience"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contentGoals">Content Goals</Label>
+                <Textarea
+                  id="contentGoals"
+                  name="contentGoals"
+                  placeholder="What do you want to achieve? (e.g., Increase brand awareness, drive website traffic, generate leads...)"
+                  required
+                  data-testid="input-content-goals"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Platforms</Label>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.map((platform) => (
+                    <Badge
+                      key={platform}
+                      variant={selectedPlatforms.includes(platform) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => togglePlatform(platform)}
+                      data-testid={`badge-platform-${platform}`}
+                    >
+                      {platform}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="postingFrequency">Posting Frequency</Label>
+                <Select name="postingFrequency" required>
+                  <SelectTrigger data-testid="select-frequency">
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCIES.map((freq) => (
+                      <SelectItem key={freq} value={freq}>
+                        {freq}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createBriefMutation.isPending || selectedPlatforms.length === 0} data-testid="button-submit-brief">
+                  {createBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Create Brief
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : briefs.length === 0 ? (
+        <Card className="border-dashed" data-testid="empty-state">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Sparkles className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No brand briefs yet</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Create your first brand brief to start generating AI-powered content.
+            </p>
+            <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-brief">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Brief
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {briefs.map((brief) => (
+            <Card key={brief.id} className="hover:shadow-md transition-shadow" data-testid={`card-brief-${brief.id}`}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg" data-testid={`text-brief-name-${brief.id}`}>{brief.name}</CardTitle>
+                  <Badge variant="outline">{brief.postingFrequency}</Badge>
+                </div>
+                <CardDescription className="line-clamp-2" data-testid={`text-brief-voice-${brief.id}`}>
+                  {brief.brandVoice}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-wrap gap-1">
+                  {brief.platforms.map((platform) => (
+                    <Badge key={platform} variant="secondary" className="text-xs">
+                      {platform}
+                    </Badge>
+                  ))}
+                </div>
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Audience:</strong> {brief.targetAudience.slice(0, 60)}...</p>
+                  <p><strong>Goals:</strong> {brief.contentGoals.slice(0, 60)}...</p>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => handleGenerateContent(brief.id)}
+                    disabled={generatingForBrief === brief.id}
+                    data-testid={`button-generate-${brief.id}`}
+                  >
+                    {generatingForBrief === brief.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    Generate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateIdeasMutation.mutate(brief.id)}
+                    disabled={generateIdeasMutation.isPending && showIdeasForBrief === brief.id}
+                    data-testid={`button-ideas-${brief.id}`}
+                  >
+                    {generateIdeasMutation.isPending && showIdeasForBrief === brief.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Lightbulb className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {showIdeasForBrief === brief.id && generatedIdeas.length > 0 && (
+                  <div className="mt-4 p-3 bg-muted/50 rounded-lg space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Content Ideas:</p>
+                    <ul className="space-y-1">
+                      {generatedIdeas.map((idea, i) => (
+                        <li key={i} className="text-xs flex gap-2">
+                          <span className="text-primary">•</span>
+                          <span 
+                            className="cursor-pointer hover:text-primary"
+                            onClick={() => {
+                              setGeneratingForBrief(brief.id);
+                              generateContentMutation.mutate({ briefId: brief.id, topic: idea }, {
+                                onSettled: () => setGeneratingForBrief(null),
+                              });
+                            }}
+                          >
+                            {idea}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </Layout>
+  );
+}

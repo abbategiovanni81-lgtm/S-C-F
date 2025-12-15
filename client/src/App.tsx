@@ -9,11 +9,15 @@ import Schedule from "@/pages/Schedule";
 import Accounts from "@/pages/Accounts";
 import Analytics from "@/pages/Analytics";
 import AIEngines from "@/pages/AIEngines";
+import ContentQueue from "@/pages/ContentQueue";
+import BrandBriefs from "@/pages/BrandBriefs";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/brand-briefs" component={BrandBriefs} />
+      <Route path="/content-queue" component={ContentQueue} />
       <Route path="/schedule" component={Schedule} />
       <Route path="/accounts" component={Accounts} />
       <Route path="/analytics" component={Analytics} />

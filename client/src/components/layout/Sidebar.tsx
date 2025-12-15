@@ -1,9 +1,11 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: FileText, label: "Brand Briefs", href: "/brand-briefs" },
+  { icon: CheckSquare, label: "Content Queue", href: "/content-queue" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Users, label: "Accounts", href: "/accounts" },
