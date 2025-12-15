@@ -43,6 +43,10 @@ export default function ContentQueue() {
   const [lipSyncStatus, setLipSyncStatus] = useState<"idle" | "uploading" | "processing" | "complete">("idle");
   const [lipSyncResult, setLipSyncResult] = useState<{ requestId?: string; videoUrl?: string } | null>(null);
 
+  const [generatingVideoId, setGeneratingVideoId] = useState<string | null>(null);
+  const [videoRequests, setVideoRequests] = useState<Record<string, { requestId: string; status: string; videoUrl?: string }>>({});
+  const [generatedVideos, setGeneratedVideos] = useState<Record<string, string>>({});
+
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
   });
@@ -134,8 +138,11 @@ export default function ContentQueue() {
     onSuccess: async (data, { contentId }) => {
       setGeneratedAudio(prev => ({ ...prev, [contentId]: data.audioUrl }));
       try {
+        const contentList = [...pendingContent, ...approvedContent, ...rejectedContent];
+        const existingContent = contentList.find(c => c.id === contentId);
+        const existingMetadata = (existingContent?.generationMetadata as any) || {};
         await apiRequest("PATCH", `/api/content/${contentId}`, {
-          generationMetadata: { voiceoverAudioUrl: data.audioUrl },
+          generationMetadata: { ...existingMetadata, voiceoverAudioUrl: data.audioUrl },
         });
         invalidateContentQueries();
       } catch (e) {}
@@ -163,6 +170,76 @@ export default function ContentQueue() {
       return;
     }
     voiceoverMutation.mutate({ contentId: content.id, text: voiceoverText });
+  };
+
+  const videoMutation = useMutation({
+    mutationFn: async ({ contentId, prompt, aspectRatio }: { contentId: string; prompt: string; aspectRatio?: string }) => {
+      setGeneratingVideoId(contentId);
+      const res = await fetch("/api/fal/generate-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, aspectRatio: aspectRatio || "16:9", duration: 5 }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to start video generation");
+      }
+      return res.json();
+    },
+    onSuccess: async (data, { contentId }) => {
+      setVideoRequests(prev => ({ ...prev, [contentId]: { requestId: data.requestId, status: "processing" } }));
+      toast({ title: "Video generation started!", description: "This may take a few minutes. We'll poll for status." });
+      pollVideoStatus(contentId, data.requestId);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Video generation failed", description: error.message, variant: "destructive" });
+      setGeneratingVideoId(null);
+    },
+  });
+
+  const pollVideoStatus = async (contentId: string, requestId: string) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/fal/video-status/${requestId}`);
+        if (!res.ok) throw new Error("Failed to check status");
+        const data = await res.json();
+        
+        if (data.status === "completed" && data.videoUrl) {
+          setVideoRequests(prev => ({ ...prev, [contentId]: { requestId, status: "completed", videoUrl: data.videoUrl } }));
+          setGeneratedVideos(prev => ({ ...prev, [contentId]: data.videoUrl }));
+          setGeneratingVideoId(null);
+          try {
+            const contentList = [...pendingContent, ...approvedContent, ...rejectedContent];
+            const existingContent = contentList.find(c => c.id === contentId);
+            const existingMetadata = (existingContent?.generationMetadata as any) || {};
+            await apiRequest("PATCH", `/api/content/${contentId}`, {
+              generationMetadata: { ...existingMetadata, generatedVideoUrl: data.videoUrl },
+            });
+            invalidateContentQueries();
+          } catch (e) {}
+          toast({ title: "Video ready!", description: "Your AI-generated video is ready to download." });
+        } else if (data.status === "failed") {
+          setVideoRequests(prev => ({ ...prev, [contentId]: { requestId, status: "failed" } }));
+          setGeneratingVideoId(null);
+          toast({ title: "Video generation failed", variant: "destructive" });
+        } else {
+          setTimeout(poll, 10000);
+        }
+      } catch (e) {
+        setTimeout(poll, 10000);
+      }
+    };
+    poll();
+  };
+
+  const handleGenerateVideo = (content: GeneratedContent) => {
+    const visualDesc = (content.generationMetadata as any)?.videoPrompts?.visualDescription;
+    if (!visualDesc) {
+      toast({ title: "No video prompt", description: "This content doesn't have a visual description for video generation.", variant: "destructive" });
+      return;
+    }
+    const aspectRatio = content.platforms.includes("TikTok") || content.platforms.includes("Instagram Reels") ? "9:16" : "16:9";
+    videoMutation.mutate({ contentId: content.id, prompt: visualDesc, aspectRatio });
   };
 
   const openPublishDialog = (content: GeneratedContent) => {
@@ -334,11 +411,47 @@ export default function ContentQueue() {
             )}
             
             {(content.generationMetadata as any).videoPrompts.visualDescription && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Video Generation (Runway/Pika)</p>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Video Generation Prompt</p>
                 <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">
                   {(content.generationMetadata as any).videoPrompts.visualDescription}
                 </p>
+                
+                {(generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl) && (
+                  <div className="mt-2">
+                    <video controls className="w-full rounded-lg max-h-48" data-testid={`video-generated-${content.id}`}>
+                      <source src={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl} type="video/mp4" />
+                    </video>
+                    <a
+                      href={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl}
+                      download="generated-video.mp4"
+                      className="text-xs text-primary underline mt-1 inline-block"
+                    >
+                      Download Video
+                    </a>
+                  </div>
+                )}
+                
+                <Button
+                  size="sm"
+                  variant={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "outline" : "default"}
+                  onClick={() => handleGenerateVideo(content)}
+                  disabled={generatingVideoId === content.id || videoRequests[content.id]?.status === "processing"}
+                  className="gap-2"
+                  data-testid={`button-generate-video-${content.id}`}
+                >
+                  {generatingVideoId === content.id || videoRequests[content.id]?.status === "processing" ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating Video...
+                    </>
+                  ) : (
+                    <>
+                      <Video className="w-4 h-4" />
+                      {generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "Regenerate Video" : "Generate Video (Fal.ai)"}
+                    </>
+                  )}
+                </Button>
               </div>
             )}
             

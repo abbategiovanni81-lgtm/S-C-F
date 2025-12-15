@@ -13,6 +13,18 @@ export interface LipSyncResult {
   processingTime?: number;
 }
 
+export interface VideoGenerationRequest {
+  prompt: string;
+  aspectRatio?: "16:9" | "9:16" | "1:1";
+  duration?: number;
+}
+
+export interface VideoGenerationResult {
+  videoUrl: string;
+  status: "completed" | "processing" | "failed";
+  requestId?: string;
+}
+
 export class FalService {
   private apiKey: string | undefined;
   private baseUrl = "https://queue.fal.run";
@@ -106,6 +118,83 @@ export class FalService {
     return {
       videoUrl: data.video_url || "",
       status: "completed",
+    };
+  }
+
+  async generateVideo(request: VideoGenerationRequest): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Fal.ai API key not configured. Please add FAL_API_KEY to your secrets.");
+    }
+
+    // Use Kling video model for text-to-video generation
+    const response = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Key ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt: request.prompt,
+        aspect_ratio: request.aspectRatio || "16:9",
+        duration: request.duration || 5,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Fal.ai video generation error: ${error}`);
+    }
+
+    const data = await response.json();
+    return { 
+      requestId: data.request_id,
+      videoUrl: "",
+      status: "processing"
+    };
+  }
+
+  async checkVideoStatus(requestId: string): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Fal.ai API key not configured.");
+    }
+
+    const response = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video/requests/${requestId}/status`, {
+      headers: {
+        "Authorization": `Key ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to check video generation status");
+    }
+
+    const data = await response.json();
+    
+    if (data.status === "COMPLETED") {
+      // Fetch the actual result
+      const resultResponse = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video/requests/${requestId}`, {
+        headers: {
+          "Authorization": `Key ${this.apiKey}`,
+        },
+      });
+      const resultData = await resultResponse.json();
+      return {
+        videoUrl: resultData.video?.url || "",
+        status: "completed",
+        requestId,
+      };
+    } else if (data.status === "FAILED") {
+      return {
+        videoUrl: "",
+        status: "failed",
+        requestId,
+      };
+    }
+    
+    return {
+      videoUrl: "",
+      status: "processing",
+      requestId,
     };
   }
 }

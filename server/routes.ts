@@ -335,6 +335,28 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/fal/generate-video", async (req, res) => {
+    try {
+      const { prompt, aspectRatio, duration } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      const result = await falService.generateVideo({ prompt, aspectRatio, duration });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/fal/video-status/:requestId", async (req, res) => {
+    try {
+      const result = await falService.checkVideoStatus(req.params.requestId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // User endpoints (for demo purposes - create a default user)
   app.post("/api/users", async (req, res) => {
     try {
