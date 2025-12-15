@@ -13,12 +13,12 @@ import type { SocialAccount } from "@shared/schema";
 const DEMO_USER_ID = "demo-user";
 
 const PLATFORMS = [
-  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true },
-  { name: "Twitter/X", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: false },
-  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: false },
-  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: false },
-  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: false },
-  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black", bgLight: "bg-black/10", oauth: false },
+  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, manualOption: true },
+  { name: "Twitter/X", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: false, manualOption: false },
+  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: false, manualOption: false },
+  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: false, manualOption: false },
+  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: false, manualOption: false },
+  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black", bgLight: "bg-black/10", oauth: false, manualOption: false },
 ];
 
 export default function Accounts() {
@@ -61,14 +61,26 @@ export default function Accounts() {
     },
   });
 
+  const [showYouTubeChoice, setShowYouTubeChoice] = useState(false);
+
   const handlePlatformSelect = (platformName: string) => {
     const platform = PLATFORMS.find(p => p.name === platformName);
-    if (platform?.oauth) {
-      // Redirect to OAuth flow
+    if (platform?.oauth && platform?.manualOption) {
+      setShowYouTubeChoice(true);
+    } else if (platform?.oauth) {
       window.location.href = "/api/auth/google";
     } else {
       setSelectedPlatform(platformName);
     }
+  };
+
+  const handleYouTubeOAuth = () => {
+    window.location.href = "/api/auth/google";
+  };
+
+  const handleYouTubeManual = () => {
+    setShowYouTubeChoice(false);
+    setSelectedPlatform("YouTube");
   };
 
   const handleAddAccount = () => {
@@ -207,22 +219,59 @@ export default function Accounts() {
         setDialogOpen(open);
         if (!open) {
           setSelectedPlatform(null);
+          setShowYouTubeChoice(false);
           setAccountName("");
           setAccountHandle("");
         }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedPlatform ? `Add ${selectedPlatform} Channel` : "Add Social Channel"}</DialogTitle>
+            <DialogTitle>
+              {selectedPlatform ? `Add ${selectedPlatform} Channel` : showYouTubeChoice ? "Add YouTube Channel" : "Add Social Channel"}
+            </DialogTitle>
             <DialogDescription>
               {selectedPlatform 
                 ? "Enter your account details"
+                : showYouTubeChoice
+                ? "Choose how to add your YouTube channel"
                 : "Choose a platform to add"
               }
             </DialogDescription>
           </DialogHeader>
           
-          {!selectedPlatform ? (
+          {showYouTubeChoice ? (
+            <div className="space-y-3 py-4">
+              <button
+                onClick={handleYouTubeOAuth}
+                className="w-full flex items-center gap-4 p-4 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+                data-testid="button-youtube-oauth"
+              >
+                <Youtube className="w-6 h-6" />
+                <div className="text-left">
+                  <span className="font-medium block">Connect with Google</span>
+                  <span className="text-xs text-white/80">Auto-publish videos directly</span>
+                </div>
+              </button>
+              <button
+                onClick={handleYouTubeManual}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 transition-colors"
+                data-testid="button-youtube-manual"
+              >
+                <Youtube className="w-6 h-6" />
+                <div className="text-left">
+                  <span className="font-medium block">Add Manually</span>
+                  <span className="text-xs text-red-600">Track channel for manual posting</span>
+                </div>
+              </button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowYouTubeChoice(false)}
+              >
+                Back
+              </Button>
+            </div>
+          ) : !selectedPlatform ? (
             <div className="grid grid-cols-1 gap-3 py-4">
               {PLATFORMS.map((platform) => (
                 <button
