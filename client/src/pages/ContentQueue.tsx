@@ -434,13 +434,13 @@ export default function ContentQueue() {
                   </div>
                 )}
                 
-                <div className="flex gap-2 mt-2 flex-wrap">
+                <div className="flex flex-col sm:flex-row gap-2 mt-2">
                   <Button
                     size="sm"
                     variant={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "outline" : "default"}
                     onClick={() => handleGenerateVoiceover(content)}
                     disabled={generatingVoiceoverId === content.id}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto"
                     data-testid={`button-generate-voiceover-${content.id}`}
                   >
                     {generatingVoiceoverId === content.id ? (
@@ -460,7 +460,7 @@ export default function ContentQueue() {
                     size="sm"
                     variant="outline"
                     onClick={() => openLipSyncDialog(content)}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto"
                     data-testid={`button-lipsync-${content.id}`}
                   >
                     <Film className="w-4 h-4" />
@@ -497,7 +497,7 @@ export default function ContentQueue() {
                   variant={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "outline" : "default"}
                   onClick={() => openVideoDialog(content)}
                   disabled={generatingVideoId === content.id || videoRequests[content.id]?.status === "processing"}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                   data-testid={`button-generate-video-${content.id}`}
                 >
                   {generatingVideoId === content.id || videoRequests[content.id]?.status === "processing" ? (
