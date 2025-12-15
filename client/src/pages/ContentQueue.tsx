@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
@@ -208,6 +208,58 @@ export default function ContentQueue() {
                 </span>
               ))}
             </div>
+          </div>
+        )}
+
+        {(content.generationMetadata as any)?.videoPrompts && (
+          <div className="space-y-3 border-t pt-4 mt-4" data-testid={`video-prompts-${content.id}`}>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Wand2 className="w-4 h-4" />
+              AI Video Prompts
+            </div>
+            
+            {(content.generationMetadata as any).videoPrompts.voiceoverText && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">ElevenLabs Voiceover</p>
+                <p className="text-sm bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 whitespace-pre-wrap border border-blue-200 dark:border-blue-800">
+                  {(content.generationMetadata as any).videoPrompts.voiceoverText}
+                </p>
+                {(content.generationMetadata as any).videoPrompts.voiceStyle && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Voice style: {(content.generationMetadata as any).videoPrompts.voiceStyle}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {(content.generationMetadata as any).videoPrompts.visualDescription && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Video Generation (Runway/Pika)</p>
+                <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">
+                  {(content.generationMetadata as any).videoPrompts.visualDescription}
+                </p>
+              </div>
+            )}
+            
+            {(content.generationMetadata as any).videoPrompts.thumbnailPrompt && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
+                <p className="text-sm bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                  {(content.generationMetadata as any).videoPrompts.thumbnailPrompt}
+                </p>
+              </div>
+            )}
+            
+            {(content.generationMetadata as any).videoPrompts.brollSuggestions?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">B-Roll Suggestions</p>
+                <ul className="text-sm bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 list-disc list-inside space-y-1 border border-amber-200 dark:border-amber-800">
+                  {(content.generationMetadata as any).videoPrompts.brollSuggestions.map((suggestion: string, i: number) => (
+                    <li key={i}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

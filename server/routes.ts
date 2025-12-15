@@ -203,7 +203,10 @@ export async function registerRoutes(
         caption: result.caption || null,
         hashtags: result.hashtags || null,
         platforms: brief.platforms,
-        generationMetadata: { contentIdeas: result.contentIdeas },
+        generationMetadata: { 
+          contentIdeas: result.contentIdeas,
+          videoPrompts: result.videoPrompts,
+        },
       });
 
       res.status(201).json({ content, generatedResult: result });

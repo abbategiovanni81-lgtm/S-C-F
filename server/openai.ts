@@ -20,6 +20,13 @@ export interface GeneratedContentResult {
   caption?: string;
   hashtags?: string[];
   contentIdeas?: string[];
+  videoPrompts?: {
+    voiceoverText?: string;
+    voiceStyle?: string;
+    visualDescription?: string;
+    thumbnailPrompt?: string;
+    brollSuggestions?: string[];
+  };
 }
 
 export async function generateSocialContent(
@@ -48,7 +55,14 @@ Respond in JSON format:
   "script": "The full video script with scene directions if applicable (only if generating video_script or both)",
   "caption": "The social media caption optimized for engagement (only if generating caption or both)",
   "hashtags": ["array", "of", "relevant", "hashtags"],
-  "contentIdeas": ["3-5 follow-up content ideas based on this topic"]
+  "contentIdeas": ["3-5 follow-up content ideas based on this topic"],
+  "videoPrompts": {
+    "voiceoverText": "The exact text to use for AI voiceover (ElevenLabs). This should be the spoken narration, conversational and natural.",
+    "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with slight excitement')",
+    "visualDescription": "Detailed prompt for AI video generation - describe the visuals, scenes, style, colors, mood for tools like Runway/Pika",
+    "thumbnailPrompt": "AI image generation prompt for the video thumbnail - eye-catching, include text overlay suggestions",
+    "brollSuggestions": ["List of 3-5 B-roll footage ideas to include in the video"]
+  }
 }`;
 
   const response = await openai.chat.completions.create({
