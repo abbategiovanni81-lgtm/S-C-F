@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
@@ -534,6 +534,111 @@ export default function ContentQueue() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {(content.generationMetadata as any)?.imagePrompts && (
+          <div className="space-y-3 border-t pt-4 mt-4" data-testid={`image-prompts-${content.id}`}>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <ImageIcon className="w-4 h-4" />
+              AI Image Prompts
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Image Generation Prompt</p>
+              <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">
+                {(content.generationMetadata as any).imagePrompts.mainImagePrompt}
+              </p>
+              
+              {(content.generationMetadata as any).imagePrompts.textOverlay && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-muted-foreground">Text Overlay</p>
+                  <p className="text-sm bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800 font-medium">
+                    {(content.generationMetadata as any).imagePrompts.textOverlay}
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                {(content.generationMetadata as any).imagePrompts.colorScheme && (
+                  <span className="bg-muted px-2 py-1 rounded">Colors: {(content.generationMetadata as any).imagePrompts.colorScheme}</span>
+                )}
+                {(content.generationMetadata as any).imagePrompts.style && (
+                  <span className="bg-muted px-2 py-1 rounded">Style: {(content.generationMetadata as any).imagePrompts.style}</span>
+                )}
+                {(content.generationMetadata as any).imagePrompts.aspectRatio && (
+                  <span className="bg-muted px-2 py-1 rounded">Ratio: {(content.generationMetadata as any).imagePrompts.aspectRatio}</span>
+                )}
+              </div>
+
+              <Button
+                size="sm"
+                className="gap-2 w-full sm:w-auto mt-2"
+                data-testid={`button-generate-image-${content.id}`}
+              >
+                <ImageIcon className="w-4 h-4" />
+                Generate Image (Fal.ai)
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {(content.generationMetadata as any)?.carouselPrompts && (
+          <div className="space-y-3 border-t pt-4 mt-4" data-testid={`carousel-prompts-${content.id}`}>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <LayoutGrid className="w-4 h-4" />
+              Carousel Slides ({(content.generationMetadata as any).carouselPrompts.slides?.length || 0} slides)
+            </div>
+            
+            {(content.generationMetadata as any).carouselPrompts.theme && (
+              <p className="text-xs text-muted-foreground italic">Theme: {(content.generationMetadata as any).carouselPrompts.theme}</p>
+            )}
+            
+            <div className="space-y-2">
+              {(content.generationMetadata as any).carouselPrompts.slides?.map((slide: any, i: number) => (
+                <div key={i} className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Slide {i + 1}</p>
+                  <p className="text-sm mb-1">{slide.imagePrompt}</p>
+                  {slide.textOverlay && (
+                    <p className="text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1 inline-block font-medium">{slide.textOverlay}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <Button
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
+              data-testid={`button-generate-carousel-${content.id}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Generate All Slides
+            </Button>
+          </div>
+        )}
+
+        {(content.generationMetadata as any)?.tiktokTextPost && (
+          <div className="space-y-3 border-t pt-4 mt-4" data-testid={`tiktok-text-${content.id}`}>
+            <div className="flex items-center gap-2 text-sm font-medium text-primary">
+              <Type className="w-4 h-4" />
+              TikTok Text Post
+            </div>
+            
+            <div className="bg-gray-900 text-white rounded-lg p-6 text-center space-y-3">
+              <p className="text-lg font-bold whitespace-pre-wrap">
+                {(content.generationMetadata as any).tiktokTextPost.mainText}
+              </p>
+              {(content.generationMetadata as any).tiktokTextPost.highlightedText && (
+                <p className="text-xs text-purple-400">Highlight: {(content.generationMetadata as any).tiktokTextPost.highlightedText}</p>
+              )}
+              {(content.generationMetadata as any).tiktokTextPost.ctaText && (
+                <p className="text-sm bg-white/10 rounded-full px-4 py-2 inline-block">{(content.generationMetadata as any).tiktokTextPost.ctaText}</p>
+              )}
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Background: {(content.generationMetadata as any).tiktokTextPost.backgroundColor || "dark"}
+            </p>
           </div>
         )}
 

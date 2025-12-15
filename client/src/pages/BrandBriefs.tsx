@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Video, Image, Layout as LayoutIcon, Type } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +29,10 @@ export default function BrandBriefs() {
   const [generatingForBrief, setGeneratingForBrief] = useState<string | null>(null);
   const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([]);
   const [showIdeasForBrief, setShowIdeasForBrief] = useState<string | null>(null);
+  const [formatDialogOpen, setFormatDialogOpen] = useState(false);
+  const [selectedBriefForGenerate, setSelectedBriefForGenerate] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text">("video");
+  const [generateTopic, setGenerateTopic] = useState<string>("");
 
   const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -55,16 +61,19 @@ export default function BrandBriefs() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async ({ briefId, topic }: { briefId: string; topic?: string }) => {
+    mutationFn: async ({ briefId, topic, contentFormat }: { briefId: string; topic?: string; contentFormat?: string }) => {
       const res = await apiRequest("POST", "/api/generate-content", {
         briefId,
         contentType: "both",
+        contentFormat: contentFormat || "video",
         topic,
       });
       return res.json();
     },
     onSuccess: () => {
       invalidateContentQueries();
+      setFormatDialogOpen(false);
+      setGenerateTopic("");
       toast({ title: "Content generated! Check the Content Queue." });
     },
     onError: (error) => {
@@ -107,9 +116,20 @@ export default function BrandBriefs() {
     );
   };
 
-  const handleGenerateContent = (briefId: string) => {
-    setGeneratingForBrief(briefId);
-    generateContentMutation.mutate({ briefId }, {
+  const handleGenerateContent = (briefId: string, topic?: string) => {
+    setSelectedBriefForGenerate(briefId);
+    setGenerateTopic(topic || "");
+    setFormatDialogOpen(true);
+  };
+
+  const executeGenerate = () => {
+    if (!selectedBriefForGenerate) return;
+    setGeneratingForBrief(selectedBriefForGenerate);
+    generateContentMutation.mutate({ 
+      briefId: selectedBriefForGenerate, 
+      topic: generateTopic || undefined,
+      contentFormat: selectedFormat 
+    }, {
       onSettled: () => setGeneratingForBrief(null),
     });
   };
@@ -301,12 +321,7 @@ export default function BrandBriefs() {
                           <span className="text-primary">•</span>
                           <span 
                             className="cursor-pointer hover:text-primary"
-                            onClick={() => {
-                              setGeneratingForBrief(brief.id);
-                              generateContentMutation.mutate({ briefId: brief.id, topic: idea }, {
-                                onSettled: () => setGeneratingForBrief(null),
-                              });
-                            }}
+                            onClick={() => handleGenerateContent(brief.id, idea)}
                           >
                             {idea}
                           </span>
@@ -320,6 +335,103 @@ export default function BrandBriefs() {
           ))}
         </div>
       )}
+
+      <Dialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose Content Format</DialogTitle>
+            <DialogDescription>
+              Select the type of content you want to generate.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {generateTopic && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Topic:</p>
+                <p className="text-sm">{generateTopic}</p>
+              </div>
+            )}
+
+            <RadioGroup
+              value={selectedFormat}
+              onValueChange={(value: "video" | "image" | "carousel" | "tiktok_text") => setSelectedFormat(value)}
+              className="grid grid-cols-2 gap-3"
+            >
+              <Label
+                htmlFor="format-video"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "video" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="video" id="format-video" className="sr-only" />
+                <Video className="w-6 h-6" />
+                <span className="text-sm font-medium">Video</span>
+                <span className="text-xs text-muted-foreground text-center">Script, voiceover, AI video</span>
+              </Label>
+
+              <Label
+                htmlFor="format-image"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "image" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="image" id="format-image" className="sr-only" />
+                <Image className="w-6 h-6" />
+                <span className="text-sm font-medium">Image Post</span>
+                <span className="text-xs text-muted-foreground text-center">Single image graphic</span>
+              </Label>
+
+              <Label
+                htmlFor="format-carousel"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "carousel" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="carousel" id="format-carousel" className="sr-only" />
+                <LayoutIcon className="w-6 h-6" />
+                <span className="text-sm font-medium">Carousel</span>
+                <span className="text-xs text-muted-foreground text-center">Multi-slide post</span>
+              </Label>
+
+              <Label
+                htmlFor="format-tiktok"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "tiktok_text" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="tiktok_text" id="format-tiktok" className="sr-only" />
+                <Type className="w-6 h-6" />
+                <span className="text-sm font-medium">TikTok Text</span>
+                <span className="text-xs text-muted-foreground text-center">Short promo text</span>
+              </Label>
+            </RadioGroup>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFormatDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={executeGenerate}
+              disabled={generateContentMutation.isPending}
+              data-testid="button-confirm-generate"
+            >
+              {generateContentMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Content
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

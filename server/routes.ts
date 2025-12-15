@@ -190,7 +190,7 @@ export async function registerRoutes(
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
-      const { briefId, contentType = "both", topic } = req.body;
+      const { briefId, contentType = "both", contentFormat = "video", topic } = req.body;
       
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
@@ -210,6 +210,7 @@ export async function registerRoutes(
         contentGoals: brief.contentGoals,
         platforms: brief.platforms,
         contentType,
+        contentFormat,
         topic,
         avoidPatterns,
       };
@@ -423,6 +424,28 @@ export async function registerRoutes(
   app.get("/api/fal/video-status/:requestId", async (req, res) => {
     try {
       const result = await falService.checkVideoStatus(req.params.requestId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/fal/generate-image", async (req, res) => {
+    try {
+      const { prompt, negativePrompt, aspectRatio, style } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      const result = await falService.generateImage({ prompt, negativePrompt, aspectRatio, style });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/fal/image-status/:requestId", async (req, res) => {
+    try {
+      const result = await falService.checkImageStatus(req.params.requestId);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

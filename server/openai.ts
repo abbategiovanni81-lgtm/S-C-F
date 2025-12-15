@@ -12,6 +12,7 @@ export interface ContentGenerationRequest {
   contentGoals: string;
   platforms: string[];
   contentType: "video_script" | "caption" | "both";
+  contentFormat?: "video" | "image" | "carousel" | "tiktok_text";
   topic?: string;
   avoidPatterns?: string[];
 }
@@ -21,12 +22,33 @@ export interface GeneratedContentResult {
   caption?: string;
   hashtags?: string[];
   contentIdeas?: string[];
+  contentFormat?: "video" | "image" | "carousel" | "tiktok_text";
   videoPrompts?: {
     voiceoverText?: string;
     voiceStyle?: string;
     visualDescription?: string;
     thumbnailPrompt?: string;
     brollSuggestions?: string[];
+  };
+  imagePrompts?: {
+    mainImagePrompt?: string;
+    textOverlay?: string;
+    colorScheme?: string;
+    style?: string;
+    aspectRatio?: "1:1" | "9:16" | "16:9" | "4:5";
+  };
+  carouselPrompts?: {
+    slides: Array<{
+      imagePrompt: string;
+      textOverlay?: string;
+    }>;
+    theme?: string;
+  };
+  tiktokTextPost?: {
+    mainText: string;
+    highlightedText?: string;
+    ctaText?: string;
+    backgroundColor?: string;
   };
 }
 
@@ -37,12 +59,15 @@ export async function generateSocialContent(
     ? `\n\nIMPORTANT - AVOID these elements based on past feedback:\n${request.avoidPatterns.map(p => `- ${p}`).join("\n")}`
     : "";
 
+  const contentFormat = request.contentFormat || "video";
+
   const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
 Target Audience: ${request.targetAudience}
 Content Goals: ${request.contentGoals}
 Platforms: ${request.platforms.join(", ")}
+Content Format: ${contentFormat.toUpperCase()}
 
 Your content should:
 - Match the brand voice perfectly
@@ -51,23 +76,63 @@ Your content should:
 - Be optimized for the specified platforms
 - Use trending formats and hooks when appropriate${avoidSection}`;
 
-  const userPrompt = `Generate ${request.contentType === "both" ? "a video script AND a caption" : request.contentType === "video_script" ? "a video script" : "a caption"} for ${request.platforms.join(" and ")}.
+  let formatSpecificPrompt = "";
+  let formatSpecificJson = "";
 
-${request.topic ? `Topic/Theme: ${request.topic}` : "Create content around a trending topic relevant to the brand."}
-
-Respond in JSON format:
-{
-  "script": "The full video script with scene directions if applicable (only if generating video_script or both)",
-  "caption": "The social media caption optimized for engagement (only if generating caption or both)",
-  "hashtags": ["array", "of", "relevant", "hashtags"],
-  "contentIdeas": ["3-5 follow-up content ideas based on this topic"],
-  "videoPrompts": {
+  if (contentFormat === "video") {
+    formatSpecificPrompt = `Generate video content with script and voiceover prompts.`;
+    formatSpecificJson = `"videoPrompts": {
     "voiceoverText": "The exact text to use for AI voiceover (ElevenLabs). This should be the spoken narration, conversational and natural.",
     "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with slight excitement')",
     "visualDescription": "Detailed prompt for AI video generation - describe the visuals, scenes, style, colors, mood for tools like Runway/Pika",
     "thumbnailPrompt": "AI image generation prompt for the video thumbnail - eye-catching, include text overlay suggestions",
     "brollSuggestions": ["List of 3-5 B-roll footage ideas to include in the video"]
+  }`;
+  } else if (contentFormat === "image") {
+    formatSpecificPrompt = `Generate a single promotional image post with AI image generation prompts.`;
+    formatSpecificJson = `"imagePrompts": {
+    "mainImagePrompt": "Detailed AI image generation prompt - describe the visual scene, style, composition, lighting, colors in detail for Fal.ai/DALL-E",
+    "textOverlay": "The key text/headline to overlay on the image (keep short and punchy)",
+    "colorScheme": "Primary colors to use (e.g., 'deep purple and gold with white accents')",
+    "style": "Visual style (e.g., 'minimalist', 'bold graphic', 'photorealistic', 'illustrated')",
+    "aspectRatio": "Best aspect ratio for the platform: '1:1' for Instagram feed, '9:16' for Stories/Reels, '16:9' for YouTube"
+  }`;
+  } else if (contentFormat === "carousel") {
+    formatSpecificPrompt = `Generate a carousel/slideshow post with 3-5 slides, each with its own image prompt.`;
+    formatSpecificJson = `"carouselPrompts": {
+    "slides": [
+      { "imagePrompt": "AI image prompt for slide 1 - hook/attention grabber", "textOverlay": "Slide 1 text" },
+      { "imagePrompt": "AI image prompt for slide 2 - main content", "textOverlay": "Slide 2 text" },
+      { "imagePrompt": "AI image prompt for slide 3 - supporting point", "textOverlay": "Slide 3 text" },
+      { "imagePrompt": "AI image prompt for slide 4 - CTA/conclusion", "textOverlay": "Slide 4 text" }
+    ],
+    "theme": "Overall visual theme tying the carousel together"
+  }`;
+  } else if (contentFormat === "tiktok_text") {
+    formatSpecificPrompt = `Generate a TikTok-style text post - this is a simple graphic with bold text overlay, typically 1-2 punchy lines promoting something. Like a promotional announcement or offer.`;
+    formatSpecificJson = `"tiktokTextPost": {
+    "mainText": "The main promotional text (1-2 short punchy lines, like 'Sign up and try all premium features for the next 36 hrs!!')",
+    "highlightedText": "Key words to highlight in a different color (e.g., the website name, discount amount, or key feature)",
+    "ctaText": "Call-to-action text if any (e.g., 'Try Now', 'Link in bio')",
+    "backgroundColor": "Suggested background color or style (e.g., 'dark with gradient', 'brand purple')"
+  }`;
   }
+
+  const userPrompt = `Generate ${request.contentType === "both" ? "content with caption" : request.contentType === "video_script" ? "content" : "a caption"} for ${request.platforms.join(" and ")}.
+
+Content Format: ${contentFormat.toUpperCase()}
+${formatSpecificPrompt}
+
+${request.topic ? `Topic/Theme: ${request.topic}` : "Create content around a trending topic relevant to the brand."}
+
+Respond in JSON format:
+{
+  "contentFormat": "${contentFormat}",
+  ${contentFormat === "video" ? '"script": "The full video script with scene directions",' : '"script": null,'}
+  "caption": "The social media caption optimized for engagement",
+  "hashtags": ["array", "of", "relevant", "hashtags"],
+  "contentIdeas": ["3-5 follow-up content ideas based on this topic"],
+  ${formatSpecificJson}
 }`;
 
   const response = await openai.chat.completions.create({
