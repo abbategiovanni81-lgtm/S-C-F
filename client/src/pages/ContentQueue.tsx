@@ -39,6 +39,7 @@ export default function ContentQueue() {
   const [lipSyncDialogOpen, setLipSyncDialogOpen] = useState(false);
   const [lipSyncContent, setLipSyncContent] = useState<GeneratedContent | null>(null);
   const [lipSyncVideoFile, setLipSyncVideoFile] = useState<File | null>(null);
+  const [lipSyncAudioFile, setLipSyncAudioFile] = useState<File | null>(null);
   const [lipSyncStatus, setLipSyncStatus] = useState<"idle" | "uploading" | "processing" | "complete">("idle");
   const [lipSyncResult, setLipSyncResult] = useState<{ requestId?: string; videoUrl?: string } | null>(null);
 
@@ -288,28 +289,21 @@ export default function ContentQueue() {
                   </p>
                 )}
                 
-                {(generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl) ? (
-                  <div className="flex flex-col gap-2 mt-2">
+                {(generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl) && (
+                  <div className="mt-2">
                     <audio controls className="w-full h-10" data-testid={`audio-voiceover-${content.id}`}>
                       <source src={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl} type="audio/mpeg" />
                     </audio>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openLipSyncDialog(content)}
-                      className="gap-2"
-                      data-testid={`button-lipsync-${content.id}`}
-                    >
-                      <Film className="w-4 h-4" />
-                      Create Lip-Sync Video
-                    </Button>
                   </div>
-                ) : (
+                )}
+                
+                <div className="flex gap-2 mt-2 flex-wrap">
                   <Button
                     size="sm"
+                    variant={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "outline" : "default"}
                     onClick={() => handleGenerateVoiceover(content)}
                     disabled={generatingVoiceoverId === content.id}
-                    className="gap-2 mt-2"
+                    className="gap-2"
                     data-testid={`button-generate-voiceover-${content.id}`}
                   >
                     {generatingVoiceoverId === content.id ? (
@@ -320,11 +314,22 @@ export default function ContentQueue() {
                     ) : (
                       <>
                         <Mic className="w-4 h-4" />
-                        Generate Voiceover
+                        {generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "Regenerate" : "Generate Voiceover"}
                       </>
                     )}
                   </Button>
-                )}
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openLipSyncDialog(content)}
+                    className="gap-2"
+                    data-testid={`button-lipsync-${content.id}`}
+                  >
+                    <Film className="w-4 h-4" />
+                    Create Lip-Sync Video
+                  </Button>
+                </div>
               </div>
             )}
             
@@ -640,27 +645,11 @@ export default function ContentQueue() {
               Create Lip-Sync Video
             </DialogTitle>
             <DialogDescription>
-              Upload a video of someone speaking and we'll sync their lips to the generated voiceover audio.
+              Upload a video and audio file to create a lip-synced video. You can use any audio source.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl) && (
-              <div className="space-y-2">
-                <Label>Generated Voiceover Audio</Label>
-                <audio controls className="w-full h-10">
-                  <source src={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl} type="audio/mpeg" />
-                </audio>
-                <a
-                  href={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl}
-                  download="voiceover.mp3"
-                  className="text-xs text-primary underline"
-                >
-                  Download Audio
-                </a>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="lipsync-video">Video File (with person speaking)</Label>
               <Input
@@ -678,9 +667,41 @@ export default function ContentQueue() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="lipsync-audio">Audio File</Label>
+              <Input
+                id="lipsync-audio"
+                type="file"
+                accept="audio/*"
+                onChange={(e) => setLipSyncAudioFile(e.target.files?.[0] || null)}
+                data-testid="input-lipsync-audio"
+              />
+              {lipSyncAudioFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {lipSyncAudioFile.name}
+                </p>
+              )}
+            </div>
+
+            {lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl) && (
+              <div className="space-y-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <p className="text-xs font-medium text-blue-800 dark:text-blue-200">Or use generated ElevenLabs voiceover:</p>
+                <audio controls className="w-full h-10">
+                  <source src={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl} type="audio/mpeg" />
+                </audio>
+                <a
+                  href={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl}
+                  download="voiceover.mp3"
+                  className="text-xs text-primary underline"
+                >
+                  Download Audio
+                </a>
+              </div>
+            )}
+
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Note:</strong> Lip-sync processing can take several minutes. The video needs to show a person speaking clearly for best results.
+                <strong>Note:</strong> Lip-sync requires hosted video/audio URLs. Upload your files or use the download links above with external lip-sync tools like Fal.ai or Sync Labs.
               </p>
             </div>
 
@@ -719,19 +740,19 @@ export default function ContentQueue() {
             {!lipSyncResult?.videoUrl && (
               <Button
                 onClick={async () => {
-                  const audioUrl = lipSyncContent ? (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl) : null;
-                  if (!lipSyncVideoFile || !lipSyncContent || !audioUrl) {
-                    toast({ title: "Missing data", description: "Please select a video file.", variant: "destructive" });
+                  const hasGeneratedAudio = lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl);
+                  if (!lipSyncVideoFile || (!lipSyncAudioFile && !hasGeneratedAudio)) {
+                    toast({ title: "Missing files", description: "Please upload both video and audio files.", variant: "destructive" });
                     return;
                   }
                   setLipSyncStatus("processing");
                   toast({ 
-                    title: "Lip-sync submitted", 
-                    description: "Processing started. This feature requires the video to be hosted online. For now, you can use external tools with the generated audio." 
+                    title: "Coming soon", 
+                    description: "Lip-sync processing requires hosted URLs. For now, download the files and use Fal.ai or Sync Labs directly." 
                   });
                   setLipSyncStatus("idle");
                 }}
-                disabled={!lipSyncVideoFile || lipSyncStatus === "processing"}
+                disabled={!lipSyncVideoFile || (!lipSyncAudioFile && !(lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl))) || lipSyncStatus === "processing"}
                 className="gap-2"
                 data-testid="button-start-lipsync"
               >
