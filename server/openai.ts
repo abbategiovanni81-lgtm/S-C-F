@@ -13,6 +13,7 @@ export interface ContentGenerationRequest {
   platforms: string[];
   contentType: "video_script" | "caption" | "both";
   topic?: string;
+  avoidPatterns?: string[];
 }
 
 export interface GeneratedContentResult {
@@ -32,6 +33,10 @@ export interface GeneratedContentResult {
 export async function generateSocialContent(
   request: ContentGenerationRequest
 ): Promise<GeneratedContentResult> {
+  const avoidSection = request.avoidPatterns && request.avoidPatterns.length > 0
+    ? `\n\nIMPORTANT - AVOID these elements based on past feedback:\n${request.avoidPatterns.map(p => `- ${p}`).join("\n")}`
+    : "";
+
   const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
@@ -44,7 +49,7 @@ Your content should:
 - Appeal directly to the target audience
 - Support the content goals
 - Be optimized for the specified platforms
-- Use trending formats and hooks when appropriate`;
+- Use trending formats and hooks when appropriate${avoidSection}`;
 
   const userPrompt = `Generate ${request.contentType === "both" ? "a video script AND a caption" : request.contentType === "video_script" ? "a video script" : "a caption"} for ${request.platforms.join(" and ")}.
 

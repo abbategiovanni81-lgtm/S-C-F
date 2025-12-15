@@ -188,6 +188,8 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Brand brief not found" });
       }
 
+      const avoidPatterns = await storage.getAvoidPatternsForBrief(briefId);
+
       const request: ContentGenerationRequest = {
         briefId,
         brandVoice: brief.brandVoice,
@@ -196,6 +198,7 @@ export async function registerRoutes(
         platforms: brief.platforms,
         contentType,
         topic,
+        avoidPatterns,
       };
 
       const result = await generateSocialContent(request);
@@ -337,11 +340,11 @@ export async function registerRoutes(
 
   app.post("/api/fal/generate-video", async (req, res) => {
     try {
-      const { prompt, aspectRatio, duration } = req.body;
+      const { prompt, negativePrompt, aspectRatio, duration } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
       }
-      const result = await falService.generateVideo({ prompt, aspectRatio, duration });
+      const result = await falService.generateVideo({ prompt, negativePrompt, aspectRatio, duration });
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -352,6 +355,38 @@ export async function registerRoutes(
     try {
       const result = await falService.checkVideoStatus(req.params.requestId);
       res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Prompt Feedback endpoints
+  app.post("/api/prompt-feedback", async (req, res) => {
+    try {
+      const { briefId, contentId, feedbackType, originalPrompt, negativePrompt, rejectionReason, avoidPatterns } = req.body;
+      if (!rejectionReason || !feedbackType) {
+        return res.status(400).json({ error: "feedbackType and rejectionReason are required" });
+      }
+      const feedback = await storage.createPromptFeedback({
+        briefId: briefId || null,
+        contentId: contentId || null,
+        feedbackType,
+        originalPrompt,
+        negativePrompt,
+        rejectionReason,
+        avoidPatterns: avoidPatterns || [],
+      });
+      res.status(201).json(feedback);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/prompt-feedback/avoid-patterns", async (req, res) => {
+    try {
+      const briefId = req.query.briefId as string | null;
+      const patterns = await storage.getAvoidPatternsForBrief(briefId || null);
+      res.json({ patterns });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

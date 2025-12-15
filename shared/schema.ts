@@ -76,6 +76,26 @@ export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit
   createdAt: true,
 });
 
+export const promptFeedback = pgTable("prompt_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  contentId: varchar("content_id").references(() => generatedContent.id),
+  feedbackType: text("feedback_type").notNull(), // "video_rejection", "content_rejection", "image_rejection"
+  originalPrompt: text("original_prompt"),
+  negativePrompt: text("negative_prompt"),
+  rejectionReason: text("rejection_reason").notNull(),
+  avoidPatterns: text("avoid_patterns").array(), // Extracted patterns to avoid
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPromptFeedbackSchema = createInsertSchema(promptFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPromptFeedback = z.infer<typeof insertPromptFeedbackSchema>;
+export type PromptFeedback = typeof promptFeedback.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;

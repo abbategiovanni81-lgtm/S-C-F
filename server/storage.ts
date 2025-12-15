@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
@@ -8,9 +8,11 @@ import type {
   GeneratedContent,
   InsertGeneratedContent,
   SocialAccount,
-  InsertSocialAccount
+  InsertSocialAccount,
+  PromptFeedback,
+  InsertPromptFeedback
 } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -34,6 +36,11 @@ export interface IStorage {
   createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
   updateSocialAccount(id: string, data: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: string): Promise<void>;
+
+  createPromptFeedback(feedback: InsertPromptFeedback): Promise<PromptFeedback>;
+  getPromptFeedbackByBrief(briefId: string): Promise<PromptFeedback[]>;
+  getGlobalPromptFeedback(): Promise<PromptFeedback[]>;
+  getAvoidPatternsForBrief(briefId: string | null): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -150,6 +157,45 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSocialAccount(id: string): Promise<void> {
     await db.delete(socialAccounts).where(eq(socialAccounts.id, id));
+  }
+
+  async createPromptFeedback(feedback: InsertPromptFeedback): Promise<PromptFeedback> {
+    const result = await db.insert(promptFeedback).values(feedback).returning();
+    return result[0];
+  }
+
+  async getPromptFeedbackByBrief(briefId: string): Promise<PromptFeedback[]> {
+    return await db.select().from(promptFeedback)
+      .where(eq(promptFeedback.briefId, briefId))
+      .orderBy(desc(promptFeedback.createdAt));
+  }
+
+  async getGlobalPromptFeedback(): Promise<PromptFeedback[]> {
+    return await db.select().from(promptFeedback)
+      .orderBy(desc(promptFeedback.createdAt))
+      .limit(50);
+  }
+
+  async getAvoidPatternsForBrief(briefId: string | null): Promise<string[]> {
+    let feedbackList: PromptFeedback[];
+    if (briefId) {
+      feedbackList = await db.select().from(promptFeedback)
+        .where(eq(promptFeedback.briefId, briefId))
+        .orderBy(desc(promptFeedback.createdAt))
+        .limit(20);
+    } else {
+      feedbackList = await db.select().from(promptFeedback)
+        .orderBy(desc(promptFeedback.createdAt))
+        .limit(20);
+    }
+    
+    const patterns = new Set<string>();
+    for (const fb of feedbackList) {
+      if (fb.avoidPatterns) {
+        fb.avoidPatterns.forEach(p => patterns.add(p));
+      }
+    }
+    return Array.from(patterns);
   }
 }
 

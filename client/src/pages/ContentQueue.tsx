@@ -47,6 +47,15 @@ export default function ContentQueue() {
   const [videoRequests, setVideoRequests] = useState<Record<string, { requestId: string; status: string; videoUrl?: string }>>({});
   const [generatedVideos, setGeneratedVideos] = useState<Record<string, string>>({});
 
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingContent, setRejectingContent] = useState<GeneratedContent | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [avoidPatterns, setAvoidPatterns] = useState("");
+
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoDialogContent, setVideoDialogContent] = useState<GeneratedContent | null>(null);
+  const [negativePrompt, setNegativePrompt] = useState("");
+
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
   });
@@ -173,12 +182,12 @@ export default function ContentQueue() {
   };
 
   const videoMutation = useMutation({
-    mutationFn: async ({ contentId, prompt, aspectRatio }: { contentId: string; prompt: string; aspectRatio?: string }) => {
+    mutationFn: async ({ contentId, prompt, aspectRatio, negativePrompt }: { contentId: string; prompt: string; aspectRatio?: string; negativePrompt?: string }) => {
       setGeneratingVideoId(contentId);
       const res = await fetch("/api/fal/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, aspectRatio: aspectRatio || "16:9", duration: 5 }),
+        body: JSON.stringify({ prompt, negativePrompt, aspectRatio: aspectRatio || "16:9", duration: 5 }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -232,14 +241,65 @@ export default function ContentQueue() {
     poll();
   };
 
-  const handleGenerateVideo = (content: GeneratedContent) => {
-    const visualDesc = (content.generationMetadata as any)?.videoPrompts?.visualDescription;
+  const openVideoDialog = (content: GeneratedContent) => {
+    setVideoDialogContent(content);
+    setNegativePrompt("");
+    setVideoDialogOpen(true);
+  };
+
+  const handleGenerateVideo = () => {
+    if (!videoDialogContent) return;
+    const visualDesc = (videoDialogContent.generationMetadata as any)?.videoPrompts?.visualDescription;
     if (!visualDesc) {
       toast({ title: "No video prompt", description: "This content doesn't have a visual description for video generation.", variant: "destructive" });
       return;
     }
-    const aspectRatio = content.platforms.includes("TikTok") || content.platforms.includes("Instagram Reels") ? "9:16" : "16:9";
-    videoMutation.mutate({ contentId: content.id, prompt: visualDesc, aspectRatio });
+    const aspectRatio = videoDialogContent.platforms.includes("TikTok") || videoDialogContent.platforms.includes("Instagram Reels") ? "9:16" : "16:9";
+    videoMutation.mutate({ 
+      contentId: videoDialogContent.id, 
+      prompt: visualDesc, 
+      aspectRatio,
+      negativePrompt: negativePrompt || undefined
+    });
+    setVideoDialogOpen(false);
+  };
+
+  const openRejectDialog = (content: GeneratedContent) => {
+    setRejectingContent(content);
+    setRejectionReason("");
+    setAvoidPatterns("");
+    setRejectDialogOpen(true);
+  };
+
+  const handleRejectWithFeedback = async () => {
+    if (!rejectingContent || !rejectionReason.trim()) {
+      toast({ title: "Please provide a reason", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      await apiRequest("PATCH", `/api/content/${rejectingContent.id}/reject`);
+      
+      const patterns = avoidPatterns.split(",").map(p => p.trim()).filter(Boolean);
+      await fetch("/api/prompt-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          briefId: rejectingContent.briefId,
+          contentId: rejectingContent.id,
+          feedbackType: "content_rejection",
+          originalPrompt: (rejectingContent.generationMetadata as any)?.videoPrompts?.visualDescription || "",
+          rejectionReason: rejectionReason,
+          avoidPatterns: patterns,
+        }),
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Content rejected", description: "Your feedback will help improve future content." });
+      setRejectDialogOpen(false);
+    } catch (error) {
+      toast({ title: "Failed to reject", variant: "destructive" });
+    }
   };
 
   const openPublishDialog = (content: GeneratedContent) => {
@@ -435,7 +495,7 @@ export default function ContentQueue() {
                 <Button
                   size="sm"
                   variant={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "outline" : "default"}
-                  onClick={() => handleGenerateVideo(content)}
+                  onClick={() => openVideoDialog(content)}
                   disabled={generatingVideoId === content.id || videoRequests[content.id]?.status === "processing"}
                   className="gap-2"
                   data-testid={`button-generate-video-${content.id}`}
@@ -497,7 +557,7 @@ export default function ContentQueue() {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => rejectMutation.mutate(content.id)}
+              onClick={() => openRejectDialog(content)}
               disabled={rejectMutation.isPending}
               data-testid={`button-reject-${content.id}`}
             >
@@ -882,6 +942,99 @@ export default function ContentQueue() {
                 )}
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Content</DialogTitle>
+            <DialogDescription>
+              Help us improve future content by explaining what was wrong.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">What was wrong with this content?</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="e.g., The tone was too formal, the visuals didn't match the brand..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+                data-testid="input-rejection-reason"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="avoid-patterns">Things to avoid in future (comma-separated)</Label>
+              <Input
+                id="avoid-patterns"
+                placeholder="e.g., corporate jargon, stock photos, blue backgrounds"
+                value={avoidPatterns}
+                onChange={(e) => setAvoidPatterns(e.target.value)}
+                data-testid="input-avoid-patterns"
+              />
+              <p className="text-xs text-muted-foreground">
+                These patterns will be used to improve future content generation.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRejectWithFeedback} data-testid="button-confirm-reject">
+              <X className="w-4 h-4 mr-2" />
+              Reject & Submit Feedback
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5 text-purple-600" />
+              Generate AI Video
+            </DialogTitle>
+            <DialogDescription>
+              Create a video using Fal.ai from the visual description prompt.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {videoDialogContent && (
+              <div className="space-y-2">
+                <Label>Video Prompt</Label>
+                <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">
+                  {(videoDialogContent.generationMetadata as any)?.videoPrompts?.visualDescription || "No prompt available"}
+                </p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="negative-prompt">What to avoid (optional)</Label>
+              <Textarea
+                id="negative-prompt"
+                placeholder="e.g., blurry, low quality, distorted faces, unnatural movements..."
+                value={negativePrompt}
+                onChange={(e) => setNegativePrompt(e.target.value)}
+                className="min-h-[80px]"
+                data-testid="input-negative-prompt"
+              />
+              <p className="text-xs text-muted-foreground">
+                Describe elements you want the AI to avoid in the generated video.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVideoDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleGenerateVideo} data-testid="button-confirm-generate-video">
+              <Video className="w-4 h-4 mr-2" />
+              Generate Video
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

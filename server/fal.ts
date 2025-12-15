@@ -15,6 +15,7 @@ export interface LipSyncResult {
 
 export interface VideoGenerationRequest {
   prompt: string;
+  negativePrompt?: string;
   aspectRatio?: "16:9" | "9:16" | "1:1";
   duration?: number;
 }
@@ -127,17 +128,22 @@ export class FalService {
     }
 
     // Use Kling video model for text-to-video generation
+    const payload: any = {
+      prompt: request.prompt,
+      aspect_ratio: request.aspectRatio || "16:9",
+      duration: request.duration || 5,
+    };
+    if (request.negativePrompt) {
+      payload.negative_prompt = request.negativePrompt;
+    }
+    
     const response = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video`, {
       method: "POST",
       headers: {
         "Authorization": `Key ${this.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        prompt: request.prompt,
-        aspect_ratio: request.aspectRatio || "16:9",
-        duration: request.duration || 5,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
