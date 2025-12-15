@@ -49,10 +49,10 @@ export default function ContentQueue() {
   });
 
   const youtubeAccounts = useMemo(() => 
-    socialAccounts.filter((a) => a.platform === "YouTube" && a.isConnected === "connected"),
+    socialAccounts.filter((a) => a.platform === "YouTube" && a.isConnected === "connected" && a.accessToken && a.refreshToken),
     [socialAccounts]
   );
-  const hasYouTubeAccounts = youtubeAccounts.length > 0 && youtubeAccounts.some(a => a.accessToken && a.refreshToken);
+  const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
   const invalidateContentQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
