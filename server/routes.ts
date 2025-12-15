@@ -174,6 +174,19 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/content/:id/posted", async (req, res) => {
+    try {
+      const content = await storage.updateGeneratedContent(req.params.id, { status: "posted" });
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      console.error("Error marking content as posted:", error);
+      res.status(500).json({ error: "Failed to mark content as posted" });
+    }
+  });
+
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
