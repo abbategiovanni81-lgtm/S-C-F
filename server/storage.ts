@@ -1,12 +1,14 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
   BrandBrief, 
   InsertBrandBrief,
   GeneratedContent,
-  InsertGeneratedContent 
+  InsertGeneratedContent,
+  SocialAccount,
+  InsertSocialAccount
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -25,6 +27,10 @@ export interface IStorage {
   getContentByStatus(status: string): Promise<GeneratedContent[]>;
   createGeneratedContent(content: InsertGeneratedContent): Promise<GeneratedContent>;
   updateGeneratedContent(id: string, content: Partial<InsertGeneratedContent>): Promise<GeneratedContent | undefined>;
+
+  getSocialAccountsByUser(userId: string): Promise<SocialAccount[]>;
+  createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
+  deleteSocialAccount(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -102,6 +108,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(generatedContent.id, id))
       .returning();
     return result[0];
+  }
+
+  async getSocialAccountsByUser(userId: string): Promise<SocialAccount[]> {
+    return await db.select().from(socialAccounts).where(eq(socialAccounts.userId, userId));
+  }
+
+  async createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount> {
+    const result = await db.insert(socialAccounts).values(account).returning();
+    return result[0];
+  }
+
+  async deleteSocialAccount(id: string): Promise<void> {
+    await db.delete(socialAccounts).where(eq(socialAccounts.id, id));
   }
 }
 

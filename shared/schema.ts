@@ -39,6 +39,17 @@ export const generatedContent = pgTable("generated_content", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const socialAccounts = pgTable("social_accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  platform: text("platform").notNull(),
+  accountName: text("account_name").notNull(),
+  accountHandle: text("account_handle"),
+  profileUrl: text("profile_url"),
+  isConnected: text("is_connected").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -56,9 +67,16 @@ export const insertGeneratedContentSchema = createInsertSchema(generatedContent)
   updatedAt: true,
 });
 
+export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;
 export type BrandBrief = typeof brandBriefs.$inferSelect;
 export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema>;
 export type GeneratedContent = typeof generatedContent.$inferSelect;
+export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
+export type SocialAccount = typeof socialAccounts.$inferSelect;

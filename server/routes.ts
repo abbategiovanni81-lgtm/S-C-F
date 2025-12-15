@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, type ContentGenerationRequest } from "./openai";
@@ -303,6 +303,47 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error creating user:", error);
       res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  // Social Accounts endpoints
+  app.get("/api/social-accounts", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ error: "userId query parameter is required" });
+      }
+      const accounts = await storage.getSocialAccountsByUser(userId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching social accounts:", error);
+      res.status(500).json({ error: "Failed to fetch social accounts" });
+    }
+  });
+
+  app.post("/api/social-accounts", async (req, res) => {
+    try {
+      const result = insertSocialAccountSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+      
+      await storage.ensureUser(result.data.userId);
+      const account = await storage.createSocialAccount(result.data);
+      res.status(201).json(account);
+    } catch (error) {
+      console.error("Error creating social account:", error);
+      res.status(500).json({ error: "Failed to create social account" });
+    }
+  });
+
+  app.delete("/api/social-accounts/:id", async (req, res) => {
+    try {
+      await storage.deleteSocialAccount(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting social account:", error);
+      res.status(500).json({ error: "Failed to delete social account" });
     }
   });
 
