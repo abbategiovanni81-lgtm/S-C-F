@@ -116,3 +116,108 @@ Content Goals: ${contentGoals}`,
   const parsed = JSON.parse(content);
   return parsed.ideas || [];
 }
+
+export interface ContentAnalysisResult {
+  whyThisWorked: string[];
+  visualBreakdown: {
+    camera: string;
+    text: string;
+    colors: string;
+    framing: string;
+  };
+  contentStructure: {
+    openingLine: string;
+    middleIdea: string;
+    payoff: string;
+  };
+  adaptationForMyChannel: {
+    sameStructure: string;
+    differentTopic: string;
+    myTone: string;
+  };
+  hookRewrites: string[];
+  postAdvice: {
+    platform: string;
+    format: string;
+    captionAngle: string;
+  };
+}
+
+export async function analyzeViralContent(
+  imageBase64: string,
+  mimeType: string,
+  brandBrief?: { brandVoice: string; targetAudience: string; contentGoals: string }
+): Promise<ContentAnalysisResult> {
+  const brandContext = brandBrief
+    ? `\n\nBrand Context for Adaptation:
+- Brand Voice: ${brandBrief.brandVoice}
+- Target Audience: ${brandBrief.targetAudience}
+- Content Goals: ${brandBrief.contentGoals}`
+    : "\n\nNo brand brief provided - provide generic adaptation advice.";
+
+  const systemPrompt = `You are an expert social media analyst who breaks down viral content. Analyze the screenshot of a social media post and provide a detailed breakdown.${brandContext}`;
+
+  const userPrompt = `Analyze this viral/successful social media post screenshot and provide insights in the following structure:
+
+1. **Why This Worked** - 2-3 bullet points on the emotion, hook, and audience appeal
+2. **Visual Breakdown** - Camera angles/shot type, text overlays, colors, and framing
+3. **Content Structure** - Opening line/hook, middle idea/value, and payoff/CTA
+4. **Adaptation for MY Channel** - How to use the same structure with a different topic in my brand's tone
+5. **3 Hook Rewrites** - Short, punchy, scroll-stopping variations of the hook
+6. **Post Advice** - Best platform, format recommendations, and caption angle
+
+Respond in JSON format:
+{
+  "whyThisWorked": ["bullet 1", "bullet 2", "bullet 3"],
+  "visualBreakdown": {
+    "camera": "description of camera/shot",
+    "text": "text overlays analysis",
+    "colors": "color palette analysis",
+    "framing": "composition and framing"
+  },
+  "contentStructure": {
+    "openingLine": "the hook/opening",
+    "middleIdea": "the value/middle content",
+    "payoff": "the CTA/payoff"
+  },
+  "adaptationForMyChannel": {
+    "sameStructure": "how to use the same structure",
+    "differentTopic": "topic suggestions for the brand",
+    "myTone": "how to adapt to brand voice"
+  },
+  "hookRewrites": ["hook 1", "hook 2", "hook 3"],
+  "postAdvice": {
+    "platform": "recommended platform(s)",
+    "format": "format recommendation",
+    "captionAngle": "caption strategy"
+  }
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${imageBase64}`,
+            },
+          },
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: 2000,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No analysis generated from OpenAI");
+  }
+
+  return JSON.parse(content) as ContentAnalysisResult;
+}

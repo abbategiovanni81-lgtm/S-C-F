@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, type ContentGenerationRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, type ContentGenerationRequest } from "./openai";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
@@ -240,6 +240,40 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error generating ideas:", error);
       res.status(500).json({ error: "Failed to generate content ideas" });
+    }
+  });
+
+  // Content Analysis endpoint (OpenAI Vision)
+  const analyzeUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+  
+  app.post("/api/analyze-content", analyzeUpload.single("image"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const { briefId } = req.body;
+      let brandBrief = undefined;
+
+      if (briefId) {
+        const brief = await storage.getBrandBrief(briefId);
+        if (brief) {
+          brandBrief = {
+            brandVoice: brief.brandVoice,
+            targetAudience: brief.targetAudience,
+            contentGoals: brief.contentGoals,
+          };
+        }
+      }
+
+      const imageBase64 = req.file.buffer.toString("base64");
+      const mimeType = req.file.mimetype;
+
+      const analysis = await analyzeViralContent(imageBase64, mimeType, brandBrief);
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Error analyzing content:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze content" });
     }
   });
 
