@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, RefreshCw } from "lucide-react";
+import { Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, RefreshCw, Save, CheckCircle } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -40,10 +41,13 @@ interface ContentAnalysis {
 
 export default function ContentAnalyzer() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedBriefId, setSelectedBriefId] = useState<string>("");
   const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null);
+  const [saved, setSaved] = useState(false);
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -68,10 +72,68 @@ export default function ContentAnalyzer() {
     },
     onSuccess: (data) => {
       setAnalysis(data);
+      setSaved(false);
       toast({ title: "Analysis complete!" });
     },
     onError: (error: any) => {
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const saveToQueueMutation = useMutation({
+    mutationFn: async () => {
+      if (!analysis || !selectedBriefId || selectedBriefId === "none") {
+        throw new Error("Please select a brand brief to save the analysis");
+      }
+      const selectedBrief = briefs.find(b => b.id === selectedBriefId);
+      const script = `# Content Inspiration Analysis
+
+## Why This Worked
+${analysis.whyThisWorked.map(p => `- ${p}`).join("\n")}
+
+## Content Structure
+- **Opening Hook:** ${analysis.contentStructure.openingLine}
+- **Middle Idea:** ${analysis.contentStructure.middleIdea}
+- **Payoff/CTA:** ${analysis.contentStructure.payoff}
+
+## Adaptation Ideas
+- **Structure:** ${analysis.adaptationForMyChannel.sameStructure}
+- **Topic:** ${analysis.adaptationForMyChannel.differentTopic}
+- **Tone:** ${analysis.adaptationForMyChannel.myTone}
+
+## Hook Rewrites
+${analysis.hookRewrites.map((h, i) => `${i + 1}. ${h}`).join("\n")}`;
+
+      const caption = `${analysis.postAdvice.captionAngle}
+
+Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.framing}`;
+
+      const res = await apiRequest("POST", "/api/content", {
+        briefId: selectedBriefId,
+        status: "pending",
+        contentType: "both",
+        script,
+        caption,
+        hashtags: [],
+        platforms: selectedBrief?.platforms || ["Instagram", "TikTok"],
+        generationMetadata: {
+          source: "content_analyzer",
+          analysisData: analysis,
+          postAdvice: analysis.postAdvice,
+        },
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
+      toast({ 
+        title: "Saved to Content Queue!", 
+        description: "View it in your Content Queue to edit and publish.",
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
     },
   });
 
@@ -107,6 +169,7 @@ export default function ContentAnalyzer() {
     setPreviewUrl(null);
     setAnalysis(null);
     setSelectedBriefId("");
+    setSaved(false);
   };
 
   return (
@@ -383,6 +446,41 @@ export default function ContentAnalyzer() {
                       <p className="text-sm font-medium text-muted-foreground">Caption Angle</p>
                       <p className="text-sm" data-testid="text-advice-caption">{analysis.postAdvice.captionAngle}</p>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="font-medium">Save this inspiration?</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedBriefId && selectedBriefId !== "none" 
+                          ? "Add to your Content Queue as a new content idea" 
+                          : "Select a brand brief above to save this analysis"}
+                      </p>
+                    </div>
+                    {saved ? (
+                      <Button disabled className="gap-2" data-testid="button-saved">
+                        <CheckCircle className="w-4 h-4" />
+                        Saved!
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => saveToQueueMutation.mutate()}
+                        disabled={!selectedBriefId || selectedBriefId === "none" || saveToQueueMutation.isPending}
+                        className="gap-2"
+                        data-testid="button-save-to-queue"
+                      >
+                        {saveToQueueMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        Save to Content Queue
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
