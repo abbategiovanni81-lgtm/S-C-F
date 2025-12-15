@@ -47,6 +47,10 @@ export async function registerRoutes(
       if (!result.success) {
         return res.status(400).json({ error: fromZodError(result.error).message });
       }
+      
+      // Ensure user exists (create demo user if needed)
+      await storage.ensureUser(result.data.userId);
+      
       const brief = await storage.createBrandBrief(result.data);
       res.status(201).json(brief);
     } catch (error) {
