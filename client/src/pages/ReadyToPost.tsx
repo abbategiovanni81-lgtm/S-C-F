@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube } from "lucide-react";
-import type { GeneratedContent, BrandBrief } from "@shared/schema";
+import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload } from "lucide-react";
+import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -28,7 +32,19 @@ const platformIcons: Record<string, React.ComponentType<{ className?: string }>>
 export default function ReadyToPost() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterBrief, setFilterBrief] = useState<string>("all");
+  
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
+  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [publishForm, setPublishForm] = useState({
+    title: "",
+    description: "",
+    tags: "",
+    privacyStatus: "private" as "private" | "unlisted" | "public",
+    accountId: "",
+  });
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -41,6 +57,17 @@ export default function ReadyToPost() {
   const { data: postedContentRaw = [] } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=posted"],
   });
+
+  const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
+    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+  });
+
+  const youtubeAccounts = useMemo(() => 
+    socialAccounts.filter(acc => acc.platform === "YouTube" && acc.isConnected === "connected"),
+    [socialAccounts]
+  );
+
+  const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
   const hasGeneratedAssets = (content: GeneratedContent) => {
     const metadata = content.generationMetadata as any;
@@ -78,15 +105,76 @@ export default function ReadyToPost() {
     },
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch("/api/youtube/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ 
+        title: "Video uploaded to YouTube!", 
+        description: `Video ID: ${data.videoId}` 
+      });
+      setPublishDialogOpen(false);
+      setSelectedVideoFile(null);
+      if (selectedContent) {
+        markAsPostedMutation.mutate(selectedContent.id);
+      }
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Upload failed", 
+        description: error.message,
+        variant: "destructive"
+      });
+    },
+  });
+
   const getBriefName = (briefId: string) => {
     const brief = briefs.find((b) => b.id === briefId);
     return brief?.name || "Unknown Brand";
+  };
+
+  const openPublishDialog = (content: GeneratedContent) => {
+    setSelectedContent(content);
+    const metadata = content.generationMetadata as any;
+    setPublishForm({
+      title: content.script?.substring(0, 100) || "Video Title",
+      description: content.caption || "",
+      tags: content.hashtags?.join(", ") || "",
+      privacyStatus: "private",
+      accountId: youtubeAccounts.length > 0 ? youtubeAccounts[0].id : "",
+    });
+    setSelectedVideoFile(null);
+    setPublishDialogOpen(true);
+  };
+
+  const handlePublish = async () => {
+    if (!selectedContent || !selectedVideoFile) return;
+
+    const formData = new FormData();
+    formData.append("video", selectedVideoFile);
+    formData.append("title", publishForm.title);
+    formData.append("description", publishForm.description);
+    formData.append("tags", publishForm.tags);
+    formData.append("privacyStatus", publishForm.privacyStatus);
+    formData.append("accountId", publishForm.accountId || youtubeAccounts[0]?.id || "");
+
+    uploadMutation.mutate(formData);
   };
 
   const ContentCard = ({ content, showMarkAsPosted = true }: { content: GeneratedContent; showMarkAsPosted?: boolean }) => {
     const metadata = content.generationMetadata as any;
     const videoUrl = metadata?.generatedVideoUrl || content.videoUrl;
     const audioUrl = metadata?.voiceoverAudioUrl;
+    const hasVideo = !!videoUrl;
 
     return (
       <Card className="overflow-hidden" data-testid={`card-ready-${content.id}`}>
@@ -180,8 +268,33 @@ export default function ReadyToPost() {
           </div>
 
           {showMarkAsPosted && content.status !== "posted" && (
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t space-y-2">
+              {hasVideo && (
+                <div>
+                  {hasYouTubeAccounts ? (
+                    <Button
+                      onClick={() => openPublishDialog(content)}
+                      className="w-full gap-2 bg-red-600 hover:bg-red-700"
+                      data-testid={`button-youtube-publish-${content.id}`}
+                    >
+                      <Youtube className="w-4 h-4" />
+                      Publish to YouTube
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.location.href = "/api/auth/google"}
+                      className="w-full gap-2"
+                      data-testid={`button-connect-youtube-${content.id}`}
+                    >
+                      <Youtube className="w-4 h-4" />
+                      Connect YouTube to Publish
+                    </Button>
+                  )}
+                </div>
+              )}
               <Button
+                variant="outline"
                 onClick={() => markAsPostedMutation.mutate(content.id)}
                 disabled={markAsPostedMutation.isPending}
                 className="w-full gap-2"
@@ -192,7 +305,7 @@ export default function ReadyToPost() {
                 ) : (
                   <CheckCircle className="w-4 h-4" />
                 )}
-                Mark as Posted
+                Mark as Posted (Manual Upload)
               </Button>
             </div>
           )}
@@ -269,6 +382,145 @@ export default function ReadyToPost() {
           </div>
         )}
       </div>
+
+      <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Youtube className="w-5 h-5 text-red-600" />
+              Publish to YouTube
+            </DialogTitle>
+            <DialogDescription>
+              Upload your video and publish it directly to YouTube.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {youtubeAccounts.length > 1 && (
+              <div className="space-y-2">
+                <Label htmlFor="youtube-channel">YouTube Channel</Label>
+                <Select
+                  value={publishForm.accountId}
+                  onValueChange={(value) => setPublishForm(prev => ({ ...prev, accountId: value }))}
+                >
+                  <SelectTrigger data-testid="select-youtube-channel">
+                    <SelectValue placeholder="Select channel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {youtubeAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.accountName || account.accountHandle || "YouTube Channel"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="video-file">Video File</Label>
+              <p className="text-xs text-muted-foreground">
+                Download your generated video first, then select it here to upload.
+              </p>
+              <Input
+                id="video-file"
+                type="file"
+                accept="video/*"
+                ref={fileInputRef}
+                onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
+                data-testid="input-video-file"
+              />
+              {selectedVideoFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {selectedVideoFile.name} ({(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="video-title">Title</Label>
+              <Input
+                id="video-title"
+                value={publishForm.title}
+                onChange={(e) => setPublishForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter video title"
+                data-testid="input-video-title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="video-description">Description</Label>
+              <Textarea
+                id="video-description"
+                value={publishForm.description}
+                onChange={(e) => setPublishForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter video description"
+                rows={4}
+                data-testid="input-video-description"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="video-tags">Tags (comma-separated)</Label>
+              <Input
+                id="video-tags"
+                value={publishForm.tags}
+                onChange={(e) => setPublishForm(prev => ({ ...prev, tags: e.target.value }))}
+                placeholder="tag1, tag2, tag3"
+                data-testid="input-video-tags"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="privacy-status">Privacy</Label>
+              <Select
+                value={publishForm.privacyStatus}
+                onValueChange={(value: "private" | "unlisted" | "public") => 
+                  setPublishForm(prev => ({ ...prev, privacyStatus: value }))
+                }
+              >
+                <SelectTrigger data-testid="select-privacy-status">
+                  <SelectValue placeholder="Select privacy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="unlisted">Unlisted</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPublishDialogOpen(false)}
+              disabled={uploadMutation.isPending}
+              data-testid="button-cancel-publish"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700"
+              onClick={handlePublish}
+              disabled={uploadMutation.isPending || !selectedVideoFile}
+              data-testid="button-confirm-publish"
+            >
+              {uploadMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Publish to YouTube
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
