@@ -1,129 +1,76 @@
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ANALYTICS_DATA } from "@/lib/mockData";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart3, TrendingUp, Users, Eye } from "lucide-react";
 
 export default function Analytics() {
   return (
     <Layout title="Analytics">
-      <div className="space-y-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-page-title">Analytics</h2>
+        <p className="text-muted-foreground">Track your content performance across platforms.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {[
+          { label: "Total Views", icon: Eye, value: "-", color: "bg-blue-500/10 text-blue-500" },
+          { label: "Engagement", icon: TrendingUp, value: "-", color: "bg-emerald-500/10 text-emerald-500" },
+          { label: "Followers", icon: Users, value: "-", color: "bg-purple-500/10 text-purple-500" },
+          { label: "Posts", icon: BarChart3, value: "-", color: "bg-amber-500/10 text-amber-500" },
+        ].map((stat) => (
+          <Card key={stat.label} className="border-none shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between pb-2">
+                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                <div className={`w-8 h-8 rounded-full ${stat.color} flex items-center justify-center`}>
+                  <stat.icon className="w-4 h-4" />
+                </div>
+              </div>
+              <h2 className="text-3xl font-bold font-display tracking-tight mt-2">{stat.value}</h2>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-none shadow-sm">
           <CardHeader>
             <CardTitle>Engagement Overview</CardTitle>
           </CardHeader>
-          <CardContent className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={ANALYTICS_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorTwitter" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorInsta" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  dy={10}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(value) => `${value / 1000}k`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))', 
-                    borderRadius: '8px',
-                    boxShadow: 'var(--shadow-md)' 
-                  }} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="twitter" 
-                  stroke="#0ea5e9" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorTwitter)" 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="instagram" 
-                  stroke="#ec4899" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorInsta)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center text-center">
+              <div>
+                <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="font-medium text-foreground">No data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Connect accounts and publish content to see analytics
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Audience Growth</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {['Twitter', 'Instagram', 'LinkedIn'].map((platform, i) => (
-                  <div key={platform} className="flex items-center gap-4">
-                    <div className="w-24 text-sm font-medium">{platform}</div>
-                    <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${
-                          i === 0 ? 'bg-sky-500' : i === 1 ? 'bg-pink-500' : 'bg-blue-700'
-                        }`} 
-                        style={{ width: `${65 + (i * 10)}%` }} 
-                      />
-                    </div>
-                    <div className="w-12 text-right text-sm text-muted-foreground">
-                      +{12 - i}%
-                    </div>
-                  </div>
-                ))}
+        <Card className="border-none shadow-sm">
+          <CardHeader>
+            <CardTitle>Audience Growth</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center text-center">
+              <div>
+                <TrendingUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="font-medium text-foreground">No data yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Follower growth will appear here once accounts are connected
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          <Card className="border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Best Time to Post</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-7 gap-1 h-48">
-                {Array.from({ length: 7 * 5 }).map((_, i) => (
-                  <div 
-                    key={i} 
-                    className="rounded bg-primary" 
-                    style={{ 
-                      opacity: Math.random() * 0.8 + 0.1 
-                    }} 
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                <span>Mon</span>
-                <span>Tue</span>
-                <span>Wed</span>
-                <span>Thu</span>
-                <span>Fri</span>
-                <span>Sat</span>
-                <span>Sun</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="mt-8 p-6 rounded-xl bg-secondary/30 border border-border/50 text-center">
+        <p className="text-muted-foreground">
+          Analytics will be available once you connect your social media accounts and start publishing content.
+        </p>
       </div>
     </Layout>
   );

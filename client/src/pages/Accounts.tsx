@@ -1,67 +1,70 @@
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_CHANNELS } from "@/lib/mockData";
-import { Plus, CheckCircle2, AlertCircle, Twitter, Linkedin, Instagram, Facebook, Youtube } from "lucide-react";
-
-const ICONS: Record<string, any> = {
-  twitter: Twitter,
-  linkedin: Linkedin,
-  instagram: Instagram,
-  facebook: Facebook,
-  youtube: Youtube,
-};
+import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube } from "lucide-react";
 
 export default function Accounts() {
   return (
     <Layout title="Accounts">
+      <div className="mb-8">
+        <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-page-title">Connected Accounts</h2>
+        <p className="text-muted-foreground">Connect your social media accounts to schedule and publish content.</p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Add New Card */}
-        <button className="h-full min-h-[200px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group">
+        <button 
+          className="h-full min-h-[200px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
+          data-testid="button-connect-account"
+        >
           <div className="w-12 h-12 rounded-full bg-background shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
             <Plus className="w-6 h-6" />
           </div>
           <span className="font-medium text-muted-foreground group-hover:text-primary">Connect Account</span>
         </button>
 
-        {MOCK_CHANNELS.map((channel) => {
-          const Icon = ICONS[channel.platform] || Twitter;
-          
-          return (
-            <Card key={channel.id} className="border-none shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-full h-1 ${channel.status === 'connected' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-              <CardContent className="p-6 pt-8 flex flex-col items-center text-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-secondary/50 flex items-center justify-center text-foreground">
-                  <Icon className="w-8 h-8" />
-                </div>
-                
-                <div>
-                  <h3 className="font-bold text-lg">{channel.name}</h3>
-                  <p className="text-sm text-muted-foreground">{channel.handle}</p>
-                </div>
+        <div className="min-h-[200px] rounded-xl border border-border/50 bg-secondary/10 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <div className="flex gap-3">
+            <div className="w-10 h-10 rounded-full bg-sky-500/10 flex items-center justify-center text-sky-500">
+              <Twitter className="w-5 h-5" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-500">
+              <Instagram className="w-5 h-5" />
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-700/10 flex items-center justify-center text-blue-700">
+              <Linkedin className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <p className="font-medium text-foreground">No accounts connected</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Connect your social accounts to start posting
+            </p>
+          </div>
+        </div>
+      </div>
 
-                <div className="flex items-center gap-6 w-full pt-4 border-t border-border/50 mt-2">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Followers</p>
-                    <p className="font-bold text-lg">{channel.followers}</p>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
-                    <div className={`flex items-center justify-center gap-1.5 mt-1 text-sm font-medium ${
-                      channel.status === 'connected' ? 'text-emerald-600' : 'text-rose-600'
-                    }`}>
-                      {channel.status === 'connected' ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <AlertCircle className="w-4 h-4" />
-                      )}
-                      <span className="capitalize">{channel.status}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="mt-12">
+        <h3 className="text-lg font-display font-bold mb-4">Supported Platforms</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[
+            { name: "Twitter/X", icon: Twitter, color: "bg-sky-500" },
+            { name: "Instagram", icon: Instagram, color: "bg-pink-500" },
+            { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700" },
+            { name: "Facebook", icon: Facebook, color: "bg-blue-600" },
+            { name: "YouTube", icon: Youtube, color: "bg-red-500" },
+          ].map((platform) => (
+            <div 
+              key={platform.name}
+              className="p-4 rounded-lg bg-secondary/30 border border-border/50 flex items-center gap-3"
+            >
+              <div className={`w-8 h-8 rounded-lg ${platform.color} flex items-center justify-center text-white`}>
+                <platform.icon className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-medium">{platform.name}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-sm text-muted-foreground mt-4">
+          Account connections coming soon. For now, you can generate content and copy it to your platforms.
+        </p>
       </div>
     </Layout>
   );
