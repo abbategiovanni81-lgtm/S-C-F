@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, Zap, Settings, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Zap, Settings, RefreshCw, Loader2, Key } from "lucide-react";
 
 interface AIEngineStatus {
   configured: boolean;
@@ -14,28 +16,35 @@ interface AIEnginesResponse {
   fal: AIEngineStatus;
 }
 
-const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string } }> = {
+const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string }> = {
   openai: {
     type: "Strategy & Copy",
     description: "Writes captions, hashtags, scripts, and content strategy using GPT-4.",
     logo: "https://images.unsplash.com/photo-1692312349581-8a5316db048c?auto=format&fit=crop&w=150&q=80",
-    badge: { bg: "bg-emerald-500", text: "GPT" }
+    badge: { bg: "bg-emerald-500", text: "GPT" },
+    keyName: "Configured via Replit AI Integration"
   },
   elevenlabs: {
     type: "Voice & Audio",
     description: "Generates natural voiceovers and audio from text using AI voices.",
     logo: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=150&q=80",
-    badge: { bg: "bg-zinc-900", text: "11" }
+    badge: { bg: "bg-zinc-900", text: "11" },
+    keyName: "ELEVENLABS_API_KEY"
   },
   fal: {
     type: "Avatar Pipeline",
     description: "Handles lip-sync processing to match audio with avatar videos.",
     logo: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=150&q=80",
-    badge: { bg: "bg-indigo-600", text: "FAL" }
+    badge: { bg: "bg-indigo-600", text: "FAL" },
+    keyName: "FAL_API_KEY"
   }
 };
 
 export default function AIEngines() {
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState<string | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+
   const { data: status, isLoading, refetch, isRefetching } = useQuery<AIEnginesResponse>({
     queryKey: ["/api/ai-engines/status"],
     queryFn: async () => {
@@ -51,6 +60,11 @@ export default function AIEngines() {
     configured: value.configured,
     ...ENGINE_INFO[key]
   })) : [];
+
+  const handleConfigureClick = (engineId: string) => {
+    setSelectedEngine(engineId);
+    setConfigDialogOpen(true);
+  };
 
   return (
     <Layout title="AI Engines">
@@ -119,6 +133,7 @@ export default function AIEngines() {
 
                 <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border/50">
                   <button 
+                    onClick={() => handleConfigureClick(engine.id)}
                     className="flex-1 h-9 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
                     data-testid={`button-configure-${engine.id}`}
                   >
@@ -126,6 +141,7 @@ export default function AIEngines() {
                     Configure
                   </button>
                   <button 
+                    onClick={() => refetch()}
                     className="h-9 w-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" 
                     title="Test Connection"
                     data-testid={`button-test-${engine.id}`}
@@ -138,6 +154,7 @@ export default function AIEngines() {
           ))}
 
           <button 
+            onClick={() => setAddDialogOpen(true)}
             className="h-full min-h-[300px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
             data-testid="button-add-engine"
           >
@@ -151,6 +168,84 @@ export default function AIEngines() {
           </button>
         </div>
       )}
+
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Configure {selectedEngine && ENGINE_INFO[selectedEngine]?.badge.text}</DialogTitle>
+            <DialogDescription>
+              {selectedEngine && `Manage ${engines.find(e => e.id === selectedEngine)?.name} settings`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEngine && (
+            <div className="py-4">
+              <div className="p-4 rounded-lg bg-secondary/50 border border-border/50 mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Key className="w-5 h-5 text-muted-foreground" />
+                  <span className="font-medium">API Key</span>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {ENGINE_INFO[selectedEngine].keyName}
+                </p>
+                {engines.find(e => e.id === selectedEngine)?.configured ? (
+                  <div className="flex items-center gap-2 text-emerald-600 text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>API key is configured</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-600 text-sm">
+                    <XCircle className="w-4 h-4" />
+                    <span>API key not found</span>
+                  </div>
+                )}
+              </div>
+              
+              {!engines.find(e => e.id === selectedEngine)?.configured && (
+                <p className="text-sm text-muted-foreground">
+                  To add an API key, go to the Secrets tab in your Replit project and add <code className="px-1 py-0.5 bg-secondary rounded text-xs">{ENGINE_INFO[selectedEngine].keyName}</code>
+                </p>
+              )}
+
+              <button
+                onClick={() => setConfigDialogOpen(false)}
+                className="w-full mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                data-testid="button-done"
+              >
+                Done
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New AI Engine</DialogTitle>
+            <DialogDescription>
+              Connect additional AI services
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
+              <Zap className="w-8 h-8" />
+            </div>
+            <p className="font-medium text-lg mb-2">More Engines Coming Soon</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              We're working on adding support for more AI services. Currently supported: OpenAI, ElevenLabs, and Fal.ai.
+            </p>
+            <button
+              onClick={() => setAddDialogOpen(false)}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+              data-testid="button-close-add-dialog"
+            >
+              Got it
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

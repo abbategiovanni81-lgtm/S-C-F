@@ -1,12 +1,21 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format, addDays, startOfToday } from "date-fns";
-import { Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, Clock } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Schedule() {
   const today = startOfToday();
   const days = Array.from({ length: 7 }).map((_, i) => addDays(today, i));
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+  const handleAddClick = (day: Date) => {
+    setSelectedDate(day);
+    setDialogOpen(true);
+  };
 
   return (
     <Layout title="Schedule">
@@ -50,6 +59,7 @@ export default function Schedule() {
                   )}
                   
                   <button 
+                    onClick={() => handleAddClick(day)}
                     className="w-full py-2 rounded-lg border border-dashed border-border text-muted-foreground text-xs font-medium hover:bg-background hover:text-primary hover:border-primary/50 transition-colors flex items-center justify-center gap-1"
                     data-testid={`button-add-post-${i}`}
                   >
@@ -63,6 +73,45 @@ export default function Schedule() {
         </div>
       </div>
 
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule a Post</DialogTitle>
+            <DialogDescription>
+              {selectedDate && `For ${format(selectedDate, 'EEEE, MMMM d, yyyy')}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
+              <Clock className="w-8 h-8" />
+            </div>
+            <p className="font-medium text-lg mb-2">Coming Soon</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Post scheduling is under development. For now, create content using Brand Briefs and post manually.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Link href="/brand-briefs">
+                <a 
+                  onClick={() => setDialogOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                  data-testid="link-create-content"
+                >
+                  Create Content
+                </a>
+              </Link>
+              <button
+                onClick={() => setDialogOpen(false)}
+                className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                data-testid="button-close-dialog"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="mt-6 border-none shadow-sm">
         <CardContent className="p-6 text-center">
           <CalendarIcon className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -71,7 +120,7 @@ export default function Schedule() {
             For now, generate content and copy it to post on your platforms.
           </p>
           <Link href="/brand-briefs">
-            <a className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors" data-testid="link-create-content">
+            <a className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors" data-testid="link-create-content-bottom">
               Create Content
             </a>
           </Link>
