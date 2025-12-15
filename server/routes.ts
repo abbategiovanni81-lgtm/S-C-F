@@ -5,6 +5,8 @@ import { insertBrandBriefSchema, insertGeneratedContentSchema } from "@shared/sc
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, type ContentGenerationRequest } from "./openai";
+import { elevenlabsService } from "./elevenlabs";
+import { falService } from "./fal";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -229,6 +231,59 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error generating ideas:", error);
       res.status(500).json({ error: "Failed to generate content ideas" });
+    }
+  });
+
+  // AI Engine Status endpoints
+  app.get("/api/ai-engines/status", async (req, res) => {
+    res.json({
+      openai: { configured: true, name: "OpenAI GPT-4" },
+      elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Studio" },
+      fal: { configured: falService.isConfigured(), name: "Fal.ai Lip-Sync" },
+    });
+  });
+
+  app.get("/api/elevenlabs/voices", async (req, res) => {
+    try {
+      const voices = await elevenlabsService.getVoices();
+      res.json(voices);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/elevenlabs/voiceover", async (req, res) => {
+    try {
+      const { text, voiceId } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "text is required" });
+      }
+      const result = await elevenlabsService.generateVoiceover({ text, voiceId });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/fal/lipsync", async (req, res) => {
+    try {
+      const { videoUrl, audioUrl } = req.body;
+      if (!videoUrl || !audioUrl) {
+        return res.status(400).json({ error: "videoUrl and audioUrl are required" });
+      }
+      const result = await falService.submitLipSync({ videoUrl, audioUrl });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/fal/status/:requestId", async (req, res) => {
+    try {
+      const result = await falService.checkStatus(req.params.requestId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
