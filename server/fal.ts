@@ -2,6 +2,12 @@ export interface FalConfig {
   apiKey: string;
 }
 
+export interface FileUploadResult {
+  url: string;
+  contentType: string;
+  fileName: string;
+}
+
 export interface LipSyncRequest {
   videoUrl: string;
   audioUrl: string;
@@ -36,6 +42,35 @@ export class FalService {
 
   isConfigured(): boolean {
     return !!this.apiKey;
+  }
+
+  async uploadFile(fileBuffer: Buffer, fileName: string, contentType: string): Promise<FileUploadResult> {
+    if (!this.apiKey) {
+      throw new Error("Fal.ai API key not configured. Please add FAL_API_KEY to your secrets.");
+    }
+
+    // Fal.ai uses a CDN upload endpoint for files
+    const response = await fetch("https://fal.run/fal-ai/storage/upload", {
+      method: "POST",
+      headers: {
+        "Authorization": `Key ${this.apiKey}`,
+        "Content-Type": contentType,
+        "X-Fal-File-Name": fileName,
+      },
+      body: fileBuffer,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Fal.ai file upload error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      url: data.url,
+      contentType,
+      fileName,
+    };
   }
 
   async submitLipSync(request: LipSyncRequest): Promise<{ requestId: string }> {

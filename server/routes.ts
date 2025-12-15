@@ -342,6 +342,62 @@ export async function registerRoutes(
     }
   });
 
+  // Lip-sync with file upload - accepts video file and optional audio file
+  const lipSyncUpload = multer({ storage: multer.memoryStorage() }).fields([
+    { name: 'video', maxCount: 1 },
+    { name: 'audio', maxCount: 1 }
+  ]);
+
+  app.post("/api/fal/lipsync-upload", lipSyncUpload, async (req, res) => {
+    try {
+      const files = req.files as { video?: Express.Multer.File[], audio?: Express.Multer.File[] };
+      const { audioUrl } = req.body; // Can pass existing audio URL instead of file
+      
+      if (!files?.video?.[0]) {
+        return res.status(400).json({ error: "Video file is required" });
+      }
+      
+      if (!files?.audio?.[0] && !audioUrl) {
+        return res.status(400).json({ error: "Audio file or audioUrl is required" });
+      }
+
+      // Upload video to Fal.ai storage
+      const videoFile = files.video[0];
+      const uploadedVideo = await falService.uploadFile(
+        videoFile.buffer,
+        videoFile.originalname,
+        videoFile.mimetype
+      );
+
+      // Either use existing audioUrl or upload audio file
+      let finalAudioUrl = audioUrl;
+      if (files?.audio?.[0]) {
+        const audioFile = files.audio[0];
+        const uploadedAudio = await falService.uploadFile(
+          audioFile.buffer,
+          audioFile.originalname,
+          audioFile.mimetype
+        );
+        finalAudioUrl = uploadedAudio.url;
+      }
+
+      // Submit lip-sync job
+      const result = await falService.submitLipSync({
+        videoUrl: uploadedVideo.url,
+        audioUrl: finalAudioUrl,
+      });
+
+      res.json({
+        ...result,
+        uploadedVideoUrl: uploadedVideo.url,
+        audioUrl: finalAudioUrl,
+      });
+    } catch (error: any) {
+      console.error("Lip-sync upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/fal/status/:requestId", async (req, res) => {
     try {
       const result = await falService.checkStatus(req.params.requestId);

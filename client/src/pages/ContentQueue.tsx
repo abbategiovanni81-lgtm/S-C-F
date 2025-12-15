@@ -818,7 +818,7 @@ export default function ContentQueue() {
               Create Lip-Sync Video
             </DialogTitle>
             <DialogDescription>
-              Upload a video and audio file to create a lip-synced video. You can use any audio source.
+              Upload your avatar video and we'll automatically sync the lips to match your voiceover audio.
             </DialogDescription>
           </DialogHeader>
 
@@ -858,23 +858,31 @@ export default function ContentQueue() {
 
             {lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl) && (
               <div className="space-y-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="text-xs font-medium text-blue-800 dark:text-blue-200">Or use generated ElevenLabs voiceover:</p>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="use-generated-audio"
+                    checked={!lipSyncAudioFile}
+                    onChange={() => {
+                      if (lipSyncAudioFile) {
+                        setLipSyncAudioFile(null);
+                      }
+                    }}
+                    className="rounded"
+                  />
+                  <label htmlFor="use-generated-audio" className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                    Use generated ElevenLabs voiceover (recommended)
+                  </label>
+                </div>
                 <audio controls className="w-full h-10">
                   <source src={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl} type="audio/mpeg" />
                 </audio>
-                <a
-                  href={generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl}
-                  download="voiceover.mp3"
-                  className="text-xs text-primary underline"
-                >
-                  Download Audio
-                </a>
               </div>
             )}
 
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Note:</strong> Lip-sync requires hosted video/audio URLs. Upload your files or use the download links above with external lip-sync tools like Fal.ai or Sync Labs.
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm text-green-800 dark:text-green-200">
+                Upload your avatar video and we'll automatically sync it with the audio using Fal.ai lip-sync technology.
               </p>
             </div>
 
@@ -915,21 +923,88 @@ export default function ContentQueue() {
                 onClick={async () => {
                   const hasGeneratedAudio = lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl);
                   if (!lipSyncVideoFile || (!lipSyncAudioFile && !hasGeneratedAudio)) {
-                    toast({ title: "Missing files", description: "Please upload both video and audio files.", variant: "destructive" });
+                    toast({ title: "Missing files", description: "Please upload a video file and ensure audio is available.", variant: "destructive" });
                     return;
                   }
-                  setLipSyncStatus("processing");
-                  toast({ 
-                    title: "Coming soon", 
-                    description: "Lip-sync processing requires hosted URLs. For now, download the files and use Fal.ai or Sync Labs directly." 
-                  });
-                  setLipSyncStatus("idle");
+                  
+                  try {
+                    setLipSyncStatus("uploading");
+                    
+                    // Build form data
+                    const formData = new FormData();
+                    formData.append("video", lipSyncVideoFile);
+                    
+                    if (lipSyncAudioFile) {
+                      formData.append("audio", lipSyncAudioFile);
+                    } else if (hasGeneratedAudio) {
+                      // Use existing voiceover URL
+                      const audioUrl = generatedAudio[lipSyncContent!.id] || (lipSyncContent!.generationMetadata as any)?.voiceoverAudioUrl;
+                      formData.append("audioUrl", audioUrl);
+                    }
+                    
+                    // Upload and submit lip-sync job
+                    const response = await fetch("/api/fal/lipsync-upload", {
+                      method: "POST",
+                      body: formData,
+                    });
+                    
+                    if (!response.ok) {
+                      const error = await response.json();
+                      throw new Error(error.error || "Failed to start lip-sync");
+                    }
+                    
+                    const data = await response.json();
+                    setLipSyncStatus("processing");
+                    setLipSyncResult({ requestId: data.requestId });
+                    
+                    toast({ title: "Processing started", description: "Your lip-sync video is being generated. This may take a few minutes." });
+                    
+                    // Poll for completion with timeout
+                    let pollCount = 0;
+                    const maxPolls = 60; // 5 minutes max
+                    const pollInterval = setInterval(async () => {
+                      pollCount++;
+                      if (pollCount > maxPolls) {
+                        clearInterval(pollInterval);
+                        setLipSyncStatus("idle");
+                        toast({ title: "Timeout", description: "Lip-sync is taking longer than expected. Please try again later.", variant: "destructive" });
+                        return;
+                      }
+                      try {
+                        const statusRes = await fetch(`/api/fal/status/${data.requestId}`);
+                        const statusData = await statusRes.json();
+                        
+                        if (statusData.status === "completed" && statusData.videoUrl) {
+                          clearInterval(pollInterval);
+                          setLipSyncStatus("complete");
+                          setLipSyncResult({ requestId: data.requestId, videoUrl: statusData.videoUrl });
+                          toast({ title: "Lip-sync complete!", description: "Your video is ready for download." });
+                        } else if (statusData.status === "failed") {
+                          clearInterval(pollInterval);
+                          setLipSyncStatus("idle");
+                          toast({ title: "Processing failed", description: "Lip-sync processing failed. Please try again.", variant: "destructive" });
+                        }
+                      } catch (err) {
+                        console.error("Status poll error:", err);
+                      }
+                    }, 5000);
+                    
+                  } catch (error: any) {
+                    console.error("Lip-sync error:", error);
+                    setLipSyncStatus("idle");
+                    toast({ title: "Error", description: error.message || "Failed to process lip-sync", variant: "destructive" });
+                  }
                 }}
-                disabled={!lipSyncVideoFile || (!lipSyncAudioFile && !(lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl))) || lipSyncStatus === "processing"}
-                className="gap-2"
+                disabled={!lipSyncVideoFile || (!lipSyncAudioFile && !(lipSyncContent && (generatedAudio[lipSyncContent.id] || (lipSyncContent.generationMetadata as any)?.voiceoverAudioUrl))) || lipSyncStatus === "processing" || lipSyncStatus === "uploading"}
+                className="gap-2 w-full sm:w-auto"
                 data-testid="button-start-lipsync"
               >
-                {lipSyncStatus === "processing" ? (
+                {lipSyncStatus === "uploading" ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : lipSyncStatus === "processing" ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Processing...
