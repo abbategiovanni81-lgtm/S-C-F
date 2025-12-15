@@ -7,6 +7,7 @@ import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, type ContentGenerationRequest } from "./openai";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
+import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos } from "./youtube";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -344,6 +345,87 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting social account:", error);
       res.status(500).json({ error: "Failed to delete social account" });
+    }
+  });
+
+  // Google/YouTube OAuth endpoints
+  app.get("/api/auth/google", (req, res) => {
+    const authUrl = getAuthUrl();
+    res.redirect(authUrl);
+  });
+
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const code = req.query.code as string;
+      if (!code) {
+        return res.redirect("/accounts?error=no_code");
+      }
+
+      const tokens = await getTokensFromCode(code);
+      const channelInfo = await getChannelInfo(tokens.access_token!);
+
+      // Store the connected YouTube account
+      const userId = "demo-user";
+      await storage.ensureUser(userId);
+      
+      await storage.createSocialAccount({
+        userId,
+        platform: "YouTube",
+        accountName: channelInfo.title || "YouTube Channel",
+        accountHandle: channelInfo.customUrl || channelInfo.channelId || null,
+        profileUrl: channelInfo.thumbnailUrl || null,
+        isConnected: "connected",
+      });
+
+      // Store tokens in a cookie/session for API calls (simplified for demo)
+      res.cookie("youtube_access_token", tokens.access_token, { httpOnly: true, maxAge: 3600000 });
+      res.cookie("youtube_refresh_token", tokens.refresh_token, { httpOnly: true, maxAge: 30 * 24 * 3600000 });
+      res.cookie("youtube_channel_id", channelInfo.channelId, { httpOnly: true, maxAge: 30 * 24 * 3600000 });
+
+      res.redirect("/accounts?connected=youtube");
+    } catch (error) {
+      console.error("OAuth callback error:", error);
+      res.redirect("/accounts?error=oauth_failed");
+    }
+  });
+
+  app.get("/api/youtube/channel", async (req, res) => {
+    try {
+      const accessToken = req.cookies?.youtube_access_token;
+      if (!accessToken) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const info = await getChannelInfo(accessToken);
+      res.json(info);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics", async (req, res) => {
+    try {
+      const accessToken = req.cookies?.youtube_access_token;
+      const channelId = req.cookies?.youtube_channel_id;
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const analytics = await getChannelAnalytics(accessToken, channelId);
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/videos", async (req, res) => {
+    try {
+      const accessToken = req.cookies?.youtube_access_token;
+      if (!accessToken) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const videos = await getRecentVideos(accessToken);
+      res.json(videos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

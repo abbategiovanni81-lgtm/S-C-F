@@ -13,12 +13,12 @@ import type { SocialAccount } from "@shared/schema";
 const DEMO_USER_ID = "demo-user";
 
 const PLATFORMS = [
-  { name: "Twitter/X", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10" },
-  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10" },
-  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10" },
-  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10" },
-  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10" },
-  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black", bgLight: "bg-black/10" },
+  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true },
+  { name: "Twitter/X", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: false },
+  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: false },
+  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: false },
+  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: false },
+  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black", bgLight: "bg-black/10", oauth: false },
 ];
 
 export default function Accounts() {
@@ -62,7 +62,13 @@ export default function Accounts() {
   });
 
   const handlePlatformSelect = (platformName: string) => {
-    setSelectedPlatform(platformName);
+    const platform = PLATFORMS.find(p => p.name === platformName);
+    if (platform?.oauth) {
+      // Redirect to OAuth flow
+      window.location.href = "/api/auth/google";
+    } else {
+      setSelectedPlatform(platformName);
+    }
   };
 
   const handleAddAccount = () => {
@@ -146,9 +152,15 @@ export default function Accounts() {
                     {account.platform}
                   </p>
                   <div className="mt-2">
-                    <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600">
-                      Manual posting
-                    </span>
+                    {account.isConnected === "connected" ? (
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-600">
+                        Connected
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-600">
+                        Manual posting
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -213,6 +225,9 @@ export default function Accounts() {
                     <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
                   )}
                   <span className="font-medium">{platform.name}</span>
+                  {platform.oauth && (
+                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
+                  )}
                 </button>
               ))}
             </div>
