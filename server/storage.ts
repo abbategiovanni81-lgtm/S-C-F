@@ -10,7 +10,7 @@ import type {
   SocialAccount,
   InsertSocialAccount
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -29,7 +29,9 @@ export interface IStorage {
   updateGeneratedContent(id: string, content: Partial<InsertGeneratedContent>): Promise<GeneratedContent | undefined>;
 
   getSocialAccountsByUser(userId: string): Promise<SocialAccount[]>;
+  getSocialAccountByPlatform(userId: string, platform: string): Promise<SocialAccount | undefined>;
   createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
+  updateSocialAccount(id: string, data: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: string): Promise<void>;
 }
 
@@ -114,8 +116,23 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(socialAccounts).where(eq(socialAccounts.userId, userId));
   }
 
+  async getSocialAccountByPlatform(userId: string, platform: string): Promise<SocialAccount | undefined> {
+    const result = await db.select().from(socialAccounts)
+      .where(and(eq(socialAccounts.userId, userId), eq(socialAccounts.platform, platform)))
+      .limit(1);
+    return result[0];
+  }
+
   async createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount> {
     const result = await db.insert(socialAccounts).values(account).returning();
+    return result[0];
+  }
+
+  async updateSocialAccount(id: string, data: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined> {
+    const result = await db.update(socialAccounts)
+      .set(data)
+      .where(eq(socialAccounts.id, id))
+      .returning();
     return result[0];
   }
 

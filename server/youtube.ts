@@ -10,6 +10,7 @@ const oauth2Client = new google.auth.OAuth2(
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
+  "https://www.googleapis.com/auth/youtube.upload",
   "https://www.googleapis.com/auth/yt-analytics.readonly",
   "https://www.googleapis.com/auth/userinfo.profile",
 ];
@@ -114,4 +115,66 @@ export async function getRecentVideos(accessToken: string) {
     thumbnailUrl: item.snippet?.thumbnails?.medium?.url,
     publishedAt: item.snippet?.publishedAt,
   })) || [];
+}
+
+export async function refreshAccessToken(refreshToken: string) {
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  auth.setCredentials({ refresh_token: refreshToken });
+  
+  const { credentials } = await auth.refreshAccessToken();
+  return {
+    accessToken: credentials.access_token,
+    expiryDate: credentials.expiry_date,
+  };
+}
+
+export interface VideoUploadParams {
+  accessToken: string;
+  title: string;
+  description: string;
+  tags?: string[];
+  privacyStatus?: "private" | "unlisted" | "public";
+  videoBuffer: Buffer;
+  mimeType?: string;
+}
+
+export async function uploadVideo(params: VideoUploadParams) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: params.accessToken });
+  
+  const youtube = google.youtube({ version: "v3", auth });
+
+  const { Readable } = await import("stream");
+  const videoStream = Readable.from(params.videoBuffer);
+
+  const response = await youtube.videos.insert({
+    part: ["snippet", "status"],
+    requestBody: {
+      snippet: {
+        title: params.title,
+        description: params.description,
+        tags: params.tags || [],
+      },
+      status: {
+        privacyStatus: params.privacyStatus || "private",
+        selfDeclaredMadeForKids: false,
+      },
+    },
+    media: {
+      mimeType: params.mimeType || "video/mp4",
+      body: videoStream,
+    },
+  });
+
+  return {
+    videoId: response.data.id,
+    title: response.data.snippet?.title,
+    channelId: response.data.snippet?.channelId,
+    publishedAt: response.data.snippet?.publishedAt,
+    status: response.data.status?.privacyStatus,
+    url: `https://www.youtube.com/watch?v=${response.data.id}`,
+  };
 }

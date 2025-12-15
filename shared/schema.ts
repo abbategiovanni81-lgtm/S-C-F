@@ -47,6 +47,10 @@ export const socialAccounts = pgTable("social_accounts", {
   accountHandle: text("account_handle"),
   profileUrl: text("profile_url"),
   isConnected: text("is_connected").notNull().default("pending"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry"),
+  platformAccountId: text("platform_account_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

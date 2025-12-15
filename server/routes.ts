@@ -7,7 +7,8 @@ import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, type ContentGenerationRequest } from "./openai";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
-import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos } from "./youtube";
+import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
+import multer from "multer";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -364,18 +365,37 @@ export async function registerRoutes(
       const tokens = await getTokensFromCode(code);
       const channelInfo = await getChannelInfo(tokens.access_token!);
 
-      // Store the connected YouTube account
+      // Store or update the connected YouTube account
       const userId = "demo-user";
       await storage.ensureUser(userId);
       
-      await storage.createSocialAccount({
-        userId,
-        platform: "YouTube",
-        accountName: channelInfo.title || "YouTube Channel",
-        accountHandle: channelInfo.customUrl || channelInfo.channelId || null,
-        profileUrl: channelInfo.thumbnailUrl || null,
-        isConnected: "connected",
-      });
+      const existingAccount = await storage.getSocialAccountByPlatform(userId, "YouTube");
+      
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: channelInfo.title || "YouTube Channel",
+          accountHandle: channelInfo.customUrl || channelInfo.channelId || null,
+          profileUrl: channelInfo.thumbnailUrl || null,
+          isConnected: "connected",
+          accessToken: tokens.access_token || null,
+          refreshToken: tokens.refresh_token || existingAccount.refreshToken,
+          tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          platformAccountId: channelInfo.channelId || null,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "YouTube",
+          accountName: channelInfo.title || "YouTube Channel",
+          accountHandle: channelInfo.customUrl || channelInfo.channelId || null,
+          profileUrl: channelInfo.thumbnailUrl || null,
+          isConnected: "connected",
+          accessToken: tokens.access_token || null,
+          refreshToken: tokens.refresh_token || null,
+          tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+          platformAccountId: channelInfo.channelId || null,
+        });
+      }
 
       // Store tokens in a cookie/session for API calls (simplified for demo)
       res.cookie("youtube_access_token", tokens.access_token, { httpOnly: true, maxAge: 3600000 });
@@ -426,6 +446,63 @@ export async function registerRoutes(
       res.json(videos);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 256 * 1024 * 1024 } });
+
+  app.post("/api/youtube/upload", upload.single("video"), async (req, res) => {
+    try {
+      const userId = "demo-user";
+      const account = await storage.getSocialAccountByPlatform(userId, "YouTube");
+      
+      if (!account?.accessToken) {
+        return res.status(401).json({ error: "YouTube not connected or tokens expired. Please reconnect your YouTube account." });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+
+      const { title, description, tags, privacyStatus } = req.body;
+      
+      let accessToken = account.accessToken;
+      
+      if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+        if (!account.refreshToken) {
+          return res.status(401).json({ error: "Token expired and no refresh token available. Please reconnect your YouTube account." });
+        }
+        const newTokens = await refreshAccessToken(account.refreshToken);
+        accessToken = newTokens.accessToken!;
+        await storage.updateSocialAccount(account.id, {
+          accessToken: newTokens.accessToken,
+          tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
+        });
+      }
+
+      let parsedTags: string[] = [];
+      if (tags) {
+        try {
+          parsedTags = JSON.parse(tags);
+        } catch {
+          parsedTags = tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+        }
+      }
+
+      const result = await uploadVideo({
+        accessToken,
+        title: title || "Untitled Video",
+        description: description || "",
+        tags: parsedTags,
+        privacyStatus: privacyStatus || "private",
+        videoBuffer: req.file.buffer,
+        mimeType: req.file.mimetype,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("YouTube upload error:", error);
+      res.status(500).json({ error: error.message || "Failed to upload video" });
     }
   });
 
