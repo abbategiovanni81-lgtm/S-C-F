@@ -202,6 +202,7 @@ export async function registerRoutes(
       }
 
       const avoidPatterns = await storage.getAvoidPatternsForBrief(briefId);
+      const topPerformingPosts = await storage.getTopPerformingPatterns(brief.userId);
 
       const request: ContentGenerationRequest = {
         briefId,
@@ -213,6 +214,7 @@ export async function registerRoutes(
         contentFormat,
         topic,
         avoidPatterns,
+        topPerformingPosts,
       };
 
       const result = await generateSocialContent(request);

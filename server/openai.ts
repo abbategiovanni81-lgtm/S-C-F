@@ -15,6 +15,7 @@ export interface ContentGenerationRequest {
   contentFormat?: "video" | "image" | "carousel" | "tiktok_text";
   topic?: string;
   avoidPatterns?: string[];
+  topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
 }
 
 export interface GeneratedContentResult {
@@ -59,6 +60,10 @@ export async function generateSocialContent(
     ? `\n\nIMPORTANT - AVOID these elements based on past feedback:\n${request.avoidPatterns.map(p => `- ${p}`).join("\n")}`
     : "";
 
+  const learningSection = request.topPerformingPosts && request.topPerformingPosts.length > 0
+    ? `\n\nLEARN FROM TOP PERFORMING POSTS - Study these successful post titles/topics and incorporate similar hooks, structures, and themes:\n${request.topPerformingPosts.slice(0, 5).map((p, i) => `${i + 1}. "${p.title}" (${(p.views || 0).toLocaleString()} views)`).join("\n")}`
+    : "";
+
   const contentFormat = request.contentFormat || "video";
 
   const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
@@ -74,7 +79,7 @@ Your content should:
 - Appeal directly to the target audience
 - Support the content goals
 - Be optimized for the specified platforms
-- Use trending formats and hooks when appropriate${avoidSection}`;
+- Use trending formats and hooks when appropriate${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
