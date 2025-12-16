@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,9 @@ export default function ContentQueue() {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=approved"] });
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=rejected"] });
   };
+
+  // Track which content IDs we've already started polling for
+  const pollingStartedRef = useRef<Set<string>>(new Set());
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -188,7 +191,7 @@ export default function ContentQueue() {
       const res = await fetch("/api/fal/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, negativePrompt, aspectRatio: aspectRatio || "16:9", duration: 5 }),
+        body: JSON.stringify({ prompt, negativePrompt, aspectRatio: aspectRatio || "16:9", duration: 5, contentId }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -210,7 +213,7 @@ export default function ContentQueue() {
   const pollVideoStatus = async (contentId: string, requestId: string) => {
     const poll = async () => {
       try {
-        const res = await fetch(`/api/fal/video-status/${requestId}`);
+        const res = await fetch(`/api/fal/video-status/${requestId}?contentId=${contentId}`);
         if (!res.ok) throw new Error("Failed to check status");
         const data = await res.json();
         
@@ -241,6 +244,26 @@ export default function ContentQueue() {
     };
     poll();
   };
+
+  // Resume polling for in-progress video generation on page load
+  useEffect(() => {
+    const allContent = [...pendingContent, ...approvedContent, ...rejectedContent];
+    allContent.forEach((content) => {
+      const typedContent = content as GeneratedContent & { videoRequestId?: string; videoRequestStatus?: string };
+      if (typedContent.videoRequestId && typedContent.videoRequestStatus === "processing") {
+        // Check if we're not already polling this content
+        if (!pollingStartedRef.current.has(content.id)) {
+          pollingStartedRef.current.add(content.id);
+          setVideoRequests(prev => ({ 
+            ...prev, 
+            [content.id]: { requestId: typedContent.videoRequestId!, status: "processing" } 
+          }));
+          setGeneratingVideoId(content.id);
+          pollVideoStatus(content.id, typedContent.videoRequestId!);
+        }
+      }
+    });
+  }, [pendingContent, approvedContent, rejectedContent]);
 
   const openVideoDialog = (content: GeneratedContent) => {
     setVideoDialogContent(content);

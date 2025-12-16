@@ -34,6 +34,8 @@ export const generatedContent = pgTable("generated_content", {
   videoUrl: text("video_url"),
   thumbnailUrl: text("thumbnail_url"),
   generationMetadata: jsonb("generation_metadata"),
+  videoRequestId: text("video_request_id"), // Fal.ai request ID for resuming polling
+  videoRequestStatus: text("video_request_status"), // "processing", "completed", "failed"
   scheduledFor: timestamp("scheduled_for"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

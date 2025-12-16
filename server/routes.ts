@@ -412,11 +412,20 @@ export async function registerRoutes(
 
   app.post("/api/fal/generate-video", async (req, res) => {
     try {
-      const { prompt, negativePrompt, aspectRatio, duration } = req.body;
+      const { prompt, negativePrompt, aspectRatio, duration, contentId } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
       }
       const result = await falService.generateVideo({ prompt, negativePrompt, aspectRatio, duration });
+      
+      // Save the request ID to the content for resume polling
+      if (contentId && result.requestId) {
+        await storage.updateGeneratedContent(contentId, {
+          videoRequestId: result.requestId,
+          videoRequestStatus: "processing",
+        });
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -425,7 +434,23 @@ export async function registerRoutes(
 
   app.get("/api/fal/video-status/:requestId", async (req, res) => {
     try {
+      const contentId = req.query.contentId as string | undefined;
       const result = await falService.checkVideoStatus(req.params.requestId);
+      
+      // Update content status when video is completed or failed
+      if (contentId && result.status === "completed" && result.videoUrl) {
+        const existingContent = await storage.getGeneratedContent(contentId);
+        const existingMetadata = (existingContent?.generationMetadata as any) || {};
+        await storage.updateGeneratedContent(contentId, {
+          videoRequestStatus: "completed",
+          generationMetadata: { ...existingMetadata, generatedVideoUrl: result.videoUrl },
+        });
+      } else if (contentId && result.status === "failed") {
+        await storage.updateGeneratedContent(contentId, {
+          videoRequestStatus: "failed",
+        });
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
