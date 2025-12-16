@@ -46,7 +46,7 @@ export default function Analytics() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
 
   const { data: accounts = [] } = useQuery<SocialAccount[]>({
-    queryKey: ["/api/accounts"],
+    queryKey: ["/api/social-accounts"],
   });
 
   const { data: channel, isLoading: loadingChannel, error: channelError } = useQuery<YouTubeChannel>({
