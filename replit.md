@@ -4,6 +4,14 @@
 
 SocialCommand is a unified social media management platform that allows users to manage multiple social media channels, schedule posts, and track analytics from a single dashboard. The application features AI-powered content generation using OpenAI for copywriting, ElevenLabs for voice synthesis, and Fal.ai for video lip-sync processing. Users can create brand briefs that define their brand voice and content strategy, then generate social media content (scripts, captions, hashtags) based on those briefs.
 
+### Social Listening Feature
+The platform includes a Social Listening module that allows users to:
+- **Monitor mentions**: Track posts/comments from various platforms (YouTube, TikTok, Instagram, X/Twitter, Reddit)
+- **AI-powered analysis**: Automatically analyze sentiment, detect questions, and identify matched keywords
+- **AI reply generation**: Generate contextual replies based on brand briefs with multiple tone options (helpful, promotional, educational, friendly)
+- **Reply management**: Review, edit, and approve AI-generated replies before posting
+- **Trending topics**: Track trending topics and keywords across monitored content
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
