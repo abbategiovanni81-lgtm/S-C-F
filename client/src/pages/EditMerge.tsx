@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ interface ClipState {
 export default function EditMerge() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const params = useParams<{ contentId?: string }>();
   const [filterBrief, setFilterBrief] = useState<string>("all");
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
   const [clips, setClips] = useState<ClipState[]>([]);
@@ -38,6 +40,16 @@ export default function EditMerge() {
   const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=approved"],
   });
+
+  // Auto-select content when contentId is in URL
+  useEffect(() => {
+    if (params.contentId && approvedContent.length > 0 && !selectedContent) {
+      const content = approvedContent.find(c => c.id === params.contentId);
+      if (content) {
+        setSelectedContent(content);
+      }
+    }
+  }, [params.contentId, approvedContent, selectedContent]);
 
   const contentWithScenes = useMemo(() => 
     approvedContent.filter((content) => {

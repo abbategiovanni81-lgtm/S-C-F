@@ -23,6 +23,7 @@ function Router() {
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
       <Route path="/edit-merge" component={EditMerge} />
+      <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/ready-to-post" component={ReadyToPost} />
       <Route path="/schedule" component={Schedule} />
       <Route path="/accounts" component={Accounts} />
