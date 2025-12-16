@@ -443,3 +443,125 @@ Only include fields you can actually see in the screenshot. Use null for fields 
 
   return JSON.parse(content) as AnalyticsExtractionResult;
 }
+
+export interface ReplyGenerationRequest {
+  postContent: string;
+  postAuthor?: string;
+  platform: string;
+  brandVoice: string;
+  targetAudience: string;
+  contentGoals: string;
+  replyTone?: "helpful" | "promotional" | "educational" | "friendly";
+}
+
+export interface ReplyGenerationResult {
+  replyContent: string;
+  replyTone: string;
+  alternativeReplies: string[];
+  keyPointsAddressed: string[];
+}
+
+export async function generateReply(request: ReplyGenerationRequest): Promise<ReplyGenerationResult> {
+  const toneDescription = request.replyTone || "helpful";
+  
+  const systemPrompt = `You are a social media community manager for a brand. You craft thoughtful, engaging replies to comments and posts.
+
+Brand Voice: ${request.brandVoice}
+Target Audience: ${request.targetAudience}
+Content Goals: ${request.contentGoals}
+Desired Tone: ${toneDescription}
+Platform: ${request.platform}
+
+Your replies should:
+- Match the brand voice exactly
+- Be conversational and authentic (not robotic)
+- Add value (answer questions, share insights, be helpful)
+- Subtly promote the brand when appropriate without being pushy
+- Be the right length for the platform (shorter for TikTok/Instagram, can be longer for YouTube)
+- Never include hashtags in replies`;
+
+  const userPrompt = `Generate a reply to this ${request.platform} post/comment:
+
+${request.postAuthor ? `Author: @${request.postAuthor}` : ""}
+Content: "${request.postContent}"
+
+Respond in JSON format:
+{
+  "replyContent": "The main suggested reply",
+  "replyTone": "The tone used (helpful/promotional/educational/friendly)",
+  "alternativeReplies": ["2-3 alternative reply options with slightly different approaches"],
+  "keyPointsAddressed": ["List of key points or questions addressed in the reply"]
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: 1000,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No reply generated from OpenAI");
+  }
+
+  return JSON.parse(content) as ReplyGenerationResult;
+}
+
+export interface TrendAnalysisResult {
+  isQuestion: boolean;
+  sentiment: "positive" | "negative" | "neutral";
+  topics: string[];
+  keywords: string[];
+  engagementPotential: "high" | "medium" | "low";
+  suggestedAction: "reply" | "ignore" | "monitor";
+}
+
+export async function analyzePostForListening(
+  postContent: string,
+  brandKeywords: string[]
+): Promise<TrendAnalysisResult> {
+  const systemPrompt = `You are a social media analyst. Analyze posts to determine if they're worth engaging with.
+
+Brand Keywords to match: ${brandKeywords.join(", ")}
+
+Identify:
+1. Is this a question that could be answered?
+2. What's the sentiment?
+3. What topics/keywords are discussed?
+4. Is this a good opportunity to engage?`;
+
+  const userPrompt = `Analyze this social media post:
+
+"${postContent}"
+
+Respond in JSON:
+{
+  "isQuestion": true/false,
+  "sentiment": "positive/negative/neutral",
+  "topics": ["main topics discussed"],
+  "keywords": ["matched brand keywords"],
+  "engagementPotential": "high/medium/low",
+  "suggestedAction": "reply/ignore/monitor"
+}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: 500,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No analysis from OpenAI");
+  }
+
+  return JSON.parse(content) as TrendAnalysisResult;
+}

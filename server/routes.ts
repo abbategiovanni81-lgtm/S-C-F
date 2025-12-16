@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, type ContentGenerationRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, type ContentGenerationRequest } from "./openai";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
@@ -972,6 +972,221 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching top patterns:", error);
       res.status(500).json({ error: "Failed to fetch top patterns" });
+    }
+  });
+
+  // ===== Social Listening Endpoints =====
+  
+  // Get listening hits (posts found matching keywords)
+  app.get("/api/listening/hits", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const status = req.query.status as string | undefined;
+      const hits = await storage.getListeningHits(userId, status);
+      res.json(hits);
+    } catch (error: any) {
+      console.error("Error fetching listening hits:", error);
+      res.status(500).json({ error: "Failed to fetch listening hits" });
+    }
+  });
+
+  // Create a listening hit (manual entry or from external source)
+  app.post("/api/listening/hits", async (req, res) => {
+    try {
+      const { userId, briefId, platform, postContent, postUrl, authorName, authorHandle, postType } = req.body;
+      
+      if (!platform || !postContent) {
+        return res.status(400).json({ error: "platform and postContent are required" });
+      }
+
+      // Get brand brief for keyword matching
+      let brandKeywords: string[] = [];
+      if (briefId) {
+        const brief = await storage.getBrandBrief(briefId);
+        if (brief) {
+          // Extract keywords from brand voice, target audience, and goals
+          brandKeywords = [
+            ...(brief.brandVoice?.split(/[,\s]+/) || []),
+            ...(brief.targetAudience?.split(/[,\s]+/) || []),
+          ].filter(k => k.length > 3).slice(0, 20);
+        }
+      }
+
+      // Analyze the post with AI
+      const analysis = await analyzePostForListening(postContent, brandKeywords);
+
+      const hit = await storage.createListeningHit({
+        userId: userId || "demo-user",
+        briefId: briefId || null,
+        platform,
+        postContent,
+        postUrl: postUrl || null,
+        postId: null,
+        authorName: authorName || null,
+        authorHandle: authorHandle || null,
+        authorProfileUrl: null,
+        postType: postType || "comment",
+        matchedKeywords: analysis.keywords,
+        sentiment: analysis.sentiment,
+        engagementScore: null,
+        likes: null,
+        comments: null,
+        shares: null,
+        isQuestion: analysis.isQuestion ? "yes" : "no",
+        isTrending: "no",
+        replyStatus: "pending",
+        postedAt: null,
+      });
+
+      res.status(201).json({ hit, analysis });
+    } catch (error: any) {
+      console.error("Error creating listening hit:", error);
+      res.status(500).json({ error: error.message || "Failed to create listening hit" });
+    }
+  });
+
+  // Update a listening hit status
+  app.patch("/api/listening/hits/:id", async (req, res) => {
+    try {
+      const hit = await storage.updateListeningHit(req.params.id, req.body);
+      if (!hit) {
+        return res.status(404).json({ error: "Listening hit not found" });
+      }
+      res.json(hit);
+    } catch (error: any) {
+      console.error("Error updating listening hit:", error);
+      res.status(500).json({ error: "Failed to update listening hit" });
+    }
+  });
+
+  // Generate an AI reply for a listening hit
+  app.post("/api/listening/generate-reply", async (req, res) => {
+    try {
+      const { hitId, briefId, replyTone } = req.body;
+
+      if (!hitId) {
+        return res.status(400).json({ error: "hitId is required" });
+      }
+
+      // Get the listening hit
+      const hits = await storage.getListeningHits();
+      const hit = hits.find(h => h.id === hitId);
+      if (!hit) {
+        return res.status(404).json({ error: "Listening hit not found" });
+      }
+
+      // Get brand brief for context
+      const useBriefId = briefId || hit.briefId;
+      if (!useBriefId) {
+        return res.status(400).json({ error: "No brand brief associated with this hit" });
+      }
+
+      const brief = await storage.getBrandBrief(useBriefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+
+      // Generate reply using AI
+      const result = await generateReply({
+        postContent: hit.postContent,
+        postAuthor: hit.authorHandle || hit.authorName || undefined,
+        platform: hit.platform,
+        brandVoice: brief.brandVoice,
+        targetAudience: brief.targetAudience,
+        contentGoals: brief.contentGoals,
+        replyTone: replyTone || "helpful",
+      });
+
+      // Save the reply draft
+      const draft = await storage.createReplyDraft({
+        userId: hit.userId,
+        listeningHitId: hitId,
+        briefId: useBriefId,
+        replyContent: result.replyContent,
+        replyTone: result.replyTone,
+        status: "draft",
+        generationMetadata: {
+          alternativeReplies: result.alternativeReplies,
+          keyPointsAddressed: result.keyPointsAddressed,
+        },
+      });
+
+      // Update hit status
+      await storage.updateListeningHit(hitId, { replyStatus: "drafted" });
+
+      res.json({ draft, result });
+    } catch (error: any) {
+      console.error("Error generating reply:", error);
+      res.status(500).json({ error: error.message || "Failed to generate reply" });
+    }
+  });
+
+  // Get reply drafts
+  app.get("/api/listening/drafts", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const status = req.query.status as string | undefined;
+      const drafts = await storage.getReplyDrafts(userId, status);
+      res.json(drafts);
+    } catch (error: any) {
+      console.error("Error fetching reply drafts:", error);
+      res.status(500).json({ error: "Failed to fetch reply drafts" });
+    }
+  });
+
+  // Update a reply draft
+  app.patch("/api/listening/drafts/:id", async (req, res) => {
+    try {
+      const draft = await storage.updateReplyDraft(req.params.id, req.body);
+      if (!draft) {
+        return res.status(404).json({ error: "Reply draft not found" });
+      }
+      res.json(draft);
+    } catch (error: any) {
+      console.error("Error updating reply draft:", error);
+      res.status(500).json({ error: "Failed to update reply draft" });
+    }
+  });
+
+  // Get trending topics
+  app.get("/api/listening/trending", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const briefId = req.query.briefId as string | undefined;
+      const topics = await storage.getTrendingTopics(userId, briefId);
+      res.json(topics);
+    } catch (error: any) {
+      console.error("Error fetching trending topics:", error);
+      res.status(500).json({ error: "Failed to fetch trending topics" });
+    }
+  });
+
+  // Create/update a trending topic
+  app.post("/api/listening/trending", async (req, res) => {
+    try {
+      const { userId, briefId, topic, keywords, platform, mentionCount, engagementTotal, sentiment } = req.body;
+      
+      if (!topic) {
+        return res.status(400).json({ error: "topic is required" });
+      }
+
+      const trendingTopic = await storage.createTrendingTopic({
+        userId: userId || "demo-user",
+        briefId: briefId || null,
+        topic,
+        keywords: keywords || [],
+        platform: platform || null,
+        mentionCount: mentionCount || 1,
+        engagementTotal: engagementTotal || 0,
+        sentiment: sentiment || "neutral",
+        trendScore: 0,
+        examplePosts: null,
+      });
+
+      res.status(201).json(trendingTopic);
+    } catch (error: any) {
+      console.error("Error creating trending topic:", error);
+      res.status(500).json({ error: error.message || "Failed to create trending topic" });
     }
   });
 
