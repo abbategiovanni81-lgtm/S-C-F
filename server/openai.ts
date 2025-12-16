@@ -291,3 +291,114 @@ Respond in JSON format:
 
   return JSON.parse(content) as ContentAnalysisResult;
 }
+
+export interface AnalyticsExtractionResult {
+  platform: string;
+  reportingRange?: string;
+  overview?: {
+    postViews?: number;
+    profileViews?: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    followers?: number;
+    followersChange?: number;
+    estimatedRewards?: number;
+  };
+  topPosts?: Array<{
+    rank: number;
+    title: string;
+    views: number;
+    postedOn?: string;
+  }>;
+  audienceData?: {
+    gender?: { male?: number; female?: number; other?: number };
+    age?: Record<string, number>;
+    locations?: Array<{ name: string; percentage: number }>;
+  };
+  bestTimes?: {
+    day?: string;
+    time?: string;
+    hourlyData?: Array<{ hour: string; activity: number }>;
+  };
+  confidenceScore: number;
+}
+
+export async function extractAnalyticsFromScreenshot(
+  imageBase64: string,
+  mimeType: string = "image/png"
+): Promise<AnalyticsExtractionResult> {
+  const systemPrompt = `You are an expert at reading and extracting structured data from social media analytics screenshots. 
+Your job is to accurately extract all visible metrics, numbers, and data from the screenshot.
+
+IMPORTANT:
+- Extract EXACT numbers you can see (e.g., "14K" = 14000, "2,261" = 2261)
+- If you see percentages (like -51.6%), include them as change values
+- For top posts, extract the title/description, view count, and post date if visible
+- For audience data, extract gender percentages, age breakdowns, locations
+- For best times, extract the day, time range, and any hourly activity data
+- Identify the platform (TikTok, Instagram, YouTube, etc.) from the UI design
+- Provide a confidence score (0-100) based on how clearly you could read the data`;
+
+  const userPrompt = `Extract all analytics data from this social media analytics screenshot.
+
+Respond in JSON format with this exact structure:
+{
+  "platform": "tiktok|instagram|youtube|twitter|other",
+  "reportingRange": "e.g., '28 days', '7 days', 'Nov 17 - Dec 14'",
+  "overview": {
+    "postViews": number or null,
+    "profileViews": number or null,
+    "likes": number or null,
+    "comments": number or null,
+    "shares": number or null,
+    "followers": number or null,
+    "followersChange": number or null (positive or negative),
+    "estimatedRewards": number or null
+  },
+  "topPosts": [
+    { "rank": 1, "title": "post title/description", "views": number, "postedOn": "date string" }
+  ],
+  "audienceData": {
+    "gender": { "male": percentage, "female": percentage, "other": percentage },
+    "age": { "18-24": percentage, "25-34": percentage, etc },
+    "locations": [{ "name": "country/city", "percentage": number }]
+  },
+  "bestTimes": {
+    "day": "most active day",
+    "time": "peak time range",
+    "hourlyData": [{ "hour": "12p", "activity": relative_value }]
+  },
+  "confidenceScore": 0-100 based on data clarity
+}
+
+Only include fields you can actually see in the screenshot. Use null for fields not visible.`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          {
+            type: "image_url",
+            image_url: {
+              url: `data:${mimeType};base64,${imageBase64}`,
+            },
+          },
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: 2000,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No analytics data extracted from OpenAI");
+  }
+
+  return JSON.parse(content) as AnalyticsExtractionResult;
+}
