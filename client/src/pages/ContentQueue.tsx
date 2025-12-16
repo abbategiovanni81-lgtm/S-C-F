@@ -1098,7 +1098,7 @@ export default function ContentQueue() {
       </Tabs>
 
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Youtube className="w-5 h-5 text-red-600" />
@@ -1295,7 +1295,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={lipSyncDialogOpen} onOpenChange={setLipSyncDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Film className="w-5 h-5 text-purple-600" />
@@ -1552,7 +1552,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Video className="w-5 h-5 text-purple-600" />
