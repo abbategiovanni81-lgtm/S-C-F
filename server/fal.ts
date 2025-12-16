@@ -212,7 +212,8 @@ export class FalService {
       throw new Error("Fal.ai API key not configured.");
     }
 
-    const response = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video/requests/${requestId}/status`, {
+    // Fal.ai uses a shortened URL path for status/result checks (without the model version)
+    const response = await fetch(`${this.baseUrl}/fal-ai/kling-video/requests/${requestId}/status`, {
       headers: {
         "Authorization": `Key ${this.apiKey}`,
       },
@@ -227,8 +228,8 @@ export class FalService {
     const data = await response.json();
     
     if (data.status === "COMPLETED") {
-      // Fetch the actual result
-      const resultResponse = await fetch(`${this.baseUrl}/fal-ai/kling-video/v1.5/pro/text-to-video/requests/${requestId}`, {
+      // Fetch the actual result using shortened URL path
+      const resultResponse = await fetch(`${this.baseUrl}/fal-ai/kling-video/requests/${requestId}`, {
         headers: {
           "Authorization": `Key ${this.apiKey}`,
         },
