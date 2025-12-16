@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
@@ -12,7 +12,13 @@ import type {
   PromptFeedback,
   InsertPromptFeedback,
   AnalyticsSnapshot,
-  InsertAnalyticsSnapshot
+  InsertAnalyticsSnapshot,
+  ListeningHit,
+  InsertListeningHit,
+  ReplyDraft,
+  InsertReplyDraft,
+  TrendingTopic,
+  InsertTrendingTopic
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -48,6 +54,21 @@ export interface IStorage {
   getAnalyticsSnapshots(userId?: string): Promise<AnalyticsSnapshot[]>;
   getAnalyticsSnapshotsByPlatform(platform: string, userId?: string): Promise<AnalyticsSnapshot[]>;
   getTopPerformingPatterns(userId?: string): Promise<{ title: string; views: number; postedOn?: string }[]>;
+
+  // Social Listening
+  createListeningHit(hit: InsertListeningHit): Promise<ListeningHit>;
+  getListeningHits(userId?: string, status?: string): Promise<ListeningHit[]>;
+  getListeningHitsByBrief(briefId: string): Promise<ListeningHit[]>;
+  updateListeningHit(id: string, data: Partial<InsertListeningHit>): Promise<ListeningHit | undefined>;
+  
+  createReplyDraft(draft: InsertReplyDraft): Promise<ReplyDraft>;
+  getReplyDrafts(userId?: string, status?: string): Promise<ReplyDraft[]>;
+  getReplyDraftByHit(hitId: string): Promise<ReplyDraft | undefined>;
+  updateReplyDraft(id: string, data: Partial<InsertReplyDraft>): Promise<ReplyDraft | undefined>;
+  
+  createTrendingTopic(topic: InsertTrendingTopic): Promise<TrendingTopic>;
+  getTrendingTopics(userId?: string, briefId?: string): Promise<TrendingTopic[]>;
+  updateTrendingTopic(id: string, data: Partial<InsertTrendingTopic>): Promise<TrendingTopic | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -250,6 +271,116 @@ export class DatabaseStorage implements IStorage {
     }
     
     return allPosts.sort((a, b) => b.views - a.views).slice(0, 10);
+  }
+
+  // Social Listening
+  async createListeningHit(hit: InsertListeningHit): Promise<ListeningHit> {
+    const result = await db.insert(listeningHits).values(hit).returning();
+    return result[0];
+  }
+
+  async getListeningHits(userId?: string, status?: string): Promise<ListeningHit[]> {
+    if (userId && status) {
+      return await db.select().from(listeningHits)
+        .where(and(eq(listeningHits.userId, userId), eq(listeningHits.replyStatus, status)))
+        .orderBy(desc(listeningHits.createdAt));
+    }
+    if (userId) {
+      return await db.select().from(listeningHits)
+        .where(eq(listeningHits.userId, userId))
+        .orderBy(desc(listeningHits.createdAt));
+    }
+    if (status) {
+      return await db.select().from(listeningHits)
+        .where(eq(listeningHits.replyStatus, status))
+        .orderBy(desc(listeningHits.createdAt));
+    }
+    return await db.select().from(listeningHits).orderBy(desc(listeningHits.createdAt));
+  }
+
+  async getListeningHitsByBrief(briefId: string): Promise<ListeningHit[]> {
+    return await db.select().from(listeningHits)
+      .where(eq(listeningHits.briefId, briefId))
+      .orderBy(desc(listeningHits.createdAt));
+  }
+
+  async updateListeningHit(id: string, data: Partial<InsertListeningHit>): Promise<ListeningHit | undefined> {
+    const result = await db.update(listeningHits)
+      .set(data)
+      .where(eq(listeningHits.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async createReplyDraft(draft: InsertReplyDraft): Promise<ReplyDraft> {
+    const result = await db.insert(replyDrafts).values(draft).returning();
+    return result[0];
+  }
+
+  async getReplyDrafts(userId?: string, status?: string): Promise<ReplyDraft[]> {
+    if (userId && status) {
+      return await db.select().from(replyDrafts)
+        .where(and(eq(replyDrafts.userId, userId), eq(replyDrafts.status, status)))
+        .orderBy(desc(replyDrafts.createdAt));
+    }
+    if (userId) {
+      return await db.select().from(replyDrafts)
+        .where(eq(replyDrafts.userId, userId))
+        .orderBy(desc(replyDrafts.createdAt));
+    }
+    if (status) {
+      return await db.select().from(replyDrafts)
+        .where(eq(replyDrafts.status, status))
+        .orderBy(desc(replyDrafts.createdAt));
+    }
+    return await db.select().from(replyDrafts).orderBy(desc(replyDrafts.createdAt));
+  }
+
+  async getReplyDraftByHit(hitId: string): Promise<ReplyDraft | undefined> {
+    const result = await db.select().from(replyDrafts)
+      .where(eq(replyDrafts.listeningHitId, hitId))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateReplyDraft(id: string, data: Partial<InsertReplyDraft>): Promise<ReplyDraft | undefined> {
+    const result = await db.update(replyDrafts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(replyDrafts.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async createTrendingTopic(topic: InsertTrendingTopic): Promise<TrendingTopic> {
+    const result = await db.insert(trendingTopics).values(topic).returning();
+    return result[0];
+  }
+
+  async getTrendingTopics(userId?: string, briefId?: string): Promise<TrendingTopic[]> {
+    if (userId && briefId) {
+      return await db.select().from(trendingTopics)
+        .where(and(eq(trendingTopics.userId, userId), eq(trendingTopics.briefId, briefId)))
+        .orderBy(desc(trendingTopics.trendScore));
+    }
+    if (userId) {
+      return await db.select().from(trendingTopics)
+        .where(eq(trendingTopics.userId, userId))
+        .orderBy(desc(trendingTopics.trendScore));
+    }
+    if (briefId) {
+      return await db.select().from(trendingTopics)
+        .where(eq(trendingTopics.briefId, briefId))
+        .orderBy(desc(trendingTopics.trendScore));
+    }
+    return await db.select().from(trendingTopics).orderBy(desc(trendingTopics.trendScore));
+  }
+
+  async updateTrendingTopic(id: string, data: Partial<InsertTrendingTopic>): Promise<TrendingTopic | undefined> {
+    const result = await db.update(trendingTopics)
+      .set({ ...data, lastSeenAt: new Date() })
+      .where(eq(trendingTopics.id, id))
+      .returning();
+    return result[0];
   }
 }
 
