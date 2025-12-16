@@ -93,18 +93,18 @@ Your content should:
   let formatSpecificJson = "";
 
   if (contentFormat === "video") {
-    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts. Each scene should be 8-10 seconds and describe a specific action or moment from the script.`;
+    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts. Each scene should be 8-10 seconds and describe a specific action or visual moment from the script. Focus on concrete actions and subjects rather than abstract moods.`;
     formatSpecificJson = `"videoPrompts": {
     "voiceoverText": "The exact text to use for AI voiceover (ElevenLabs). This should be the spoken narration, conversational and natural.",
     "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with slight excitement')",
     "scenePrompts": [
-      { "sceneNumber": 1, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 1 - describe the specific action, subject, camera angle, style (e.g., 'Person sitting at laptop looking frustrated, rubbing temples, soft indoor lighting, shallow depth of field')", "sceneDescription": "What happens in this scene from the script" },
-      { "sceneNumber": 2, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 2 - a different action/moment", "sceneDescription": "What happens in this scene" },
-      { "sceneNumber": 3, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 3 - conclusion/CTA moment", "sceneDescription": "What happens in this scene" }
+      { "sceneNumber": 1, "duration": 8, "visualPrompt": "Detailed AI video prompt for scene 1 - describe specific action, subject, camera angle (e.g., 'Close-up of hands typing on laptop, then person looking frustrated and rubbing temples, soft indoor lighting')", "sceneDescription": "What happens in this scene" },
+      { "sceneNumber": 2, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 2 - different action/moment from the script", "sceneDescription": "What happens in this scene" }
     ],
     "thumbnailPrompt": "AI image generation prompt for the video thumbnail - eye-catching, include text overlay suggestions",
     "brollSuggestions": ["List of 3-5 B-roll footage ideas to include in the video"]
-  }`;
+  }
+  NOTE: scenePrompts should have 2-3 scenes based on script complexity. Adjust scene count and durations to fit the voiceover length (total ~20-30 seconds).`;
   } else if (contentFormat === "image") {
     formatSpecificPrompt = `Generate a single promotional image post with AI image generation prompts.`;
     formatSpecificJson = `"imagePrompts": {

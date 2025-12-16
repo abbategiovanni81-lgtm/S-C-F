@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { icon: FileText, label: "Brand Briefs", href: "/brand-briefs" },
   { icon: CheckSquare, label: "Content Queue", href: "/content-queue" },
   { icon: Sparkles, label: "Content Analyzer", href: "/content-analyzer" },
+  { icon: Scissors, label: "Edit & Merge", href: "/edit-merge" },
   { icon: Download, label: "Ready to Post", href: "/ready-to-post" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },

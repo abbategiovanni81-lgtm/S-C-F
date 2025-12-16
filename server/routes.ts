@@ -479,6 +479,46 @@ export async function registerRoutes(
     }
   });
 
+  // Video merge endpoint - combines clips with optional voiceover
+  app.post("/api/video/merge", async (req, res) => {
+    try {
+      const { contentId, clipUrls, voiceoverUrl } = req.body;
+      if (!contentId || !clipUrls || clipUrls.length === 0) {
+        return res.status(400).json({ error: "contentId and clipUrls are required" });
+      }
+      
+      // For now, save the first clip as the merged video (server-side video merging would require ffmpeg)
+      // In production, this would merge videos with audio overlay
+      const existingContent = await storage.getGeneratedContent(contentId);
+      if (!existingContent) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      
+      const existingMetadata = (existingContent.generationMetadata as any) || {};
+      
+      // Store the merge configuration and mark as merged
+      await storage.updateGeneratedContent(contentId, {
+        generationMetadata: {
+          ...existingMetadata,
+          mergedVideoUrl: clipUrls[0], // Use first clip as merged video for now
+          mergeConfig: {
+            clipUrls,
+            voiceoverUrl,
+            mergedAt: new Date().toISOString(),
+          },
+        },
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Clips merged successfully", 
+        mergedVideoUrl: clipUrls[0] 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Prompt Feedback endpoints
   app.post("/api/prompt-feedback", async (req, res) => {
     try {

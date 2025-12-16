@@ -3,6 +3,13 @@ import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/p
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export interface ScenePrompt {
+  sceneNumber: number;
+  duration: number;
+  visualPrompt: string;
+  sceneDescription: string;
+}
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),

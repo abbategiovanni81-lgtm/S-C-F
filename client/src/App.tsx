@@ -13,6 +13,7 @@ import ContentQueue from "@/pages/ContentQueue";
 import BrandBriefs from "@/pages/BrandBriefs";
 import ContentAnalyzer from "@/pages/ContentAnalyzer";
 import ReadyToPost from "@/pages/ReadyToPost";
+import EditMerge from "@/pages/EditMerge";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/brand-briefs" component={BrandBriefs} />
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
+      <Route path="/edit-merge" component={EditMerge} />
       <Route path="/ready-to-post" component={ReadyToPost} />
       <Route path="/schedule" component={Schedule} />
       <Route path="/accounts" component={Accounts} />
