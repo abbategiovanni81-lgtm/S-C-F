@@ -51,12 +51,14 @@ export default function EditMerge() {
     }
   }, [params.contentId, approvedContent, selectedContent]);
 
-  const contentWithScenes = useMemo(() => 
+  // Show all approved video content (has videoPrompts or generatedVideoUrl)
+  const videoContent = useMemo(() => 
     approvedContent.filter((content) => {
       const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
       const metadata = content.generationMetadata as any;
-      const hasScenePrompts = metadata?.videoPrompts?.scenePrompts?.length > 0;
-      return matchesBrief && hasScenePrompts;
+      const hasVideoPrompts = metadata?.videoPrompts != null;
+      const hasGeneratedVideo = metadata?.generatedVideoUrl != null;
+      return matchesBrief && (hasVideoPrompts || hasGeneratedVideo);
     }),
     [approvedContent, filterBrief]
   );
@@ -334,16 +336,16 @@ export default function EditMerge() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Scissors className="w-5 h-5" />
-                  Content with Scenes
+                  Video Content
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {contentWithScenes.length === 0 ? (
+                {videoContent.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No approved content with scene prompts. Generate new content to get started.
+                    No approved video content. Generate new content to get started.
                   </p>
                 ) : (
-                  contentWithScenes.map((content) => {
+                  videoContent.map((content) => {
                     const scenePrompts = getScenePrompts(content);
                     const brief = briefs.find(b => b.id === content.briefId);
                     const isSelected = selectedContent?.id === content.id;
