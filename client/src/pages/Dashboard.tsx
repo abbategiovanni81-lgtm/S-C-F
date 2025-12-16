@@ -27,6 +27,11 @@ export default function Dashboard() {
   const connectedAccounts = socialAccounts.filter(acc => acc.isConnected === "connected");
   const readyToPostCount = approvedContent.filter(c => {
     const metadata = c.generationMetadata as any;
+    const contentType = metadata?.contentType || "video";
+    // Image and TikTok text are ready immediately; video needs assets
+    if (contentType === "image" || contentType === "tiktok_text") {
+      return true;
+    }
     return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || metadata?.voiceoverAudioUrl;
   }).length;
 

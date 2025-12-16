@@ -69,8 +69,16 @@ export default function ReadyToPost() {
 
   const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
-  const hasGeneratedAssets = (content: GeneratedContent) => {
+  const isReadyToPost = (content: GeneratedContent) => {
     const metadata = content.generationMetadata as any;
+    const contentType = metadata?.contentType || "video";
+    
+    // Image and TikTok text posts are ready immediately upon approval
+    if (contentType === "image" || contentType === "tiktok_text") {
+      return true;
+    }
+    
+    // Video content needs video or voiceover assets
     return (
       metadata?.mergedVideoUrl ||
       metadata?.generatedVideoUrl || 
@@ -84,9 +92,14 @@ export default function ReadyToPost() {
     return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || content.videoUrl || null;
   };
 
+  const getContentType = (content: GeneratedContent): string => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.contentType || "video";
+  };
+
   const readyContent = approvedContent.filter((content) => {
     const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
-    return hasGeneratedAssets(content) && matchesBrief;
+    return isReadyToPost(content) && matchesBrief;
   });
 
   const postedContent = postedContentRaw.filter((content) => {
