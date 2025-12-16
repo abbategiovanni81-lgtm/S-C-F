@@ -25,9 +25,17 @@ export default function Dashboard() {
   });
 
   const connectedAccounts = socialAccounts.filter(acc => acc.isConnected === "connected");
+  
+  const inferContentType = (metadata: any): string => {
+    if (metadata?.contentType) return metadata.contentType;
+    if (metadata?.imagePrompt) return "image";
+    if (metadata?.tiktokTextContent) return "tiktok_text";
+    return "video";
+  };
+  
   const readyToPostCount = approvedContent.filter(c => {
     const metadata = c.generationMetadata as any;
-    const contentType = metadata?.contentType || "video";
+    const contentType = inferContentType(metadata);
     // Image and TikTok text are ready immediately; video needs assets
     if (contentType === "image" || contentType === "tiktok_text") {
       return true;

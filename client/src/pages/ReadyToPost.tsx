@@ -69,9 +69,21 @@ export default function ReadyToPost() {
 
   const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
+  const inferContentType = (content: GeneratedContent): string => {
+    const metadata = content.generationMetadata as any;
+    // Explicit contentType takes priority
+    if (metadata?.contentType) return metadata.contentType;
+    // Infer from metadata structure for older content
+    if (metadata?.imagePrompt) return "image";
+    if (metadata?.tiktokTextContent) return "tiktok_text";
+    if (metadata?.videoPrompts || metadata?.scenePrompts) return "video";
+    // Default to video for legacy content
+    return "video";
+  };
+
   const isReadyToPost = (content: GeneratedContent) => {
     const metadata = content.generationMetadata as any;
-    const contentType = metadata?.contentType || "video";
+    const contentType = inferContentType(content);
     
     // Image and TikTok text posts are ready immediately upon approval
     if (contentType === "image" || contentType === "tiktok_text") {
@@ -93,8 +105,7 @@ export default function ReadyToPost() {
   };
 
   const getContentType = (content: GeneratedContent): string => {
-    const metadata = content.generationMetadata as any;
-    return metadata?.contentType || "video";
+    return inferContentType(content);
   };
 
   const readyContent = approvedContent.filter((content) => {
