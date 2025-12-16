@@ -55,6 +55,7 @@ export default function ContentQueue() {
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
   const [videoDialogContent, setVideoDialogContent] = useState<GeneratedContent | null>(null);
   const [negativePrompt, setNegativePrompt] = useState("");
+  const [editableVideoPrompt, setEditableVideoPrompt] = useState("");
 
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
@@ -244,20 +245,21 @@ export default function ContentQueue() {
   const openVideoDialog = (content: GeneratedContent) => {
     setVideoDialogContent(content);
     setNegativePrompt("");
+    const initialPrompt = (content.generationMetadata as any)?.videoPrompts?.visualDescription || "";
+    setEditableVideoPrompt(initialPrompt);
     setVideoDialogOpen(true);
   };
 
   const handleGenerateVideo = () => {
     if (!videoDialogContent) return;
-    const visualDesc = (videoDialogContent.generationMetadata as any)?.videoPrompts?.visualDescription;
-    if (!visualDesc) {
-      toast({ title: "No video prompt", description: "This content doesn't have a visual description for video generation.", variant: "destructive" });
+    if (!editableVideoPrompt.trim()) {
+      toast({ title: "No video prompt", description: "Please enter a video prompt.", variant: "destructive" });
       return;
     }
     const aspectRatio = videoDialogContent.platforms.includes("TikTok") || videoDialogContent.platforms.includes("Instagram Reels") ? "9:16" : "16:9";
     videoMutation.mutate({ 
       contentId: videoDialogContent.id, 
-      prompt: visualDesc, 
+      prompt: editableVideoPrompt.trim(), 
       aspectRatio,
       negativePrompt: negativePrompt || undefined
     });
@@ -1186,9 +1188,17 @@ export default function ContentQueue() {
           <div className="space-y-4 py-4">
             {videoDialogContent && (
               <div className="space-y-2">
-                <Label>Video Prompt</Label>
-                <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">
-                  {(videoDialogContent.generationMetadata as any)?.videoPrompts?.visualDescription || "No prompt available"}
+                <Label htmlFor="video-prompt">Video Prompt (editable)</Label>
+                <Textarea
+                  id="video-prompt"
+                  value={editableVideoPrompt}
+                  onChange={(e) => setEditableVideoPrompt(e.target.value)}
+                  placeholder="Describe the video you want to generate..."
+                  className="min-h-[120px]"
+                  data-testid="input-video-prompt"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Edit the prompt to customize the video output before generating.
                 </p>
               </div>
             )}
