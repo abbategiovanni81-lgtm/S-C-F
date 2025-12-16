@@ -38,6 +38,7 @@ export default function ReadyToPost() {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [useGeneratedVideo, setUseGeneratedVideo] = useState(false);
   const [publishForm, setPublishForm] = useState({
     title: "",
     description: "",
@@ -184,7 +185,7 @@ export default function ReadyToPost() {
 
   const openPublishDialog = (content: GeneratedContent) => {
     setSelectedContent(content);
-    const metadata = content.generationMetadata as any;
+    const videoUrl = getVideoUrl(content);
     setPublishForm({
       title: content.script?.substring(0, 100) || "Video Title",
       description: content.caption || "",
@@ -193,14 +194,32 @@ export default function ReadyToPost() {
       accountId: youtubeAccounts.length > 0 ? youtubeAccounts[0].id : "",
     });
     setSelectedVideoFile(null);
+    setUseGeneratedVideo(!!videoUrl);
     setPublishDialogOpen(true);
   };
 
   const handlePublish = async () => {
-    if (!selectedContent || !selectedVideoFile) return;
+    if (!selectedContent) return;
+    
+    const videoUrl = getVideoUrl(selectedContent);
+    
+    if (!selectedVideoFile && !useGeneratedVideo) {
+      toast({
+        title: "No Video Selected",
+        description: "Please select a video source",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const formData = new FormData();
-    formData.append("video", selectedVideoFile);
+    
+    if (useGeneratedVideo && videoUrl) {
+      formData.append("videoUrl", videoUrl);
+    } else if (selectedVideoFile) {
+      formData.append("video", selectedVideoFile);
+    }
+    
     formData.append("title", publishForm.title);
     formData.append("description", publishForm.description);
     formData.append("tags", publishForm.tags);
@@ -459,24 +478,78 @@ export default function ReadyToPost() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="video-file">Video File</Label>
-              <p className="text-xs text-muted-foreground">
-                Download your generated video first, then select it here to upload.
-              </p>
-              <Input
-                id="video-file"
-                type="file"
-                accept="video/*"
-                ref={fileInputRef}
-                onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
-                data-testid="input-video-file"
-              />
-              {selectedVideoFile && (
-                <p className="text-sm text-muted-foreground">
-                  Selected: {selectedVideoFile.name} ({(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB)
-                </p>
+            <div className="space-y-3">
+              <Label>Video Source</Label>
+              
+              {selectedContent && getVideoUrl(selectedContent) && (
+                <div 
+                  className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                    useGeneratedVideo ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
+                  }`}
+                  onClick={() => {
+                    setUseGeneratedVideo(true);
+                    setSelectedVideoFile(null);
+                  }}
+                  data-testid="option-use-generated-video"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      useGeneratedVideo ? "border-primary" : "border-muted-foreground"
+                    }`}>
+                      {useGeneratedVideo && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">Use Generated Video</p>
+                      <p className="text-xs text-muted-foreground">Ready to publish directly</p>
+                    </div>
+                    <Video className="w-5 h-5 text-primary" />
+                  </div>
+                  <video 
+                    src={getVideoUrl(selectedContent)!} 
+                    className="mt-2 rounded max-h-24 w-full object-contain bg-black"
+                    controls
+                  />
+                </div>
               )}
+              
+              <div 
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  !useGeneratedVideo ? "border-primary bg-primary/5" : "border-muted hover:border-primary/50"
+                }`}
+                onClick={() => setUseGeneratedVideo(false)}
+                data-testid="option-upload-video"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    !useGeneratedVideo ? "border-primary" : "border-muted-foreground"
+                  }`}>
+                    {!useGeneratedVideo && <div className="w-2 h-2 rounded-full bg-primary" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">Upload Custom Video</p>
+                    <p className="text-xs text-muted-foreground">Choose a file from your device</p>
+                  </div>
+                  <Upload className="w-5 h-5 text-muted-foreground" />
+                </div>
+                
+                {!useGeneratedVideo && (
+                  <div className="mt-2">
+                    <Input
+                      id="video-file"
+                      type="file"
+                      accept="video/*"
+                      ref={fileInputRef}
+                      onChange={(e) => setSelectedVideoFile(e.target.files?.[0] || null)}
+                      data-testid="input-video-file"
+                    />
+                    {selectedVideoFile && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Selected: {selectedVideoFile.name} ({(selectedVideoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
