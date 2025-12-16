@@ -815,7 +815,7 @@ export async function registerRoutes(
   app.post("/api/youtube/upload", upload.single("video"), async (req, res) => {
     try {
       const userId = "demo-user";
-      const { accountId } = req.body;
+      const { accountId, videoUrl } = req.body;
       
       let account;
       if (accountId) {
@@ -829,8 +829,24 @@ export async function registerRoutes(
         return res.status(401).json({ error: "YouTube not connected or tokens expired. Please reconnect your YouTube account." });
       }
       
-      if (!req.file) {
-        return res.status(400).json({ error: "No video file provided" });
+      let videoBuffer: Buffer;
+      let mimeType = "video/mp4";
+      
+      if (videoUrl) {
+        // Download video from URL
+        console.log("Downloading video from URL:", videoUrl);
+        const videoResponse = await fetch(videoUrl);
+        if (!videoResponse.ok) {
+          return res.status(400).json({ error: "Failed to download video from URL" });
+        }
+        const arrayBuffer = await videoResponse.arrayBuffer();
+        videoBuffer = Buffer.from(arrayBuffer);
+        mimeType = videoResponse.headers.get("content-type") || "video/mp4";
+      } else if (req.file) {
+        videoBuffer = req.file.buffer;
+        mimeType = req.file.mimetype;
+      } else {
+        return res.status(400).json({ error: "No video file or URL provided" });
       }
 
       const { title, description, tags, privacyStatus } = req.body;
@@ -864,8 +880,8 @@ export async function registerRoutes(
         description: description || "",
         tags: parsedTags,
         privacyStatus: privacyStatus || "private",
-        videoBuffer: req.file.buffer,
-        mimeType: req.file.mimetype,
+        videoBuffer,
+        mimeType,
       });
 
       res.json(result);
