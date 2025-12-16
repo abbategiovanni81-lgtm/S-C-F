@@ -14,6 +14,7 @@ import BrandBriefs from "@/pages/BrandBriefs";
 import ContentAnalyzer from "@/pages/ContentAnalyzer";
 import ReadyToPost from "@/pages/ReadyToPost";
 import EditMerge from "@/pages/EditMerge";
+import SocialListening from "@/pages/SocialListening";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/ready-to-post" component={ReadyToPost} />
+      <Route path="/social-listening" component={SocialListening} />
       <Route path="/schedule" component={Schedule} />
       <Route path="/accounts" component={Accounts} />
       <Route path="/analytics" component={Analytics} />
