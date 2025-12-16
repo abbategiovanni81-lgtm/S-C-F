@@ -33,6 +33,7 @@ export default function ContentQueue() {
     accountId: "",
   });
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
+  const [useGeneratedVideo, setUseGeneratedVideo] = useState(false);
   
   const [generatingVoiceoverId, setGeneratingVoiceoverId] = useState<string | null>(null);
   const [generatedAudio, setGeneratedAudio] = useState<Record<string, string>>({});
