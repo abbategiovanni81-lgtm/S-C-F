@@ -530,6 +530,62 @@ export async function registerRoutes(
     }
   });
 
+  // Video clip upload endpoint
+  const clipUpload = multer({ 
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), "public", "uploaded-clips");
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      }
+    }),
+    limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
+  });
+  
+  app.use("/uploaded-clips", express.static(path.join(process.cwd(), "public", "uploaded-clips")));
+
+  app.post("/api/video/upload-clip", clipUpload.single("video"), async (req, res) => {
+    try {
+      const file = req.file;
+      const { contentId } = req.body;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+      
+      const videoUrl = `/uploaded-clips/${file.filename}`;
+      
+      // Save to content metadata if contentId provided
+      if (contentId) {
+        const existingContent = await storage.getGeneratedContent(contentId);
+        if (existingContent) {
+          const existingMetadata = (existingContent.generationMetadata as any) || {};
+          const uploadedClips = existingMetadata.uploadedClips || [];
+          uploadedClips.push({
+            id: `uploaded-${Date.now()}`,
+            videoUrl,
+            fileName: file.originalname,
+            uploadedAt: new Date().toISOString(),
+          });
+          await storage.updateGeneratedContent(contentId, {
+            generationMetadata: { ...existingMetadata, uploadedClips },
+          });
+        }
+      }
+      
+      res.json({ success: true, videoUrl, fileName: file.originalname });
+    } catch (error: any) {
+      console.error("Clip upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Prompt Feedback endpoints
   app.post("/api/prompt-feedback", async (req, res) => {
     try {

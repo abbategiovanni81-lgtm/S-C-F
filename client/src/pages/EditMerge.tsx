@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,16 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
 
 interface ClipState {
-  sceneNumber: number;
+  id: string;
+  sceneNumber?: number;
+  type: "generated" | "uploaded";
   status: "pending" | "generating" | "completed" | "failed";
   videoUrl?: string;
   requestId?: string;
+  fileName?: string;
 }
 
 export default function EditMerge() {
@@ -82,7 +85,7 @@ export default function EditMerge() {
     onSuccess: (data, { sceneNumber }) => {
       setClips(prev => prev.map(clip => 
         clip.sceneNumber === sceneNumber 
-          ? { ...clip, status: "generating", requestId: data.requestId }
+          ? { ...clip, status: "generating" as const, requestId: data.requestId }
           : clip
       ));
       toast({ title: `Scene ${sceneNumber} generating...`, description: "This may take a few minutes." });
@@ -90,29 +93,88 @@ export default function EditMerge() {
     onError: (error: Error, { sceneNumber }) => {
       setClips(prev => prev.map(clip => 
         clip.sceneNumber === sceneNumber 
-          ? { ...clip, status: "failed" }
+          ? { ...clip, status: "failed" as const }
           : clip
       ));
       toast({ title: "Generation failed", description: error.message, variant: "destructive" });
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const handleSelectContent = (content: GeneratedContent) => {
     setSelectedContent(content);
     const scenePrompts = getScenePrompts(content);
     const metadata = content.generationMetadata as any;
     const existingClips = metadata?.generatedClips || [];
+    const uploadedClips = metadata?.uploadedClips || [];
     
-    const newClips: ClipState[] = scenePrompts.map((scene) => {
+    const generatedClipStates: ClipState[] = scenePrompts.map((scene) => {
       const existing = existingClips.find((c: any) => c.sceneNumber === scene.sceneNumber);
       return {
+        id: `scene-${scene.sceneNumber}`,
         sceneNumber: scene.sceneNumber,
+        type: "generated" as const,
         status: existing?.videoUrl ? "completed" : "pending",
         videoUrl: existing?.videoUrl,
         requestId: existing?.requestId,
       };
     });
-    setClips(newClips);
+    
+    const uploadedClipStates: ClipState[] = uploadedClips.map((clip: any, i: number) => ({
+      id: clip.id || `uploaded-${i}`,
+      type: "uploaded" as const,
+      status: "completed" as const,
+      videoUrl: clip.videoUrl,
+      fileName: clip.fileName,
+    }));
+    
+    setClips([...generatedClipStates, ...uploadedClipStates]);
+  };
+
+  const handleUploadClip = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedContent || !e.target.files?.length) return;
+    const file = e.target.files[0];
+    setUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+      formData.append("contentId", selectedContent.id);
+      
+      const res = await fetch("/api/video/upload-clip", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+      
+      const data = await res.json();
+      
+      const newClip: ClipState = {
+        id: `uploaded-${Date.now()}`,
+        type: "uploaded",
+        status: "completed",
+        videoUrl: data.videoUrl,
+        fileName: file.name,
+      };
+      
+      setClips(prev => [...prev, newClip]);
+      toast({ title: "Clip uploaded!", description: file.name });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveClip = (clipId: string) => {
+    setClips(prev => prev.filter(c => c.id !== clipId));
   };
 
   const handleGenerateClip = (scene: ScenePrompt) => {
@@ -193,8 +255,8 @@ export default function EditMerge() {
           
           if (data.status === "completed" && data.videoUrl) {
             setClips(prev => prev.map(c => 
-              c.sceneNumber === clip.sceneNumber 
-                ? { ...c, status: "completed", videoUrl: data.videoUrl }
+              c.id === clip.id 
+                ? { ...c, status: "completed" as const, videoUrl: data.videoUrl }
                 : c
             ));
             
@@ -216,8 +278,8 @@ export default function EditMerge() {
             }
           } else if (data.status === "failed") {
             setClips(prev => prev.map(c => 
-              c.sceneNumber === clip.sceneNumber 
-                ? { ...c, status: "failed" }
+              c.id === clip.id 
+                ? { ...c, status: "failed" as const }
                 : c
             ));
           }
@@ -344,26 +406,40 @@ export default function EditMerge() {
                   )}
 
                   {clips.map((clip, index) => {
-                    const scene = getScenePrompts(selectedContent)[index];
-                    if (!scene) return null;
+                    const scene = clip.type === "generated" && clip.sceneNumber 
+                      ? getScenePrompts(selectedContent).find(s => s.sceneNumber === clip.sceneNumber)
+                      : null;
                     
                     return (
                       <div
-                        key={clip.sceneNumber}
+                        key={clip.id}
                         className="p-4 rounded-lg border bg-card space-y-3"
-                        data-testid={`clip-scene-${clip.sceneNumber}`}
+                        data-testid={`clip-${clip.id}`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline">Scene {clip.sceneNumber}</Badge>
+                              {clip.type === "generated" ? (
+                                <Badge variant="outline">Scene {clip.sceneNumber}</Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-blue-500/10 text-blue-600">
+                                  <FileVideo className="w-3 h-3 mr-1" />
+                                  Uploaded
+                                </Badge>
+                              )}
                               <Badge variant={clip.status === "completed" ? "default" : clip.status === "generating" ? "secondary" : "outline"}>
                                 {clip.status === "generating" && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
                                 {clip.status}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground mt-2">{scene.sceneDescription}</p>
-                            <p className="text-xs text-muted-foreground mt-1 italic">"{scene.visualPrompt.substring(0, 100)}..."</p>
+                            {scene ? (
+                              <>
+                                <p className="text-sm text-muted-foreground mt-2">{scene.sceneDescription}</p>
+                                <p className="text-xs text-muted-foreground mt-1 italic">"{scene.visualPrompt.substring(0, 100)}..."</p>
+                              </>
+                            ) : clip.fileName && (
+                              <p className="text-sm text-muted-foreground mt-2">{clip.fileName}</p>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             <Button
@@ -382,6 +458,16 @@ export default function EditMerge() {
                             >
                               <ArrowDown className="w-4 h-4" />
                             </Button>
+                            {clip.type === "uploaded" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveClip(clip.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -392,24 +478,26 @@ export default function EditMerge() {
                             className="w-full rounded-lg max-h-48 object-contain bg-black"
                           />
                         ) : clip.status === "pending" || clip.status === "failed" ? (
-                          <Button
-                            variant="secondary"
-                            className="w-full"
-                            onClick={() => handleGenerateClip(scene)}
-                            disabled={generateClipMutation.isPending}
-                          >
-                            {clip.status === "failed" ? (
-                              <>
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                Retry Generation
-                              </>
-                            ) : (
-                              <>
-                                <Wand2 className="w-4 h-4 mr-2" />
-                                Generate Clip
-                              </>
-                            )}
-                          </Button>
+                          scene && (
+                            <Button
+                              variant="secondary"
+                              className="w-full"
+                              onClick={() => handleGenerateClip(scene)}
+                              disabled={generateClipMutation.isPending}
+                            >
+                              {clip.status === "failed" ? (
+                                <>
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                  Retry Generation
+                                </>
+                              ) : (
+                                <>
+                                  <Wand2 className="w-4 h-4 mr-2" />
+                                  Generate Clip
+                                </>
+                              )}
+                            </Button>
+                          )
                         ) : (
                           <div className="h-48 rounded-lg bg-muted flex items-center justify-center">
                             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -418,6 +506,45 @@ export default function EditMerge() {
                       </div>
                     );
                   })}
+
+                  <div className="p-4 rounded-lg border border-dashed bg-muted/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Add Your Own Clips</span>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleUploadClip}
+                        className="hidden"
+                        data-testid="input-upload-clip"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        data-testid="button-upload-clip"
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Video
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Upload archive footage, B-roll, or additional clips to include in your final video
+                    </p>
+                  </div>
 
                   {allClipsReady && (
                     <div className="pt-4 border-t">
