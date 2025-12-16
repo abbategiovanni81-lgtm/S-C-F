@@ -71,55 +71,67 @@ export default function Analytics() {
   const isConnected = !!channel && !channelError;
   const isLoading = loadingChannel;
 
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     if (!selectedAccountId) {
       toast({
         title: "Please select an account",
-        description: "Choose which account this screenshot belongs to",
+        description: "Choose which account these screenshots belong to",
         variant: "destructive",
       });
       return;
     }
 
     setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("screenshot", file);
-      formData.append("userId", "demo-user");
-      formData.append("accountId", selectedAccountId);
+    setUploadProgress({ current: 0, total: files.length });
+    
+    let successCount = 0;
+    let failCount = 0;
 
-      const response = await fetch("/api/analytics/upload", {
-        method: "POST",
-        body: formData,
-      });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress({ current: i + 1, total: files.length });
+      
+      try {
+        const formData = new FormData();
+        formData.append("screenshot", file);
+        formData.append("userId", "demo-user");
+        formData.append("accountId", selectedAccountId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
+        const response = await fetch("/api/analytics/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Upload failed");
+        }
+
+        successCount++;
+      } catch (error: any) {
+        failCount++;
+        console.error(`Failed to upload ${file.name}:`, error.message);
       }
+    }
 
-      const result = await response.json();
-      toast({
-        title: "Screenshot analyzed!",
-        description: `Extracted ${result.extracted.platform} analytics with ${result.extracted.confidenceScore}% confidence`,
-      });
+    toast({
+      title: `Uploaded ${successCount} screenshot${successCount !== 1 ? 's' : ''}`,
+      description: failCount > 0 ? `${failCount} failed to process` : "AI extracted all metrics successfully",
+      variant: failCount > 0 ? "destructive" : "default",
+    });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/snapshots"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics/top-patterns"] });
-    } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    queryClient.invalidateQueries({ queryKey: ["/api/analytics/snapshots"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/analytics/top-patterns"] });
+    
+    setIsUploading(false);
+    setUploadProgress({ current: 0, total: 0 });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -171,6 +183,7 @@ export default function Analytics() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className="hidden"
                 onChange={handleFileSelect}
                 data-testid="input-screenshot-upload"
@@ -184,12 +197,12 @@ export default function Analytics() {
                 {isUploading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing...
+                    Analyzing {uploadProgress.current}/{uploadProgress.total}...
                   </>
                 ) : (
                   <>
                     <ImageIcon className="w-4 h-4" />
-                    Upload Screenshot
+                    Upload Screenshots
                   </>
                 )}
               </Button>
