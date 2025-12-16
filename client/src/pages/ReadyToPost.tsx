@@ -72,10 +72,16 @@ export default function ReadyToPost() {
   const hasGeneratedAssets = (content: GeneratedContent) => {
     const metadata = content.generationMetadata as any;
     return (
+      metadata?.mergedVideoUrl ||
       metadata?.generatedVideoUrl || 
       metadata?.voiceoverAudioUrl || 
       content.videoUrl
     );
+  };
+
+  const getVideoUrl = (content: GeneratedContent): string | null => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || content.videoUrl || null;
   };
 
   const readyContent = approvedContent.filter((content) => {
@@ -172,9 +178,10 @@ export default function ReadyToPost() {
 
   const ContentCard = ({ content, showMarkAsPosted = true }: { content: GeneratedContent; showMarkAsPosted?: boolean }) => {
     const metadata = content.generationMetadata as any;
-    const videoUrl = metadata?.generatedVideoUrl || content.videoUrl;
+    const videoUrl = getVideoUrl(content);
     const audioUrl = metadata?.voiceoverAudioUrl;
     const hasVideo = !!videoUrl;
+    const isMergedVideo = !!metadata?.mergedVideoUrl;
 
     return (
       <Card className="overflow-hidden" data-testid={`card-ready-${content.id}`}>
@@ -220,7 +227,8 @@ export default function ReadyToPost() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Video className="w-4 h-4 text-purple-500" />
-                  Generated Video
+                  {isMergedVideo ? "Merged Video (with Voiceover)" : "Generated Video"}
+                  {isMergedVideo && <Badge variant="secondary" className="text-xs">Ready to Upload</Badge>}
                 </div>
                 <video 
                   controls 

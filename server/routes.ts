@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
@@ -9,11 +10,20 @@ import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Serve merged videos from public directory
+  const mergedVideosDir = path.join(process.cwd(), "public", "merged-videos");
+  if (!fs.existsSync(mergedVideosDir)) {
+    fs.mkdirSync(mergedVideosDir, { recursive: true });
+  }
+  app.use("/merged-videos", express.static(mergedVideosDir));
   
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
@@ -479,7 +489,7 @@ export async function registerRoutes(
     }
   });
 
-  // Video merge endpoint - combines clips with optional voiceover
+  // Video merge endpoint - combines clips with optional voiceover using ffmpeg
   app.post("/api/video/merge", async (req, res) => {
     try {
       const { contentId, clipUrls, voiceoverUrl } = req.body;
@@ -487,20 +497,20 @@ export async function registerRoutes(
         return res.status(400).json({ error: "contentId and clipUrls are required" });
       }
       
-      // For now, save the first clip as the merged video (server-side video merging would require ffmpeg)
-      // In production, this would merge videos with audio overlay
       const existingContent = await storage.getGeneratedContent(contentId);
       if (!existingContent) {
         return res.status(404).json({ error: "Content not found" });
       }
       
+      const { mergeVideosWithAudio } = await import("./videoMerge");
+      const result = await mergeVideosWithAudio(clipUrls, voiceoverUrl || null);
+      
       const existingMetadata = (existingContent.generationMetadata as any) || {};
       
-      // Store the merge configuration and mark as merged
       await storage.updateGeneratedContent(contentId, {
         generationMetadata: {
           ...existingMetadata,
-          mergedVideoUrl: clipUrls[0], // Use first clip as merged video for now
+          mergedVideoUrl: result.mergedVideoUrl,
           mergeConfig: {
             clipUrls,
             voiceoverUrl,
@@ -511,10 +521,11 @@ export async function registerRoutes(
       
       res.json({ 
         success: true, 
-        message: "Clips merged successfully", 
-        mergedVideoUrl: clipUrls[0] 
+        message: "Clips merged with voiceover successfully", 
+        mergedVideoUrl: result.mergedVideoUrl 
       });
     } catch (error: any) {
+      console.error("Video merge error:", error);
       res.status(500).json({ error: error.message });
     }
   });
