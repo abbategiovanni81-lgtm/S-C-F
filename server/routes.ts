@@ -6,6 +6,7 @@ import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccou
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, type ContentGenerationRequest } from "./openai";
+import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
@@ -1187,6 +1188,151 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error creating trending topic:", error);
       res.status(500).json({ error: error.message || "Failed to create trending topic" });
+    }
+  });
+
+  // Check Apify status
+  app.get("/api/listening/apify-status", async (req, res) => {
+    res.json({
+      configured: apifyService.isConfigured(),
+      availableActors: Object.keys(APIFY_ACTORS),
+    });
+  });
+
+  // Start a scan using Apify scrapers
+  app.post("/api/listening/scan", async (req, res) => {
+    try {
+      const { briefId, platforms, maxItems = 20 } = req.body;
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Apify not configured", 
+          message: "Please add your APIFY_API_TOKEN to use automated scanning" 
+        });
+      }
+
+      if (!briefId) {
+        return res.status(400).json({ error: "briefId is required" });
+      }
+
+      const brief = await storage.getBrandBrief(briefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+
+      const keywords = extractKeywordsFromBrief({
+        brandVoice: brief.brandVoice,
+        targetAudience: brief.targetAudience,
+        contentGoals: brief.contentGoals,
+      });
+
+      if (keywords.length === 0) {
+        return res.status(400).json({ error: "No keywords could be extracted from the brand brief" });
+      }
+
+      const platformsToScan = platforms || ["reddit"];
+      const results: { platform: string; itemsFound: number; itemsImported: number }[] = [];
+
+      for (const platform of platformsToScan) {
+        const actorConfig = APIFY_ACTORS[platform];
+        if (!actorConfig) {
+          console.warn(`No actor configured for platform: ${platform}`);
+          continue;
+        }
+
+        const scanRun = await storage.createScanRun({
+          userId: brief.userId,
+          briefId,
+          platform,
+          actorId: actorConfig.actorId,
+          status: "running",
+          keywords,
+        });
+
+        try {
+          const input: Record<string, any> = {
+            [actorConfig.searchField]: platform === "reddit" 
+              ? keywords.slice(0, 5).map(kw => ({ term: kw, sort: "relevance" }))
+              : keywords.slice(0, 5),
+            maxItems,
+          };
+
+          const items = await apifyService.runActorAndWait(actorConfig.actorId, input, 180000);
+          let imported = 0;
+
+          for (const item of items) {
+            const normalized = normalizeApifyItem(platform, item, keywords, briefId);
+            if (!normalized || !normalized.postContent) continue;
+
+            const postId = normalized.postId || `${platform}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const isDuplicate = await storage.checkDuplicateHit(platform, postId);
+            if (isDuplicate) continue;
+
+            await storage.createListeningHit({
+              userId: brief.userId,
+              briefId,
+              platform: normalized.platform || platform,
+              postId,
+              postUrl: normalized.postUrl || null,
+              postContent: normalized.postContent,
+              authorName: normalized.authorName || null,
+              authorHandle: normalized.authorHandle || null,
+              authorProfileUrl: normalized.authorProfileUrl || null,
+              postType: normalized.postType || "post",
+              matchedKeywords: normalized.matchedKeywords || [],
+              sentiment: null,
+              engagementScore: normalized.engagementScore || null,
+              likes: normalized.likes || null,
+              comments: normalized.comments || null,
+              shares: normalized.shares || null,
+              isQuestion: null,
+              isTrending: null,
+              replyStatus: "pending",
+              postedAt: normalized.postedAt || null,
+            });
+            imported++;
+          }
+
+          await storage.updateScanRun(scanRun.id, {
+            status: "completed",
+            itemsFound: items.length,
+            itemsImported: imported,
+          });
+
+          results.push({ platform, itemsFound: items.length, itemsImported: imported });
+        } catch (error: any) {
+          console.error(`Scan failed for ${platform}:`, error);
+          await storage.updateScanRun(scanRun.id, {
+            status: "failed",
+            errorMessage: error.message,
+          });
+          results.push({ platform, itemsFound: 0, itemsImported: 0 });
+        }
+      }
+
+      res.json({
+        success: true,
+        briefId,
+        keywords,
+        results,
+        totalImported: results.reduce((sum, r) => sum + r.itemsImported, 0),
+      });
+    } catch (error: any) {
+      console.error("Scan error:", error);
+      res.status(500).json({ error: error.message || "Failed to run scan" });
+    }
+  });
+
+  // Get scan history
+  app.get("/api/listening/scans", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const briefId = req.query.briefId as string | undefined;
+      const scans = await storage.getScanRuns(userId, briefId);
+      res.json(scans);
+    } catch (error: any) {
+      console.error("Error fetching scan runs:", error);
+      res.status(500).json({ error: "Failed to fetch scan runs" });
     }
   });
 

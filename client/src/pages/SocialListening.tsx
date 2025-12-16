@@ -9,19 +9,29 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame } from "lucide-react";
+import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle } from "lucide-react";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
+
+interface ApifyStatus {
+  configured: boolean;
+  availableActors: string[];
+}
 
 export default function SocialListening() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [addPostOpen, setAddPostOpen] = useState(false);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [selectedHit, setSelectedHit] = useState<ListeningHit | null>(null);
   const [selectedBrief, setSelectedBrief] = useState<string>("");
   const [replyTone, setReplyTone] = useState<"helpful" | "promotional" | "educational" | "friendly">("helpful");
+
+  const [scanBriefId, setScanBriefId] = useState<string>("");
+  const [scanPlatforms, setScanPlatforms] = useState<string[]>(["reddit"]);
 
   const [newPost, setNewPost] = useState({
     platform: "youtube",
@@ -35,6 +45,10 @@ export default function SocialListening() {
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: ["/api/brand-briefs"],
+  });
+
+  const { data: apifyStatus } = useQuery<ApifyStatus>({
+    queryKey: ["/api/listening/apify-status"],
   });
 
   const { data: hits = [], isLoading: hitsLoading } = useQuery<ListeningHit[]>({
@@ -92,6 +106,34 @@ export default function SocialListening() {
     },
   });
 
+  const scanMutation = useMutation({
+    mutationFn: async (data: { briefId: string; platforms: string[] }) => {
+      const res = await apiRequest("POST", "/api/listening/scan", data);
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({
+        title: "Scan complete!",
+        description: `Found ${data.totalImported} new posts matching your brand keywords.`,
+      });
+      setScanDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scan failed",
+        description: error.message || "Failed to scan for posts",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const togglePlatform = (platform: string) => {
+    setScanPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
+    );
+  };
+
   const pendingHits = hits.filter((h) => h.replyStatus === "pending");
   const draftedHits = hits.filter((h) => h.replyStatus === "drafted");
   const sentHits = hits.filter((h) => h.replyStatus === "sent");
@@ -133,6 +175,93 @@ export default function SocialListening() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
+            <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default" data-testid="button-scan-now">
+                  <Radar className="w-4 h-4 mr-2" />
+                  Scan Now
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Scan Social Media</DialogTitle>
+                  <DialogDescription>
+                    Use Apify scrapers to automatically find posts and comments matching your brand keywords.
+                  </DialogDescription>
+                </DialogHeader>
+                {!apifyStatus?.configured ? (
+                  <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-600">Apify not configured</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Add your APIFY_API_TOKEN environment variable to enable automated social media scanning.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <label className="text-sm font-medium">Brand Brief *</label>
+                      <Select value={scanBriefId} onValueChange={setScanBriefId}>
+                        <SelectTrigger data-testid="select-scan-brief">
+                          <SelectValue placeholder="Select brand brief for keywords..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {briefs.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Keywords will be extracted from your brand voice, target audience, and goals.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Platforms to Scan</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {["reddit", "instagram", "tiktok", "youtube"].map((platform) => (
+                          <label
+                            key={platform}
+                            className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={scanPlatforms.includes(platform)}
+                              onCheckedChange={() => togglePlatform(platform)}
+                            />
+                            <span className="capitalize">{platform}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        if (scanBriefId && scanPlatforms.length > 0) {
+                          scanMutation.mutate({ briefId: scanBriefId, platforms: scanPlatforms });
+                        }
+                      }}
+                      disabled={!scanBriefId || scanPlatforms.length === 0 || scanMutation.isPending}
+                      data-testid="button-start-scan"
+                    >
+                      {scanMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Scanning... (this may take a few minutes)
+                        </>
+                      ) : (
+                        <>
+                          <Radar className="w-4 h-4 mr-2" />
+                          Start Scan
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
             <Dialog open={addPostOpen} onOpenChange={setAddPostOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-post">

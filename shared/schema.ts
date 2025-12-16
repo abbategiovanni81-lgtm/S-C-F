@@ -238,6 +238,32 @@ export const insertTrendingTopicSchema = createInsertSchema(trendingTopics).omit
 export type InsertTrendingTopic = z.infer<typeof insertTrendingTopicSchema>;
 export type TrendingTopic = typeof trendingTopics.$inferSelect;
 
+// Listening scan runs - tracks Apify scraper runs
+export const listeningScanRuns = pgTable("listening_scan_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  platform: text("platform").notNull(), // instagram, tiktok, reddit, youtube
+  actorId: text("actor_id").notNull(), // Apify actor ID used
+  apifyRunId: text("apify_run_id"), // Run ID from Apify
+  status: text("status").notNull().default("pending"), // pending, running, completed, failed
+  keywords: text("keywords").array(), // Keywords used for this scan
+  itemsFound: integer("items_found").default(0),
+  itemsImported: integer("items_imported").default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertListeningScanRunSchema = createInsertSchema(listeningScanRuns).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export type InsertListeningScanRun = z.infer<typeof insertListeningScanRunSchema>;
+export type ListeningScanRun = typeof listeningScanRuns.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;

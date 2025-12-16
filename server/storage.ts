@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
@@ -18,7 +18,9 @@ import type {
   ReplyDraft,
   InsertReplyDraft,
   TrendingTopic,
-  InsertTrendingTopic
+  InsertTrendingTopic,
+  ListeningScanRun,
+  InsertListeningScanRun
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -69,6 +71,12 @@ export interface IStorage {
   createTrendingTopic(topic: InsertTrendingTopic): Promise<TrendingTopic>;
   getTrendingTopics(userId?: string, briefId?: string): Promise<TrendingTopic[]>;
   updateTrendingTopic(id: string, data: Partial<InsertTrendingTopic>): Promise<TrendingTopic | undefined>;
+
+  // Scan runs
+  createScanRun(run: InsertListeningScanRun): Promise<ListeningScanRun>;
+  getScanRuns(userId?: string, briefId?: string): Promise<ListeningScanRun[]>;
+  updateScanRun(id: string, data: Partial<InsertListeningScanRun>): Promise<ListeningScanRun | undefined>;
+  checkDuplicateHit(platform: string, postId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -381,6 +389,45 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trendingTopics.id, id))
       .returning();
     return result[0];
+  }
+
+  async createScanRun(run: InsertListeningScanRun): Promise<ListeningScanRun> {
+    const result = await db.insert(listeningScanRuns).values(run).returning();
+    return result[0];
+  }
+
+  async getScanRuns(userId?: string, briefId?: string): Promise<ListeningScanRun[]> {
+    if (userId && briefId) {
+      return await db.select().from(listeningScanRuns)
+        .where(and(eq(listeningScanRuns.userId, userId), eq(listeningScanRuns.briefId, briefId)))
+        .orderBy(desc(listeningScanRuns.startedAt));
+    }
+    if (userId) {
+      return await db.select().from(listeningScanRuns)
+        .where(eq(listeningScanRuns.userId, userId))
+        .orderBy(desc(listeningScanRuns.startedAt));
+    }
+    if (briefId) {
+      return await db.select().from(listeningScanRuns)
+        .where(eq(listeningScanRuns.briefId, briefId))
+        .orderBy(desc(listeningScanRuns.startedAt));
+    }
+    return await db.select().from(listeningScanRuns).orderBy(desc(listeningScanRuns.startedAt));
+  }
+
+  async updateScanRun(id: string, data: Partial<InsertListeningScanRun>): Promise<ListeningScanRun | undefined> {
+    const result = await db.update(listeningScanRuns)
+      .set(data)
+      .where(eq(listeningScanRuns.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async checkDuplicateHit(platform: string, postId: string): Promise<boolean> {
+    const result = await db.select({ id: listeningHits.id }).from(listeningHits)
+      .where(and(eq(listeningHits.platform, platform), eq(listeningHits.postId, postId)))
+      .limit(1);
+    return result.length > 0;
   }
 }
 
