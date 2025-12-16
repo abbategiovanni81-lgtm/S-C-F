@@ -219,7 +219,9 @@ export class FalService {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to check video generation status");
+      const errorText = await response.text();
+      console.error("Fal.ai status check error:", response.status, errorText);
+      throw new Error(`Failed to check video generation status: ${response.status}`);
     }
 
     const data = await response.json();
