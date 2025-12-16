@@ -45,9 +45,14 @@ export default function Analytics() {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
 
-  const { data: accounts = [] } = useQuery<SocialAccount[]>({
+  const { data: accounts = [], isLoading: loadingAccounts } = useQuery<SocialAccount[]>({
     queryKey: ["/api/social-accounts?userId=demo-user"],
   });
+
+  // Check for YouTube accounts in database (connected via OAuth or manually added)
+  const youtubeAccounts = accounts.filter(a => a.platform === "YouTube");
+  const connectedYouTubeAccounts = youtubeAccounts.filter(a => a.isConnected === "connected");
+  const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
   const { data: channel, isLoading: loadingChannel, error: channelError } = useQuery<YouTubeChannel>({
     queryKey: ["/api/youtube/channel"],
@@ -56,7 +61,7 @@ export default function Analytics() {
 
   const { data: analytics, isLoading: loadingAnalytics } = useQuery<YouTubeAnalytics>({
     queryKey: ["/api/youtube/analytics"],
-    enabled: !!channel,
+    enabled: !!channel || connectedYouTubeAccounts.length > 0,
     retry: false,
   });
 
@@ -68,8 +73,9 @@ export default function Analytics() {
     queryKey: ["/api/analytics/top-patterns"],
   });
 
-  const isConnected = !!channel && !channelError;
-  const isLoading = loadingChannel;
+  // Consider connected if we have YouTube accounts in database OR cookie-based connection
+  const isConnected = hasYouTubeAccounts || (!!channel && !channelError);
+  const isLoading = loadingAccounts || loadingChannel;
 
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
