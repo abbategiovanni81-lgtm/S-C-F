@@ -179,7 +179,7 @@ export class FalService {
     const payload: any = {
       prompt: request.prompt,
       aspect_ratio: request.aspectRatio || "16:9",
-      duration: request.duration || 5,
+      duration: request.duration || 10,
     };
     if (request.negativePrompt) {
       payload.negative_prompt = request.negativePrompt;
