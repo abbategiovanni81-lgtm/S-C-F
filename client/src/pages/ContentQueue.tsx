@@ -890,87 +890,140 @@ export default function ContentQueue() {
           </div>
         )}
 
-        {/* Universal actions for ALL approved content */}
-        {content.status === "approved" && (
-          <div className="pt-4 space-y-3 border-t mt-4">
-            <p className="text-xs font-medium text-muted-foreground">Actions</p>
-            
-            {/* Go to Edit & Merge - always available */}
-            <Link href={`/edit-merge/${content.id}`}>
-              <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-universal-${content.id}`}>
-                <Scissors className="w-4 h-4" />
-                Go to Edit & Merge
-              </Button>
-            </Link>
-            
-            {/* Image upload/generate - always available */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 gap-2"
-                onClick={() => handleGenerateImage(content)}
-                disabled={generatingImageId === content.id}
-                data-testid={`button-generate-image-universal-${content.id}`}
-              >
-                {generatingImageId === content.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-4 h-4" />
-                    Generate Image
-                  </>
-                )}
-              </Button>
+        {/* Content-type specific actions for approved content */}
+        {content.status === "approved" && (() => {
+          const metadata = content.generationMetadata as any;
+          const contentFormat = metadata?.contentFormat || 
+            (metadata?.videoPrompts ? "video" : 
+             metadata?.imagePrompts ? "image" : 
+             metadata?.carouselPrompts ? "carousel" : 
+             metadata?.tiktokTextPost ? "tiktok_text" : "video");
+          const isVideo = contentFormat === "video";
+          const isImage = contentFormat === "image" || contentFormat === "carousel";
+          const isTikTokText = contentFormat === "tiktok_text";
+          
+          return (
+            <div className="pt-4 space-y-3 border-t mt-4">
+              <p className="text-xs font-medium text-muted-foreground">Actions</p>
               
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 gap-2"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = "image/*";
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) handleImageUpload(content, file);
-                  };
-                  input.click();
-                }}
-                disabled={uploadingImageId === content.id}
-                data-testid={`button-upload-image-universal-${content.id}`}
-              >
-                {uploadingImageId === content.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    Upload Image
-                  </>
-                )}
-              </Button>
-            </div>
+              {/* VIDEO: Go to Edit & Merge */}
+              {isVideo && (
+                <Link href={`/edit-merge/${content.id}`}>
+                  <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
+                    <Scissors className="w-4 h-4" />
+                    Go to Edit & Merge
+                  </Button>
+                </Link>
+              )}
+              
+              {/* IMAGE/CAROUSEL: Upload or Generate Image */}
+              {isImage && (
+                <>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="flex-1 gap-2"
+                      onClick={() => handleGenerateImage(content)}
+                      disabled={generatingImageId === content.id}
+                      data-testid={`button-generate-image-${content.id}`}
+                    >
+                      {generatingImageId === content.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4" />
+                          Generate Image
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) handleImageUpload(content, file);
+                        };
+                        input.click();
+                      }}
+                      disabled={uploadingImageId === content.id}
+                      data-testid={`button-upload-image-${content.id}`}
+                    >
+                      {uploadingImageId === content.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Upload Image
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-            {/* Show uploaded/generated image preview */}
-            {(generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl) && (
-              <div className="mt-2">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Image Preview</p>
-                <img 
-                  src={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl} 
-                  alt="Content image" 
-                  className="rounded-lg max-h-32 object-contain border"
-                  data-testid={`img-preview-universal-${content.id}`}
-                />
-              </div>
-            )}
-          </div>
-        )}
+                  {/* Show uploaded/generated image preview */}
+                  {(generatedImages[content.id] || metadata?.generatedImageUrl || metadata?.uploadedImageUrl) && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Image Preview</p>
+                      <img 
+                        src={generatedImages[content.id] || metadata?.generatedImageUrl || metadata?.uploadedImageUrl} 
+                        alt="Content image" 
+                        className="rounded-lg max-h-32 object-contain border"
+                        data-testid={`img-preview-${content.id}`}
+                      />
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 gap-2"
+                        onClick={() => markReadyMutation.mutate(content.id)}
+                        disabled={markingReadyId === content.id}
+                        data-testid={`button-mark-ready-${content.id}`}
+                      >
+                        {markingReadyId === content.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <ArrowRight className="w-4 h-4" />
+                            Move to Ready to Post
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* TIKTOK TEXT: Ready immediately */}
+              {isTikTokText && (
+                <Button
+                  className="w-full gap-2"
+                  onClick={() => markReadyMutation.mutate(content.id)}
+                  disabled={markingReadyId === content.id}
+                  data-testid={`button-mark-ready-${content.id}`}
+                >
+                  {markingReadyId === content.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4" />
+                      Move to Ready to Post
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          );
+        })()}
 
         {content.status === "approved" && content.platforms.includes("YouTube") && (
           <div className="pt-2">
