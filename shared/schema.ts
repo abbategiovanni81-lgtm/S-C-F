@@ -155,6 +155,89 @@ export const insertAnalyticsSnapshotSchema = createInsertSchema(analyticsSnapsho
 export type InsertAnalyticsSnapshot = z.infer<typeof insertAnalyticsSnapshotSchema>;
 export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
 
+// Social listening - posts found matching keywords
+export const listeningHits = pgTable("listening_hits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  platform: text("platform").notNull(), // "youtube", "tiktok", "instagram", "reddit", "twitter"
+  postUrl: text("post_url"),
+  postId: text("post_id"), // Platform-specific post ID
+  authorName: text("author_name"),
+  authorHandle: text("author_handle"),
+  authorProfileUrl: text("author_profile_url"),
+  postContent: text("post_content").notNull(),
+  postType: text("post_type").notNull().default("comment"), // "comment", "post", "question", "mention"
+  matchedKeywords: text("matched_keywords").array(),
+  sentiment: text("sentiment"), // "positive", "negative", "neutral", "question"
+  engagementScore: integer("engagement_score"), // likes + comments + shares
+  likes: integer("likes"),
+  comments: integer("comments"),
+  shares: integer("shares"),
+  isQuestion: text("is_question").default("no"), // "yes", "no"
+  isTrending: text("is_trending").default("no"), // "yes", "no"
+  replyStatus: text("reply_status").default("pending"), // "pending", "drafted", "replied", "ignored"
+  postedAt: timestamp("posted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertListeningHitSchema = createInsertSchema(listeningHits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertListeningHit = z.infer<typeof insertListeningHitSchema>;
+export type ListeningHit = typeof listeningHits.$inferSelect;
+
+// AI-generated reply drafts
+export const replyDrafts = pgTable("reply_drafts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  listeningHitId: varchar("listening_hit_id").references(() => listeningHits.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  replyContent: text("reply_content").notNull(),
+  replyTone: text("reply_tone"), // "helpful", "promotional", "educational", "friendly"
+  status: text("status").default("draft"), // "draft", "approved", "posted", "rejected"
+  generationMetadata: jsonb("generation_metadata"), // AI model info, prompt used, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertReplyDraftSchema = createInsertSchema(replyDrafts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertReplyDraft = z.infer<typeof insertReplyDraftSchema>;
+export type ReplyDraft = typeof replyDrafts.$inferSelect;
+
+// Trending topics in niche
+export const trendingTopics = pgTable("trending_topics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  topic: text("topic").notNull(),
+  keywords: text("keywords").array(),
+  platform: text("platform"), // null = all platforms
+  mentionCount: integer("mention_count").default(0),
+  engagementTotal: integer("engagement_total").default(0),
+  sentiment: text("sentiment"), // "positive", "negative", "neutral", "mixed"
+  trendScore: integer("trend_score").default(0), // Calculated virality score
+  examplePosts: jsonb("example_posts"), // Sample posts for this topic
+  discoveredAt: timestamp("discovered_at").notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+});
+
+export const insertTrendingTopicSchema = createInsertSchema(trendingTopics).omit({
+  id: true,
+  discoveredAt: true,
+  lastSeenAt: true,
+});
+
+export type InsertTrendingTopic = z.infer<typeof insertTrendingTopicSchema>;
+export type TrendingTopic = typeof trendingTopics.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;
