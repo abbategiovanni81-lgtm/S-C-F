@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
@@ -100,6 +100,29 @@ export default function ContentQueue() {
       await apiRequest("PATCH", `/api/content/${id}/reject`);
     },
     onSuccess: invalidateContentQueries,
+  });
+
+  const [markingReadyId, setMarkingReadyId] = useState<string | null>(null);
+  
+  const markReadyMutation = useMutation({
+    mutationFn: async (contentId: string) => {
+      setMarkingReadyId(contentId);
+      const freshContentRes = await fetch(`/api/content/${contentId}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      await apiRequest("PATCH", `/api/content/${contentId}`, {
+        generationMetadata: { ...existingMetadata, manuallyReady: true },
+      });
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      toast({ title: "Moved to Ready", description: "Content is now in Ready to Post." });
+      setMarkingReadyId(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed", description: error.message, variant: "destructive" });
+      setMarkingReadyId(null);
+    },
   });
 
   const uploadMutation = useMutation({
@@ -729,6 +752,25 @@ export default function ContentQueue() {
                 Connect YouTube to Publish
               </Button>
             )}
+          </div>
+        )}
+
+        {content.status === "approved" && !(content.generationMetadata as any)?.manuallyReady && (
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => markReadyMutation.mutate(content.id)}
+              disabled={markingReadyId === content.id}
+              data-testid={`button-move-ready-${content.id}`}
+            >
+              {markingReadyId === content.id ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <ArrowRight className="w-4 h-4 mr-2" />
+              )}
+              Move to Ready to Post
+            </Button>
           </div>
         )}
       </CardContent>

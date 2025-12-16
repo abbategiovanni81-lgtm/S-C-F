@@ -85,6 +85,11 @@ export default function ReadyToPost() {
     const metadata = content.generationMetadata as any;
     const contentType = inferContentType(content);
     
+    // Manually marked as ready (for legacy content)
+    if (metadata?.manuallyReady) {
+      return true;
+    }
+    
     // Image and TikTok text posts are ready immediately upon approval
     if (contentType === "image" || contentType === "tiktok_text") {
       return true;

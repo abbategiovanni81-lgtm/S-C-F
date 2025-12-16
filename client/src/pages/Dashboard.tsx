@@ -36,6 +36,8 @@ export default function Dashboard() {
   const readyToPostCount = approvedContent.filter(c => {
     const metadata = c.generationMetadata as any;
     const contentType = inferContentType(metadata);
+    // Manually marked as ready (for legacy content)
+    if (metadata?.manuallyReady) return true;
     // Image and TikTok text are ready immediately; video needs assets
     if (contentType === "image" || contentType === "tiktok_text") {
       return true;
