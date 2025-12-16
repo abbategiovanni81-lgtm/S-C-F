@@ -618,7 +618,7 @@ export default function ReadyToPost() {
             <Button
               className="bg-red-600 hover:bg-red-700"
               onClick={handlePublish}
-              disabled={uploadMutation.isPending || !selectedVideoFile}
+              disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile)}
               data-testid="button-confirm-publish"
             >
               {uploadMutation.isPending ? (
