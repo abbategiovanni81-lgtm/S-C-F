@@ -2,11 +2,12 @@ import { useState, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import type { AnalyticsSnapshot } from "@shared/schema";
+import type { AnalyticsSnapshot, SocialAccount } from "@shared/schema";
 
 interface YouTubeChannel {
   channelId: string;
@@ -42,6 +43,11 @@ export default function Analytics() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+
+  const { data: accounts = [] } = useQuery<SocialAccount[]>({
+    queryKey: ["/api/accounts"],
+  });
 
   const { data: channel, isLoading: loadingChannel, error: channelError } = useQuery<YouTubeChannel>({
     queryKey: ["/api/youtube/channel"],
@@ -69,11 +75,21 @@ export default function Analytics() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!selectedAccountId) {
+      toast({
+        title: "Please select an account",
+        description: "Choose which account this screenshot belongs to",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
       formData.append("screenshot", file);
       formData.append("userId", "demo-user");
+      formData.append("accountId", selectedAccountId);
 
       const response = await fetch("/api/analytics/upload", {
         method: "POST",
@@ -128,6 +144,29 @@ export default function Analytics() {
               <p className="text-sm text-muted-foreground mb-4">
                 Upload screenshots from TikTok, Instagram, or other platforms. AI will read and extract the metrics automatically to help learn what content performs best.
               </p>
+              
+              {/* Account Selector */}
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-2 block">Select Account</label>
+                <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                  <SelectTrigger className="w-full max-w-xs" data-testid="select-account">
+                    <SelectValue placeholder="Choose an account..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.length === 0 ? (
+                      <SelectItem value="none" disabled>No accounts - add in Accounts tab</SelectItem>
+                    ) : (
+                      accounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id} data-testid={`account-option-${account.id}`}>
+                          {account.platform.toUpperCase()} - {account.accountName}
+                          {account.accountHandle && ` (@${account.accountHandle})`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -138,7 +177,7 @@ export default function Analytics() {
               />
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
+                disabled={isUploading || !selectedAccountId}
                 className="gap-2"
                 data-testid="button-upload-screenshot"
               >

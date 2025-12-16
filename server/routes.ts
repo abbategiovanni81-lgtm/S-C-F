@@ -736,6 +736,7 @@ export async function registerRoutes(
       // Store the snapshot in the database
       const snapshot = await storage.createAnalyticsSnapshot({
         userId: req.body.userId || null,
+        accountId: req.body.accountId || null,
         platform: extracted.platform,
         sourceType: "upload",
         reportingRange: extracted.reportingRange || null,

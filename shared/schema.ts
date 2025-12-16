@@ -100,6 +100,7 @@ export type PromptFeedback = typeof promptFeedback.$inferSelect;
 export const analyticsSnapshots = pgTable("analytics_snapshots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
+  accountId: varchar("account_id").references(() => socialAccounts.id), // Which specific account this snapshot belongs to
   platform: text("platform").notNull(), // "tiktok", "instagram", "youtube"
   sourceType: text("source_type").notNull().default("upload"), // "upload" or "api"
   reportingRange: text("reporting_range"), // "7 days", "28 days", "60 days", etc.
