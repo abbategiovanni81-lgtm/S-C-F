@@ -669,7 +669,7 @@ export default function ContentQueue() {
               </div>
             )}
 
-            {content.status === "approved" && (content.generationMetadata as any).videoPrompts.scenePrompts && (
+            {content.status === "approved" && (
               <div className="pt-3">
                 <Link href={`/edit-merge/${content.id}`}>
                   <Button className="w-full gap-2" data-testid={`button-edit-merge-${content.id}`}>
