@@ -2,8 +2,34 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Calendar, Activity, FileText } from "lucide-react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { BrandBrief, GeneratedContent, SocialAccount } from "@shared/schema";
+
+const DEMO_USER_ID = "demo-user";
 
 export default function Dashboard() {
+  const { data: briefs = [] } = useQuery<BrandBrief[]>({
+    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+  });
+
+  const { data: pendingContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=pending"],
+  });
+
+  const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=approved"],
+  });
+
+  const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
+    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+  });
+
+  const connectedAccounts = socialAccounts.filter(acc => acc.isConnected === "connected");
+  const readyToPostCount = approvedContent.filter(c => {
+    const metadata = c.generationMetadata as any;
+    return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || metadata?.voiceoverAudioUrl;
+  }).length;
+
   return (
     <Layout title="Dashboard">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -16,7 +42,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2">
-              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-briefs">-</h2>
+              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-briefs">{briefs.length}</h2>
               <p className="text-xs text-muted-foreground mt-1">Create briefs to generate content</p>
             </div>
           </CardContent>
@@ -31,7 +57,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2">
-              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-pending">-</h2>
+              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-pending">{pendingContent.length}</h2>
               <p className="text-xs text-muted-foreground mt-1">Awaiting review</p>
             </div>
           </CardContent>
@@ -40,14 +66,14 @@ export default function Dashboard() {
         <Card className="border-none shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between pb-2">
-              <p className="text-sm font-medium text-muted-foreground">Scheduled Posts</p>
+              <p className="text-sm font-medium text-muted-foreground">Ready to Post</p>
               <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
                 <Calendar className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-2">
-              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-scheduled">-</h2>
-              <p className="text-xs text-muted-foreground mt-1">Coming up</p>
+              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-scheduled">{readyToPostCount}</h2>
+              <p className="text-xs text-muted-foreground mt-1">With generated assets</p>
             </div>
           </CardContent>
         </Card>
@@ -61,7 +87,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="mt-2">
-              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-accounts">-</h2>
+              <h2 className="text-3xl font-bold font-display tracking-tight" data-testid="stat-accounts">{connectedAccounts.length}</h2>
               <p className="text-xs text-muted-foreground mt-1">Social channels</p>
             </div>
           </CardContent>
