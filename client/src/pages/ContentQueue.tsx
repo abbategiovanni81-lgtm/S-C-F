@@ -755,7 +755,14 @@ export default function ContentQueue() {
           </div>
         )}
 
-        {content.status === "approved" && !(content.generationMetadata as any)?.manuallyReady && (
+        {/* Only show Move to Ready for legacy content without proper format-specific prompts */}
+        {content.status === "approved" && 
+         !(content.generationMetadata as any)?.manuallyReady &&
+         !(content.generationMetadata as any)?.imagePrompts &&
+         !(content.generationMetadata as any)?.carouselPrompts &&
+         !(content.generationMetadata as any)?.tiktokTextPost &&
+         !(content.generationMetadata as any)?.scenePrompts &&
+         !(content.generationMetadata as any)?.videoPrompts && (
           <div className="pt-2">
             <Button
               variant="outline"
@@ -769,7 +776,7 @@ export default function ContentQueue() {
               ) : (
                 <ArrowRight className="w-4 h-4 mr-2" />
               )}
-              Move to Ready to Post
+              Move to Ready (Legacy)
             </Button>
           </div>
         )}

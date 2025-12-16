@@ -239,7 +239,11 @@ export async function registerRoutes(
         platforms: brief.platforms,
         generationMetadata: { 
           contentIdeas: result.contentIdeas,
+          contentType: contentFormat,
           videoPrompts: result.videoPrompts,
+          imagePrompts: result.imagePrompts,
+          carouselPrompts: result.carouselPrompts,
+          tiktokTextPost: result.tiktokTextPost,
         },
       });
 
