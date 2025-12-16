@@ -371,7 +371,7 @@ export default function EditMerge() {
                                 </Badge>
                               )}
                               <Badge variant="secondary" className="text-xs">
-                                {scenePrompts.length} scenes
+                                {scenePrompts.length > 0 ? `${scenePrompts.length} scenes` : "Upload clips"}
                               </Badge>
                             </div>
                           </div>
