@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, type ContentGenerationRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, type ContentGenerationRequest } from "./openai";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
@@ -703,6 +703,87 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("YouTube upload error:", error);
       res.status(500).json({ error: error.message || "Failed to upload video" });
+    }
+  });
+
+  // Analytics screenshot upload and processing
+  const analyticsUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only image files are allowed"));
+      }
+    },
+  });
+
+  app.post("/api/analytics/upload", analyticsUpload.single("screenshot"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No screenshot file provided" });
+      }
+
+      const imageBase64 = req.file.buffer.toString("base64");
+      const mimeType = req.file.mimetype;
+
+      // Extract analytics data using GPT-4 Vision
+      const extracted = await extractAnalyticsFromScreenshot(imageBase64, mimeType);
+
+      // Store the snapshot in the database
+      const snapshot = await storage.createAnalyticsSnapshot({
+        userId: req.body.userId || null,
+        platform: extracted.platform,
+        sourceType: "upload",
+        reportingRange: extracted.reportingRange || null,
+        capturedAt: new Date(),
+        postViews: extracted.overview?.postViews || null,
+        profileViews: extracted.overview?.profileViews || null,
+        likes: extracted.overview?.likes || null,
+        comments: extracted.overview?.comments || null,
+        shares: extracted.overview?.shares || null,
+        followers: extracted.overview?.followers || null,
+        followersChange: extracted.overview?.followersChange || null,
+        audienceData: extracted.audienceData || null,
+        topPosts: extracted.topPosts || null,
+        bestTimes: extracted.bestTimes || null,
+        rawExtraction: extracted,
+        confidenceScore: extracted.confidenceScore || null,
+      });
+
+      res.json({
+        success: true,
+        snapshot,
+        extracted,
+      });
+    } catch (error: any) {
+      console.error("Analytics upload error:", error);
+      res.status(500).json({ error: error.message || "Failed to process analytics screenshot" });
+    }
+  });
+
+  // Get all analytics snapshots
+  app.get("/api/analytics/snapshots", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const snapshots = await storage.getAnalyticsSnapshots(userId);
+      res.json(snapshots);
+    } catch (error: any) {
+      console.error("Error fetching analytics snapshots:", error);
+      res.status(500).json({ error: "Failed to fetch analytics snapshots" });
+    }
+  });
+
+  // Get top performing patterns (for AI learning)
+  app.get("/api/analytics/top-patterns", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const patterns = await storage.getTopPerformingPatterns(userId);
+      res.json(patterns);
+    } catch (error: any) {
+      console.error("Error fetching top patterns:", error);
+      res.status(500).json({ error: "Failed to fetch top patterns" });
     }
   });
 
