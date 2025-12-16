@@ -750,6 +750,8 @@ export async function registerRoutes(
         followersChange: extracted.overview?.followersChange || null,
         audienceData: extracted.audienceData || null,
         topPosts: extracted.topPosts || null,
+        trafficSources: extracted.trafficSources || null,
+        searchQueries: extracted.searchQueries || null,
         bestTimes: extracted.bestTimes || null,
         rawExtraction: extracted,
         confidenceScore: extracted.confidenceScore || null,

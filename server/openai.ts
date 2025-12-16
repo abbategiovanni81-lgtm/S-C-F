@@ -314,7 +314,20 @@ export interface AnalyticsExtractionResult {
     rank: number;
     title: string;
     views: number;
+    likes?: number;
     postedOn?: string;
+  }>;
+  trafficSources?: {
+    forYou?: number;
+    search?: number;
+    personalProfile?: number;
+    following?: number;
+    sound?: number;
+    other?: number;
+  };
+  searchQueries?: Array<{
+    query: string;
+    percentage: number;
   }>;
   audienceData?: {
     gender?: { male?: number; female?: number; other?: number };
@@ -362,7 +375,18 @@ Respond in JSON format with this exact structure:
     "estimatedRewards": number or null
   },
   "topPosts": [
-    { "rank": 1, "title": "post title/description", "views": number, "postedOn": "date string" }
+    { "rank": 1, "title": "post title/description", "views": number, "likes": number or null, "postedOn": "date string" }
+  ],
+  "trafficSources": {
+    "forYou": percentage or null,
+    "search": percentage or null,
+    "personalProfile": percentage or null,
+    "following": percentage or null,
+    "sound": percentage or null,
+    "other": percentage or null
+  },
+  "searchQueries": [
+    { "query": "search term", "percentage": number }
   ],
   "audienceData": {
     "gender": { "male": percentage, "female": percentage, "other": percentage },

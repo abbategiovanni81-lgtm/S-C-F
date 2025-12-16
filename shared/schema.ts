@@ -120,7 +120,13 @@ export const analyticsSnapshots = pgTable("analytics_snapshots", {
   audienceData: jsonb("audience_data"), // { gender: {male: 52, female: 45, other: 3}, age: {...}, locations: [...] }
   
   // Top performing posts
-  topPosts: jsonb("top_posts"), // [{ title, views, postedOn, rank }, ...]
+  topPosts: jsonb("top_posts"), // [{ title, views, likes, postedOn, rank }, ...]
+  
+  // Traffic sources
+  trafficSources: jsonb("traffic_sources"), // { forYou: 92.2, search: 4.3, ... }
+  
+  // Search queries that led to discovery
+  searchQueries: jsonb("search_queries"), // [{ query: "...", percentage: 0.2 }, ...]
   
   // Best times to post
   bestTimes: jsonb("best_times"), // { day: "Monday", time: "8pm-9pm", hourlyData: [...] }
