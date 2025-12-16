@@ -96,6 +96,49 @@ export const insertPromptFeedbackSchema = createInsertSchema(promptFeedback).omi
 export type InsertPromptFeedback = z.infer<typeof insertPromptFeedbackSchema>;
 export type PromptFeedback = typeof promptFeedback.$inferSelect;
 
+// Analytics snapshots from uploaded screenshots
+export const analyticsSnapshots = pgTable("analytics_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  platform: text("platform").notNull(), // "tiktok", "instagram", "youtube"
+  sourceType: text("source_type").notNull().default("upload"), // "upload" or "api"
+  reportingRange: text("reporting_range"), // "7 days", "28 days", "60 days", etc.
+  capturedAt: timestamp("captured_at"), // When the screenshot was taken
+  imageUrl: text("image_url"), // Stored screenshot URL
+  
+  // Overview metrics
+  postViews: integer("post_views"),
+  profileViews: integer("profile_views"),
+  likes: integer("likes"),
+  comments: integer("comments"),
+  shares: integer("shares"),
+  followers: integer("followers"),
+  followersChange: integer("followers_change"),
+  
+  // Audience demographics
+  audienceData: jsonb("audience_data"), // { gender: {male: 52, female: 45, other: 3}, age: {...}, locations: [...] }
+  
+  // Top performing posts
+  topPosts: jsonb("top_posts"), // [{ title, views, postedOn, rank }, ...]
+  
+  // Best times to post
+  bestTimes: jsonb("best_times"), // { day: "Monday", time: "8pm-9pm", hourlyData: [...] }
+  
+  // Raw AI extraction for debugging
+  rawExtraction: jsonb("raw_extraction"),
+  confidenceScore: integer("confidence_score"), // 0-100
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAnalyticsSnapshotSchema = createInsertSchema(analyticsSnapshots).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAnalyticsSnapshot = z.infer<typeof insertAnalyticsSnapshotSchema>;
+export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;

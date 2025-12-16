@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
@@ -10,7 +10,9 @@ import type {
   SocialAccount,
   InsertSocialAccount,
   PromptFeedback,
-  InsertPromptFeedback
+  InsertPromptFeedback,
+  AnalyticsSnapshot,
+  InsertAnalyticsSnapshot
 } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 
@@ -41,6 +43,11 @@ export interface IStorage {
   getPromptFeedbackByBrief(briefId: string): Promise<PromptFeedback[]>;
   getGlobalPromptFeedback(): Promise<PromptFeedback[]>;
   getAvoidPatternsForBrief(briefId: string | null): Promise<string[]>;
+
+  createAnalyticsSnapshot(snapshot: InsertAnalyticsSnapshot): Promise<AnalyticsSnapshot>;
+  getAnalyticsSnapshots(userId?: string): Promise<AnalyticsSnapshot[]>;
+  getAnalyticsSnapshotsByPlatform(platform: string, userId?: string): Promise<AnalyticsSnapshot[]>;
+  getTopPerformingPatterns(userId?: string): Promise<{ title: string; views: number; postedOn?: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -196,6 +203,53 @@ export class DatabaseStorage implements IStorage {
       }
     }
     return Array.from(patterns);
+  }
+
+  async createAnalyticsSnapshot(snapshot: InsertAnalyticsSnapshot): Promise<AnalyticsSnapshot> {
+    const result = await db.insert(analyticsSnapshots).values(snapshot).returning();
+    return result[0];
+  }
+
+  async getAnalyticsSnapshots(userId?: string): Promise<AnalyticsSnapshot[]> {
+    if (userId) {
+      return await db.select().from(analyticsSnapshots)
+        .where(eq(analyticsSnapshots.userId, userId))
+        .orderBy(desc(analyticsSnapshots.createdAt));
+    }
+    return await db.select().from(analyticsSnapshots)
+      .orderBy(desc(analyticsSnapshots.createdAt));
+  }
+
+  async getAnalyticsSnapshotsByPlatform(platform: string, userId?: string): Promise<AnalyticsSnapshot[]> {
+    if (userId) {
+      return await db.select().from(analyticsSnapshots)
+        .where(and(eq(analyticsSnapshots.platform, platform), eq(analyticsSnapshots.userId, userId)))
+        .orderBy(desc(analyticsSnapshots.createdAt));
+    }
+    return await db.select().from(analyticsSnapshots)
+      .where(eq(analyticsSnapshots.platform, platform))
+      .orderBy(desc(analyticsSnapshots.createdAt));
+  }
+
+  async getTopPerformingPatterns(userId?: string): Promise<{ title: string; views: number; postedOn?: string }[]> {
+    const snapshots = await this.getAnalyticsSnapshots(userId);
+    const allPosts: { title: string; views: number; postedOn?: string }[] = [];
+    
+    for (const snapshot of snapshots) {
+      if (snapshot.topPosts && Array.isArray(snapshot.topPosts)) {
+        for (const post of snapshot.topPosts as any[]) {
+          if (post.title && post.views) {
+            allPosts.push({
+              title: post.title,
+              views: post.views,
+              postedOn: post.postedOn
+            });
+          }
+        }
+      }
+    }
+    
+    return allPosts.sort((a, b) => b.views - a.views).slice(0, 10);
   }
 }
 
