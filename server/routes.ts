@@ -34,10 +34,7 @@ export async function registerRoutes(
   // Brand Brief endpoints
   app.get("/api/brand-briefs", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId query parameter is required" });
-      }
+      const userId = (req.query.userId as string) || "demo-user";
       const briefs = await storage.getBrandBriefsByUser(userId);
       res.json(briefs);
     } catch (error) {
