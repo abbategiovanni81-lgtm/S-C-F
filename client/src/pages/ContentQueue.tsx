@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
 
 export default function ContentQueue() {
@@ -103,6 +104,10 @@ export default function ContentQueue() {
   });
 
   const [markingReadyId, setMarkingReadyId] = useState<string | null>(null);
+  const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const imageUploadRef = useRef<HTMLInputElement>(null);
+  const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
   
   const markReadyMutation = useMutation({
     mutationFn: async (contentId: string) => {
@@ -124,6 +129,83 @@ export default function ContentQueue() {
       setMarkingReadyId(null);
     },
   });
+
+  const handleGenerateImage = async (content: GeneratedContent) => {
+    const prompt = (content.generationMetadata as any)?.imagePrompts?.mainImagePrompt;
+    if (!prompt) {
+      toast({ title: "No image prompt", description: "This content doesn't have an image prompt.", variant: "destructive" });
+      return;
+    }
+    
+    setGeneratingImageId(content.id);
+    try {
+      const aspectRatio = (content.generationMetadata as any)?.imagePrompts?.aspectRatio || "1:1";
+      const res = await fetch("/api/fal/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, aspectRatio }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate image");
+      }
+      
+      const data = await res.json();
+      setGeneratedImages(prev => ({ ...prev, [content.id]: data.imageUrl }));
+      
+      // Save to metadata
+      const freshContentRes = await fetch(`/api/content/${content.id}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      await apiRequest("PATCH", `/api/content/${content.id}`, {
+        generationMetadata: { ...existingMetadata, generatedImageUrl: data.imageUrl },
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Image generated!", description: "Your image is ready." });
+    } catch (error: any) {
+      toast({ title: "Image generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingImageId(null);
+    }
+  };
+
+  const handleImageUpload = async (content: GeneratedContent, file: File) => {
+    setUploadingImageId(content.id);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to upload image");
+      }
+      
+      const data = await res.json();
+      setGeneratedImages(prev => ({ ...prev, [content.id]: data.url }));
+      
+      // Save to metadata
+      const freshContentRes = await fetch(`/api/content/${content.id}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      await apiRequest("PATCH", `/api/content/${content.id}`, {
+        generationMetadata: { ...existingMetadata, uploadedImageUrl: data.url },
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Image uploaded!", description: "Your image has been attached." });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingImageId(null);
+    }
+  };
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -586,6 +668,17 @@ export default function ContentQueue() {
                 </ul>
               </div>
             )}
+
+            {content.status === "approved" && (content.generationMetadata as any).videoPrompts.scenePrompts && (
+              <div className="pt-3">
+                <Link href={`/edit-merge/${content.id}`}>
+                  <Button className="w-full gap-2" data-testid={`button-edit-merge-${content.id}`}>
+                    <Scissors className="w-4 h-4" />
+                    Go to Edit & Merge
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         )}
 
@@ -623,14 +716,70 @@ export default function ContentQueue() {
                 )}
               </div>
 
-              <Button
-                size="sm"
-                className="gap-2 w-full sm:w-auto mt-2"
-                data-testid={`button-generate-image-${content.id}`}
-              >
-                <ImageIcon className="w-4 h-4" />
-                Generate Image (Fal.ai)
-              </Button>
+              {(generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl) && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Generated/Uploaded Image</p>
+                  <img 
+                    src={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl} 
+                    alt="Generated content" 
+                    className="rounded-lg max-h-48 object-contain border"
+                    data-testid={`img-generated-${content.id}`}
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <Button
+                  size="sm"
+                  variant={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "outline" : "default"}
+                  className="gap-2"
+                  onClick={() => handleGenerateImage(content)}
+                  disabled={generatingImageId === content.id}
+                  data-testid={`button-generate-image-${content.id}`}
+                >
+                  {generatingImageId === content.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-4 h-4" />
+                      {generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "Regenerate" : "Generate Image"}
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*";
+                    input.onchange = (e) => {
+                      const file = (e.target as HTMLInputElement).files?.[0];
+                      if (file) handleImageUpload(content, file);
+                    };
+                    input.click();
+                  }}
+                  disabled={uploadingImageId === content.id}
+                  data-testid={`button-upload-image-${content.id}`}
+                >
+                  {uploadingImageId === content.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Upload My Image
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}

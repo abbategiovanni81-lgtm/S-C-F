@@ -90,9 +90,14 @@ export default function ReadyToPost() {
       return true;
     }
     
-    // Image and TikTok text posts are ready immediately upon approval
-    if (contentType === "image" || contentType === "tiktok_text") {
+    // TikTok text posts are ready immediately upon approval
+    if (contentType === "tiktok_text") {
       return true;
+    }
+    
+    // Image content needs a generated or uploaded image
+    if (contentType === "image" || contentType === "carousel") {
+      return metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
     }
     
     // Video content needs video or voiceover assets

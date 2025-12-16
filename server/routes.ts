@@ -315,6 +315,37 @@ export async function registerRoutes(
     }
   });
 
+  // Image upload endpoint
+  const imageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+  
+  app.post("/api/upload/image", imageUpload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      // Upload to Fal.ai storage for hosting
+      if (falService.isConfigured()) {
+        const result = await falService.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+        return res.json({ url: result.url, fileName: result.fileName });
+      }
+
+      // Fallback: save to local uploads directory
+      const fs = await import("fs/promises");
+      const uploadsDir = path.join(process.cwd(), "server", "uploads", "images");
+      await fs.mkdir(uploadsDir, { recursive: true });
+      
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const filePath = path.join(uploadsDir, fileName);
+      await fs.writeFile(filePath, req.file.buffer);
+      
+      res.json({ url: `/uploads/images/${fileName}`, fileName });
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ error: error.message || "Failed to upload image" });
+    }
+  });
+
   // AI Engine Status endpoints
   app.get("/api/ai-engines/status", async (req, res) => {
     res.json({

@@ -38,10 +38,13 @@ export default function Dashboard() {
     const contentType = inferContentType(metadata);
     // Manually marked as ready (for legacy content)
     if (metadata?.manuallyReady) return true;
-    // Image and TikTok text are ready immediately; video needs assets
-    if (contentType === "image" || contentType === "tiktok_text") {
-      return true;
+    // TikTok text ready immediately
+    if (contentType === "tiktok_text") return true;
+    // Image/carousel needs generated or uploaded image
+    if (contentType === "image" || contentType === "carousel") {
+      return metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
     }
+    // Video needs assets
     return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || metadata?.voiceoverAudioUrl;
   }).length;
 
