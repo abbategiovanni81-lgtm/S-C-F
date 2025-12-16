@@ -151,15 +151,19 @@ export default function ContentQueue() {
     onSuccess: async (data, { contentId }) => {
       setGeneratedAudio(prev => ({ ...prev, [contentId]: data.audioUrl }));
       try {
-        const contentList = [...pendingContent, ...approvedContent, ...rejectedContent];
-        const existingContent = contentList.find(c => c.id === contentId);
-        const existingMetadata = (existingContent?.generationMetadata as any) || {};
+        // Fetch fresh content from server to get current metadata
+        const freshContentRes = await fetch(`/api/content/${contentId}`);
+        const freshContent = await freshContentRes.json();
+        const existingMetadata = (freshContent?.generationMetadata as any) || {};
         await apiRequest("PATCH", `/api/content/${contentId}`, {
           generationMetadata: { ...existingMetadata, voiceoverAudioUrl: data.audioUrl },
         });
         invalidateContentQueries();
-      } catch (e) {}
-      toast({ title: "Voiceover generated!", description: "Your audio is ready to play." });
+        toast({ title: "Voiceover generated!", description: "Your audio is ready to play." });
+      } catch (e) {
+        console.error("Failed to save voiceover URL:", e);
+        toast({ title: "Voiceover generated but failed to save", description: "The audio was created but couldn't be saved.", variant: "destructive" });
+      }
       setGeneratingVoiceoverId(null);
     },
     onError: (error: Error) => {

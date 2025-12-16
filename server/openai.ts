@@ -18,6 +18,13 @@ export interface ContentGenerationRequest {
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
 }
 
+export interface ScenePrompt {
+  sceneNumber: number;
+  duration: number; // in seconds
+  visualPrompt: string; // detailed prompt for AI video generation
+  sceneDescription: string; // what's happening in this scene (from script)
+}
+
 export interface GeneratedContentResult {
   script?: string;
   caption?: string;
@@ -27,7 +34,8 @@ export interface GeneratedContentResult {
   videoPrompts?: {
     voiceoverText?: string;
     voiceStyle?: string;
-    visualDescription?: string;
+    visualDescription?: string; // legacy: single prompt (still supported for backwards compat)
+    scenePrompts?: ScenePrompt[]; // new: 2-3 scene-specific prompts for clip generation
     thumbnailPrompt?: string;
     brollSuggestions?: string[];
   };
@@ -85,11 +93,15 @@ Your content should:
   let formatSpecificJson = "";
 
   if (contentFormat === "video") {
-    formatSpecificPrompt = `Generate video content with script and voiceover prompts.`;
+    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts. Each scene should be 8-10 seconds and describe a specific action or moment from the script.`;
     formatSpecificJson = `"videoPrompts": {
     "voiceoverText": "The exact text to use for AI voiceover (ElevenLabs). This should be the spoken narration, conversational and natural.",
     "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with slight excitement')",
-    "visualDescription": "Detailed prompt for AI video generation - describe the visuals, scenes, style, colors, mood for tools like Runway/Pika",
+    "scenePrompts": [
+      { "sceneNumber": 1, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 1 - describe the specific action, subject, camera angle, style (e.g., 'Person sitting at laptop looking frustrated, rubbing temples, soft indoor lighting, shallow depth of field')", "sceneDescription": "What happens in this scene from the script" },
+      { "sceneNumber": 2, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 2 - a different action/moment", "sceneDescription": "What happens in this scene" },
+      { "sceneNumber": 3, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 3 - conclusion/CTA moment", "sceneDescription": "What happens in this scene" }
+    ],
     "thumbnailPrompt": "AI image generation prompt for the video thumbnail - eye-catching, include text overlay suggestions",
     "brollSuggestions": ["List of 3-5 B-roll footage ideas to include in the video"]
   }`;
