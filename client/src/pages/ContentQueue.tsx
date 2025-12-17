@@ -450,6 +450,26 @@ export default function ContentQueue() {
         [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.requestId } }
       }));
       
+      // Save request ID to database for polling resume
+      try {
+        const contentRes = await fetch(`/api/content/${contentId}`);
+        if (contentRes.ok) {
+          const content = await contentRes.json();
+          const existingMetadata = content?.generationMetadata || {};
+          const sceneRequests = existingMetadata.sceneRequests || {};
+          sceneRequests[sceneNumber] = { requestId: data.requestId, status: "processing" };
+          await fetch(`/api/content/${contentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              generationMetadata: { ...existingMetadata, sceneRequests }
+            }),
+          });
+        }
+      } catch (e) {
+        console.error("Failed to save scene request:", e);
+      }
+      
       toast({ title: `Scene ${sceneNumber} generating...`, description: "This may take a few minutes." });
       pollSceneVideoStatus(contentId, sceneNumber, data.requestId);
     } catch (error: any) {
@@ -463,6 +483,46 @@ export default function ContentQueue() {
     }
   };
 
+  // Load existing generated clips and resume polling for in-progress scene video generation on page load
+  const scenePollingStartedRef = useRef<Set<string>>(new Set());
+  const clipLoadedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const allContent = [...pendingContent, ...approvedContent, ...rejectedContent];
+    allContent.forEach((content) => {
+      const metadata = content.generationMetadata as any;
+      
+      // Load already-completed clips into state
+      const generatedClips = metadata?.generatedClips || [];
+      generatedClips.forEach((clip: any) => {
+        const key = `${content.id}-${clip.sceneNumber}`;
+        if (!clipLoadedRef.current.has(key) && clip.videoUrl) {
+          clipLoadedRef.current.add(key);
+          setSceneVideos(prev => ({
+            ...prev,
+            [content.id]: { ...(prev[content.id] || {}), [clip.sceneNumber]: { status: "completed", videoUrl: clip.videoUrl, requestId: clip.requestId } }
+          }));
+        }
+      });
+      
+      // Resume polling for in-progress requests
+      const sceneRequests = metadata?.sceneRequests || {};
+      Object.entries(sceneRequests).forEach(([sceneNumStr, reqData]: [string, any]) => {
+        const sceneNumber = parseInt(sceneNumStr);
+        if (reqData?.status === "processing" && reqData?.requestId) {
+          const key = `${content.id}-${sceneNumber}`;
+          if (!scenePollingStartedRef.current.has(key)) {
+            scenePollingStartedRef.current.add(key);
+            setSceneVideos(prev => ({
+              ...prev,
+              [content.id]: { ...(prev[content.id] || {}), [sceneNumber]: { status: "processing", requestId: reqData.requestId } }
+            }));
+            pollSceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+          }
+        }
+      });
+    });
+  }, [pendingContent, approvedContent, rejectedContent]);
+
   const pollSceneVideoStatus = async (contentId: string, sceneNumber: number, requestId: string) => {
     const poll = async () => {
       try {
@@ -475,6 +535,36 @@ export default function ContentQueue() {
             ...prev,
             [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.videoUrl, requestId } }
           }));
+          
+          // Save to database
+          try {
+            const contentRes = await fetch(`/api/content/${contentId}`);
+            if (contentRes.ok) {
+              const content = await contentRes.json();
+              const existingMetadata = content?.generationMetadata || {};
+              const existingClips = existingMetadata.generatedClips || [];
+              const updatedClips = existingClips.filter((c: any) => c.sceneNumber !== sceneNumber);
+              updatedClips.push({ sceneNumber, videoUrl: data.videoUrl, requestId });
+              updatedClips.sort((a: any, b: any) => a.sceneNumber - b.sceneNumber);
+              
+              // Update scene request status to completed
+              const sceneRequests = existingMetadata.sceneRequests || {};
+              if (sceneRequests[sceneNumber]) {
+                sceneRequests[sceneNumber] = { ...sceneRequests[sceneNumber], status: "completed" };
+              }
+              
+              await fetch(`/api/content/${contentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  generationMetadata: { ...existingMetadata, generatedClips: updatedClips, sceneRequests }
+                }),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to save scene video:", e);
+          }
+          
           toast({ title: `Scene ${sceneNumber} complete!`, description: "Video generated successfully." });
           invalidateContentQueries();
         } else if (data.status === "failed") {
