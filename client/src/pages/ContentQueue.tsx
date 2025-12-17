@@ -273,16 +273,27 @@ export default function ContentQueue() {
       try {
         // Fetch fresh content from server to get current metadata
         const freshContentRes = await fetch(`/api/content/${contentId}`);
+        if (!freshContentRes.ok) {
+          throw new Error(`Failed to fetch content: ${freshContentRes.status}`);
+        }
         const freshContent = await freshContentRes.json();
         const existingMetadata = (freshContent?.generationMetadata as any) || {};
-        await apiRequest("PATCH", `/api/content/${contentId}`, {
-          generationMetadata: { ...existingMetadata, voiceoverAudioUrl: data.audioUrl },
+        const patchRes = await fetch(`/api/content/${contentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            generationMetadata: { ...existingMetadata, voiceoverAudioUrl: data.audioUrl },
+          }),
         });
+        if (!patchRes.ok) {
+          const errData = await patchRes.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed to save: ${patchRes.status}`);
+        }
         invalidateContentQueries();
         toast({ title: "Voiceover generated!", description: "Your audio is ready to play." });
-      } catch (e) {
+      } catch (e: any) {
         console.error("Failed to save voiceover URL:", e);
-        toast({ title: "Voiceover generated but failed to save", description: "The audio was created but couldn't be saved.", variant: "destructive" });
+        toast({ title: "Voiceover generated but failed to save", description: e.message || "The audio was created but couldn't be saved.", variant: "destructive" });
       }
       setGeneratingVoiceoverId(null);
     },
