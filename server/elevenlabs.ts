@@ -1,3 +1,7 @@
+import fs from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
+
 export interface ElevenLabsConfig {
   apiKey: string;
 }
@@ -68,10 +72,19 @@ export class ElevenLabsService {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    const base64Audio = Buffer.from(audioBuffer).toString("base64");
+    
+    // Save audio to file instead of returning base64
+    const mediaDir = path.join(process.cwd(), "public", "generated-media");
+    if (!fs.existsSync(mediaDir)) {
+      fs.mkdirSync(mediaDir, { recursive: true });
+    }
+    
+    const filename = `audio-${randomUUID()}.mp3`;
+    const filePath = path.join(mediaDir, filename);
+    fs.writeFileSync(filePath, Buffer.from(audioBuffer));
     
     return {
-      audioUrl: `data:audio/mpeg;base64,${base64Audio}`,
+      audioUrl: `/generated-media/${filename}`,
       duration: 0,
     };
   }
