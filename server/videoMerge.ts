@@ -91,13 +91,15 @@ export async function mergeVideosWithAudio(
     const mergedVideoPath = path.join(jobDir, "merged.mp4");
     const finalOutputPath = path.join(jobDir, "final.mp4");
     
-    console.log("[VideoMerge] Concatenating clips...");
-    await execAsync(`ffmpeg -f concat -safe 0 -i "${concatListPath}" -c copy "${mergedVideoPath}"`, {
-      timeout: 120000,
+    console.log("[VideoMerge] Concatenating clips with re-encoding...");
+    // Re-encode to ensure all clips are compatible (different sources may have different codecs)
+    await execAsync(`ffmpeg -f concat -safe 0 -i "${concatListPath}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "${mergedVideoPath}"`, {
+      timeout: 300000,
     });
     
     if (audioPath) {
       console.log("[VideoMerge] Adding voiceover audio...");
+      // Replace video audio with voiceover
       await execAsync(
         `ffmpeg -i "${mergedVideoPath}" -i "${audioPath}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${finalOutputPath}"`,
         { timeout: 120000 }
