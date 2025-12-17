@@ -14,6 +14,31 @@ import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, get
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomUUID } from "crypto";
+
+// Helper to download external URLs and save locally
+async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image" | "audio"): Promise<string> {
+  const response = await fetch(externalUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to download media: ${response.status}`);
+  }
+  
+  const buffer = await response.arrayBuffer();
+  const ext = type === "video" ? ".mp4" : type === "audio" ? ".mp3" : ".png";
+  const filename = `${type}-${randomUUID()}${ext}`;
+  
+  // Save to public directory for serving
+  const mediaDir = path.join(process.cwd(), "public", "generated-media");
+  if (!fs.existsSync(mediaDir)) {
+    fs.mkdirSync(mediaDir, { recursive: true });
+  }
+  
+  const filePath = path.join(mediaDir, filename);
+  fs.writeFileSync(filePath, Buffer.from(buffer));
+  
+  // Return the local URL
+  return `/generated-media/${filename}`;
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -26,6 +51,13 @@ export async function registerRoutes(
     fs.mkdirSync(mergedVideosDir, { recursive: true });
   }
   app.use("/merged-videos", express.static(mergedVideosDir));
+  
+  // Serve generated media from public directory
+  const generatedMediaDir = path.join(process.cwd(), "public", "generated-media");
+  if (!fs.existsSync(generatedMediaDir)) {
+    fs.mkdirSync(generatedMediaDir, { recursive: true });
+  }
+  app.use("/generated-media", express.static(generatedMediaDir));
   
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
@@ -490,7 +522,22 @@ export async function registerRoutes(
   app.get("/api/fal/status/:requestId", async (req, res) => {
     try {
       const result = await falService.checkStatus(req.params.requestId);
-      res.json(result);
+      
+      if (result.status === "completed" && result.videoUrl) {
+        // Download video from Fal.ai and save locally
+        let localVideoUrl = result.videoUrl;
+        try {
+          if (result.videoUrl.includes("fal.media") || result.videoUrl.includes("fal.run")) {
+            localVideoUrl = await downloadAndSaveMedia(result.videoUrl, "video");
+            console.log(`Downloaded lip-sync video from Fal.ai to ${localVideoUrl}`);
+          }
+        } catch (downloadError) {
+          console.error("Failed to download lip-sync video from Fal.ai:", downloadError);
+        }
+        res.json({ ...result, videoUrl: localVideoUrl });
+      } else {
+        res.json(result);
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -524,20 +571,39 @@ export async function registerRoutes(
       const result = await falService.checkVideoStatus(req.params.requestId);
       
       // Update content status when video is completed or failed
-      if (contentId && result.status === "completed" && result.videoUrl) {
-        const existingContent = await storage.getGeneratedContent(contentId);
-        const existingMetadata = (existingContent?.generationMetadata as any) || {};
-        await storage.updateGeneratedContent(contentId, {
-          videoRequestStatus: "completed",
-          generationMetadata: { ...existingMetadata, generatedVideoUrl: result.videoUrl },
-        });
-      } else if (contentId && result.status === "failed") {
-        await storage.updateGeneratedContent(contentId, {
-          videoRequestStatus: "failed",
-        });
+      if (result.status === "completed" && result.videoUrl) {
+        // Download video from Fal.ai and save locally
+        let localVideoUrl = result.videoUrl;
+        try {
+          if (result.videoUrl.includes("fal.media") || result.videoUrl.includes("fal.run")) {
+            localVideoUrl = await downloadAndSaveMedia(result.videoUrl, "video");
+            console.log(`Downloaded video from Fal.ai to ${localVideoUrl}`);
+          }
+        } catch (downloadError) {
+          console.error("Failed to download video from Fal.ai:", downloadError);
+          // Keep the original URL if download fails
+        }
+        
+        if (contentId) {
+          const existingContent = await storage.getGeneratedContent(contentId);
+          const existingMetadata = (existingContent?.generationMetadata as any) || {};
+          await storage.updateGeneratedContent(contentId, {
+            videoRequestStatus: "completed",
+            generationMetadata: { ...existingMetadata, generatedVideoUrl: localVideoUrl },
+          });
+        }
+        
+        res.json({ ...result, videoUrl: localVideoUrl });
+      } else if (result.status === "failed") {
+        if (contentId) {
+          await storage.updateGeneratedContent(contentId, {
+            videoRequestStatus: "failed",
+          });
+        }
+        res.json(result);
+      } else {
+        res.json(result);
       }
-      
-      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -559,7 +625,22 @@ export async function registerRoutes(
   app.get("/api/fal/image-status/:requestId", async (req, res) => {
     try {
       const result = await falService.checkImageStatus(req.params.requestId);
-      res.json(result);
+      
+      if (result.status === "completed" && result.imageUrl) {
+        // Download image from Fal.ai and save locally
+        let localImageUrl = result.imageUrl;
+        try {
+          if (result.imageUrl.includes("fal.media") || result.imageUrl.includes("fal.run")) {
+            localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+            console.log(`Downloaded image from Fal.ai to ${localImageUrl}`);
+          }
+        } catch (downloadError) {
+          console.error("Failed to download image from Fal.ai:", downloadError);
+        }
+        res.json({ ...result, imageUrl: localImageUrl });
+      } else {
+        res.json(result);
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
