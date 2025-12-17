@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -58,6 +58,12 @@ export default function ContentQueue() {
   const [videoDialogContent, setVideoDialogContent] = useState<GeneratedContent | null>(null);
   const [negativePrompt, setNegativePrompt] = useState("");
   const [editableVideoPrompt, setEditableVideoPrompt] = useState("");
+
+  const [brollDialogOpen, setBrollDialogOpen] = useState(false);
+  const [brollSearchQuery, setBrollSearchQuery] = useState("");
+  const [brollMediaType, setBrollMediaType] = useState<"both" | "photos" | "videos">("both");
+  const [brollResults, setBrollResults] = useState<any[]>([]);
+  const [brollLoading, setBrollLoading] = useState(false);
 
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
@@ -680,13 +686,29 @@ export default function ContentQueue() {
             )}
             
             {(content.generationMetadata as any).videoPrompts.brollSuggestions?.length > 0 && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">B-Roll Suggestions</p>
                 <ul className="text-sm bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 list-disc list-inside space-y-1 border border-amber-200 dark:border-amber-800">
                   {(content.generationMetadata as any).videoPrompts.brollSuggestions.map((suggestion: string, i: number) => (
                     <li key={i}>{suggestion}</li>
                   ))}
                 </ul>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={() => {
+                    const suggestions = (content.generationMetadata as any).videoPrompts.brollSuggestions;
+                    if (suggestions && suggestions.length > 0) {
+                      setBrollSearchQuery(suggestions[0]);
+                    }
+                    setBrollDialogOpen(true);
+                  }}
+                  data-testid={`button-broll-${content.id}`}
+                >
+                  <Clapperboard className="w-4 h-4" />
+                  Find B-Roll Footage (Pexels)
+                </Button>
               </div>
             )}
 
@@ -1658,6 +1680,140 @@ export default function ContentQueue() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={brollDialogOpen} onOpenChange={setBrollDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clapperboard className="w-5 h-5 text-amber-600" />
+              Find B-Roll Footage
+            </DialogTitle>
+            <DialogDescription>
+              Search Pexels for free stock photos and videos to use as B-Roll in your content.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Search for footage..."
+                value={brollSearchQuery}
+                onChange={(e) => setBrollSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && brollSearchQuery.trim()) {
+                    handleBrollSearch();
+                  }
+                }}
+                data-testid="input-broll-search"
+              />
+              <Select value={brollMediaType} onValueChange={(v: "both" | "photos" | "videos") => setBrollMediaType(v)}>
+                <SelectTrigger className="w-32" data-testid="select-broll-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Both</SelectItem>
+                  <SelectItem value="photos">Photos</SelectItem>
+                  <SelectItem value="videos">Videos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleBrollSearch}
+                disabled={brollLoading || !brollSearchQuery.trim()}
+                data-testid="button-search-broll"
+              >
+                {brollLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Search"}
+              </Button>
+            </div>
+
+            {brollResults.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {brollResults.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="relative group rounded-lg overflow-hidden border bg-muted">
+                    {item.type === "photo" ? (
+                      <img
+                        src={item.previewUrl}
+                        alt={item.attribution}
+                        className="w-full h-32 object-cover"
+                      />
+                    ) : (
+                      <div className="relative">
+                        <img
+                          src={item.previewUrl}
+                          alt={item.attribution}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                        {item.duration && (
+                          <span className="absolute bottom-1 right-1 text-xs bg-black/70 text-white px-1 rounded">
+                            {item.duration}s
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-2 space-y-1">
+                      <Badge variant={item.type === "photo" ? "secondary" : "default"} className="text-xs">
+                        {item.type === "photo" ? "Photo" : "Video"}
+                      </Badge>
+                      <p className="text-xs text-muted-foreground truncate">{item.attribution}</p>
+                      <a
+                        href={item.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download
+                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <Download className="w-3 h-3" />
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {brollResults.length === 0 && !brollLoading && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Clapperboard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>Search for stock footage to find B-Roll for your videos</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrollDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
+
+  async function handleBrollSearch() {
+    if (!brollSearchQuery.trim()) return;
+    
+    setBrollLoading(true);
+    try {
+      const params = new URLSearchParams({
+        query: brollSearchQuery,
+        type: brollMediaType,
+        perPage: "12",
+      });
+      const res = await fetch(`/api/pexels/search?${params}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to search Pexels");
+      }
+      const data = await res.json();
+      setBrollResults(data);
+    } catch (error: any) {
+      toast({
+        title: "Search failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setBrollLoading(false);
+    }
+  }
 }
