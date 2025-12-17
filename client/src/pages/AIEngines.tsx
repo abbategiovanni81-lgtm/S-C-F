@@ -14,6 +14,7 @@ interface AIEnginesResponse {
   openai: AIEngineStatus;
   elevenlabs: AIEngineStatus;
   fal: AIEngineStatus;
+  pexels: AIEngineStatus;
 }
 
 const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string }> = {
@@ -37,6 +38,13 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     logo: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-indigo-600", text: "FAL" },
     keyName: "FAL_API_KEY"
+  },
+  pexels: {
+    type: "B-Roll Footage",
+    description: "Provides high-quality stock videos and images for B-Roll content.",
+    logo: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-teal-600", text: "PX" },
+    keyName: "PEXELS_API_KEY"
   }
 };
 
