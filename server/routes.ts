@@ -9,6 +9,7 @@ import { generateSocialContent, generateContentIdeas, analyzeViralContent, extra
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
+import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
 import multer from "multer";
 import path from "path";
@@ -350,7 +351,49 @@ export async function registerRoutes(
       openai: { configured: true, name: "OpenAI GPT-4" },
       elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Studio" },
       fal: { configured: falService.isConfigured(), name: "Fal.ai Lip-Sync" },
+      pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
     });
+  });
+
+  app.get("/api/pexels/status", async (req, res) => {
+    res.json({ configured: pexelsService.isConfigured() });
+  });
+
+  app.get("/api/pexels/search", async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      const mediaType = (req.query.type as "photos" | "videos" | "both") || "both";
+      const perPage = parseInt(req.query.perPage as string) || 12;
+
+      if (!query) {
+        return res.status(400).json({ error: "Query parameter is required" });
+      }
+
+      const results = await pexelsService.searchBRoll(query, mediaType, perPage);
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pexels/curated", async (req, res) => {
+    try {
+      const perPage = parseInt(req.query.perPage as string) || 12;
+      const photos = await pexelsService.getCuratedPhotos(perPage);
+      res.json(photos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/pexels/popular-videos", async (req, res) => {
+    try {
+      const perPage = parseInt(req.query.perPage as string) || 12;
+      const videos = await pexelsService.getPopularVideos(perPage);
+      res.json(videos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get("/api/elevenlabs/voices", async (req, res) => {
