@@ -16,6 +16,17 @@ async function ensureTempDir() {
 }
 
 async function downloadFile(url: string, outputPath: string): Promise<void> {
+  // Handle local paths (e.g., /generated-media/video-xxx.mp4)
+  if (url.startsWith("/")) {
+    const localPath = path.join(process.cwd(), "public", url);
+    if (fs.existsSync(localPath)) {
+      fs.copyFileSync(localPath, outputPath);
+      return;
+    } else {
+      throw new Error(`Local file not found: ${localPath}`);
+    }
+  }
+  
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith("https") ? https : http;
     const file = fs.createWriteStream(outputPath);
