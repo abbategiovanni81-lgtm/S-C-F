@@ -398,29 +398,31 @@ export default function Analytics() {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-4 mb-8 p-4 rounded-xl bg-secondary/30 border border-border/50">
-            {channel.thumbnailUrl && (
-              <img src={channel.thumbnailUrl} alt={channel.title} className="w-12 h-12 rounded-full" />
-            )}
-            <div>
-              <h3 className="font-semibold" data-testid="text-channel-name">{channel.title}</h3>
-              <p className="text-sm text-muted-foreground">@{channel.customUrl?.replace("@", "") || channel.channelId}</p>
+          {channel && (
+            <div className="flex items-center gap-4 mb-8 p-4 rounded-xl bg-secondary/30 border border-border/50">
+              {channel.thumbnailUrl && (
+                <img src={channel.thumbnailUrl} alt={channel.title} className="w-12 h-12 rounded-full" />
+              )}
+              <div>
+                <h3 className="font-semibold" data-testid="text-channel-name">{channel.title}</h3>
+                <p className="text-sm text-muted-foreground">@{channel.customUrl?.replace("@", "") || channel.channelId}</p>
+              </div>
+              <div className="ml-auto flex gap-6 text-sm">
+                <div className="text-center">
+                  <p className="font-bold text-lg" data-testid="text-subscriber-count">{formatNumber(channel.subscriberCount)}</p>
+                  <p className="text-muted-foreground">Subscribers</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-lg" data-testid="text-video-count">{formatNumber(channel.videoCount)}</p>
+                  <p className="text-muted-foreground">Videos</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-lg" data-testid="text-total-views">{formatNumber(channel.viewCount)}</p>
+                  <p className="text-muted-foreground">Total Views</p>
+                </div>
+              </div>
             </div>
-            <div className="ml-auto flex gap-6 text-sm">
-              <div className="text-center">
-                <p className="font-bold text-lg" data-testid="text-subscriber-count">{formatNumber(channel.subscriberCount)}</p>
-                <p className="text-muted-foreground">Subscribers</p>
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-lg" data-testid="text-video-count">{formatNumber(channel.videoCount)}</p>
-                <p className="text-muted-foreground">Videos</p>
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-lg" data-testid="text-total-views">{formatNumber(channel.viewCount)}</p>
-                <p className="text-muted-foreground">Total Views</p>
-              </div>
-            </div>
-          </div>
+          )}
 
           {analytics && (
             <div className="mb-4 text-sm text-muted-foreground">
