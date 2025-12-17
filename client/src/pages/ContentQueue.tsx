@@ -65,6 +65,9 @@ export default function ContentQueue() {
   const [brollResults, setBrollResults] = useState<any[]>([]);
   const [brollLoading, setBrollLoading] = useState(false);
 
+  const [sceneGenerating, setSceneGenerating] = useState<Record<string, number | null>>({});
+  const [sceneVideos, setSceneVideos] = useState<Record<string, Record<number, { status: string; videoUrl?: string; requestId?: string }>>>({});
+
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
   });
@@ -410,6 +413,75 @@ export default function ContentQueue() {
     setVideoDialogOpen(false);
   };
 
+  const handleGenerateSceneVideo = async (contentId: string, sceneNumber: number, prompt: string, platforms: string[]) => {
+    setSceneGenerating(prev => ({ ...prev, [contentId]: sceneNumber }));
+    setSceneVideos(prev => ({
+      ...prev,
+      [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "generating" } }
+    }));
+
+    try {
+      const aspectRatio = platforms.includes("TikTok") || platforms.includes("Instagram Reels") ? "9:16" : "16:9";
+      const res = await fetch("/api/fal/generate-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentId, prompt, aspectRatio, duration: 10, sceneNumber }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to start video generation");
+      }
+      
+      const data = await res.json();
+      setSceneVideos(prev => ({
+        ...prev,
+        [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.requestId } }
+      }));
+      
+      toast({ title: `Scene ${sceneNumber} generating...`, description: "This may take a few minutes." });
+      pollSceneVideoStatus(contentId, sceneNumber, data.requestId);
+    } catch (error: any) {
+      setSceneVideos(prev => ({
+        ...prev,
+        [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed" } }
+      }));
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setSceneGenerating(prev => ({ ...prev, [contentId]: null }));
+    }
+  };
+
+  const pollSceneVideoStatus = async (contentId: string, sceneNumber: number, requestId: string) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/fal/video-status/${requestId}`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (data.status === "completed" && data.videoUrl) {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.videoUrl, requestId } }
+          }));
+          toast({ title: `Scene ${sceneNumber} complete!`, description: "Video generated successfully." });
+          invalidateContentQueries();
+        } else if (data.status === "failed") {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId } }
+          }));
+          toast({ title: `Scene ${sceneNumber} failed`, variant: "destructive" });
+        } else {
+          setTimeout(poll, 5000);
+        }
+      } catch {
+        setTimeout(poll, 5000);
+      }
+    };
+    poll();
+  };
+
   const openRejectDialog = (content: GeneratedContent) => {
     setRejectingContent(content);
     setRejectionReason("");
@@ -676,6 +748,63 @@ export default function ContentQueue() {
               </div>
             )}
             
+            {(content.generationMetadata as any).videoPrompts.scenePrompts?.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Scissors className="w-4 h-4 text-indigo-600" />
+                  <p className="text-xs font-medium text-muted-foreground">Scene-by-Scene Video Generation</p>
+                </div>
+                <div className="space-y-3">
+                  {(content.generationMetadata as any).videoPrompts.scenePrompts.map((scene: { sceneNumber: number; duration: number; visualPrompt: string; sceneDescription: string }) => {
+                    const sceneState = sceneVideos[content.id]?.[scene.sceneNumber];
+                    const isGenerating = sceneGenerating[content.id] === scene.sceneNumber || sceneState?.status === "generating" || sceneState?.status === "processing";
+                    const existingClip = (content.generationMetadata as any)?.generatedClips?.find((c: any) => c.sceneNumber === scene.sceneNumber);
+                    const videoUrl = sceneState?.videoUrl || existingClip?.videoUrl;
+                    
+                    return (
+                      <div key={scene.sceneNumber} className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs">Scene {scene.sceneNumber}</Badge>
+                          <span className="text-xs text-muted-foreground">{scene.duration}s</span>
+                        </div>
+                        <p className="text-sm font-medium mb-1">{scene.sceneDescription}</p>
+                        <p className="text-xs text-muted-foreground italic mb-2">"{scene.visualPrompt}"</p>
+                        
+                        {videoUrl && (
+                          <div className="mb-2">
+                            <video controls className="w-full rounded max-h-32" data-testid={`video-scene-${content.id}-${scene.sceneNumber}`}>
+                              <source src={videoUrl} type="video/mp4" />
+                            </video>
+                          </div>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant={videoUrl ? "outline" : "default"}
+                          onClick={() => handleGenerateSceneVideo(content.id, scene.sceneNumber, scene.visualPrompt, content.platforms)}
+                          disabled={isGenerating}
+                          className="gap-2 w-full"
+                          data-testid={`button-generate-scene-${content.id}-${scene.sceneNumber}`}
+                        >
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Video className="w-4 h-4" />
+                              {videoUrl ? "Regenerate" : "Generate"} Scene {scene.sceneNumber}
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {(content.generationMetadata as any).videoPrompts.thumbnailPrompt && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
