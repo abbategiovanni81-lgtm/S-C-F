@@ -40,6 +40,7 @@ export interface IStorage {
   createGeneratedContent(content: InsertGeneratedContent): Promise<GeneratedContent>;
   updateGeneratedContent(id: string, content: Partial<InsertGeneratedContent>): Promise<GeneratedContent | undefined>;
 
+  getSocialAccount(id: string): Promise<SocialAccount | undefined>;
   getSocialAccountsByUser(userId: string): Promise<SocialAccount[]>;
   getSocialAccountByPlatform(userId: string, platform: string): Promise<SocialAccount | undefined>;
   getSocialAccountByPlatformAccountId(userId: string, platform: string, platformAccountId: string): Promise<SocialAccount | undefined>;
@@ -153,6 +154,11 @@ export class DatabaseStorage implements IStorage {
       .set({ ...content, updatedAt: new Date() })
       .where(eq(generatedContent.id, id))
       .returning();
+    return result[0];
+  }
+
+  async getSocialAccount(id: string): Promise<SocialAccount | undefined> {
+    const result = await db.select().from(socialAccounts).where(eq(socialAccounts.id, id)).limit(1);
     return result[0];
   }
 

@@ -44,6 +44,7 @@ export default function Analytics() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+  const [selectedYouTubeAccountId, setSelectedYouTubeAccountId] = useState<string>("");
 
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery<SocialAccount[]>({
     queryKey: ["/api/social-accounts?userId=demo-user"],
@@ -54,13 +55,33 @@ export default function Analytics() {
   const connectedYouTubeAccounts = youtubeAccounts.filter(a => a.isConnected === "connected");
   const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
+  // Auto-select first connected YouTube account if available
+  const effectiveYouTubeAccountId = selectedYouTubeAccountId || (connectedYouTubeAccounts.length > 0 ? connectedYouTubeAccounts[0].id : "");
+
   const { data: channel, isLoading: loadingChannel, error: channelError } = useQuery<YouTubeChannel>({
-    queryKey: ["/api/youtube/channel"],
+    queryKey: ["/api/youtube/channel", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/channel?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/channel";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch channel");
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
   });
 
   const { data: analytics, isLoading: loadingAnalytics } = useQuery<YouTubeAnalytics>({
-    queryKey: ["/api/youtube/analytics"],
+    queryKey: ["/api/youtube/analytics", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch analytics");
+      return res.json();
+    },
     enabled: !!channel || connectedYouTubeAccounts.length > 0,
     retry: false,
   });
@@ -398,6 +419,24 @@ export default function Analytics() {
         </div>
       ) : (
         <>
+          {connectedYouTubeAccounts.length > 1 && (
+            <div className="mb-6">
+              <label className="text-sm font-medium mb-2 block">Select YouTube Channel</label>
+              <Select value={effectiveYouTubeAccountId} onValueChange={setSelectedYouTubeAccountId}>
+                <SelectTrigger className="w-full max-w-xs" data-testid="select-youtube-channel">
+                  <SelectValue placeholder="Choose a channel..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {connectedYouTubeAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id} data-testid={`youtube-channel-option-${account.id}`}>
+                      {account.accountName}
+                      {account.accountHandle && ` (${account.accountHandle})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {channel && (
             <div className="flex items-center gap-4 mb-8 p-4 rounded-xl bg-secondary/30 border border-border/50">
               {channel.thumbnailUrl && (

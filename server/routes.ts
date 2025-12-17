@@ -770,7 +770,29 @@ export async function registerRoutes(
 
   app.get("/api/youtube/channel", async (req, res) => {
     try {
-      const accessToken = req.cookies?.youtube_access_token;
+      const accountId = req.query.accountId as string;
+      let accessToken = req.cookies?.youtube_access_token;
+      
+      // If accountId provided, use that account's token instead of cookie
+      if (accountId) {
+        const account = await storage.getSocialAccount(accountId);
+        if (account && account.accessToken) {
+          // Check if token needs refresh
+          if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+            if (account.refreshToken) {
+              const newTokens = await refreshAccessToken(account.refreshToken);
+              await storage.updateSocialAccount(accountId, {
+                accessToken: newTokens.accessToken,
+                tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
+              });
+              accessToken = newTokens.accessToken;
+            }
+          } else {
+            accessToken = account.accessToken;
+          }
+        }
+      }
+      
       if (!accessToken) {
         return res.status(401).json({ error: "Not connected to YouTube" });
       }
@@ -783,8 +805,31 @@ export async function registerRoutes(
 
   app.get("/api/youtube/analytics", async (req, res) => {
     try {
-      const accessToken = req.cookies?.youtube_access_token;
-      const channelId = req.cookies?.youtube_channel_id;
+      const accountId = req.query.accountId as string;
+      let accessToken = req.cookies?.youtube_access_token;
+      let channelId = req.cookies?.youtube_channel_id;
+      
+      // If accountId provided, use that account's token and channel instead of cookie
+      if (accountId) {
+        const account = await storage.getSocialAccount(accountId);
+        if (account && account.accessToken) {
+          // Check if token needs refresh
+          if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+            if (account.refreshToken) {
+              const newTokens = await refreshAccessToken(account.refreshToken);
+              await storage.updateSocialAccount(accountId, {
+                accessToken: newTokens.accessToken,
+                tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
+              });
+              accessToken = newTokens.accessToken;
+            }
+          } else {
+            accessToken = account.accessToken;
+          }
+          channelId = account.platformAccountId || undefined;
+        }
+      }
+      
       if (!accessToken || !channelId) {
         return res.status(401).json({ error: "Not connected to YouTube" });
       }
