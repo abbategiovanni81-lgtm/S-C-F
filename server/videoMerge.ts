@@ -4,10 +4,43 @@ import * as fs from "fs";
 import * as path from "path";
 import * as https from "https";
 import * as http from "http";
+import { objectStorageClient } from "./objectStorage";
 
 const execAsync = promisify(exec);
 
 const TEMP_DIR = "/tmp/video-merge";
+const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+
+async function uploadToCloudStorage(localPath: string, fileName: string): Promise<string> {
+  const privateDir = process.env.PRIVATE_OBJECT_DIR;
+  if (!privateDir) {
+    console.log("[VideoMerge] No PRIVATE_OBJECT_DIR set, using local storage");
+    return "";
+  }
+
+  try {
+    const objectPath = `${privateDir}/merged-videos/${fileName}`;
+    const parts = objectPath.startsWith("/") ? objectPath.slice(1).split("/") : objectPath.split("/");
+    const bucketName = parts[0];
+    const objectName = parts.slice(1).join("/");
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(fs.readFileSync(localPath), {
+      contentType: "video/mp4",
+      metadata: {
+        "x-object-acl": JSON.stringify({ visibility: "public" }),
+      },
+    });
+    
+    console.log(`[VideoMerge] Uploaded to cloud storage: ${objectPath}`);
+    return `/objects/merged-videos/${fileName}`;
+  } catch (error) {
+    console.error("[VideoMerge] Cloud upload failed:", error);
+    return "";
+  }
+}
 
 async function ensureTempDir() {
   if (!fs.existsSync(TEMP_DIR)) {
@@ -108,12 +141,16 @@ export async function mergeVideosWithAudio(
       fs.copyFileSync(mergedVideoPath, finalOutputPath);
     }
     
+    const outputFileName = `merged_${jobId}.mp4`;
+    
+    // Try to upload to cloud storage for persistence
+    let cloudUrl = await uploadToCloudStorage(finalOutputPath, outputFileName);
+    
+    // Also save locally as fallback
     const publicDir = path.join(process.cwd(), "public", "merged-videos");
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir, { recursive: true });
     }
-    
-    const outputFileName = `merged_${jobId}.mp4`;
     const publicPath = path.join(publicDir, outputFileName);
     fs.copyFileSync(finalOutputPath, publicPath);
     
@@ -126,11 +163,13 @@ export async function mergeVideosWithAudio(
     if (fs.existsSync(finalOutputPath)) fs.unlinkSync(finalOutputPath);
     fs.rmdirSync(jobDir);
     
-    console.log(`[VideoMerge] Merge complete: ${outputFileName}`);
+    // Use cloud URL if available, otherwise local
+    const finalUrl = cloudUrl || `/merged-videos/${outputFileName}`;
+    console.log(`[VideoMerge] Merge complete: ${finalUrl}`);
     
     return {
       mergedVideoPath: publicPath,
-      mergedVideoUrl: `/merged-videos/${outputFileName}`,
+      mergedVideoUrl: finalUrl,
     };
   } catch (error) {
     console.error("[VideoMerge] Error:", error);

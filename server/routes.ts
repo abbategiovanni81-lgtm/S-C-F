@@ -11,10 +11,13 @@ import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
+import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+
+const objectStorageService = new ObjectStorageService();
 
 // Helper to download external URLs and save locally
 async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image" | "audio"): Promise<string> {
@@ -58,6 +61,21 @@ export async function registerRoutes(
     fs.mkdirSync(generatedMediaDir, { recursive: true });
   }
   app.use("/generated-media", express.static(generatedMediaDir));
+  
+  // Serve objects from cloud storage
+  app.get("/objects/*", async (req, res) => {
+    try {
+      const objectPath = req.path;
+      const file = await objectStorageService.getObjectEntityFile(objectPath);
+      await objectStorageService.downloadObject(file, res);
+    } catch (error: any) {
+      if (error.name === "ObjectNotFoundError") {
+        return res.status(404).json({ error: "Object not found" });
+      }
+      console.error("Error serving object:", error);
+      res.status(500).json({ error: "Failed to serve object" });
+    }
+  });
   
   // Health check endpoint for deployment
   app.get("/api/health", (req, res) => {
@@ -1001,8 +1019,19 @@ export async function registerRoutes(
       let mimeType = "video/mp4";
       
       if (videoUrl) {
-        // Check if it's a local path (starts with /)
-        if (videoUrl.startsWith("/")) {
+        // Check if it's a cloud storage path
+        if (videoUrl.startsWith("/objects/")) {
+          console.log("Reading video from cloud storage:", videoUrl);
+          try {
+            const file = await objectStorageService.getObjectEntityFile(videoUrl);
+            const [buffer] = await file.download();
+            videoBuffer = buffer;
+            mimeType = "video/mp4";
+          } catch (error) {
+            console.error("Failed to read from cloud storage:", error);
+            return res.status(400).json({ error: `Video file not found in cloud storage: ${videoUrl}` });
+          }
+        } else if (videoUrl.startsWith("/")) {
           // Read from local file system
           const localPath = path.join(process.cwd(), "public", videoUrl);
           console.log("Reading video from local path:", localPath);
