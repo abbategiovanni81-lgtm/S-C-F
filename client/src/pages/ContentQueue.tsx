@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -67,6 +67,10 @@ export default function ContentQueue() {
 
   const [sceneGenerating, setSceneGenerating] = useState<Record<string, number | null>>({});
   const [sceneVideos, setSceneVideos] = useState<Record<string, Record<number, { status: string; videoUrl?: string; requestId?: string }>>>({});
+
+  // Scene editing state
+  const [editSceneDialogOpen, setEditSceneDialogOpen] = useState(false);
+  const [editingScene, setEditingScene] = useState<{ contentId: string; sceneNumber: number; sceneDescription: string; visualPrompt: string } | null>(null);
 
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
@@ -583,6 +587,79 @@ export default function ContentQueue() {
     poll();
   };
 
+  // Scene edit and delete handlers
+  const openEditSceneDialog = (contentId: string, sceneNumber: number, sceneDescription: string, visualPrompt: string) => {
+    setEditingScene({ contentId, sceneNumber, sceneDescription, visualPrompt });
+    setEditSceneDialogOpen(true);
+  };
+
+  const handleSaveScene = async () => {
+    if (!editingScene) return;
+    
+    try {
+      const contentRes = await fetch(`/api/content/${editingScene.contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const videoPrompts = metadata.videoPrompts || {};
+      const scenePrompts = videoPrompts.scenePrompts || [];
+      
+      const updatedScenes = scenePrompts.map((scene: any) => 
+        scene.sceneNumber === editingScene.sceneNumber 
+          ? { ...scene, sceneDescription: editingScene.sceneDescription, visualPrompt: editingScene.visualPrompt }
+          : scene
+      );
+      
+      await fetch(`/api/content/${editingScene.contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...metadata, videoPrompts: { ...videoPrompts, scenePrompts: updatedScenes } }
+        }),
+      });
+      
+      toast({ title: "Scene updated", description: `Scene ${editingScene.sceneNumber} has been updated.` });
+      invalidateContentQueries();
+      setEditSceneDialogOpen(false);
+      setEditingScene(null);
+    } catch (error) {
+      toast({ title: "Failed to update scene", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteScene = async (contentId: string, sceneNumber: number) => {
+    try {
+      const contentRes = await fetch(`/api/content/${contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const videoPrompts = metadata.videoPrompts || {};
+      const scenePrompts = videoPrompts.scenePrompts || [];
+      
+      const updatedScenes = scenePrompts
+        .filter((scene: any) => scene.sceneNumber !== sceneNumber)
+        .map((scene: any, idx: number) => ({ ...scene, sceneNumber: idx + 1 }));
+      
+      // Also remove generated clips for this scene
+      const generatedClips = (metadata.generatedClips || []).filter((c: any) => c.sceneNumber !== sceneNumber);
+      
+      await fetch(`/api/content/${contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...metadata, videoPrompts: { ...videoPrompts, scenePrompts: updatedScenes }, generatedClips }
+        }),
+      });
+      
+      toast({ title: "Scene deleted", description: `Scene ${sceneNumber} has been removed.` });
+      invalidateContentQueries();
+    } catch (error) {
+      toast({ title: "Failed to delete scene", variant: "destructive" });
+    }
+  };
+
   const openRejectDialog = (content: GeneratedContent) => {
     setRejectingContent(content);
     setRejectionReason("");
@@ -866,7 +943,27 @@ export default function ContentQueue() {
                       <div key={scene.sceneNumber} className="bg-indigo-50 dark:bg-indigo-950/30 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <Badge variant="outline" className="text-xs">Scene {scene.sceneNumber}</Badge>
-                          <span className="text-xs text-muted-foreground">{scene.duration}s</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground mr-1">{scene.duration}s</span>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => openEditSceneDialog(content.id, scene.sceneNumber, scene.sceneDescription, scene.visualPrompt)}
+                              data-testid={`button-edit-scene-${content.id}-${scene.sceneNumber}`}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteScene(content.id, scene.sceneNumber)}
+                              data-testid={`button-delete-scene-${content.id}-${scene.sceneNumber}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm font-medium mb-1">{scene.sceneDescription}</p>
                         <p className="text-xs text-muted-foreground italic mb-2">"{scene.visualPrompt}"</p>
@@ -1848,6 +1945,58 @@ export default function ContentQueue() {
             <Button variant="destructive" onClick={handleRejectWithFeedback} data-testid="button-confirm-reject">
               <X className="w-4 h-4 mr-2" />
               Reject & Submit Feedback
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editSceneDialogOpen} onOpenChange={setEditSceneDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-indigo-600" />
+              Edit Scene {editingScene?.sceneNumber}
+            </DialogTitle>
+            <DialogDescription>
+              Update the scene description and video prompt.
+            </DialogDescription>
+          </DialogHeader>
+          {editingScene && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="scene-description">Scene Description</Label>
+                <Textarea
+                  id="scene-description"
+                  value={editingScene.sceneDescription}
+                  onChange={(e) => setEditingScene({ ...editingScene, sceneDescription: e.target.value })}
+                  placeholder="Describe what happens in this scene..."
+                  className="min-h-[80px]"
+                  data-testid="input-scene-description"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="scene-prompt">Video Generation Prompt</Label>
+                <Textarea
+                  id="scene-prompt"
+                  value={editingScene.visualPrompt}
+                  onChange={(e) => setEditingScene({ ...editingScene, visualPrompt: e.target.value })}
+                  placeholder="Detailed video prompt for AI generation..."
+                  className="min-h-[120px]"
+                  data-testid="input-scene-prompt"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This prompt will be used by the AI to generate the video for this scene.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditSceneDialogOpen(false); setEditingScene(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveScene} data-testid="button-save-scene">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
