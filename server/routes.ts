@@ -289,7 +289,7 @@ export async function registerRoutes(
         platforms: brief.platforms,
         generationMetadata: { 
           contentIdeas: result.contentIdeas,
-          contentType: contentFormat,
+          contentFormat: contentFormat,
           videoPrompts: result.videoPrompts,
           imagePrompts: result.imagePrompts,
           carouselPrompts: result.carouselPrompts,

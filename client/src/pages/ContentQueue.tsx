@@ -1145,7 +1145,7 @@ export default function ContentQueue() {
         {/* Content-type specific actions for approved content */}
         {content.status === "approved" && (() => {
           const metadata = content.generationMetadata as any;
-          const contentFormat = metadata?.contentFormat || 
+          const contentFormat = metadata?.contentFormat || metadata?.contentType || 
             (metadata?.videoPrompts ? "video" : 
              metadata?.imagePrompts ? "image" : 
              metadata?.carouselPrompts ? "carousel" : 
