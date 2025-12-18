@@ -701,83 +701,85 @@ export default function EditMerge() {
                   </div>
 
                   {/* Image Section */}
-                  <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-500/5 to-pink-500/5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5 text-purple-500" />
-                        <span className="text-sm font-medium">Image / Thumbnail</span>
+                  {selectedContent && (
+                    <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-500/5 to-pink-500/5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="w-5 h-5 text-purple-500" />
+                          <span className="text-sm font-medium">Image / Thumbnail</span>
+                        </div>
                       </div>
-                    </div>
-                    
-                    {selectedContent && getImageUrl(selectedContent) && (
-                      <div className="space-y-2">
-                        <img 
-                          src={getImageUrl(selectedContent)!} 
-                          alt="Generated/Uploaded" 
-                          className="w-full rounded-lg max-h-48 object-contain bg-black"
-                        />
-                        <Badge variant="default" className="gap-1">
-                          <CheckCircle className="w-3 h-3" />
-                          Image Ready
-                        </Badge>
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant={getImageUrl(selectedContent!) ? "outline" : "default"}
-                        size="sm"
-                        onClick={handleGenerateImage}
-                        disabled={generatingImage}
-                        className="flex-1"
-                        data-testid="button-generate-image"
-                      >
-                        {generatingImage ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-4 h-4 mr-2" />
-                            {getImageUrl(selectedContent!) ? "Regenerate" : "Generate"} Image
-                          </>
-                        )}
-                      </Button>
                       
-                      <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUploadImage}
-                        className="hidden"
-                        data-testid="input-upload-image"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => imageInputRef.current?.click()}
-                        disabled={uploadingImage}
-                        className="flex-1"
-                        data-testid="button-upload-image"
-                      >
-                        {uploadingImage ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Image
-                          </>
-                        )}
-                      </Button>
+                      {getImageUrl(selectedContent) && (
+                        <div className="space-y-2">
+                          <img 
+                            src={getImageUrl(selectedContent)!} 
+                            alt="Generated/Uploaded" 
+                            className="w-full rounded-lg max-h-48 object-contain bg-black"
+                          />
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Image Ready
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button
+                          variant={getImageUrl(selectedContent) ? "outline" : "default"}
+                          size="sm"
+                          onClick={handleGenerateImage}
+                          disabled={generatingImage}
+                          className="flex-1"
+                          data-testid="button-generate-image"
+                        >
+                          {generatingImage ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-4 h-4 mr-2" />
+                              {getImageUrl(selectedContent) ? "Regenerate" : "Generate"} Image
+                            </>
+                          )}
+                        </Button>
+                        
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadImage}
+                          className="hidden"
+                          data-testid="input-upload-image"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => imageInputRef.current?.click()}
+                          disabled={uploadingImage}
+                          className="flex-1"
+                          data-testid="button-upload-image"
+                        >
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Image
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Add a thumbnail or featured image for this post
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Add a thumbnail or featured image for this post
-                    </p>
-                  </div>
+                  )}
 
                   {allClipsReady && (
                     <div className="pt-4 border-t">
@@ -804,31 +806,33 @@ export default function EditMerge() {
                   )}
 
                   {/* Move to Ready button - visible when there are assets OR user wants to move anyway */}
-                  <div className="pt-4 border-t">
-                    <Button
-                      className="w-full"
-                      variant="secondary"
-                      size="lg"
-                      onClick={handleMoveToReady}
-                      disabled={movingToReady}
-                      data-testid="button-move-ready"
-                    >
-                      {movingToReady ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Moving...
-                        </>
-                      ) : (
-                        <>
-                          <ArrowRight className="w-4 h-4 mr-2" />
-                          Move to Ready to Post
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      Ready to publish? Move this content to Ready to Post
-                    </p>
-                  </div>
+                  {selectedContent && (
+                    <div className="pt-4 border-t">
+                      <Button
+                        className="w-full"
+                        variant="secondary"
+                        size="lg"
+                        onClick={handleMoveToReady}
+                        disabled={movingToReady}
+                        data-testid="button-move-ready"
+                      >
+                        {movingToReady ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Moving...
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRight className="w-4 h-4 mr-2" />
+                            Move to Ready to Post
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        Ready to publish? Move this content to Ready to Post
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
