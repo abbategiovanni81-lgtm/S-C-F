@@ -51,14 +51,11 @@ export default function EditMerge() {
     }
   }, [params.contentId, approvedContent, selectedContent]);
 
-  // Show all approved video content (has videoPrompts or generatedVideoUrl)
-  const videoContent = useMemo(() => 
+  // Show ALL approved content (video, image, carousel, etc.)
+  const allApprovedContent = useMemo(() => 
     approvedContent.filter((content) => {
       const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
-      const metadata = content.generationMetadata as any;
-      const hasVideoPrompts = metadata?.videoPrompts != null;
-      const hasGeneratedVideo = metadata?.generatedVideoUrl != null;
-      return matchesBrief && (hasVideoPrompts || hasGeneratedVideo);
+      return matchesBrief;
     }),
     [approvedContent, filterBrief]
   );
@@ -336,16 +333,16 @@ export default function EditMerge() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Scissors className="w-5 h-5" />
-                  Video Content
+                  Approved Content
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {videoContent.length === 0 ? (
+                {allApprovedContent.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No approved video content. Generate new content to get started.
+                    No approved content. Approve content from the Content Queue to get started.
                   </p>
                 ) : (
-                  videoContent.map((content) => {
+                  allApprovedContent.map((content) => {
                     const scenePrompts = getScenePrompts(content);
                     const brief = briefs.find(b => b.id === content.briefId);
                     const isSelected = selectedContent?.id === content.id;

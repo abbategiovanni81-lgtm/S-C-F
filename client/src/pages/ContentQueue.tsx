@@ -1150,7 +1150,6 @@ export default function ContentQueue() {
              metadata?.imagePrompts ? "image" : 
              metadata?.carouselPrompts ? "carousel" : 
              metadata?.tiktokTextPost ? "tiktok_text" : "video");
-          const isVideo = contentFormat === "video";
           const isImage = contentFormat === "image" || contentFormat === "carousel";
           const isTikTokText = contentFormat === "tiktok_text";
           
@@ -1158,15 +1157,13 @@ export default function ContentQueue() {
             <div className="pt-4 space-y-3 border-t mt-4">
               <p className="text-xs font-medium text-muted-foreground">Actions</p>
               
-              {/* VIDEO: Go to Edit & Merge */}
-              {isVideo && (
-                <Link href={`/edit-merge/${content.id}`}>
-                  <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
-                    <Scissors className="w-4 h-4" />
-                    Go to Edit & Merge
-                  </Button>
-                </Link>
-              )}
+              {/* ALL CONTENT: Go to Edit & Merge */}
+              <Link href={`/edit-merge/${content.id}`}>
+                <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
+                  <Scissors className="w-4 h-4" />
+                  Go to Edit & Merge
+                </Button>
+              </Link>
               
               {/* IMAGE/CAROUSEL: Upload or Generate Image */}
               {isImage && (
