@@ -250,6 +250,7 @@ export async function registerRoutes(
         brandVoice: brief.brandVoice,
         targetAudience: brief.targetAudience,
         contentGoals: brief.contentGoals,
+        linksToInclude: brief.linksToInclude,
         platforms: brief.platforms,
         contentType,
         contentFormat,

@@ -23,6 +23,7 @@ export const brandBriefs = pgTable("brand_briefs", {
   brandVoice: text("brand_voice").notNull(),
   targetAudience: text("target_audience").notNull(),
   contentGoals: text("content_goals").notNull(),
+  linksToInclude: text("links_to_include"),
   postingFrequency: text("posting_frequency").notNull(),
   platforms: text("platforms").array().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),

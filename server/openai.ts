@@ -10,6 +10,7 @@ export interface ContentGenerationRequest {
   brandVoice: string;
   targetAudience: string;
   contentGoals: string;
+  linksToInclude?: string | null;
   platforms: string[];
   contentType: "video_script" | "caption" | "both";
   contentFormat?: "video" | "image" | "carousel" | "tiktok_text";
@@ -74,6 +75,10 @@ export async function generateSocialContent(
 
   const contentFormat = request.contentFormat || "video";
 
+  const linksSection = request.linksToInclude
+    ? `\n\nIMPORTANT - Include these links/CTAs in your captions naturally:\n${request.linksToInclude}`
+    : "";
+
   const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
@@ -87,7 +92,7 @@ Your content should:
 - Appeal directly to the target audience
 - Support the content goals
 - Be optimized for the specified platforms
-- Use trending formats and hooks when appropriate${avoidSection}${learningSection}`;
+- Use trending formats and hooks when appropriate${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";

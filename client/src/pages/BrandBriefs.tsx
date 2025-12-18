@@ -105,6 +105,7 @@ export default function BrandBriefs() {
       brandVoice: formData.get("brandVoice"),
       targetAudience: formData.get("targetAudience"),
       contentGoals: formData.get("contentGoals"),
+      linksToInclude: formData.get("linksToInclude") || null,
       postingFrequency: formData.get("postingFrequency"),
       platforms: selectedPlatforms,
     });
@@ -187,6 +188,16 @@ export default function BrandBriefs() {
                   placeholder="What do you want to achieve? (e.g., Increase brand awareness, drive website traffic, generate leads...)"
                   required
                   data-testid="input-content-goals"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="linksToInclude">Links to Include (optional)</Label>
+                <Textarea
+                  id="linksToInclude"
+                  name="linksToInclude"
+                  placeholder="Add affiliate links, website URLs, or CTAs to include in captions (e.g., pointsbot.net/signup, bit.ly/myoffer)"
+                  data-testid="input-links-to-include"
                 />
               </div>
 
