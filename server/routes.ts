@@ -762,6 +762,59 @@ export async function registerRoutes(
     }
   });
 
+  // Image upload
+  const uploadedImagesDir = path.join(process.cwd(), "public", "uploaded-images");
+  if (!fs.existsSync(uploadedImagesDir)) {
+    fs.mkdirSync(uploadedImagesDir, { recursive: true });
+  }
+  app.use("/uploaded-images", express.static(uploadedImagesDir));
+
+  const contentImageUpload = multer({
+    storage: multer.diskStorage({
+      destination: uploadedImagesDir,
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 20 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only image files are allowed"));
+      }
+    },
+  });
+
+  app.post("/api/image/upload", contentImageUpload.single("image"), async (req, res) => {
+    try {
+      const file = req.file;
+      const { contentId } = req.body;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      
+      const imageUrl = `/uploaded-images/${file.filename}`;
+      
+      if (contentId) {
+        const existingContent = await storage.getGeneratedContent(contentId);
+        if (existingContent) {
+          const existingMetadata = (existingContent.generationMetadata as any) || {};
+          await storage.updateGeneratedContent(contentId, {
+            generationMetadata: { ...existingMetadata, uploadedImageUrl: imageUrl },
+          });
+        }
+      }
+      
+      res.json({ success: true, imageUrl, fileName: file.originalname });
+    } catch (error: any) {
+      console.error("Image upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Prompt Feedback endpoints
   app.post("/api/prompt-feedback", async (req, res) => {
     try {

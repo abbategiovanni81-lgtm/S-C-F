@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
@@ -112,7 +112,11 @@ export default function EditMerge() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [movingToReady, setMovingToReady] = useState(false);
 
   const handleSelectContent = (content: GeneratedContent) => {
     setSelectedContent(content);
@@ -251,6 +255,145 @@ export default function EditMerge() {
     } finally {
       setMerging(false);
     }
+  };
+
+  const getImagePrompt = (content: GeneratedContent): string | null => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.imagePrompts?.mainImagePrompt 
+      || metadata?.videoPrompts?.thumbnailPrompt
+      || (content.caption ? `Social media image for: ${content.caption.substring(0, 200)}` : null);
+  };
+
+  const getImageUrl = (content: GeneratedContent): string | null => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.generatedImageUrl || metadata?.uploadedImageUrl || null;
+  };
+
+  const handleGenerateImage = async () => {
+    if (!selectedContent) return;
+    const prompt = getImagePrompt(selectedContent);
+    
+    if (!prompt) {
+      toast({ title: "No prompt available", description: "Could not generate a suitable image prompt. Try uploading an image instead.", variant: "destructive" });
+      return;
+    }
+    
+    setGeneratingImage(true);
+    try {
+      const metadata = selectedContent.generationMetadata as any;
+      const aspectRatio = metadata?.imagePrompts?.aspectRatio || "1:1";
+      const res = await fetch("/api/fal/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, aspectRatio }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate image");
+      }
+      
+      const data = await res.json();
+      
+      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
+      const freshContent = await freshRes.json();
+      const existingMetadata = freshContent?.generationMetadata || {};
+      await fetch(`/api/content/${selectedContent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...existingMetadata, generatedImageUrl: data.imageUrl },
+        }),
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Image generated!", description: "Your image is ready." });
+    } catch (error: any) {
+      toast({ title: "Image generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedContent || !e.target.files?.length) return;
+    const file = e.target.files[0];
+    setUploadingImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("contentId", selectedContent.id);
+      
+      const res = await fetch("/api/image/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+      
+      const data = await res.json();
+      
+      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
+      const freshContent = await freshRes.json();
+      const existingMetadata = freshContent?.generationMetadata || {};
+      await fetch(`/api/content/${selectedContent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...existingMetadata, uploadedImageUrl: data.imageUrl },
+        }),
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Image uploaded!", description: file.name });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const handleMoveToReady = async () => {
+    if (!selectedContent) return;
+    setMovingToReady(true);
+    
+    try {
+      const metadata = selectedContent.generationMetadata as any;
+      const existingMetadata = metadata || {};
+      await fetch(`/api/content/${selectedContent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...existingMetadata, manuallyReady: true },
+          status: "ready",
+        }),
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Moved to Ready to Post!", description: "Content is now in Ready to Post." });
+      setSelectedContent(null);
+    } catch (error: any) {
+      toast({ title: "Failed to move", description: error.message, variant: "destructive" });
+    } finally {
+      setMovingToReady(false);
+    }
+  };
+
+  const hasAssets = (content: GeneratedContent): boolean => {
+    const metadata = content.generationMetadata as any;
+    return !!(
+      metadata?.mergedVideoUrl ||
+      metadata?.generatedVideoUrl ||
+      metadata?.voiceoverAudioUrl ||
+      metadata?.generatedImageUrl ||
+      metadata?.uploadedImageUrl ||
+      clips.some(c => c.status === "completed")
+    );
   };
 
   useEffect(() => {
@@ -557,6 +700,85 @@ export default function EditMerge() {
                     </p>
                   </div>
 
+                  {/* Image Section */}
+                  <div className="p-4 rounded-lg border bg-gradient-to-r from-purple-500/5 to-pink-500/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="w-5 h-5 text-purple-500" />
+                        <span className="text-sm font-medium">Image / Thumbnail</span>
+                      </div>
+                    </div>
+                    
+                    {selectedContent && getImageUrl(selectedContent) && (
+                      <div className="space-y-2">
+                        <img 
+                          src={getImageUrl(selectedContent)!} 
+                          alt="Generated/Uploaded" 
+                          className="w-full rounded-lg max-h-48 object-contain bg-black"
+                        />
+                        <Badge variant="default" className="gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Image Ready
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant={getImageUrl(selectedContent!) ? "outline" : "default"}
+                        size="sm"
+                        onClick={handleGenerateImage}
+                        disabled={generatingImage}
+                        className="flex-1"
+                        data-testid="button-generate-image"
+                      >
+                        {generatingImage ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            {getImageUrl(selectedContent!) ? "Regenerate" : "Generate"} Image
+                          </>
+                        )}
+                      </Button>
+                      
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadImage}
+                        className="hidden"
+                        data-testid="input-upload-image"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={uploadingImage}
+                        className="flex-1"
+                        data-testid="button-upload-image"
+                      >
+                        {uploadingImage ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Image
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Add a thumbnail or featured image for this post
+                    </p>
+                  </div>
+
                   {allClipsReady && (
                     <div className="pt-4 border-t">
                       <Button
@@ -580,6 +802,33 @@ export default function EditMerge() {
                       </Button>
                     </div>
                   )}
+
+                  {/* Move to Ready button - visible when there are assets OR user wants to move anyway */}
+                  <div className="pt-4 border-t">
+                    <Button
+                      className="w-full"
+                      variant="secondary"
+                      size="lg"
+                      onClick={handleMoveToReady}
+                      disabled={movingToReady}
+                      data-testid="button-move-ready"
+                    >
+                      {movingToReady ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Moving...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight className="w-4 h-4 mr-2" />
+                          Move to Ready to Post
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Ready to publish? Move this content to Ready to Post
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
