@@ -43,6 +43,7 @@ export default function ReadyToPost() {
     title: "",
     description: "",
     tags: "",
+    affiliateLink: "",
     privacyStatus: "private" as "private" | "unlisted" | "public",
     accountId: "",
   });
@@ -190,6 +191,7 @@ export default function ReadyToPost() {
       title: content.script?.substring(0, 100) || "Video Title",
       description: content.caption || "",
       tags: content.hashtags?.join(", ") || "",
+      affiliateLink: (content.generationMetadata as any)?.affiliateLink || "",
       privacyStatus: "private",
       accountId: youtubeAccounts.length > 0 ? youtubeAccounts[0].id : "",
     });
@@ -221,7 +223,11 @@ export default function ReadyToPost() {
     }
     
     formData.append("title", publishForm.title);
-    formData.append("description", publishForm.description);
+    // Append affiliate link to description if provided
+    const descriptionWithLink = publishForm.affiliateLink 
+      ? `${publishForm.description}\n\n${publishForm.affiliateLink}`
+      : publishForm.description;
+    formData.append("description", descriptionWithLink);
     formData.append("tags", publishForm.tags);
     formData.append("privacyStatus", publishForm.privacyStatus);
     formData.append("accountId", publishForm.accountId || youtubeAccounts[0]?.id || "");
@@ -584,6 +590,20 @@ export default function ReadyToPost() {
                 placeholder="tag1, tag2, tag3"
                 data-testid="input-video-tags"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="affiliate-link">Affiliate Link</Label>
+              <Input
+                id="affiliate-link"
+                value={publishForm.affiliateLink}
+                onChange={(e) => setPublishForm(prev => ({ ...prev, affiliateLink: e.target.value }))}
+                placeholder="https://your-affiliate-link.com"
+                data-testid="input-affiliate-link"
+              />
+              <p className="text-xs text-muted-foreground">
+                This link will be added to your video description
+              </p>
             </div>
 
             <div className="space-y-2">
