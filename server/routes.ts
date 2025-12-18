@@ -1000,15 +1000,27 @@ export async function registerRoutes(
       let mimeType = "video/mp4";
       
       if (videoUrl) {
-        // Download video from URL
-        console.log("Downloading video from URL:", videoUrl);
-        const videoResponse = await fetch(videoUrl);
-        if (!videoResponse.ok) {
-          return res.status(400).json({ error: "Failed to download video from URL" });
+        // Check if it's a local path (starts with /)
+        if (videoUrl.startsWith("/")) {
+          // Read from local file system
+          const localPath = path.join(process.cwd(), "public", videoUrl);
+          console.log("Reading video from local path:", localPath);
+          if (!fs.existsSync(localPath)) {
+            return res.status(400).json({ error: `Video file not found: ${videoUrl}` });
+          }
+          videoBuffer = fs.readFileSync(localPath);
+          mimeType = "video/mp4";
+        } else {
+          // Download video from URL
+          console.log("Downloading video from URL:", videoUrl);
+          const videoResponse = await fetch(videoUrl);
+          if (!videoResponse.ok) {
+            return res.status(400).json({ error: "Failed to download video from URL" });
+          }
+          const arrayBuffer = await videoResponse.arrayBuffer();
+          videoBuffer = Buffer.from(arrayBuffer);
+          mimeType = videoResponse.headers.get("content-type") || "video/mp4";
         }
-        const arrayBuffer = await videoResponse.arrayBuffer();
-        videoBuffer = Buffer.from(arrayBuffer);
-        mimeType = videoResponse.headers.get("content-type") || "video/mp4";
       } else if (req.file) {
         videoBuffer = req.file.buffer;
         mimeType = req.file.mimetype;
