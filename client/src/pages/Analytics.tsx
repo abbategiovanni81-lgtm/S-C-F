@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin, Smartphone, Monitor, Tv, Globe, Play } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalyticsSnapshot, SocialAccount } from "@shared/schema";
@@ -92,6 +92,72 @@ export default function Analytics() {
 
   const { data: topPatterns = [] } = useQuery<{ title: string; views: number; postedOn?: string }[]>({
     queryKey: ["/api/analytics/top-patterns"],
+  });
+
+  // Advanced YouTube Analytics queries
+  const { data: trafficSources } = useQuery<{ trafficSources: { source: string; views: number; watchTimeMinutes: number }[] } | null>({
+    queryKey: ["/api/youtube/analytics/traffic-sources", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics/traffic-sources?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics/traffic-sources";
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
+  });
+
+  const { data: deviceAnalytics } = useQuery<{ devices: { device: string; views: number; watchTimeMinutes: number }[] } | null>({
+    queryKey: ["/api/youtube/analytics/devices", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics/devices?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics/devices";
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
+  });
+
+  const { data: geoAnalytics } = useQuery<{ countries: { country: string; views: number; watchTimeMinutes: number }[] } | null>({
+    queryKey: ["/api/youtube/analytics/geography", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics/geography?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics/geography";
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
+  });
+
+  const { data: peakTimes } = useQuery<{ byDayOfWeek: { day: string; views: number }[]; bestDay: string } | null>({
+    queryKey: ["/api/youtube/analytics/peak-times", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics/peak-times?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics/peak-times";
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
+  });
+
+  const { data: topVideosData } = useQuery<{ topVideos: { videoId: string; title: string; thumbnail?: string; views: number; avgDuration: number; likes: number; comments: number }[] } | null>({
+    queryKey: ["/api/youtube/analytics/top-videos", effectiveYouTubeAccountId],
+    queryFn: async () => {
+      const url = effectiveYouTubeAccountId 
+        ? `/api/youtube/analytics/top-videos?accountId=${effectiveYouTubeAccountId}` 
+        : "/api/youtube/analytics/top-videos";
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: connectedYouTubeAccounts.length > 0,
   });
 
   // Consider connected if we have YouTube accounts in database OR cookie-based connection
@@ -583,6 +649,192 @@ export default function Analytics() {
               </Card>
             </div>
           )}
+
+          {/* Advanced Analytics Section */}
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              Advanced Analytics
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Traffic Sources */}
+              {trafficSources?.trafficSources && trafficSources.trafficSources.length > 0 && (
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-blue-500" />
+                      Traffic Sources
+                    </CardTitle>
+                    <CardDescription>Where your views come from</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {trafficSources.trafficSources.slice(0, 5).map((source, i) => {
+                        const totalViews = trafficSources.trafficSources.reduce((sum, s) => sum + s.views, 0);
+                        const percentage = totalViews > 0 ? Math.round((source.views / totalViews) * 100) : 0;
+                        const sourceName = source.source.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+                        return (
+                          <div key={i} className="flex items-center justify-between">
+                            <span className="text-sm truncate flex-1">{sourceName}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500 rounded-full" style={{ width: `${percentage}%` }} />
+                              </div>
+                              <span className="text-sm font-medium w-12 text-right">{formatNumber(source.views)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Device Breakdown */}
+              {deviceAnalytics?.devices && deviceAnalytics.devices.length > 0 && (
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-purple-500" />
+                      Device Types
+                    </CardTitle>
+                    <CardDescription>How viewers watch your content</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {deviceAnalytics.devices.map((device, i) => {
+                        const totalViews = deviceAnalytics.devices.reduce((sum, d) => sum + d.views, 0);
+                        const percentage = totalViews > 0 ? Math.round((device.views / totalViews) * 100) : 0;
+                        const deviceIcon = device.device === "MOBILE" ? <Smartphone className="w-4 h-4" /> 
+                          : device.device === "DESKTOP" ? <Monitor className="w-4 h-4" /> 
+                          : device.device === "TV" ? <Tv className="w-4 h-4" /> 
+                          : <Monitor className="w-4 h-4" />;
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                              {deviceIcon}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{device.device}</span>
+                                <span className="font-medium">{percentage}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-muted rounded-full mt-1 overflow-hidden">
+                                <div className="h-full bg-purple-500 rounded-full" style={{ width: `${percentage}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Geographic Data */}
+              {geoAnalytics?.countries && geoAnalytics.countries.length > 0 && (
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-green-500" />
+                      Top Countries
+                    </CardTitle>
+                    <CardDescription>Where your audience is located</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {geoAnalytics.countries.slice(0, 5).map((country, i) => (
+                        <div key={i} className="flex items-center justify-between py-1">
+                          <span className="text-sm">{country.country}</span>
+                          <span className="text-sm font-medium">{formatNumber(country.views)} views</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Best Posting Times */}
+              {peakTimes?.byDayOfWeek && peakTimes.byDayOfWeek.length > 0 && (
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-amber-500" />
+                      Best Days to Post
+                    </CardTitle>
+                    <CardDescription>When your audience is most active</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-3 p-3 bg-amber-500/10 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">Best day to post</p>
+                      <p className="text-lg font-bold text-amber-600">{peakTimes.bestDay}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {peakTimes.byDayOfWeek.slice(0, 4).map((day, i) => {
+                        const maxViews = Math.max(...peakTimes.byDayOfWeek.map(d => d.views));
+                        const percentage = maxViews > 0 ? Math.round((day.views / maxViews) * 100) : 0;
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-sm w-20">{day.day.substring(0, 3)}</span>
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${percentage}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-12 text-right">{formatNumber(day.views)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Top Videos with Retention */}
+            {topVideosData?.topVideos && topVideosData.topVideos.length > 0 && (
+              <Card className="border-none shadow-sm mt-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Play className="w-5 h-5 text-red-500" />
+                    Top Performing Videos (Last 30 Days)
+                  </CardTitle>
+                  <CardDescription>Your best videos with retention metrics</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {topVideosData.topVideos.slice(0, 5).map((video, i) => (
+                      <div key={video.videoId} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <span className="text-lg font-bold text-muted-foreground w-6">#{i + 1}</span>
+                        {video.thumbnail && (
+                          <img src={video.thumbnail} alt={video.title} className="w-20 h-12 object-cover rounded" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{video.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Avg. view: {Math.round(video.avgDuration)}s
+                          </p>
+                        </div>
+                        <div className="flex gap-4 text-center">
+                          <div>
+                            <p className="font-bold text-primary">{formatNumber(video.views)}</p>
+                            <p className="text-xs text-muted-foreground">views</p>
+                          </div>
+                          <div>
+                            <p className="font-bold text-pink-500">{formatNumber(video.likes)}</p>
+                            <p className="text-xs text-muted-foreground">likes</p>
+                          </div>
+                          <div>
+                            <p className="font-bold text-blue-500">{formatNumber(video.comments)}</p>
+                            <p className="text-xs text-muted-foreground">comments</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </>
       )}
     </Layout>

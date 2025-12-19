@@ -10,7 +10,7 @@ import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrie
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { pexelsService } from "./pexels";
-import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken } from "./youtube";
+import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import multer from "multer";
 import path from "path";
@@ -1031,6 +1031,125 @@ export async function registerRoutes(
       }
       const analytics = await getChannelAnalytics(accessToken, channelId);
       res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Helper function to get YouTube credentials with token refresh
+  async function getYouTubeCredentials(req: any, accountId?: string) {
+    let accessToken = req.cookies?.youtube_access_token;
+    let channelId = req.cookies?.youtube_channel_id;
+    
+    if (accountId) {
+      const account = await storage.getSocialAccount(accountId);
+      if (account && account.accessToken) {
+        // Check if token needs refresh
+        if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+          if (account.refreshToken) {
+            const newTokens = await refreshAccessToken(account.refreshToken);
+            await storage.updateSocialAccount(accountId, {
+              accessToken: newTokens.accessToken,
+              tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
+            });
+            accessToken = newTokens.accessToken;
+          }
+        } else {
+          accessToken = account.accessToken;
+        }
+        channelId = account.platformAccountId || undefined;
+      }
+    }
+    
+    return { accessToken, channelId };
+  }
+
+  // Advanced YouTube Analytics endpoints
+  app.get("/api/youtube/analytics/traffic-sources", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getTrafficSources(accessToken, channelId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics/devices", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getDeviceAnalytics(accessToken, channelId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics/geography", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getGeographicAnalytics(accessToken, channelId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics/retention", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getViewerRetention(accessToken, channelId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics/peak-times", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getPeakViewingTimes(accessToken, channelId);
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/youtube/analytics/top-videos", async (req, res) => {
+    try {
+      const accountId = req.query.accountId as string;
+      const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
+      
+      if (!accessToken || !channelId) {
+        return res.status(401).json({ error: "Not connected to YouTube" });
+      }
+      const data = await getTopVideos(accessToken, channelId);
+      res.json(data);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

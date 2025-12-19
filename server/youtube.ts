@@ -178,3 +178,242 @@ export async function uploadVideo(params: VideoUploadParams) {
     url: `https://www.youtube.com/watch?v=${response.data.id}`,
   };
 }
+
+// Advanced Analytics Functions
+
+export async function getTrafficSources(accessToken: string, channelId: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const response = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views,estimatedMinutesWatched",
+      dimensions: "insightTrafficSourceType",
+      sort: "-views",
+    });
+
+    const trafficSources = (response.data.rows || []).map((row: any) => ({
+      source: row[0],
+      views: row[1],
+      watchTimeMinutes: row[2],
+    }));
+
+    return { trafficSources, period: { startDate, endDate } };
+  } catch (error) {
+    console.error("Traffic sources API error:", error);
+    return null;
+  }
+}
+
+export async function getDeviceAnalytics(accessToken: string, channelId: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const response = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views,estimatedMinutesWatched",
+      dimensions: "deviceType",
+      sort: "-views",
+    });
+
+    const devices = (response.data.rows || []).map((row: any) => ({
+      device: row[0],
+      views: row[1],
+      watchTimeMinutes: row[2],
+    }));
+
+    return { devices, period: { startDate, endDate } };
+  } catch (error) {
+    console.error("Device analytics API error:", error);
+    return null;
+  }
+}
+
+export async function getGeographicAnalytics(accessToken: string, channelId: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const response = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views,estimatedMinutesWatched",
+      dimensions: "country",
+      sort: "-views",
+      maxResults: 10,
+    });
+
+    const countries = (response.data.rows || []).map((row: any) => ({
+      country: row[0],
+      views: row[1],
+      watchTimeMinutes: row[2],
+    }));
+
+    return { countries, period: { startDate, endDate } };
+  } catch (error) {
+    console.error("Geographic analytics API error:", error);
+    return null;
+  }
+}
+
+export async function getViewerRetention(accessToken: string, channelId: string, videoId?: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    // Get overall retention metrics
+    const response = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views,averageViewDuration,averageViewPercentage",
+      dimensions: "video",
+      sort: "-views",
+      maxResults: 10,
+    });
+
+    const videos = (response.data.rows || []).map((row: any) => ({
+      videoId: row[0],
+      views: row[1],
+      avgDuration: row[2],
+      avgPercentage: row[3],
+    }));
+
+    return { videos, period: { startDate, endDate } };
+  } catch (error) {
+    console.error("Viewer retention API error:", error);
+    return null;
+  }
+}
+
+export async function getPeakViewingTimes(accessToken: string, channelId: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    // Get views by day
+    const dayResponse = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views",
+      dimensions: "day",
+      sort: "day",
+    });
+
+    const viewsByDay = (dayResponse.data.rows || []).map((row: any) => ({
+      date: row[0],
+      views: row[1],
+    }));
+
+    // Aggregate by day of week
+    const dayOfWeekViews: Record<string, number> = {};
+    viewsByDay.forEach((item: any) => {
+      const date = new Date(item.date);
+      const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][date.getDay()];
+      dayOfWeekViews[dayName] = (dayOfWeekViews[dayName] || 0) + item.views;
+    });
+
+    const byDayOfWeek = Object.entries(dayOfWeekViews).map(([day, views]) => ({ day, views }));
+    byDayOfWeek.sort((a, b) => b.views - a.views);
+
+    return { 
+      viewsByDay, 
+      byDayOfWeek,
+      bestDay: byDayOfWeek[0]?.day || "Unknown",
+      period: { startDate, endDate } 
+    };
+  } catch (error) {
+    console.error("Peak viewing times API error:", error);
+    return null;
+  }
+}
+
+export async function getTopVideos(accessToken: string, channelId: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const youtubeAnalytics = google.youtubeAnalytics({ version: "v2", auth });
+  const youtube = google.youtube({ version: "v3", auth });
+
+  const endDate = new Date().toISOString().split("T")[0];
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const response = await youtubeAnalytics.reports.query({
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      metrics: "views,estimatedMinutesWatched,averageViewDuration,likes,comments",
+      dimensions: "video",
+      sort: "-views",
+      maxResults: 10,
+    });
+
+    const videoIds = (response.data.rows || []).map((row: any) => row[0]);
+    
+    // Get video details
+    let videoDetails: Record<string, any> = {};
+    if (videoIds.length > 0) {
+      const detailsResponse = await youtube.videos.list({
+        part: ["snippet"],
+        id: videoIds,
+      });
+      
+      (detailsResponse.data.items || []).forEach((item: any) => {
+        videoDetails[item.id] = {
+          title: item.snippet?.title,
+          thumbnail: item.snippet?.thumbnails?.medium?.url,
+        };
+      });
+    }
+
+    const topVideos = (response.data.rows || []).map((row: any) => ({
+      videoId: row[0],
+      title: videoDetails[row[0]]?.title || "Unknown",
+      thumbnail: videoDetails[row[0]]?.thumbnail,
+      views: row[1],
+      watchTimeMinutes: row[2],
+      avgDuration: row[3],
+      likes: row[4],
+      comments: row[5],
+    }));
+
+    return { topVideos, period: { startDate, endDate } };
+  } catch (error) {
+    console.error("Top videos API error:", error);
+    return null;
+  }
+}
