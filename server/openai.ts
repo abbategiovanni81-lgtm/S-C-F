@@ -87,29 +87,56 @@ Content Goals: ${request.contentGoals}
 Platforms: ${request.platforms.join(", ")}
 Content Format: ${contentFormat.toUpperCase()}
 
+CRITICAL - HOOK VIEWERS IN THE FIRST 8 SECONDS using one of these proven techniques:
+1. TEASE THE PAYOFF - Show/mention the most exciting moment upfront to make them want to see how it unfolds
+2. SOLVE A PROBLEM - Address a pain point directly: "Tired of X? Here's how to fix it"
+3. ASK A RELATABLE QUESTION - Make viewers stop and think: "Have you ever wondered why...?"
+4. SHARE A SHOCKING FACT - Mind-blowing stats grab attention instantly
+5. USE POP CULTURE - Reference trending memes, sounds, or viral moments
+6. INSPIRATIONAL QUOTE - For motivational content, open with a powerful quote
+7. TELL A JOKE - Disarm viewers with unexpected humor
+8. ENGAGE THE SENSES - Start with dynamic visuals, sound effects, motion
+
+VIDEO INTRO RULES:
+- Hook must happen in FIRST 8 SECONDS - no slow intros
+- Keep branded intro under 10 seconds total
+- Get to the main content by seconds 11-20
+- Skip generic greetings like "Hey guys, welcome back"
+- Front-load the value proposition
+
 Your content should:
 - Match the brand voice perfectly
 - Appeal directly to the target audience
 - Support the content goals
 - Be optimized for the specified platforms
-- Use trending formats and hooks when appropriate${linksSection}${avoidSection}${learningSection}`;
+- Use trending formats and hooks
+- Create curiosity and urgency to keep watching${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
 
   if (contentFormat === "video") {
-    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts. Each scene should be 8-10 seconds and describe a specific action or visual moment from the script. Focus on concrete actions and subjects rather than abstract moods.`;
+    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts.
+
+SCENE 1 IS THE HOOK (first 8 seconds) - CRITICAL for retention:
+- Must grab attention immediately using one of the 8 hook techniques
+- Start with the payoff, problem, question, or shocking fact
+- No slow intros, no "Hey guys", no channel branding
+- This scene determines if viewers stay or leave
+
+Focus on concrete actions, subjects, and dynamic camera movements.`;
     formatSpecificJson = `"videoPrompts": {
-    "voiceoverText": "The exact text to use for AI voiceover (ElevenLabs). This should be the spoken narration, conversational and natural.",
-    "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with slight excitement')",
+    "voiceoverText": "The exact text for AI voiceover. START WITH THE HOOK - first sentence must grab attention. Energetic and conversational.",
+    "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with excitement')",
     "scenePrompts": [
-      { "sceneNumber": 1, "duration": 8, "visualPrompt": "Detailed AI video prompt for scene 1 - describe specific action, subject, camera angle (e.g., 'Close-up of hands typing on laptop, then person looking frustrated and rubbing temples, soft indoor lighting')", "sceneDescription": "What happens in this scene" },
-      { "sceneNumber": 2, "duration": 10, "visualPrompt": "Detailed AI video prompt for scene 2 - different action/moment from the script", "sceneDescription": "What happens in this scene" }
+      { "sceneNumber": 1, "duration": 8, "visualPrompt": "THE HOOK SCENE - Must be visually dynamic and attention-grabbing. Show the problem/payoff/shocking moment. Use motion, close-ups, dramatic angles.", "sceneDescription": "The hook - grabs viewer attention in first 8 seconds" },
+      { "sceneNumber": 2, "duration": 10, "visualPrompt": "MAIN CONTENT - Deliver the value promised in the hook. Show the solution or story development.", "sceneDescription": "The main content delivery" },
+      { "sceneNumber": 3, "duration": 8, "visualPrompt": "PAYOFF/CTA - Show the result, transformation, or call to action. End strong.", "sceneDescription": "The payoff and call to action" }
     ],
-    "thumbnailPrompt": "AI image generation prompt for the video thumbnail - eye-catching, include text overlay suggestions",
-    "brollSuggestions": ["List of 3-5 B-roll footage ideas to include in the video"]
+    "thumbnailPrompt": "Click-worthy thumbnail - clear subject, bold colors, expressive face if applicable, text overlay suggestion",
+    "brollSuggestions": ["List of 3-5 B-roll footage ideas for visual variety"]
   }
-  NOTE: scenePrompts should have 2-3 scenes based on script complexity. Adjust scene count and durations to fit the voiceover length (total ~20-30 seconds).`;
+  NOTE: Scene 1 = HOOK (8s), Scene 2 = main content (10s), Scene 3 = payoff (8s). Total ~26 seconds.`;
   } else if (contentFormat === "image") {
     formatSpecificPrompt = `Generate a single promotional image post with AI image generation prompts.`;
     formatSpecificJson = `"imagePrompts": {
