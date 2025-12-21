@@ -110,7 +110,30 @@ Your content should:
 - Support the content goals
 - Be optimized for the specified platforms
 - Use trending formats and hooks
-- Create curiosity and urgency to keep watching${linksSection}${avoidSection}${learningSection}`;
+- Create curiosity and urgency to keep watching
+
+CAPTION FRAMEWORK - Follow this structured approach:
+1. CONTEXT: Lead with a clear, searchable phrase (not vague openers like "This is it" or "So...")
+2. BELIEF BREAK: Challenge an assumption or introduce a surprising perspective
+3. PAYOFF: Deliver the value or insight promised
+4. CTA: End with a question to drive comments (questions > statements)
+
+CAPTION RULES:
+- SEARCH-FIRST: Write for Instagram/TikTok SEO - lead with searchable keywords
+- KEYWORD REPETITION: Use main keywords 2-3 times naturally instead of relying on hashtags
+- STANDALONE: Assume videos watched without sound - caption must make sense alone
+- NO "as you can see" LANGUAGE: Restate what's happening visually, don't reference it
+- CONVERSATION STARTERS: Write to spark engagement, not to explain or push links
+- PLATFORM-SPECIFIC: Tailor length and style for each platform (TikTok: shorter, Instagram: medium, YouTube: longer)
+- PRIORITIZE ENGAGEMENT: Optimize for comments, saves, and replies over outbound clicks
+- STRUCTURED OUTPUT: Use the framework above, not freeform writing
+
+CAPTION DON'TS:
+- No generic hooks like "Stop scrolling!" or "Wait for it!"
+- No vague openers like "This changed everything" without immediate context
+- No link-pushing as the main focus
+- No hashtag-stuffing - max 3-5 targeted hashtags
+- No explaining what viewers can already see${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
@@ -178,8 +201,8 @@ Respond in JSON format:
 {
   "contentFormat": "${contentFormat}",
   ${contentFormat === "video" ? '"script": "The full video script with scene directions",' : '"script": null,'}
-  "caption": "The social media caption optimized for engagement",
-  "hashtags": ["array", "of", "relevant", "hashtags"],
+  "caption": "STRUCTURED CAPTION following the framework: [CONTEXT: searchable keyword phrase] + [BELIEF BREAK: surprising insight] + [PAYOFF: the value] + [CTA: a question to drive comments]. Lead with searchable terms, include 2-3 keyword repetitions naturally. End with an engaging question. Must work standalone without watching the video.",
+  "hashtags": ["max", "5", "targeted", "hashtags", "only"],
   "contentIdeas": ["3-5 follow-up content ideas based on this topic"],
   ${formatSpecificJson}
 }`;

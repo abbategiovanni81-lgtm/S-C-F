@@ -73,7 +73,28 @@ shared/           # Shared code between frontend and backend
 ### AI Services (require API keys in environment)
 - **OpenAI**: Content generation (scripts, captions, hashtags, content ideas) via `AI_INTEGRATIONS_OPENAI_API_KEY`
 - **ElevenLabs**: Voice synthesis for video voiceovers via `ELEVENLABS_API_KEY`
-- **Fal.ai**: Lip-sync video processing via `FAL_API_KEY`
+- **A2E**: Avatar lip-sync video generation (default engine) via `A2E_API_KEY`
+- **Fal.ai**: AI video generation (fallback engine) via `FAL_API_KEY`
+
+### Video Engine Selection
+Users can choose between two video generation engines in the Content Queue:
+- **A2E (default)**: Creates realistic lip-sync avatar videos from text using 50+ pre-built avatars
+- **Fal.ai**: Generates AI video clips from visual prompts
+
+### Caption Generation Framework
+AI-generated captions follow a structured SEO-first approach:
+1. **CONTEXT**: Lead with searchable keyword phrase
+2. **BELIEF BREAK**: Challenge assumption or surprising insight  
+3. **PAYOFF**: Deliver the promised value
+4. **CTA**: End with a question to drive comments
+
+Caption Rules:
+- Search-first writing for Instagram/TikTok SEO
+- Keyword repetition (2-3x) over hashtag reliance
+- Standalone captions that work without video audio
+- Platform-specific length and style
+- Max 3-5 targeted hashtags
+- Comment-based CTAs (questions > statements)
 
 ### Database
 - **PostgreSQL**: Primary data store, connection string via `DATABASE_URL`
