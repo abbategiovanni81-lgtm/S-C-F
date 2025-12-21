@@ -428,7 +428,17 @@ export async function registerRoutes(
         quality: quality || "standard",
         style: style || "vivid"
       });
-      res.json(result);
+      
+      // DALL-E URLs expire, so download and save locally
+      let localImageUrl = result.imageUrl;
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded DALL-E image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download DALL-E image:", downloadError);
+      }
+      
+      res.json({ imageUrl: localImageUrl, revisedPrompt: result.revisedPrompt });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -737,6 +747,36 @@ export async function registerRoutes(
         return res.status(400).json({ error: "prompt is required" });
       }
       const result = await falService.generateImage({ prompt, negativePrompt, aspectRatio, style });
+      
+      // Poll for completion (Fal.ai is async)
+      if (result.requestId && result.status === "processing") {
+        let attempts = 0;
+        const maxAttempts = 60; // 60 seconds max wait
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const status = await falService.checkImageStatus(result.requestId);
+          
+          if (status.status === "completed" && status.imageUrl) {
+            // Download and save locally
+            let localImageUrl = status.imageUrl;
+            try {
+              if (status.imageUrl.includes("fal.media") || status.imageUrl.includes("fal.run")) {
+                localImageUrl = await downloadAndSaveMedia(status.imageUrl, "image");
+                console.log(`Downloaded Fal.ai image to ${localImageUrl}`);
+              }
+            } catch (downloadError) {
+              console.error("Failed to download Fal.ai image:", downloadError);
+            }
+            return res.json({ imageUrl: localImageUrl, status: "completed" });
+          } else if (status.status === "failed") {
+            return res.status(500).json({ error: "Image generation failed" });
+          }
+          attempts++;
+        }
+        return res.status(500).json({ error: "Image generation timed out" });
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
