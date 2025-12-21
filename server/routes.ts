@@ -401,12 +401,47 @@ export async function registerRoutes(
   app.get("/api/ai-engines/status", async (req, res) => {
     res.json({
       openai: { configured: true, name: "OpenAI GPT-4" },
-      dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
+      a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
       elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
-      a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video" },
       fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
       pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
     });
+  });
+
+  // A2E Image Generation
+  app.post("/api/a2e/generate-image", async (req, res) => {
+    try {
+      const { prompt, aspectRatio, style } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      
+      // Map aspect ratio to width/height
+      let width = 1024, height = 1024;
+      if (aspectRatio === "16:9") { width = 1024; height = 576; }
+      else if (aspectRatio === "9:16") { width = 576; height = 1024; }
+      else if (aspectRatio === "4:5") { width = 768; height = 960; }
+      
+      const result = await a2eService.generateImage({ 
+        prompt, 
+        width, 
+        height,
+        style: style || "general"
+      });
+      
+      // Download and save locally for persistence
+      let localImageUrl = result.imageUrl;
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded A2E image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download A2E image:", downloadError);
+      }
+      
+      res.json({ imageUrl: localImageUrl, taskId: result.taskId });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // DALL-E Image Generation

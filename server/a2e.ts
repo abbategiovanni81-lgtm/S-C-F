@@ -209,6 +209,55 @@ class A2EService {
     
     throw new Error("A2E video generation timed out");
   }
+
+  // Text-to-Image generation
+  async generateImage(params: {
+    prompt: string;
+    width?: number;
+    height?: number;
+    style?: "general" | "manga";
+  }): Promise<{ imageUrl: string; taskId: string }> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      // Map style to req_key
+      const reqKey = params.style === "manga" ? "high_aes" : "high_aes_general_v21_L";
+      
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/userText2image/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          name: `image_${Date.now()}`,
+          prompt: params.prompt,
+          req_key: reqKey,
+          width: params.width || 1024,
+          height: params.height || 1024,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E text-to-image error: ${error}`);
+      }
+
+      const data = await response.json();
+      
+      // A2E returns completed image immediately
+      if (data.code === 0 && data.data?.image_urls?.[0]) {
+        return {
+          imageUrl: data.data.image_urls[0],
+          taskId: data.data._id,
+        };
+      }
+      
+      throw new Error("A2E text-to-image failed: No image returned");
+    } catch (error: any) {
+      console.error("A2E text-to-image error:", error);
+      throw error;
+    }
+  }
 }
 
 export const a2eService = new A2EService();

@@ -83,8 +83,8 @@ Users can choose between two video generation engines in the Content Queue:
 
 ### Image Engine Selection
 Users can choose between two image generation engines in the Content Queue:
-- **DALL-E 3 (default)**: High-quality images with excellent text rendering, supports 1024x1024, 1792x1024, 1024x1792 sizes
-- **Fal.ai**: Fast AI image generation with various style options
+- **A2E (default)**: High-quality images with general or manga styles, uses same API as video avatars
+- **Fal.ai**: Fast AI image generation with various style options (requires balance)
 
 ### Caption Generation Framework
 AI-generated captions follow a structured SEO-first approach:
