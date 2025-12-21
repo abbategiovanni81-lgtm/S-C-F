@@ -82,8 +82,9 @@ Users can choose between two video generation engines in the Content Queue:
 - **Fal.ai**: Generates AI video clips from visual prompts
 
 ### Image Engine Selection
-Users can choose between two image generation engines in the Content Queue:
+Users can choose between three image generation engines in the Content Queue:
 - **A2E (default)**: High-quality images with general or manga styles, uses same API as video avatars
+- **DALL-E 3**: OpenAI's image generation with excellent text rendering via `OPENAI_DALLE_API_KEY`
 - **Fal.ai**: Fast AI image generation with various style options (requires balance)
 
 ### Caption Generation Framework

@@ -401,6 +401,7 @@ export async function registerRoutes(
   app.get("/api/ai-engines/status", async (req, res) => {
     res.json({
       openai: { configured: true, name: "OpenAI GPT-4" },
+      dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
       a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
       elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
       fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },

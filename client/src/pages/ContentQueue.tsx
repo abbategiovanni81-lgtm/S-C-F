@@ -74,8 +74,8 @@ export default function ContentQueue() {
 
   // Video engine selection (A2E vs Fal.ai)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
-  // Image engine selection (A2E vs Fal.ai)
-  const [imageEngine, setImageEngine] = useState<"a2e" | "fal">("a2e");
+  // Image engine selection (A2E vs DALL-E vs Fal.ai)
+  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal">("a2e");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
   const [loadingAvatars, setLoadingAvatars] = useState(false);
@@ -191,8 +191,10 @@ export default function ContentQueue() {
     try {
       const aspectRatio = metadata?.imagePrompts?.aspectRatio || "1:1";
       
-      // Use A2E or Fal.ai based on selected engine
-      const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" : "/api/fal/generate-image";
+      // Use selected image engine
+      const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
+        : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+        : "/api/fal/generate-image";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1469,13 +1471,16 @@ export default function ContentQueue() {
                   <div className="bg-muted/50 p-3 rounded-lg space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Image Engine:</Label>
-                      <Select value={imageEngine} onValueChange={(v: "a2e" | "fal") => setImageEngine(v)}>
+                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal") => setImageEngine(v)}>
                         <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="a2e" disabled={!aiEngines?.a2e?.configured}>
                             A2E {!aiEngines?.a2e?.configured && "(not configured)"}
+                          </SelectItem>
+                          <SelectItem value="dalle" disabled={!aiEngines?.dalle?.configured}>
+                            DALL-E 3 {!aiEngines?.dalle?.configured && "(not configured)"}
                           </SelectItem>
                           <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
                             Fal.ai {!aiEngines?.fal?.configured && "(not configured)"}
@@ -1486,6 +1491,8 @@ export default function ContentQueue() {
                     <p className="text-xs text-muted-foreground">
                       {imageEngine === "a2e" 
                         ? "A2E generates high-quality images with general or manga styles." 
+                        : imageEngine === "dalle"
+                        ? "DALL-E 3 generates high-quality images with excellent text rendering."
                         : "Fal.ai generates fast AI images with various style options."}
                     </p>
                   </div>

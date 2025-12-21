@@ -634,8 +634,17 @@ export interface DalleImageResult {
   revisedPrompt?: string;
 }
 
+// Create a separate OpenAI client for DALL-E using the dedicated key
+const dalleClient = new OpenAI({
+  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY,
+});
+
 export async function generateDalleImage(request: DalleImageRequest): Promise<DalleImageResult> {
-  const response = await openai.images.generate({
+  if (!isDalleConfigured()) {
+    throw new Error("DALL-E API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
+  }
+
+  const response = await dalleClient.images.generate({
     model: "dall-e-3",
     prompt: request.prompt,
     n: 1,
@@ -656,5 +665,5 @@ export async function generateDalleImage(request: DalleImageRequest): Promise<Da
 }
 
 export function isDalleConfigured(): boolean {
-  return !!(process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY);
+  return !!(process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY);
 }
