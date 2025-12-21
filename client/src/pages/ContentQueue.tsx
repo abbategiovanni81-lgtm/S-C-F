@@ -72,6 +72,35 @@ export default function ContentQueue() {
   const [editSceneDialogOpen, setEditSceneDialogOpen] = useState(false);
   const [editingScene, setEditingScene] = useState<{ contentId: string; sceneNumber: number; sceneDescription: string; visualPrompt: string } | null>(null);
 
+  // Video engine selection (A2E vs Fal.ai)
+  const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
+  const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
+  const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
+  const [loadingAvatars, setLoadingAvatars] = useState(false);
+
+  // Fetch AI engines status
+  const { data: aiEngines } = useQuery<Record<string, { configured: boolean; name: string }>>({
+    queryKey: ["/api/ai-engines/status"],
+  });
+
+  // Fetch A2E avatars when engine is selected
+  useEffect(() => {
+    if (videoEngine === "a2e" && aiEngines?.a2e?.configured && a2eAvatars.length === 0) {
+      setLoadingAvatars(true);
+      fetch("/api/a2e/avatars")
+        .then(res => res.json())
+        .then(data => {
+          const avatars = data.avatars || [];
+          setA2EAvatars(avatars);
+          if (avatars.length > 0 && !selectedA2EAvatar) {
+            setSelectedA2EAvatar(avatars[0].id || avatars[0].creator_id);
+          }
+        })
+        .catch(err => console.error("Failed to load A2E avatars:", err))
+        .finally(() => setLoadingAvatars(false));
+    }
+  }, [videoEngine, aiEngines]);
+
   const { data: pendingContent = [], isLoading: loadingPending } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=pending"],
   });
@@ -437,45 +466,95 @@ export default function ContentQueue() {
 
     try {
       const aspectRatio = platforms.includes("TikTok") || platforms.includes("Instagram Reels") ? "9:16" : "16:9";
-      const res = await fetch("/api/fal/generate-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentId, prompt, aspectRatio, duration: 10, sceneNumber }),
-      });
       
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to start video generation");
-      }
-      
-      const data = await res.json();
-      setSceneVideos(prev => ({
-        ...prev,
-        [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.requestId } }
-      }));
-      
-      // Save request ID to database for polling resume
-      try {
-        const contentRes = await fetch(`/api/content/${contentId}`);
-        if (contentRes.ok) {
-          const content = await contentRes.json();
-          const existingMetadata = content?.generationMetadata || {};
-          const sceneRequests = existingMetadata.sceneRequests || {};
-          sceneRequests[sceneNumber] = { requestId: data.requestId, status: "processing" };
-          await fetch(`/api/content/${contentId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              generationMetadata: { ...existingMetadata, sceneRequests }
-            }),
-          });
+      // Use A2E or Fal.ai based on selected engine
+      if (videoEngine === "a2e" && aiEngines?.a2e?.configured && selectedA2EAvatar) {
+        // A2E lip-sync avatar video generation
+        const res = await fetch("/api/a2e/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            text: prompt, 
+            creatorId: selectedA2EAvatar, 
+            aspectRatio 
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to start A2E video generation");
         }
-      } catch (e) {
-        console.error("Failed to save scene request:", e);
+        
+        const data = await res.json();
+        setSceneVideos(prev => ({
+          ...prev,
+          [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.lipSyncId } }
+        }));
+        
+        // Save request ID to database
+        try {
+          const contentRes = await fetch(`/api/content/${contentId}`);
+          if (contentRes.ok) {
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            const sceneRequests = existingMetadata.sceneRequests || {};
+            sceneRequests[sceneNumber] = { requestId: data.lipSyncId, status: "processing", engine: "a2e" };
+            await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { ...existingMetadata, sceneRequests }
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save scene request:", e);
+        }
+        
+        toast({ title: `Scene ${sceneNumber} generating with A2E...`, description: "This may take a few minutes." });
+        pollA2ESceneVideoStatus(contentId, sceneNumber, data.lipSyncId);
+      } else {
+        // Fal.ai video generation (fallback)
+        const res = await fetch("/api/fal/generate-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentId, prompt, aspectRatio, duration: 10, sceneNumber }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to start video generation");
+        }
+        
+        const data = await res.json();
+        setSceneVideos(prev => ({
+          ...prev,
+          [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.requestId } }
+        }));
+        
+        // Save request ID to database for polling resume
+        try {
+          const contentRes = await fetch(`/api/content/${contentId}`);
+          if (contentRes.ok) {
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            const sceneRequests = existingMetadata.sceneRequests || {};
+            sceneRequests[sceneNumber] = { requestId: data.requestId, status: "processing", engine: "fal" };
+            await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { ...existingMetadata, sceneRequests }
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save scene request:", e);
+        }
+        
+        toast({ title: `Scene ${sceneNumber} generating with Fal.ai...`, description: "This may take a few minutes." });
+        pollSceneVideoStatus(contentId, sceneNumber, data.requestId);
       }
-      
-      toast({ title: `Scene ${sceneNumber} generating...`, description: "This may take a few minutes." });
-      pollSceneVideoStatus(contentId, sceneNumber, data.requestId);
     } catch (error: any) {
       setSceneVideos(prev => ({
         ...prev,
@@ -485,6 +564,66 @@ export default function ContentQueue() {
     } finally {
       setSceneGenerating(prev => ({ ...prev, [contentId]: null }));
     }
+  };
+
+  // A2E polling function
+  const pollA2ESceneVideoStatus = async (contentId: string, sceneNumber: number, lipSyncId: string) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/a2e/status/${lipSyncId}`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (data.status === "done" && data.output) {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.output, requestId: lipSyncId } }
+          }));
+          
+          // Save to database
+          try {
+            const contentRes = await fetch(`/api/content/${contentId}`);
+            if (contentRes.ok) {
+              const content = await contentRes.json();
+              const existingMetadata = content?.generationMetadata || {};
+              const existingClips = existingMetadata.generatedClips || [];
+              const updatedClips = existingClips.filter((c: any) => c.sceneNumber !== sceneNumber);
+              updatedClips.push({ sceneNumber, videoUrl: data.output, requestId: lipSyncId, engine: "a2e" });
+              updatedClips.sort((a: any, b: any) => a.sceneNumber - b.sceneNumber);
+              
+              const sceneRequests = existingMetadata.sceneRequests || {};
+              if (sceneRequests[sceneNumber]) {
+                sceneRequests[sceneNumber] = { ...sceneRequests[sceneNumber], status: "completed" };
+              }
+              
+              await fetch(`/api/content/${contentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  generationMetadata: { ...existingMetadata, generatedClips: updatedClips, sceneRequests }
+                }),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to save A2E scene video:", e);
+          }
+          
+          toast({ title: `Scene ${sceneNumber} complete!`, description: "A2E video generated successfully." });
+          invalidateContentQueries();
+        } else if (data.status === "error") {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId: lipSyncId } }
+          }));
+          toast({ title: `Scene ${sceneNumber} failed`, description: data.error_message || "A2E generation failed", variant: "destructive" });
+        } else {
+          setTimeout(poll, 5000);
+        }
+      } catch {
+        setTimeout(poll, 5000);
+      }
+    };
+    poll();
   };
 
   // Load existing generated clips and resume polling for in-progress scene video generation on page load
@@ -932,6 +1071,62 @@ export default function ContentQueue() {
                   <Scissors className="w-4 h-4 text-indigo-600" />
                   <p className="text-xs font-medium text-muted-foreground">Scene-by-Scene Video Generation</p>
                 </div>
+                
+                {/* Video Engine Selector */}
+                <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-medium">Video Engine:</Label>
+                      <Select value={videoEngine} onValueChange={(v: "a2e" | "fal") => setVideoEngine(v)}>
+                        <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-video-engine">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="a2e" disabled={!aiEngines?.a2e?.configured}>
+                            <span className="flex items-center gap-2">
+                              A2E Avatar {!aiEngines?.a2e?.configured && "(Not configured)"}
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
+                            <span className="flex items-center gap-2">
+                              Fal.ai Video {!aiEngines?.fal?.configured && "(Not configured)"}
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {videoEngine === "a2e" && aiEngines?.a2e?.configured && (
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs font-medium">Avatar:</Label>
+                        {loadingAvatars ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Loading...
+                          </div>
+                        ) : (
+                          <Select value={selectedA2EAvatar} onValueChange={setSelectedA2EAvatar}>
+                            <SelectTrigger className="w-48 h-8 text-xs" data-testid="select-a2e-avatar">
+                              <SelectValue placeholder="Select avatar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {a2eAvatars.map((avatar) => (
+                                <SelectItem key={avatar.id || (avatar as any).creator_id} value={avatar.id || (avatar as any).creator_id}>
+                                  {avatar.name || `Avatar ${avatar.id || (avatar as any).creator_id}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {videoEngine === "a2e" 
+                      ? "A2E creates realistic lip-sync avatar videos from your script text." 
+                      : "Fal.ai generates AI video clips from visual prompts."}
+                  </p>
+                </div>
+                
                 <div className="space-y-3">
                   {(content.generationMetadata as any).videoPrompts.scenePrompts.map((scene: { sceneNumber: number; duration: number; visualPrompt: string; sceneDescription: string }) => {
                     const sceneState = sceneVideos[content.id]?.[scene.sceneNumber];
