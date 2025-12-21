@@ -9,6 +9,7 @@ import { generateSocialContent, generateContentIdeas, analyzeViralContent, extra
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
+import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
@@ -401,9 +402,84 @@ export async function registerRoutes(
     res.json({
       openai: { configured: true, name: "OpenAI GPT-4" },
       elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Studio" },
+      a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video" },
       fal: { configured: falService.isConfigured(), name: "Fal.ai Lip-Sync" },
       pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
     });
+  });
+
+  // A2E API routes
+  app.get("/api/a2e/status", async (req, res) => {
+    res.json({ configured: a2eService.isConfigured() });
+  });
+
+  app.get("/api/a2e/avatars", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+      const avatars = await a2eService.listAvatars();
+      res.json({ avatars });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/a2e/generate", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+
+      const { text, creatorId, aspectRatio, voiceId } = req.body;
+
+      if (!text || !creatorId) {
+        return res.status(400).json({ error: "Text and creatorId are required" });
+      }
+
+      const lipSyncId = await a2eService.generateLipSync({
+        text,
+        creatorId,
+        aspectRatio,
+        voiceId,
+      });
+
+      res.json({ lipSyncId, status: "processing" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/a2e/status/:id", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+
+      const status = await a2eService.checkLipSyncStatus(req.params.id);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/a2e/image-to-video", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+
+      const { imageUrl, text } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      const taskId = await a2eService.generateImageToVideo({ imageUrl, text });
+      res.json({ taskId, status: "processing" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get("/api/pexels/status", async (req, res) => {
