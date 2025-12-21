@@ -74,6 +74,8 @@ export default function ContentQueue() {
 
   // Video engine selection (A2E vs Fal.ai)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
+  // Image engine selection (DALL-E vs Fal.ai)
+  const [imageEngine, setImageEngine] = useState<"dalle" | "fal">("dalle");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
   const [loadingAvatars, setLoadingAvatars] = useState(false);
@@ -188,7 +190,10 @@ export default function ContentQueue() {
     setGeneratingImageId(content.id);
     try {
       const aspectRatio = metadata?.imagePrompts?.aspectRatio || "1:1";
-      const res = await fetch("/api/fal/generate-image", {
+      
+      // Use DALL-E or Fal.ai based on selected engine
+      const endpoint = imageEngine === "dalle" ? "/api/dalle/generate-image" : "/api/fal/generate-image";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, aspectRatio }),
@@ -1460,6 +1465,31 @@ export default function ContentQueue() {
               {/* IMAGE/CAROUSEL: Upload or Generate Image */}
               {isImage && (
                 <>
+                  {/* Image Engine Selector */}
+                  <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-medium">Image Engine:</Label>
+                      <Select value={imageEngine} onValueChange={(v: "dalle" | "fal") => setImageEngine(v)}>
+                        <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dalle" disabled={!aiEngines?.dalle?.configured}>
+                            DALL-E 3 {!aiEngines?.dalle?.configured && "(not configured)"}
+                          </SelectItem>
+                          <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
+                            Fal.ai {!aiEngines?.fal?.configured && "(not configured)"}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {imageEngine === "dalle" 
+                        ? "DALL-E 3 generates high-quality images with excellent text rendering." 
+                        : "Fal.ai generates fast AI images with various style options."}
+                    </p>
+                  </div>
+
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       size="sm"

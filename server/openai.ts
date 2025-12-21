@@ -620,3 +620,41 @@ Respond in JSON:
 
   return JSON.parse(content) as TrendAnalysisResult;
 }
+
+// DALL-E Image Generation
+export interface DalleImageRequest {
+  prompt: string;
+  size?: "1024x1024" | "1792x1024" | "1024x1792";
+  quality?: "standard" | "hd";
+  style?: "vivid" | "natural";
+}
+
+export interface DalleImageResult {
+  imageUrl: string;
+  revisedPrompt?: string;
+}
+
+export async function generateDalleImage(request: DalleImageRequest): Promise<DalleImageResult> {
+  const response = await openai.images.generate({
+    model: "dall-e-3",
+    prompt: request.prompt,
+    n: 1,
+    size: request.size || "1024x1024",
+    quality: request.quality || "standard",
+    style: request.style || "vivid",
+  });
+
+  const imageUrl = response.data[0]?.url;
+  if (!imageUrl) {
+    throw new Error("No image generated from DALL-E");
+  }
+
+  return {
+    imageUrl,
+    revisedPrompt: response.data[0]?.revised_prompt,
+  };
+}
+
+export function isDalleConfigured(): boolean {
+  return !!(process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY);
+}

@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, type ContentGenerationRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, type ContentGenerationRequest } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -401,11 +401,37 @@ export async function registerRoutes(
   app.get("/api/ai-engines/status", async (req, res) => {
     res.json({
       openai: { configured: true, name: "OpenAI GPT-4" },
-      elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Studio" },
+      dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
+      elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
       a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video" },
-      fal: { configured: falService.isConfigured(), name: "Fal.ai Lip-Sync" },
+      fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
       pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
     });
+  });
+
+  // DALL-E Image Generation
+  app.post("/api/dalle/generate-image", async (req, res) => {
+    try {
+      const { prompt, size, quality, style } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+      
+      // Map aspect ratio to DALL-E size
+      let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
+      if (req.body.aspectRatio === "16:9") dalleSize = "1792x1024";
+      else if (req.body.aspectRatio === "9:16") dalleSize = "1024x1792";
+      
+      const result = await generateDalleImage({ 
+        prompt, 
+        size: size || dalleSize, 
+        quality: quality || "standard",
+        style: style || "vivid"
+      });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // A2E API routes

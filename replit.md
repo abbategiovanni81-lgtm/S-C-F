@@ -71,15 +71,20 @@ shared/           # Shared code between frontend and backend
 ## External Dependencies
 
 ### AI Services (require API keys in environment)
-- **OpenAI**: Content generation (scripts, captions, hashtags, content ideas) via `AI_INTEGRATIONS_OPENAI_API_KEY`
+- **OpenAI**: Content generation (scripts, captions, hashtags, content ideas) + DALL-E 3 images via `AI_INTEGRATIONS_OPENAI_API_KEY`
 - **ElevenLabs**: Voice synthesis for video voiceovers via `ELEVENLABS_API_KEY`
 - **A2E**: Avatar lip-sync video generation (default engine) via `A2E_API_KEY`
-- **Fal.ai**: AI video generation (fallback engine) via `FAL_API_KEY`
+- **Fal.ai**: AI video/image generation (backup engine) via `FAL_API_KEY`
 
 ### Video Engine Selection
 Users can choose between two video generation engines in the Content Queue:
 - **A2E (default)**: Creates realistic lip-sync avatar videos from text using 50+ pre-built avatars
 - **Fal.ai**: Generates AI video clips from visual prompts
+
+### Image Engine Selection
+Users can choose between two image generation engines in the Content Queue:
+- **DALL-E 3 (default)**: High-quality images with excellent text rendering, supports 1024x1024, 1792x1024, 1024x1792 sizes
+- **Fal.ai**: Fast AI image generation with various style options
 
 ### Caption Generation Framework
 AI-generated captions follow a structured SEO-first approach:
