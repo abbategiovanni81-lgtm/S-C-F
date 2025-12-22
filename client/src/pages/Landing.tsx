@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, BarChart3, Calendar, Users, Sparkles, Video, Mic, Image, FileText, ArrowDown, Headphones, Scissors } from "lucide-react";
+import { Zap, BarChart3, Calendar, Users, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -36,17 +36,9 @@ export default function Landing() {
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 md:mb-4">
             Social<span className="text-purple-400">Command</span><span className="text-blue-400">Flow</span>
           </h1>
-          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-2 mb-6">
+          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-2">
             Your all-in-one AI content creation tool. Generate scripts, voiceovers, avatar videos, and images—then schedule directly to your social platforms.
           </p>
-          <Button 
-            variant="outline" 
-            className="border-purple-400 text-purple-400 hover:bg-purple-400/10"
-            onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-            data-testid="button-see-features"
-          >
-            See How It Works <ArrowDown className="ml-2 h-4 w-4" />
-          </Button>
         </div>
 
         <div id="how-it-works" className="max-w-6xl mx-auto mb-12 md:mb-16 pt-8">
