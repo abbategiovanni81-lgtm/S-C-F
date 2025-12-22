@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/layout/Layout";
-import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown } from "lucide-react";
+import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown, BarChart3, FileText, Mic, Video, Image, MessageSquare } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 export default function Settings() {
   const { user, logout, hasFullAccess, tier } = useAuth();
@@ -76,6 +77,16 @@ export default function Settings() {
 
   const youtubeConnected = youtubeAccounts?.some((acc: any) => acc.platform === "youtube" && acc.isConnected === "connected");
 
+  const { data: usageStats, isLoading: loadingUsage } = useQuery({
+    queryKey: ["/api/usage/stats"],
+    queryFn: async () => {
+      const res = await fetch("/api/usage/stats", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch usage stats");
+      return res.json();
+    },
+    enabled: !!user?.id && hasFullAccess,
+  });
+
   const handleSaveKeys = () => {
     const keysToSave: any = {};
     if (openaiKey) keysToSave.openaiKey = openaiKey;
@@ -109,6 +120,12 @@ export default function Settings() {
               <User className="h-4 w-4 mr-2" />
               Account
             </TabsTrigger>
+            {hasFullAccess && (
+              <TabsTrigger value="usage" data-testid="tab-usage">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Usage
+              </TabsTrigger>
+            )}
             <TabsTrigger value="api-keys" data-testid="tab-api-keys">
               <Key className="h-4 w-4 mr-2" />
               API Keys
@@ -157,6 +174,83 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {hasFullAccess && (
+            <TabsContent value="usage">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Monthly Usage</CardTitle>
+                      <CardDescription>
+                        Your usage resets on the 1st of each month
+                      </CardDescription>
+                    </div>
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
+                      <Crown className="h-3 w-3 mr-1" />
+                      {tier === "pro" ? "Pro" : "Premium"}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loadingUsage ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : usageStats ? (
+                    <div className="space-y-6">
+                      <div className="text-sm text-muted-foreground mb-4">
+                        Period: {new Date(usageStats.period?.start).toLocaleDateString()} - {new Date(usageStats.period?.end).toLocaleDateString()}
+                        {usageStats.topupMultiplier > 0 && (
+                          <Badge variant="outline" className="ml-2 text-green-600">
+                            +{Math.round(usageStats.topupMultiplier * 100)}% bonus
+                          </Badge>
+                        )}
+                      </div>
+                      <UsageBar 
+                        icon={<FileText className="h-4 w-4" />}
+                        label="Brand Briefs"
+                        used={usageStats.usage?.brandBriefs?.used || 0}
+                        limit={usageStats.usage?.brandBriefs?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<FileText className="h-4 w-4" />}
+                        label="Script Generations"
+                        used={usageStats.usage?.scripts?.used || 0}
+                        limit={usageStats.usage?.scripts?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Mic className="h-4 w-4" />}
+                        label="Voiceovers"
+                        used={usageStats.usage?.voiceovers?.used || 0}
+                        limit={usageStats.usage?.voiceovers?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Video className="h-4 w-4" />}
+                        label="Avatar Videos"
+                        used={usageStats.usage?.videos?.used || 0}
+                        limit={usageStats.usage?.videos?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Image className="h-4 w-4" />}
+                        label="Image Generations"
+                        used={usageStats.usage?.images?.used || 0}
+                        limit={usageStats.usage?.images?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<MessageSquare className="h-4 w-4" />}
+                        label="Social Listening Keywords"
+                        used={usageStats.usage?.socialListening?.used || 0}
+                        limit={usageStats.usage?.socialListening?.limit || 0}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">Unable to load usage stats</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           <TabsContent value="api-keys">
             <Card>
@@ -365,5 +459,29 @@ export default function Settings() {
         </Tabs>
       </div>
     </Layout>
+  );
+}
+
+function UsageBar({ icon, label, used, limit }: { icon: React.ReactNode; label: string; used: number; limit: number }) {
+  const percentage = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const isNearLimit = percentage >= 80;
+  const isAtLimit = percentage >= 100;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">{icon}</span>
+          <span className="font-medium">{label}</span>
+        </div>
+        <span className={`text-sm ${isAtLimit ? 'text-red-600' : isNearLimit ? 'text-yellow-600' : 'text-muted-foreground'}`}>
+          {used} / {limit}
+        </span>
+      </div>
+      <Progress 
+        value={percentage} 
+        className={`h-2 ${isAtLimit ? '[&>div]:bg-red-500' : isNearLimit ? '[&>div]:bg-yellow-500' : ''}`}
+      />
+    </div>
   );
 }

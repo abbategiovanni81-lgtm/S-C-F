@@ -20,6 +20,7 @@ import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
+import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError } from "./usageService";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -744,6 +745,25 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to update user tier" });
     }
   });
+
+  // ==================== USAGE STATS ENDPOINTS ====================
+
+  // Get current user's usage stats
+  app.get("/api/usage/stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const stats = await getUsageStats(userId);
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Error fetching usage stats:", error);
+      res.status(500).json({ error: "Failed to fetch usage stats" });
+    }
+  });
+
+  // ==================== AI GENERATION ENDPOINTS ====================
 
   // A2E Image Generation
   app.post("/api/a2e/generate-image", async (req, res) => {
