@@ -110,8 +110,19 @@ export async function incrementUsage(userId: string, usageType: UsageType, count
     .where(eq(usagePeriods.id, period.id));
 }
 
-export async function applyTopup(userId: string, stripeSessionId: string, amount: number = 1000): Promise<void> {
+export async function applyTopup(userId: string, stripeSessionId: string, amount: number = 1000): Promise<boolean> {
   const period = await getCurrentPeriod(userId);
+
+  // Check for idempotency - only process each payment once
+  const [existingTopup] = await db
+    .select()
+    .from(usageTopups)
+    .where(eq(usageTopups.stripeSessionId, stripeSessionId));
+
+  if (existingTopup) {
+    console.log(`Top-up already processed for session: ${stripeSessionId}`);
+    return false; // Already processed
+  }
 
   const [topup] = await db
     .insert(usageTopups)
@@ -131,6 +142,8 @@ export async function applyTopup(userId: string, stripeSessionId: string, amount
       topupMultiplier: sql`${usagePeriods.topupMultiplier} + 0.4`,
     })
     .where(eq(usagePeriods.id, period.id));
+
+  return true; // Successfully processed
 }
 
 export async function assertQuota(userId: string, usageType: UsageType, count: number = 1): Promise<void> {

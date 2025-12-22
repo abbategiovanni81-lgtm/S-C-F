@@ -18,6 +18,26 @@ The platform includes a Social Listening module that allows users to:
 - **Owner Account**: gio.abbate@hotmail.com (existing demo data linked to this account)
 - **Password Hashing**: bcryptjs with 10 salt rounds
 
+### Tier System & Usage Quotas
+Three subscription tiers with monthly usage limits:
+
+| Feature | Free | Premium (£29/mo) | Pro (£49/mo) |
+|---------|------|------------------|--------------|
+| Brand Briefs | 1 | 10 | 20 |
+| Script Generations | Own API keys | 500 | 1000 |
+| Voiceovers | Own API keys | 300 | 600 |
+| Avatar Videos | Own API keys | 50 | 100 |
+| Image Generations | Own API keys | 500 | 1000 |
+| Social Listening Keywords | Own API keys | 5 | 10 |
+| Uses Platform API Keys | No | Yes | Yes |
+
+- **Owner Flag**: `isOwner=true` grants admin panel access (separate from tier)
+- **Usage Tracking**: Monthly periods with automatic reset on the 1st
+- **Top-Up System**: £10 one-time payment adds 40% to current month's quotas
+- **Quota Enforcement**: All AI generation endpoints check quotas before processing
+- **Database Tables**: `usage_periods` (monthly tracking), `usage_topups` (purchase records)
+- **Service Layer**: `server/usageService.ts` handles all quota logic
+
 ### How To Page
 In-app documentation accessible at `/how-to` covering:
 - All 10 features with detailed explanations
