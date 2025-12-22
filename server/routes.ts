@@ -609,6 +609,66 @@ export async function registerRoutes(
     }
   });
 
+  // Create top-up checkout session (one-time payment for extra quota)
+  app.post("/api/stripe/topup", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Only allow premium/pro users to top up
+      if (user.tier !== "premium" && user.tier !== "pro") {
+        return res.status(400).json({ error: "Top-up is only available for Premium and Pro users" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Create or get customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: { userId: user.id }
+        });
+        await db.update(users).set({ stripeCustomerId: customer.id }).where(eq(users.id, userId));
+        customerId = customer.id;
+      }
+
+      // Create checkout session for one-time payment (£10 = 1000 pence)
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: 'Quota Top-Up',
+              description: 'Add 40% extra to your monthly quota limits',
+            },
+            unit_amount: 1000, // £10.00
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${baseUrl}/settings?topup=success`,
+        cancel_url: `${baseUrl}/settings?topup=canceled`,
+        metadata: {
+          userId: user.id,
+          type: 'topup',
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating top-up session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Create customer portal session (manage subscription)
   app.post("/api/stripe/portal", isAuthenticated, async (req, res) => {
     try {

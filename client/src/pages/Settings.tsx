@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/layout/Layout";
-import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown, BarChart3, FileText, Mic, Video, Image, MessageSquare } from "lucide-react";
+import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown, BarChart3, FileText, Mic, Video, Image, MessageSquare, CreditCard } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Settings() {
   const { user, logout, hasFullAccess, tier } = useAuth();
@@ -85,6 +86,25 @@ export default function Settings() {
       return res.json();
     },
     enabled: !!user?.id && hasFullAccess,
+  });
+
+  const topupMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/stripe/topup", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to create top-up session");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Top-up failed", description: error.message, variant: "destructive" });
+    },
   });
 
   const handleSaveKeys = () => {
@@ -243,6 +263,29 @@ export default function Settings() {
                         used={usageStats.usage?.socialListening?.used || 0}
                         limit={usageStats.usage?.socialListening?.limit || 0}
                       />
+
+                      <div className="pt-6 border-t mt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-medium">Need more quota?</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Top up for £10 and get 40% extra on all limits this month
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => topupMutation.mutate()}
+                            disabled={topupMutation.isPending}
+                            data-testid="button-topup"
+                          >
+                            {topupMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <CreditCard className="h-4 w-4 mr-2" />
+                            )}
+                            Top Up £10
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-muted-foreground">Unable to load usage stats</p>

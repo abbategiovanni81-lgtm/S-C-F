@@ -2,6 +2,7 @@ import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
+import { applyTopup } from './usageService';
 
 export class WebhookHandlers {
   static async processWebhook(payload: Buffer, signature: string): Promise<void> {
@@ -53,6 +54,25 @@ export class WebhookHandlers {
         .set({ tier: 'free', stripeSubscriptionId: null })
         .where(eq(users.stripeCustomerId, customerId));
       console.log(`User downgraded to free, subscription cancelled: ${subscription.id}`);
+    }
+
+    // Handle completed checkout sessions for top-ups
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as any;
+      
+      // Check if this is a top-up payment
+      if (session.metadata?.type === 'topup' && session.payment_status === 'paid') {
+        const userId = session.metadata.userId;
+        
+        if (userId) {
+          try {
+            await applyTopup(userId, session.id, 1000); // £10 = 1000 pence
+            console.log(`Top-up applied for user: ${userId}, session: ${session.id}`);
+          } catch (error) {
+            console.error(`Failed to apply top-up for user ${userId}:`, error);
+          }
+        }
+      }
     }
   }
 }
