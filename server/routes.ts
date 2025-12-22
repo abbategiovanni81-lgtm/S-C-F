@@ -544,19 +544,41 @@ export async function registerRoutes(
     }
   });
 
-  // Get subscription products/prices
+  // Get subscription products/prices - uses live price IDs from environment
   app.get("/api/stripe/products", async (req, res) => {
     try {
-      const result = await db.execute(
-        sql`SELECT 
-          p.id as product_id, p.name, p.description, p.metadata,
-          pr.id as price_id, pr.unit_amount, pr.currency, pr.recurring
-        FROM stripe.products p
-        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
-        WHERE p.active = true
-        ORDER BY pr.unit_amount`
-      );
-      res.json({ products: result.rows });
+      const premiumPriceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+      const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
+
+      if (!premiumPriceId || !proPriceId) {
+        console.error("Stripe price IDs not configured in environment");
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      const products = [
+        {
+          product_id: "prod_socialcommand",
+          name: "SocialCommand Premium",
+          description: "Full access to all AI features",
+          price_id: premiumPriceId,
+          unit_amount: 2999,
+          currency: "gbp",
+          recurring: { interval: "month", interval_count: 1 },
+          metadata: { tier: "premium" },
+        },
+        {
+          product_id: "prod_socialcommand_pro",
+          name: "SocialCommand Pro",
+          description: "Double quotas on all AI features",
+          price_id: proPriceId,
+          unit_amount: 5999,
+          currency: "gbp",
+          recurring: { interval: "month", interval_count: 1 },
+          metadata: { tier: "pro" },
+        },
+      ];
+
+      res.json({ products });
     } catch (error: any) {
       console.error("Error fetching Stripe products:", error);
       res.status(500).json({ error: "Failed to fetch products" });

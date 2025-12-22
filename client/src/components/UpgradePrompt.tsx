@@ -104,7 +104,7 @@ export function UpgradePrompt({ feature, open, onOpenChange }: UpgradePromptProp
               Get unlimited access to all AI features with no API key setup required.
               {monthlyPrice?.unit_amount && (
                 <span className="block mt-1 font-medium text-foreground">
-                  ${(monthlyPrice.unit_amount / 100).toFixed(2)}/month
+                  £{(monthlyPrice.unit_amount / 100).toFixed(2)}/month
                 </span>
               )}
             </p>
