@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -611,7 +611,7 @@ export async function registerRoutes(
     next();
   };
 
-  // Get all users (admin only)
+  // Get all users with stats (admin only)
   app.get("/api/admin/users", isAuthenticated, isOwner, async (req, res) => {
     try {
       const allUsers = await db.select({
@@ -622,10 +622,81 @@ export async function registerRoutes(
         tier: users.tier,
         stripeCustomerId: users.stripeCustomerId,
         stripeSubscriptionId: users.stripeSubscriptionId,
+        lastLogin: users.lastLogin,
         createdAt: users.createdAt,
       }).from(users).orderBy(users.createdAt);
+
+      // Get usage stats for each user
+      const usersWithStats = await Promise.all(allUsers.map(async (u) => {
+        // Get brand briefs count
+        const briefsResult = await db.select({ count: sql<number>`count(*)` })
+          .from(brandBriefs)
+          .where(eq(brandBriefs.userId, u.id));
+        const briefsCount = briefsResult[0]?.count || 0;
+
+        // Get content by user (via brand briefs)
+        const userBriefs = await db.select({ id: brandBriefs.id })
+          .from(brandBriefs)
+          .where(eq(brandBriefs.userId, u.id));
+        const briefIds = userBriefs.map(b => b.id);
+
+        let scriptsCount = 0;
+        let voiceoversCount = 0;
+        let videosCount = 0;
+        let imagesCount = 0;
+
+        if (briefIds.length > 0) {
+          const content = await db.select({
+            videoUrl: generatedContent.videoUrl,
+            thumbnailUrl: generatedContent.thumbnailUrl,
+            generationMetadata: generatedContent.generationMetadata,
+            script: generatedContent.script,
+          }).from(generatedContent)
+            .where(sql`${generatedContent.briefId} = ANY(${briefIds})`);
+
+          for (const c of content) {
+            if (c.script) scriptsCount++;
+            if (c.videoUrl) videosCount++;
+            if (c.thumbnailUrl) imagesCount++;
+            const meta = c.generationMetadata as any;
+            if (meta?.voiceGenerated || meta?.audioUrl) voiceoversCount++;
+          }
+        }
+
+        // Get connected accounts
+        const accountsResult = await db.select({ count: sql<number>`count(*)` })
+          .from(socialAccounts)
+          .where(eq(socialAccounts.userId, u.id));
+        const accountsCount = accountsResult[0]?.count || 0;
+
+        // Get scheduled posts
+        const postsResult = await db.select({ count: sql<number>`count(*)` })
+          .from(scheduledPosts)
+          .where(eq(scheduledPosts.userId, u.id));
+        const postsCount = postsResult[0]?.count || 0;
+
+        // Calculate estimated AI costs (only for premium users using app keys)
+        // OpenAI: ~$0.01/script, ElevenLabs: ~$0.03/voice, A2E video: ~$1.00, A2E image: ~$0.10
+        const estimatedCost = u.tier === "premium" || u.tier === "owner"
+          ? (scriptsCount * 0.01) + (voiceoversCount * 0.03) + (videosCount * 1.00) + (imagesCount * 0.10)
+          : 0;
+
+        return {
+          ...u,
+          stats: {
+            brandBriefs: briefsCount,
+            scripts: scriptsCount,
+            voiceovers: voiceoversCount,
+            videos: videosCount,
+            images: imagesCount,
+            connectedAccounts: accountsCount,
+            scheduledPosts: postsCount,
+            estimatedCost: Math.round(estimatedCost * 100) / 100,
+          }
+        };
+      }));
       
-      res.json({ users: allUsers });
+      res.json({ users: usersWithStats });
     } catch (error: any) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });

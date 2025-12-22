@@ -10,6 +10,7 @@ export interface CreateUserData {
   profileImageUrl?: string | null;
   googleId?: string | null;
   tier?: string;
+  lastLogin?: Date | null;
 }
 
 function getTierForEmail(email: string): string {

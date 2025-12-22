@@ -131,10 +131,12 @@ export async function setupAuth(app: Express) {
       if (!user) {
         return res.status(401).json({ error: info?.message || "Invalid credentials" });
       }
-      req.logIn(user, (loginErr) => {
+      req.logIn(user, async (loginErr) => {
         if (loginErr) {
           return res.status(500).json({ error: "Login failed" });
         }
+        // Update last login timestamp
+        await authStorage.updateUser(user.id, { lastLogin: new Date() });
         return res.json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl } });
       });
     })(req, res, next);
@@ -167,10 +169,12 @@ export async function setupAuth(app: Express) {
       });
 
       // Log the user in
-      req.logIn(user, (err) => {
+      req.logIn(user, async (err) => {
         if (err) {
           return res.status(500).json({ error: "Failed to log in after signup" });
         }
+        // Update last login timestamp
+        await authStorage.updateUser(user.id, { lastLogin: new Date() });
         return res.status(201).json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
       });
     } catch (error: any) {
