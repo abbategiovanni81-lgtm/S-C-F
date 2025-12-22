@@ -1448,7 +1448,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No video file or URL provided" });
       }
 
-      const { title, description, tags, privacyStatus } = req.body;
+      const { title, description, tags, privacyStatus, publishAt } = req.body;
       
       let accessToken = account.accessToken;
       
@@ -1479,9 +1479,28 @@ export async function registerRoutes(
         description: description || "",
         tags: parsedTags,
         privacyStatus: privacyStatus || "private",
+        publishAt: publishAt || undefined,
         videoBuffer,
         mimeType,
       });
+
+      // If scheduled, also create a scheduled post record for tracking
+      if (publishAt && result.videoId) {
+        await storage.createScheduledPost({
+          userId: "demo-user",
+          platform: "youtube",
+          scheduledFor: new Date(publishAt),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          title: title || "Untitled Video",
+          description: description || "",
+          mediaUrl: result.url,
+          mediaType: "video",
+          status: "scheduled",
+          postType: "auto",
+          youtubeVideoId: result.videoId,
+          youtubePrivacyStatus: "private",
+        });
+      }
 
       res.json(result);
     } catch (error: any) {

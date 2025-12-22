@@ -9,9 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload } from "lucide-react";
+import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock } from "lucide-react";
+import { format, addMinutes, addDays, isAfter, isBefore } from "date-fns";
 import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -39,6 +42,9 @@ export default function ReadyToPost() {
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [useGeneratedVideo, setUseGeneratedVideo] = useState(false);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("12:00");
   const [publishForm, setPublishForm] = useState({
     title: "",
     description: "",
@@ -197,8 +203,35 @@ export default function ReadyToPost() {
     });
     setSelectedVideoFile(null);
     setUseGeneratedVideo(!!videoUrl);
+    setScheduleEnabled(false);
+    const tomorrow = addDays(new Date(), 1);
+    setScheduleDate(format(tomorrow, 'yyyy-MM-dd'));
+    setScheduleTime("12:00");
     setPublishDialogOpen(true);
   };
+
+  const getScheduledDateTime = (): Date | null => {
+    if (!scheduleEnabled || !scheduleDate || !scheduleTime) return null;
+    const [hours, minutes] = scheduleTime.split(":").map(Number);
+    const date = new Date(scheduleDate);
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
+  const isScheduleValid = (): boolean => {
+    const scheduledAt = getScheduledDateTime();
+    if (!scheduledAt) return true; // No schedule = instant publish
+    const minTime = addMinutes(new Date(), 15);
+    const maxTime = addDays(new Date(), 30);
+    return isAfter(scheduledAt, minTime) && isBefore(scheduledAt, maxTime);
+  };
+
+  const createScheduledPostMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/scheduled-posts", data);
+      return res.json();
+    },
+  });
 
   const handlePublish = async () => {
     if (!selectedContent) return;
@@ -214,6 +247,15 @@ export default function ReadyToPost() {
       return;
     }
 
+    if (scheduleEnabled && !isScheduleValid()) {
+      toast({
+        title: "Invalid Schedule Time",
+        description: "Schedule must be between 15 minutes and 30 days from now",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = new FormData();
     
     if (useGeneratedVideo && videoUrl) {
@@ -223,14 +265,22 @@ export default function ReadyToPost() {
     }
     
     formData.append("title", publishForm.title);
-    // Append affiliate link to description if provided
     const descriptionWithLink = publishForm.affiliateLink 
       ? `${publishForm.description}\n\n${publishForm.affiliateLink}`
       : publishForm.description;
     formData.append("description", descriptionWithLink);
     formData.append("tags", publishForm.tags);
-    formData.append("privacyStatus", publishForm.privacyStatus);
     formData.append("accountId", publishForm.accountId || youtubeAccounts[0]?.id || "");
+
+    if (scheduleEnabled) {
+      const scheduledAt = getScheduledDateTime();
+      formData.append("privacyStatus", "private");
+      if (scheduledAt) {
+        formData.append("publishAt", scheduledAt.toISOString());
+      }
+    } else {
+      formData.append("privacyStatus", publishForm.privacyStatus);
+    }
 
     uploadMutation.mutate(formData);
   };
@@ -606,24 +656,80 @@ export default function ReadyToPost() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="privacy-status">Privacy</Label>
-              <Select
-                value={publishForm.privacyStatus}
-                onValueChange={(value: "private" | "unlisted" | "public") => 
-                  setPublishForm(prev => ({ ...prev, privacyStatus: value }))
-                }
-              >
-                <SelectTrigger data-testid="select-privacy-status">
-                  <SelectValue placeholder="Select privacy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">Private</SelectItem>
-                  <SelectItem value="unlisted">Unlisted</SelectItem>
-                  <SelectItem value="public">Public</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <div>
+                    <Label htmlFor="schedule-toggle" className="text-sm font-medium">Schedule for Later</Label>
+                    <p className="text-xs text-muted-foreground">YouTube will auto-publish at your scheduled time</p>
+                  </div>
+                </div>
+                <Switch
+                  id="schedule-toggle"
+                  checked={scheduleEnabled}
+                  onCheckedChange={setScheduleEnabled}
+                  data-testid="switch-schedule-enabled"
+                />
+              </div>
+
+              {scheduleEnabled && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-date">Date</Label>
+                    <Input
+                      id="schedule-date"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      max={format(addDays(new Date(), 30), 'yyyy-MM-dd')}
+                      data-testid="input-schedule-date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-time">Time</Label>
+                    <Input
+                      id="schedule-time"
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      data-testid="input-schedule-time"
+                    />
+                  </div>
+                  <div className="col-span-2 text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Your timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                  </div>
+                  {!isScheduleValid() && (
+                    <div className="col-span-2 text-xs text-red-500">
+                      Schedule must be 15 minutes to 30 days in the future
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {!scheduleEnabled && (
+              <div className="space-y-2">
+                <Label htmlFor="privacy-status">Privacy</Label>
+                <Select
+                  value={publishForm.privacyStatus}
+                  onValueChange={(value: "private" | "unlisted" | "public") => 
+                    setPublishForm(prev => ({ ...prev, privacyStatus: value }))
+                  }
+                >
+                  <SelectTrigger data-testid="select-privacy-status">
+                    <SelectValue placeholder="Select privacy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
+                    <SelectItem value="public">Public</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -638,13 +744,18 @@ export default function ReadyToPost() {
             <Button
               className="bg-red-600 hover:bg-red-700"
               onClick={handlePublish}
-              disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile)}
+              disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile) || (scheduleEnabled && !isScheduleValid())}
               data-testid="button-confirm-publish"
             >
               {uploadMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {scheduleEnabled ? "Scheduling..." : "Uploading..."}
+                </>
+              ) : scheduleEnabled ? (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Upload
                 </>
               ) : (
                 <>

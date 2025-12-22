@@ -137,6 +137,7 @@ export interface VideoUploadParams {
   description: string;
   tags?: string[];
   privacyStatus?: "private" | "unlisted" | "public";
+  publishAt?: string; // ISO 8601 datetime for scheduled publishing
   videoBuffer: Buffer;
   mimeType?: string;
 }
@@ -150,6 +151,20 @@ export async function uploadVideo(params: VideoUploadParams) {
   const { Readable } = await import("stream");
   const videoStream = Readable.from(params.videoBuffer);
 
+  // Build status object - YouTube requires private status for scheduled videos
+  const status: any = {
+    selfDeclaredMadeForKids: false,
+  };
+
+  if (params.publishAt) {
+    // For scheduled publishing, video must be private initially
+    // YouTube will auto-publish at the specified time
+    status.privacyStatus = "private";
+    status.publishAt = params.publishAt;
+  } else {
+    status.privacyStatus = params.privacyStatus || "private";
+  }
+
   const response = await youtube.videos.insert({
     part: ["snippet", "status"],
     requestBody: {
@@ -158,10 +173,7 @@ export async function uploadVideo(params: VideoUploadParams) {
         description: params.description,
         tags: params.tags || [],
       },
-      status: {
-        privacyStatus: params.privacyStatus || "private",
-        selfDeclaredMadeForKids: false,
-      },
+      status,
     },
     media: {
       mimeType: params.mimeType || "video/mp4",
@@ -174,6 +186,7 @@ export async function uploadVideo(params: VideoUploadParams) {
     title: response.data.snippet?.title,
     channelId: response.data.snippet?.channelId,
     publishedAt: response.data.snippet?.publishedAt,
+    scheduledPublishAt: params.publishAt || null,
     status: response.data.status?.privacyStatus,
     url: `https://www.youtube.com/watch?v=${response.data.id}`,
   };
