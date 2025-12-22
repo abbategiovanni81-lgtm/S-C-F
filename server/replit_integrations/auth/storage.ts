@@ -2,16 +2,58 @@ import { users, type User, type UpsertUser } from "@shared/models/auth";
 import { db } from "../../db";
 import { eq, sql } from "drizzle-orm";
 
-// Interface for auth storage operations
-// (IMPORTANT) These user operations are mandatory for Replit Auth.
+export interface CreateUserData {
+  email: string;
+  password?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+  googleId?: string | null;
+}
+
 export interface IAuthStorage {
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(data: CreateUserData): Promise<User>;
+  updateUser(id: string, data: Partial<CreateUserData>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
 }
 
 class AuthStorage implements IAuthStorage {
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(data: CreateUserData): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: data.email,
+        password: data.password || null,
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        profileImageUrl: data.profileImageUrl || null,
+        googleId: data.googleId || null,
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: string, data: Partial<CreateUserData>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
     return user;
   }
 
@@ -25,7 +67,6 @@ class AuthStorage implements IAuthStorage {
       
       if (existingUserByEmail && existingUserByEmail.id !== userData.id) {
         // Migrate the existing account to use the new auth ID
-        // Update the user ID to the new Replit auth ID
         await db.execute(sql`
           UPDATE brand_briefs SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
           UPDATE social_accounts SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
