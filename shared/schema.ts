@@ -259,6 +259,52 @@ export const insertListeningScanRunSchema = createInsertSchema(listeningScanRuns
 export type InsertListeningScanRun = z.infer<typeof insertListeningScanRunSchema>;
 export type ListeningScanRun = typeof listeningScanRuns.$inferSelect;
 
+// Scheduled posts - for both YouTube auto-posting and manual platform tracking
+export const scheduledPosts = pgTable("scheduled_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  contentId: varchar("content_id").references(() => generatedContent.id), // Optional link to generated content
+  accountId: varchar("account_id").references(() => socialAccounts.id), // Optional link to connected account
+  
+  // Core scheduling info
+  platform: text("platform").notNull(), // "youtube", "instagram", "tiktok", "twitter", "linkedin", "facebook"
+  scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+  timezone: text("timezone").notNull().default("UTC"), // IANA timezone string
+  
+  // Content info (can be from generated content or manual entry)
+  title: text("title"),
+  description: text("description"),
+  hashtags: text("hashtags").array(),
+  mediaUrl: text("media_url"), // Video/image URL if available
+  mediaType: text("media_type"), // "video", "image", "carousel", "text"
+  
+  // Status tracking
+  status: text("status").notNull().default("planned"), // "planned", "scheduled", "uploading", "published", "failed", "cancelled"
+  postType: text("post_type").notNull().default("manual"), // "auto" (YouTube scheduled), "manual" (tracking only)
+  
+  // YouTube-specific fields (for auto-posting)
+  youtubeVideoId: text("youtube_video_id"), // Set after upload
+  youtubePrivacyStatus: text("youtube_privacy_status"), // "private", "unlisted", "public"
+  uploadError: text("upload_error"), // Error message if failed
+  
+  // Notes for manual tracking
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  publishedAt: timestamp("published_at"), // When actually posted
+});
+
+export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  publishedAt: true,
+});
+
+export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
+export type ScheduledPost = typeof scheduledPosts.$inferSelect;
+
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;
 export type BrandBrief = typeof brandBriefs.$inferSelect;
 export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema>;
