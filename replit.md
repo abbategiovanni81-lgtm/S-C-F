@@ -12,6 +12,20 @@ The platform includes a Social Listening module that allows users to:
 - **Reply management**: Review, edit, and approve AI-generated replies before posting
 - **Trending topics**: Track trending topics and keywords across monitored content
 
+### Authentication System
+- **Custom Auth**: Email/password + Google OAuth using Passport.js
+- **Session Storage**: PostgreSQL-backed sessions (7-day TTL)
+- **Owner Account**: gio.abbate@hotmail.com (existing demo data linked to this account)
+- **Password Hashing**: bcryptjs with 10 salt rounds
+
+### How To Page
+In-app documentation accessible at `/how-to` covering:
+- All 10 features with detailed explanations
+- 4 content creation workflow diagrams
+- API key requirements and pricing for each service
+- Step-by-step setup guide for new users
+- Quick start checklist
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

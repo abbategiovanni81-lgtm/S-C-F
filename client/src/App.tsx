@@ -18,6 +18,7 @@ import ReadyToPost from "@/pages/ReadyToPost";
 import EditMerge from "@/pages/EditMerge";
 import SocialListening from "@/pages/SocialListening";
 import Settings from "@/pages/Settings";
+import HowTo from "@/pages/HowTo";
 
 function AuthenticatedRoutes() {
   return (
@@ -35,6 +36,7 @@ function AuthenticatedRoutes() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/ai-engines" component={AIEngines} />
       <Route path="/settings" component={Settings} />
+      <Route path="/how-to" component={HowTo} />
       <Route component={NotFound} />
     </Switch>
   );
