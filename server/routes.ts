@@ -88,10 +88,20 @@ export async function registerRoutes(
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Helper to get user ID from authenticated session or query param (fallback)
+  const getUserId = (req: any): string => {
+    // If authenticated, use the session user ID
+    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+      return req.user.claims.sub;
+    }
+    // Fallback to query parameter for backward compatibility
+    return (req.query.userId as string) || "demo-user";
+  };
+
   // Brand Brief endpoints
   app.get("/api/brand-briefs", async (req, res) => {
     try {
-      const userId = (req.query.userId as string) || "demo-user";
+      const userId = getUserId(req);
       const briefs = await storage.getBrandBriefsByUser(userId);
       res.json(briefs);
     } catch (error) {
@@ -1076,10 +1086,7 @@ export async function registerRoutes(
   // Social Accounts endpoints
   app.get("/api/social-accounts", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId query parameter is required" });
-      }
+      const userId = getUserId(req);
       const accounts = await storage.getSocialAccountsByUser(userId);
       res.json(accounts);
     } catch (error) {
