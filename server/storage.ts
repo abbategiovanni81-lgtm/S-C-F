@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns } from "@shared/schema";
+import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts } from "@shared/schema";
 import type { 
   User, 
   InsertUser, 
@@ -20,9 +20,11 @@ import type {
   TrendingTopic,
   InsertTrendingTopic,
   ListeningScanRun,
-  InsertListeningScanRun
+  InsertListeningScanRun,
+  ScheduledPost,
+  InsertScheduledPost
 } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte, lte, between } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -78,6 +80,15 @@ export interface IStorage {
   getScanRuns(userId?: string, briefId?: string): Promise<ListeningScanRun[]>;
   updateScanRun(id: string, data: Partial<InsertListeningScanRun>): Promise<ListeningScanRun | undefined>;
   checkDuplicateHit(platform: string, postId: string): Promise<boolean>;
+
+  // Scheduled posts
+  createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost>;
+  getScheduledPost(id: string): Promise<ScheduledPost | undefined>;
+  getScheduledPostsByUser(userId: string, startDate?: Date, endDate?: Date): Promise<ScheduledPost[]>;
+  getScheduledPostsByStatus(status: string): Promise<ScheduledPost[]>;
+  getPendingYouTubeUploads(): Promise<ScheduledPost[]>;
+  updateScheduledPost(id: string, data: Partial<InsertScheduledPost>): Promise<ScheduledPost | undefined>;
+  deleteScheduledPost(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -434,6 +445,61 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(listeningHits.platform, platform), eq(listeningHits.postId, postId)))
       .limit(1);
     return result.length > 0;
+  }
+
+  // Scheduled posts implementation
+  async createScheduledPost(post: InsertScheduledPost): Promise<ScheduledPost> {
+    const result = await db.insert(scheduledPosts).values(post).returning();
+    return result[0];
+  }
+
+  async getScheduledPost(id: string): Promise<ScheduledPost | undefined> {
+    const result = await db.select().from(scheduledPosts).where(eq(scheduledPosts.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getScheduledPostsByUser(userId: string, startDate?: Date, endDate?: Date): Promise<ScheduledPost[]> {
+    if (startDate && endDate) {
+      return await db.select().from(scheduledPosts)
+        .where(and(
+          eq(scheduledPosts.userId, userId),
+          gte(scheduledPosts.scheduledFor, startDate),
+          lte(scheduledPosts.scheduledFor, endDate)
+        ))
+        .orderBy(scheduledPosts.scheduledFor);
+    }
+    return await db.select().from(scheduledPosts)
+      .where(eq(scheduledPosts.userId, userId))
+      .orderBy(scheduledPosts.scheduledFor);
+  }
+
+  async getScheduledPostsByStatus(status: string): Promise<ScheduledPost[]> {
+    return await db.select().from(scheduledPosts)
+      .where(eq(scheduledPosts.status, status))
+      .orderBy(scheduledPosts.scheduledFor);
+  }
+
+  async getPendingYouTubeUploads(): Promise<ScheduledPost[]> {
+    return await db.select().from(scheduledPosts)
+      .where(and(
+        eq(scheduledPosts.platform, "youtube"),
+        eq(scheduledPosts.postType, "auto"),
+        eq(scheduledPosts.status, "scheduled"),
+        lte(scheduledPosts.scheduledFor, new Date())
+      ))
+      .orderBy(scheduledPosts.scheduledFor);
+  }
+
+  async updateScheduledPost(id: string, data: Partial<InsertScheduledPost>): Promise<ScheduledPost | undefined> {
+    const result = await db.update(scheduledPosts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(scheduledPosts.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteScheduledPost(id: string): Promise<void> {
+    await db.delete(scheduledPosts).where(eq(scheduledPosts.id, id));
   }
 }
 
