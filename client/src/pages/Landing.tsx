@@ -29,14 +29,14 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <img src="/logo.png" alt="SocialCommandFlow" className="w-20 h-20 object-contain" />
+        <div className="text-center mb-8 md:mb-12 px-2">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img src="/logo.png" alt="SocialCommandFlow" className="w-14 h-14 md:w-20 md:h-20 object-contain" />
           </div>
-          <h1 className="text-5xl font-bold text-white mb-4">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 md:mb-4">
             Social<span className="text-purple-400">Command</span><span className="text-blue-400">Flow</span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-2">
             Your all-in-one AI content creation tool. Generate scripts, voiceovers, avatar videos, and images—then schedule directly to your social platforms.
           </p>
         </div>
