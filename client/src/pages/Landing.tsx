@@ -30,11 +30,14 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img src="/logo.png" alt="SocialCommandFlow" className="w-20 h-20 object-contain" />
+          </div>
           <h1 className="text-5xl font-bold text-white mb-4">
-            Social<span className="text-purple-400">Command</span>
+            Social<span className="text-purple-400">Command</span><span className="text-blue-400">Flow</span>
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Your AI-powered social media command center. Create, schedule, and analyze content across all platforms.
+            Your all-in-one AI content creation tool. Generate scripts, voiceovers, avatar videos, and images—then schedule directly to your social platforms.
           </p>
         </div>
 

@@ -42,10 +42,12 @@ export function Sidebar({ collapsed, toggleCollapsed }: SidebarProps) {
         collapsed ? "justify-center px-0" : "px-6 justify-between"
       )}>
         <div className={cn("flex items-center gap-2 text-primary font-bold text-xl font-display overflow-hidden", collapsed && "justify-center")}>
-          <div className="w-8 h-8 bg-primary rounded-lg flex-shrink-0 flex items-center justify-center text-white">
-            S
-          </div>
-          {!collapsed && <span className="whitespace-nowrap">SocialCommand</span>}
+          <img 
+            src="/logo.png" 
+            alt="SocialCommandFlow" 
+            className={cn("flex-shrink-0 object-contain", collapsed ? "w-10 h-10" : "w-8 h-8")}
+          />
+          {!collapsed && <span className="whitespace-nowrap">SocialCommandFlow</span>}
         </div>
         {!collapsed && (
           <button 
