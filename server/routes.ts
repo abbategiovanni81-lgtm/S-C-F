@@ -571,7 +571,7 @@ export async function registerRoutes(
           name: "SocialCommand Pro",
           description: "Double quotas on all AI features",
           price_id: proPriceId,
-          unit_amount: 5999,
+          unit_amount: 4999,
           currency: "gbp",
           recurring: { interval: "month", interval_count: 1 },
           metadata: { tier: "pro" },
