@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle } from "lucide-react";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 interface ApifyStatus {
   configured: boolean;
@@ -23,12 +25,35 @@ interface ApifyStatus {
 export default function SocialListening() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { hasFullAccess, user } = useAuth();
   const [addPostOpen, setAddPostOpen] = useState(false);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [selectedHit, setSelectedHit] = useState<ListeningHit | null>(null);
   const [selectedBrief, setSelectedBrief] = useState<string>("");
   const [replyTone, setReplyTone] = useState<"helpful" | "promotional" | "educational" | "friendly">("helpful");
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
+
+  // Fetch user's own API keys status
+  const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) return { hasOpenai: false, hasElevenlabs: false, hasA2e: false, hasFal: false, hasPexels: false };
+      return res.json();
+    },
+    enabled: !!user?.id && !hasFullAccess,
+  });
+
+  const checkAIAccess = (featureName: string): boolean => {
+    if (hasFullAccess) return true;
+    // Free users with their own OpenAI key can access AI features
+    if (userApiKeys?.hasOpenai) return true;
+    setUpgradeFeatureName(featureName);
+    setUpgradePromptOpen(true);
+    return false;
+  };
 
   const [scanBriefId, setScanBriefId] = useState<string>("");
   const [scanPlatforms, setScanPlatforms] = useState<string[]>(["reddit"]);
@@ -647,6 +672,7 @@ export default function SocialListening() {
                 <Button
                   className="w-full"
                   onClick={() => {
+                    if (!checkAIAccess("AI Reply Generation")) return;
                     if (selectedHit && selectedBrief) {
                       generateReplyMutation.mutate({
                         hitId: selectedHit.id,
@@ -669,6 +695,12 @@ export default function SocialListening() {
             )}
           </DialogContent>
         </Dialog>
+
+        <UpgradePrompt
+          feature={upgradeFeatureName}
+          open={upgradePromptOpen}
+          onOpenChange={setUpgradePromptOpen}
+        />
       </div>
     </Layout>
   );

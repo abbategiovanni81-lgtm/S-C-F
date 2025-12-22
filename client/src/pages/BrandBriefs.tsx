@@ -15,6 +15,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Plus, Sparkles, Edit2, Loader2, Lightbulb } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 const PLATFORMS = ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn", "Facebook"];
 const FREQUENCIES = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
@@ -24,6 +26,7 @@ const DEMO_USER_ID = "demo-user";
 export default function BrandBriefs() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { hasFullAccess, user } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [generatingForBrief, setGeneratingForBrief] = useState<string | null>(null);
@@ -34,6 +37,28 @@ export default function BrandBriefs() {
   const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text">("video");
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
+
+  // Fetch user's own API keys status
+  const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) return { hasOpenai: false, hasElevenlabs: false, hasA2e: false, hasFal: false, hasPexels: false };
+      return res.json();
+    },
+    enabled: !!user?.id && !hasFullAccess,
+  });
+
+  const checkAIAccess = (featureName: string): boolean => {
+    if (hasFullAccess) return true;
+    // Free users with their own OpenAI key can access AI features
+    if (userApiKeys?.hasOpenai) return true;
+    setUpgradeFeatureName(featureName);
+    setUpgradePromptOpen(true);
+    return false;
+  };
 
   const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -126,6 +151,7 @@ export default function BrandBriefs() {
   };
 
   const executeGenerate = () => {
+    if (!checkAIAccess("AI Content Generation")) return;
     if (!selectedBriefForGenerate) return;
     setGeneratingForBrief(selectedBriefForGenerate);
     generateContentMutation.mutate({ 
@@ -136,6 +162,11 @@ export default function BrandBriefs() {
     }, {
       onSettled: () => setGeneratingForBrief(null),
     });
+  };
+
+  const handleGenerateIdeas = (briefId: string) => {
+    if (!checkAIAccess("AI Content Ideas")) return;
+    generateIdeasMutation.mutate(briefId);
   };
 
   return (
@@ -314,7 +345,7 @@ export default function BrandBriefs() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => generateIdeasMutation.mutate(brief.id)}
+                    onClick={() => handleGenerateIdeas(brief.id)}
                     disabled={generateIdeasMutation.isPending && showIdeasForBrief === brief.id}
                     data-testid={`button-ideas-${brief.id}`}
                   >
@@ -470,6 +501,12 @@ export default function BrandBriefs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradePrompt
+        feature={upgradeFeatureName}
+        open={upgradePromptOpen}
+        onOpenChange={setUpgradePromptOpen}
+      />
     </Layout>
   );
 }

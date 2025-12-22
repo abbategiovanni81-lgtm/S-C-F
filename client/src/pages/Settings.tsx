@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,59 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Layout } from "@/components/layout/Layout";
-import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X } from "lucide-react";
+import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown } from "lucide-react";
 
 export default function Settings() {
-  const { user, logout } = useAuth();
+  const { user, logout, hasFullAccess, tier } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [elevenlabsKey, setElevenlabsKey] = useState("");
+  const [a2eKey, setA2eKey] = useState("");
+  const [falKey, setFalKey] = useState("");
+  const [pexelsKey, setPexelsKey] = useState("");
 
   const { data: aiStatus } = useQuery({
     queryKey: ["/api/ai-engines/status"],
     queryFn: async () => {
       const res = await fetch("/api/ai-engines/status");
       return res.json();
+    },
+  });
+
+  const { data: userApiKeys, isLoading: loadingKeys } = useQuery({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch API keys");
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const saveKeysMutation = useMutation({
+    mutationFn: async (keys: { openaiKey?: string; elevenlabsKey?: string; a2eKey?: string; falKey?: string; pexelsKey?: string }) => {
+      const res = await fetch("/api/user/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(keys),
+      });
+      if (!res.ok) throw new Error("Failed to save API keys");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });
+      toast({ title: "API keys saved!", description: "Your keys have been securely stored." });
+      setOpenaiKey("");
+      setElevenlabsKey("");
+      setA2eKey("");
+      setFalKey("");
+      setPexelsKey("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
     },
   });
 
@@ -34,6 +75,22 @@ export default function Settings() {
   });
 
   const youtubeConnected = youtubeAccounts?.some((acc: any) => acc.platform === "youtube" && acc.isConnected === "connected");
+
+  const handleSaveKeys = () => {
+    const keysToSave: any = {};
+    if (openaiKey) keysToSave.openaiKey = openaiKey;
+    if (elevenlabsKey) keysToSave.elevenlabsKey = elevenlabsKey;
+    if (a2eKey) keysToSave.a2eKey = a2eKey;
+    if (falKey) keysToSave.falKey = falKey;
+    if (pexelsKey) keysToSave.pexelsKey = pexelsKey;
+    
+    if (Object.keys(keysToSave).length === 0) {
+      toast({ title: "No changes", description: "Enter at least one API key to save", variant: "destructive" });
+      return;
+    }
+    
+    saveKeysMutation.mutate(keysToSave);
+  };
 
   return (
     <Layout>
@@ -132,27 +189,137 @@ export default function Settings() {
 
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle>Your API Keys (Coming Soon)</CardTitle>
-                <CardDescription>
-                  In the future, you'll be able to add your own API keys here to use your own quotas.
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Your API Keys</CardTitle>
+                    <CardDescription>
+                      {hasFullAccess 
+                        ? "As a premium user, you can use platform keys or add your own."
+                        : "Add your own API keys to use AI features on the free plan."
+                      }
+                    </CardDescription>
+                  </div>
+                  {hasFullAccess && (
+                    <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
+                      <Crown className="h-3 w-3 mr-1" />
+                      {tier === "owner" ? "Owner" : "Premium"}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4 opacity-50">
-                  <div className="space-y-2">
-                    <Label>OpenAI API Key</Label>
-                    <Input type="password" placeholder="sk-..." disabled data-testid="input-openai-key" />
+                {loadingKeys ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>ElevenLabs API Key</Label>
-                    <Input type="password" placeholder="Your ElevenLabs key" disabled data-testid="input-elevenlabs-key" />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>OpenAI API Key</Label>
+                        {userApiKeys?.hasOpenai && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasOpenai ? "••••••••••••" : "sk-..."} 
+                        value={openaiKey}
+                        onChange={(e) => setOpenaiKey(e.target.value)}
+                        data-testid="input-openai-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">For content generation and DALL-E images</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>ElevenLabs API Key</Label>
+                        {userApiKeys?.hasElevenlabs && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasElevenlabs ? "••••••••••••" : "Your ElevenLabs key"} 
+                        value={elevenlabsKey}
+                        onChange={(e) => setElevenlabsKey(e.target.value)}
+                        data-testid="input-elevenlabs-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">For AI voice generation</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>A2E API Key</Label>
+                        {userApiKeys?.hasA2e && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasA2e ? "••••••••••••" : "Your A2E key"}
+                        value={a2eKey}
+                        onChange={(e) => setA2eKey(e.target.value)}
+                        data-testid="input-a2e-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">For avatar video generation</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Fal.ai API Key</Label>
+                        {userApiKeys?.hasFal && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasFal ? "••••••••••••" : "Your Fal.ai key"}
+                        value={falKey}
+                        onChange={(e) => setFalKey(e.target.value)}
+                        data-testid="input-fal-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">For AI video and image generation</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Pexels API Key</Label>
+                        {userApiKeys?.hasPexels && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasPexels ? "••••••••••••" : "Your Pexels key"}
+                        value={pexelsKey}
+                        onChange={(e) => setPexelsKey(e.target.value)}
+                        data-testid="input-pexels-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">For B-Roll stock footage</p>
+                    </div>
+                    <Button 
+                      onClick={handleSaveKeys}
+                      disabled={saveKeysMutation.isPending}
+                      data-testid="button-save-keys"
+                    >
+                      {saveKeysMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save API Keys"
+                      )}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>A2E API Key</Label>
-                    <Input type="password" placeholder="Your A2E key" disabled data-testid="input-a2e-key" />
-                  </div>
-                  <Button disabled>Save API Keys</Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

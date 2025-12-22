@@ -80,6 +80,27 @@ export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit
   createdAt: true,
 });
 
+export const userApiKeys = pgTable("user_api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  openaiKey: text("openai_key"),
+  elevenlabsKey: text("elevenlabs_key"),
+  a2eKey: text("a2e_key"),
+  falKey: text("fal_key"),
+  pexelsKey: text("pexels_key"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertUserApiKeysSchema = createInsertSchema(userApiKeys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUserApiKeys = z.infer<typeof insertUserApiKeysSchema>;
+export type UserApiKeys = typeof userApiKeys.$inferSelect;
+
 export const promptFeedback = pgTable("prompt_feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   briefId: varchar("brief_id").references(() => brandBriefs.id),

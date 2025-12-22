@@ -16,12 +16,29 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { UpgradePrompt, UpgradeBanner } from "@/components/UpgradePrompt";
 
 export default function ContentQueue() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { hasFullAccess, tier, user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lipSyncVideoRef = useRef<HTMLInputElement>(null);
+  
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
+  const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
+  
+  // Fetch user's own API keys status
+  const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) return { hasOpenai: false, hasElevenlabs: false, hasA2e: false, hasFal: false, hasPexels: false };
+      return res.json();
+    },
+    enabled: !!user?.id && !hasFullAccess,
+  });
   
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<GeneratedContent | null>(null);
@@ -143,6 +160,15 @@ export default function ContentQueue() {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=rejected"] });
   };
 
+  const checkAIAccess = (featureName: string): boolean => {
+    if (hasFullAccess) return true;
+    // Free users with their own OpenAI key can access AI features
+    if (userApiKeys?.hasOpenai) return true;
+    setUpgradeFeatureName(featureName);
+    setUpgradePromptOpen(true);
+    return false;
+  };
+
   // Track which content IDs we've already started polling for
   const pollingStartedRef = useRef<Set<string>>(new Set());
 
@@ -188,6 +214,7 @@ export default function ContentQueue() {
   });
 
   const handleGenerateImage = async (content: GeneratedContent) => {
+    if (!checkAIAccess("AI Image Generation")) return;
     const metadata = content.generationMetadata as any;
     // Try imagePrompts first, then thumbnailPrompt from videoPrompts, then caption as fallback
     const prompt = metadata?.imagePrompts?.mainImagePrompt 
@@ -357,6 +384,7 @@ export default function ContentQueue() {
   });
 
   const openLipSyncDialog = (content: GeneratedContent) => {
+    if (!checkAIAccess("AI Lip-Sync Video")) return;
     setLipSyncContent(content);
     setLipSyncVideoFile(null);
     setLipSyncStatus("idle");
@@ -365,6 +393,7 @@ export default function ContentQueue() {
   };
 
   const handleGenerateVoiceover = (content: GeneratedContent) => {
+    if (!checkAIAccess("AI Voice Generation")) return;
     const voiceoverText = (content.generationMetadata as any)?.videoPrompts?.voiceoverText;
     if (!voiceoverText) {
       toast({ title: "No voiceover text", description: "This content doesn't have voiceover text.", variant: "destructive" });
@@ -462,6 +491,7 @@ export default function ContentQueue() {
   };
 
   const handleGenerateVideo = () => {
+    if (!checkAIAccess("AI Video Generation")) return;
     if (!videoDialogContent) return;
     if (!editableVideoPrompt.trim()) {
       toast({ title: "No video prompt", description: "Please enter a video prompt.", variant: "destructive" });
@@ -478,6 +508,7 @@ export default function ContentQueue() {
   };
 
   const handleGenerateSceneVideo = async (contentId: string, sceneNumber: number, prompt: string, platforms: string[]) => {
+    if (!checkAIAccess("AI Scene Video Generation")) return;
     setSceneGenerating(prev => ({ ...prev, [contentId]: sceneNumber }));
     setSceneVideos(prev => ({
       ...prev,
@@ -2744,6 +2775,12 @@ export default function ContentQueue() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UpgradePrompt
+        feature={upgradeFeatureName}
+        open={upgradePromptOpen}
+        onOpenChange={setUpgradePromptOpen}
+      />
     </Layout>
   );
 

@@ -2,8 +2,10 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, type ContentGenerationRequest } from "./openai";
@@ -422,6 +424,71 @@ export async function registerRoutes(
       fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
       pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
     });
+  });
+
+  // User API Keys endpoints
+  app.get("/api/user/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      
+      // Return masked keys (only show if set or not)
+      res.json({
+        hasOpenai: !!keys?.openaiKey,
+        hasElevenlabs: !!keys?.elevenlabsKey,
+        hasA2e: !!keys?.a2eKey,
+        hasFal: !!keys?.falKey,
+        hasPexels: !!keys?.pexelsKey,
+      });
+    } catch (error: any) {
+      console.error("Error fetching user API keys:", error);
+      res.status(500).json({ error: "Failed to fetch API keys" });
+    }
+  });
+
+  app.post("/api/user/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { openaiKey, elevenlabsKey, a2eKey, falKey, pexelsKey } = req.body;
+      
+      // Check if user already has keys
+      const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      
+      if (existing) {
+        // Update existing keys (only update fields that are provided)
+        const updates: any = { updatedAt: new Date() };
+        if (openaiKey !== undefined) updates.openaiKey = openaiKey || null;
+        if (elevenlabsKey !== undefined) updates.elevenlabsKey = elevenlabsKey || null;
+        if (a2eKey !== undefined) updates.a2eKey = a2eKey || null;
+        if (falKey !== undefined) updates.falKey = falKey || null;
+        if (pexelsKey !== undefined) updates.pexelsKey = pexelsKey || null;
+        
+        await db.update(userApiKeys).set(updates).where(eq(userApiKeys.id, existing.id));
+      } else {
+        // Create new keys entry
+        await db.insert(userApiKeys).values({
+          userId,
+          openaiKey: openaiKey || null,
+          elevenlabsKey: elevenlabsKey || null,
+          a2eKey: a2eKey || null,
+          falKey: falKey || null,
+          pexelsKey: pexelsKey || null,
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error saving user API keys:", error);
+      res.status(500).json({ error: "Failed to save API keys" });
+    }
   });
 
   // A2E Image Generation
