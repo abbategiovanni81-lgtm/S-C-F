@@ -295,6 +295,24 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Brand brief not found" });
       }
 
+      // Check quota for scripts (only for premium/pro users)
+      const [user] = await db.select().from(users).where(eq(users.id, brief.userId));
+      if (user && (user.tier === "premium" || user.tier === "pro")) {
+        try {
+          await assertQuota(brief.userId, "scripts", 1);
+        } catch (error) {
+          if (error instanceof QuotaExceededError) {
+            return res.status(429).json({ 
+              error: error.message, 
+              quotaExceeded: true,
+              usageType: error.usageType,
+              quota: error.quota 
+            });
+          }
+          throw error;
+        }
+      }
+
       const avoidPatterns = await storage.getAvoidPatternsForBrief(briefId);
       const topPerformingPosts = await storage.getTopPerformingPatterns(brief.userId);
 
@@ -332,6 +350,11 @@ export async function registerRoutes(
           tiktokTextPost: result.tiktokTextPost,
         },
       });
+
+      // Increment usage after successful generation
+      if (user && (user.tier === "premium" || user.tier === "pro")) {
+        await incrementUsage(brief.userId, "scripts", 1);
+      }
 
       res.status(201).json({ content, generatedResult: result });
     } catch (error) {
@@ -772,6 +795,27 @@ export async function registerRoutes(
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
       }
+
+      // Check quota for images (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "images", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
       
       // Map aspect ratio to width/height
       let width = 1024, height = 1024;
@@ -794,6 +838,14 @@ export async function registerRoutes(
       } catch (downloadError) {
         console.error("Failed to download A2E image:", downloadError);
       }
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "images", 1);
+        }
+      }
       
       res.json({ imageUrl: localImageUrl, taskId: result.taskId });
     } catch (error: any) {
@@ -807,6 +859,27 @@ export async function registerRoutes(
       const { prompt, size, quality, style } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
+      }
+
+      // Check quota for images (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "images", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
       }
       
       // Map aspect ratio to DALL-E size
@@ -828,6 +901,14 @@ export async function registerRoutes(
         console.log(`Downloaded DALL-E image to ${localImageUrl}`);
       } catch (downloadError) {
         console.error("Failed to download DALL-E image:", downloadError);
+      }
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "images", 1);
+        }
       }
       
       res.json({ imageUrl: localImageUrl, revisedPrompt: result.revisedPrompt });
@@ -865,12 +946,41 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Text and creatorId are required" });
       }
 
+      // Check quota for videos (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "videos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const lipSyncId = await a2eService.generateLipSync({
         text,
         creatorId,
         aspectRatio,
         voiceId,
       });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "videos", 1);
+        }
+      }
 
       res.json({ lipSyncId, status: "processing" });
     } catch (error: any) {
@@ -994,7 +1104,38 @@ export async function registerRoutes(
       if (!text) {
         return res.status(400).json({ error: "text is required" });
       }
+
+      // Check quota for voiceovers (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "voiceovers", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const result = await elevenlabsService.generateVoiceover({ text, voiceId });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "voiceovers", 1);
+        }
+      }
+
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
