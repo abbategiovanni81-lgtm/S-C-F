@@ -28,9 +28,9 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, toggleCollapsed }: SidebarProps) {
   const [location] = useLocation();
-  const { tier } = useAuth();
+  const { isOwner } = useAuth();
   
-  const navItems = tier === "owner" ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
+  const navItems = isOwner ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
 
   return (
     <div className={cn(

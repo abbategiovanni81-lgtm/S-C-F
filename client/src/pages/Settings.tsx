@@ -202,7 +202,7 @@ export default function Settings() {
                   {hasFullAccess && (
                     <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
                       <Crown className="h-3 w-3 mr-1" />
-                      {tier === "owner" ? "Owner" : "Premium"}
+                      {tier === "pro" ? "Pro" : "Premium"}
                     </Badge>
                   )}
                 </div>

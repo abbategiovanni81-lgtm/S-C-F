@@ -35,7 +35,7 @@ interface AdminUser {
 }
 
 export default function Admin() {
-  const { tier, user } = useAuth();
+  const { tier, user, isOwner } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -73,14 +73,14 @@ export default function Admin() {
     },
   });
 
-  if (tier !== "owner") {
+  if (!isOwner) {
     return <Redirect to="/dashboard" />;
   }
 
   const getTierBadge = (userTier: string) => {
     switch (userTier) {
-      case "owner":
-        return <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500"><Crown className="h-3 w-3 mr-1" /> Owner</Badge>;
+      case "pro":
+        return <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500"><Crown className="h-3 w-3 mr-1" /> Pro</Badge>;
       case "premium":
         return <Badge className="bg-gradient-to-r from-purple-500 to-pink-500"><Crown className="h-3 w-3 mr-1" /> Premium</Badge>;
       default:
@@ -205,7 +205,7 @@ export default function Admin() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {u.tier !== "owner" && (
+                        {u.email !== "gio.abbate@hotmail.com" && (
                           <Select
                             value={u.tier}
                             onValueChange={(value) => {
@@ -223,6 +223,7 @@ export default function Admin() {
                             <SelectContent>
                               <SelectItem value="free">Free</SelectItem>
                               <SelectItem value="premium">Premium</SelectItem>
+                              <SelectItem value="pro">Pro</SelectItem>
                             </SelectContent>
                           </Select>
                         )}

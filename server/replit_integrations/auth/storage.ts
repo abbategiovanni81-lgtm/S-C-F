@@ -13,11 +13,11 @@ export interface CreateUserData {
   lastLogin?: Date | null;
 }
 
-function getTierForEmail(email: string): string {
+function getTierAndOwnerForEmail(email: string): { tier: string; isOwner: boolean } {
   if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
-    return "owner";
+    return { tier: "pro", isOwner: true };
   }
-  return "free";
+  return { tier: "free", isOwner: false };
 }
 
 export interface IAuthStorage {
@@ -40,7 +40,7 @@ class AuthStorage implements IAuthStorage {
   }
 
   async createUser(data: CreateUserData): Promise<User> {
-    const tier = data.tier || getTierForEmail(data.email);
+    const { tier, isOwner } = getTierAndOwnerForEmail(data.email);
     const [user] = await db
       .insert(users)
       .values({
@@ -50,7 +50,8 @@ class AuthStorage implements IAuthStorage {
         lastName: data.lastName || null,
         profileImageUrl: data.profileImageUrl || null,
         googleId: data.googleId || null,
-        tier: tier,
+        tier: data.tier || tier,
+        isOwner: isOwner,
       })
       .returning();
     return user;
@@ -90,17 +91,21 @@ class AuthStorage implements IAuthStorage {
       }
     }
 
-    // Set tier based on email if not already set
-    const tier = userData.tier || (userData.email ? getTierForEmail(userData.email) : "free");
+    // Set tier and owner based on email
+    const { tier: defaultTier, isOwner } = userData.email 
+      ? getTierAndOwnerForEmail(userData.email) 
+      : { tier: "free", isOwner: false };
+    const tier = userData.tier || defaultTier;
 
     const [user] = await db
       .insert(users)
-      .values({ ...userData, tier })
+      .values({ ...userData, tier, isOwner })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
           tier,
+          isOwner,
           updatedAt: new Date(),
         },
       })

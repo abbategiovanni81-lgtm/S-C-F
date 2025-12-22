@@ -6,7 +6,8 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   profileImageUrl: string | null;
-  tier: "free" | "premium" | "owner";
+  tier: "free" | "premium" | "pro";
+  isOwner: boolean;
 }
 
 async function fetchUser(): Promise<User | null> {
@@ -96,13 +97,15 @@ export function useAuth() {
     },
   });
 
-  const hasFullAccess = user?.tier === "owner" || user?.tier === "premium";
+  const hasFullAccess = user?.tier === "pro" || user?.tier === "premium";
+  const isOwner = user?.isOwner || false;
 
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     hasFullAccess,
+    isOwner,
     tier: user?.tier || "free",
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,

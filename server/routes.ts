@@ -6,7 +6,7 @@ import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccou
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
-import { users, OWNER_EMAIL } from "@shared/models/auth";
+import { users, OWNER_EMAIL, TIER_LIMITS, usagePeriods, usageTopups, type TierType } from "@shared/models/auth";
 import { getUncachableStripeClient, getStripePublishableKey, getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
@@ -138,14 +138,15 @@ export async function registerRoutes(
       // Ensure user exists (create demo user if needed)
       await storage.ensureUser(result.data.userId);
       
-      // Check free tier limit: only 1 brand brief allowed
+      // Check tier limit for brand briefs
       const [user] = await db.select().from(users).where(eq(users.id, result.data.userId));
-      if (user && user.tier === "free") {
+      if (user) {
+        const tierLimits = TIER_LIMITS[user.tier as TierType] || TIER_LIMITS.free;
         const existingBriefs = await storage.getBrandBriefsByUser(result.data.userId);
-        if (existingBriefs.length >= 1) {
+        if (existingBriefs.length >= tierLimits.brandBriefs) {
           return res.status(403).json({ 
-            error: "Free tier limit reached", 
-            message: "Free accounts are limited to 1 brand brief. Upgrade to Premium for unlimited briefs." 
+            error: "Tier limit reached", 
+            message: `Your ${user.tier} plan is limited to ${tierLimits.brandBriefs} brand brief${tierLimits.brandBriefs > 1 ? 's' : ''}. Upgrade to increase your limit.` 
           });
         }
       }
@@ -611,20 +612,20 @@ export async function registerRoutes(
 
   // ==================== ADMIN ENDPOINTS ====================
 
-  // Middleware to check if user is owner
-  const isOwner = async (req: any, res: any, next: any) => {
+  // Middleware to check if user is owner (has admin privileges)
+  const isOwnerMiddleware = async (req: any, res: any, next: any) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     
     const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user || user.email !== OWNER_EMAIL) {
+    if (!user || !user.isOwner) {
       return res.status(403).json({ error: "Forbidden - Owner access required" });
     }
     next();
   };
 
   // Get all users with stats (admin only)
-  app.get("/api/admin/users", isAuthenticated, isOwner, async (req, res) => {
+  app.get("/api/admin/users", isAuthenticated, isOwnerMiddleware, async (req, res) => {
     try {
       const allUsers = await db.select({
         id: users.id,
@@ -687,9 +688,9 @@ export async function registerRoutes(
           .where(eq(scheduledPosts.userId, u.id));
         const postsCount = postsResult[0]?.count || 0;
 
-        // Calculate estimated AI costs (only for premium users using app keys)
+        // Calculate estimated AI costs (only for premium/pro users using app keys)
         // OpenAI: ~$0.01/script, ElevenLabs: ~$0.03/voice, A2E video: ~$1.00, A2E image: ~$0.10
-        const estimatedCost = u.tier === "premium" || u.tier === "owner"
+        const estimatedCost = u.tier === "premium" || u.tier === "pro"
           ? (scriptsCount * 0.01) + (voiceoversCount * 0.03) + (videosCount * 1.00) + (imagesCount * 0.10)
           : 0;
 
@@ -716,13 +717,13 @@ export async function registerRoutes(
   });
 
   // Update user tier (admin only)
-  app.patch("/api/admin/users/:userId/tier", isAuthenticated, isOwner, async (req, res) => {
+  app.patch("/api/admin/users/:userId/tier", isAuthenticated, isOwnerMiddleware, async (req, res) => {
     try {
       const { userId } = req.params;
       const { tier } = req.body;
 
-      if (!["free", "premium"].includes(tier)) {
-        return res.status(400).json({ error: "Invalid tier. Must be 'free' or 'premium'" });
+      if (!["free", "premium", "pro"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid tier. Must be 'free', 'premium', or 'pro'" });
       }
 
       const [user] = await db.select().from(users).where(eq(users.id, userId));
