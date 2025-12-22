@@ -72,6 +72,18 @@ export default function ContentQueue() {
   const [editSceneDialogOpen, setEditSceneDialogOpen] = useState(false);
   const [editingScene, setEditingScene] = useState<{ contentId: string; sceneNumber: number; sceneDescription: string; visualPrompt: string } | null>(null);
 
+  // Voiceover editing state
+  const [editVoiceoverDialogOpen, setEditVoiceoverDialogOpen] = useState(false);
+  const [editingVoiceover, setEditingVoiceover] = useState<{ contentId: string; voiceoverText: string; voiceStyle: string } | null>(null);
+
+  // Thumbnail editing state
+  const [editThumbnailDialogOpen, setEditThumbnailDialogOpen] = useState(false);
+  const [editingThumbnail, setEditingThumbnail] = useState<{ contentId: string; thumbnailPrompt: string } | null>(null);
+
+  // Image prompt editing state
+  const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
+  const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
+
   // Video engine selection (A2E vs Fal.ai)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels)
@@ -807,6 +819,136 @@ export default function ContentQueue() {
     }
   };
 
+  // Voiceover edit handlers
+  const openEditVoiceoverDialog = (contentId: string, voiceoverText: string, voiceStyle: string) => {
+    setEditingVoiceover({ contentId, voiceoverText, voiceStyle: voiceStyle || "" });
+    setEditVoiceoverDialogOpen(true);
+  };
+
+  const handleSaveVoiceover = async () => {
+    if (!editingVoiceover) return;
+    
+    try {
+      const contentRes = await fetch(`/api/content/${editingVoiceover.contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const videoPrompts = metadata.videoPrompts || {};
+      
+      await fetch(`/api/content/${editingVoiceover.contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { 
+            ...metadata, 
+            videoPrompts: { 
+              ...videoPrompts, 
+              voiceoverText: editingVoiceover.voiceoverText,
+              voiceStyle: editingVoiceover.voiceStyle
+            } 
+          }
+        }),
+      });
+      
+      toast({ title: "Voiceover updated", description: "The voiceover text has been updated." });
+      invalidateContentQueries();
+      setEditVoiceoverDialogOpen(false);
+      setEditingVoiceover(null);
+    } catch (error) {
+      toast({ title: "Failed to update voiceover", variant: "destructive" });
+    }
+  };
+
+  // Thumbnail edit handlers
+  const openEditThumbnailDialog = (contentId: string, thumbnailPrompt: string) => {
+    setEditingThumbnail({ contentId, thumbnailPrompt });
+    setEditThumbnailDialogOpen(true);
+  };
+
+  const handleSaveThumbnail = async () => {
+    if (!editingThumbnail) return;
+    
+    try {
+      const contentRes = await fetch(`/api/content/${editingThumbnail.contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const videoPrompts = metadata.videoPrompts || {};
+      
+      await fetch(`/api/content/${editingThumbnail.contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { 
+            ...metadata, 
+            videoPrompts: { 
+              ...videoPrompts, 
+              thumbnailPrompt: editingThumbnail.thumbnailPrompt
+            } 
+          }
+        }),
+      });
+      
+      toast({ title: "Thumbnail prompt updated" });
+      invalidateContentQueries();
+      setEditThumbnailDialogOpen(false);
+      setEditingThumbnail(null);
+    } catch (error) {
+      toast({ title: "Failed to update thumbnail", variant: "destructive" });
+    }
+  };
+
+  // Image prompt edit handlers
+  const openEditImageDialog = (contentId: string, imagePrompts: any) => {
+    setEditingImage({ 
+      contentId, 
+      mainImagePrompt: imagePrompts.mainImagePrompt || "",
+      textOverlay: imagePrompts.textOverlay || "",
+      colorScheme: imagePrompts.colorScheme || "",
+      style: imagePrompts.style || ""
+    });
+    setEditImageDialogOpen(true);
+  };
+
+  const handleSaveImage = async () => {
+    if (!editingImage) return;
+    
+    try {
+      const contentRes = await fetch(`/api/content/${editingImage.contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const imagePrompts = metadata.imagePrompts || {};
+      
+      await fetch(`/api/content/${editingImage.contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { 
+            ...metadata, 
+            imagePrompts: { 
+              ...imagePrompts, 
+              mainImagePrompt: editingImage.mainImagePrompt,
+              textOverlay: editingImage.textOverlay,
+              colorScheme: editingImage.colorScheme,
+              style: editingImage.style
+            } 
+          }
+        }),
+      });
+      
+      toast({ title: "Image prompt updated" });
+      invalidateContentQueries();
+      setEditImageDialogOpen(false);
+      setEditingImage(null);
+    } catch (error) {
+      toast({ title: "Failed to update image prompt", variant: "destructive" });
+    }
+  };
+
   const openRejectDialog = (content: GeneratedContent) => {
     setRejectingContent(content);
     setRejectionReason("");
@@ -974,7 +1116,22 @@ export default function ContentQueue() {
             
             {(content.generationMetadata as any).videoPrompts.voiceoverText && (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-muted-foreground">ElevenLabs Voiceover</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">ElevenLabs Voiceover</p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => openEditVoiceoverDialog(
+                      content.id,
+                      (content.generationMetadata as any).videoPrompts.voiceoverText,
+                      (content.generationMetadata as any).videoPrompts.voiceStyle
+                    )}
+                    data-testid={`button-edit-voiceover-${content.id}`}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                </div>
                 <p className="text-sm bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 whitespace-pre-wrap border border-blue-200 dark:border-blue-800">
                   {(content.generationMetadata as any).videoPrompts.voiceoverText}
                 </p>
@@ -1208,7 +1365,21 @@ export default function ContentQueue() {
 
             {(content.generationMetadata as any).videoPrompts.thumbnailPrompt && (
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => openEditThumbnailDialog(
+                      content.id,
+                      (content.generationMetadata as any).videoPrompts.thumbnailPrompt
+                    )}
+                    data-testid={`button-edit-thumbnail-${content.id}`}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                </div>
                 <p className="text-sm bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   {(content.generationMetadata as any).videoPrompts.thumbnailPrompt}
                 </p>
@@ -1247,9 +1418,20 @@ export default function ContentQueue() {
 
         {(content.generationMetadata as any)?.imagePrompts && (
           <div className="space-y-3 border-t pt-4 mt-4" data-testid={`image-prompts-${content.id}`}>
-            <div className="flex items-center gap-2 text-sm font-medium text-primary">
-              <ImageIcon className="w-4 h-4" />
-              AI Image Prompts
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <ImageIcon className="w-4 h-4" />
+                AI Image Prompts
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => openEditImageDialog(content.id, (content.generationMetadata as any).imagePrompts)}
+                data-testid={`button-edit-image-${content.id}`}
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
             </div>
             
             <div className="space-y-2">
@@ -2233,6 +2415,168 @@ export default function ContentQueue() {
               Cancel
             </Button>
             <Button onClick={handleSaveScene} data-testid="button-save-scene">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editVoiceoverDialogOpen} onOpenChange={setEditVoiceoverDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mic className="w-5 h-5 text-blue-600" />
+              Edit Voiceover Text
+            </DialogTitle>
+            <DialogDescription>
+              Update the voiceover text and style before generating audio.
+            </DialogDescription>
+          </DialogHeader>
+          {editingVoiceover && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="voiceover-text">Voiceover Text</Label>
+                <Textarea
+                  id="voiceover-text"
+                  value={editingVoiceover.voiceoverText}
+                  onChange={(e) => setEditingVoiceover({ ...editingVoiceover, voiceoverText: e.target.value })}
+                  placeholder="Enter the text for voiceover..."
+                  className="min-h-[150px]"
+                  data-testid="input-voiceover-text"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="voice-style">Voice Style</Label>
+                <Input
+                  id="voice-style"
+                  value={editingVoiceover.voiceStyle}
+                  onChange={(e) => setEditingVoiceover({ ...editingVoiceover, voiceStyle: e.target.value })}
+                  placeholder="e.g., Friendly, energetic female voice..."
+                  data-testid="input-voice-style"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Describe the voice style for ElevenLabs synthesis.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditVoiceoverDialogOpen(false); setEditingVoiceover(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveVoiceover} data-testid="button-save-voiceover">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editThumbnailDialogOpen} onOpenChange={setEditThumbnailDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-green-600" />
+              Edit Thumbnail Prompt
+            </DialogTitle>
+            <DialogDescription>
+              Update the thumbnail image generation prompt.
+            </DialogDescription>
+          </DialogHeader>
+          {editingThumbnail && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail-prompt">Thumbnail Prompt</Label>
+                <Textarea
+                  id="thumbnail-prompt"
+                  value={editingThumbnail.thumbnailPrompt}
+                  onChange={(e) => setEditingThumbnail({ ...editingThumbnail, thumbnailPrompt: e.target.value })}
+                  placeholder="Describe the thumbnail image..."
+                  className="min-h-[120px]"
+                  data-testid="input-thumbnail-prompt"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This prompt will be used to generate the thumbnail image.
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditThumbnailDialogOpen(false); setEditingThumbnail(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveThumbnail} data-testid="button-save-thumbnail">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editImageDialogOpen} onOpenChange={setEditImageDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              Edit Image Prompts
+            </DialogTitle>
+            <DialogDescription>
+              Update the image generation settings before creating your image.
+            </DialogDescription>
+          </DialogHeader>
+          {editingImage && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="image-prompt">Main Image Prompt</Label>
+                <Textarea
+                  id="image-prompt"
+                  value={editingImage.mainImagePrompt}
+                  onChange={(e) => setEditingImage({ ...editingImage, mainImagePrompt: e.target.value })}
+                  placeholder="Describe the image you want to generate..."
+                  className="min-h-[120px]"
+                  data-testid="input-image-prompt"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="text-overlay">Text Overlay</Label>
+                <Input
+                  id="text-overlay"
+                  value={editingImage.textOverlay}
+                  onChange={(e) => setEditingImage({ ...editingImage, textOverlay: e.target.value })}
+                  placeholder="Text to overlay on the image..."
+                  data-testid="input-text-overlay"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="color-scheme">Color Scheme</Label>
+                  <Input
+                    id="color-scheme"
+                    value={editingImage.colorScheme}
+                    onChange={(e) => setEditingImage({ ...editingImage, colorScheme: e.target.value })}
+                    placeholder="e.g., blue and gold"
+                    data-testid="input-color-scheme"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="style">Style</Label>
+                  <Input
+                    id="style"
+                    value={editingImage.style}
+                    onChange={(e) => setEditingImage({ ...editingImage, style: e.target.value })}
+                    placeholder="e.g., minimalist"
+                    data-testid="input-style"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditImageDialogOpen(false); setEditingImage(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveImage} data-testid="button-save-image">
               <Check className="w-4 h-4 mr-2" />
               Save Changes
             </Button>
