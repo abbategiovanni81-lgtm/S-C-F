@@ -1,7 +1,11 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Re-export auth models (users and sessions tables)
+export * from "./models/auth";
+import { users } from "./models/auth";
 
 export interface ScenePrompt {
   sceneNumber: number;
@@ -9,12 +13,6 @@ export interface ScenePrompt {
   visualPrompt: string;
   sceneDescription: string;
 }
-
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
 
 export const brandBriefs = pgTable("brand_briefs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -64,10 +62,6 @@ export const socialAccounts = pgTable("social_accounts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
 
 export const insertBrandBriefSchema = createInsertSchema(brandBriefs).omit({
   id: true,
@@ -265,8 +259,6 @@ export const insertListeningScanRunSchema = createInsertSchema(listeningScanRuns
 export type InsertListeningScanRun = z.infer<typeof insertListeningScanRunSchema>;
 export type ListeningScanRun = typeof listeningScanRuns.$inferSelect;
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type InsertBrandBrief = z.infer<typeof insertBrandBriefSchema>;
 export type BrandBrief = typeof brandBriefs.$inferSelect;
 export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema>;
