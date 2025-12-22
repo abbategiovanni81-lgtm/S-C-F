@@ -1450,6 +1450,26 @@ export async function registerRoutes(
 
       const { title, description, tags, privacyStatus, publishAt } = req.body;
       
+      // Validate publishAt if provided (YouTube scheduling constraints)
+      let validatedPublishAt: string | undefined;
+      if (publishAt) {
+        const scheduledDate = new Date(publishAt);
+        const now = new Date();
+        const minTime = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes minimum
+        const maxTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days maximum
+        
+        if (isNaN(scheduledDate.getTime())) {
+          return res.status(400).json({ error: "Invalid schedule date format. Please use ISO 8601 format." });
+        }
+        if (scheduledDate < minTime) {
+          return res.status(400).json({ error: "Scheduled time must be at least 15 minutes from now." });
+        }
+        if (scheduledDate > maxTime) {
+          return res.status(400).json({ error: "Scheduled time must be within 30 days from now." });
+        }
+        validatedPublishAt = scheduledDate.toISOString();
+      }
+      
       let accessToken = account.accessToken;
       
       if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
@@ -1478,19 +1498,19 @@ export async function registerRoutes(
         title: title || "Untitled Video",
         description: description || "",
         tags: parsedTags,
-        privacyStatus: privacyStatus || "private",
-        publishAt: publishAt || undefined,
+        privacyStatus: validatedPublishAt ? "private" : (privacyStatus || "private"),
+        publishAt: validatedPublishAt,
         videoBuffer,
         mimeType,
       });
 
       // If scheduled, also create a scheduled post record for tracking
-      if (publishAt && result.videoId) {
+      if (validatedPublishAt && result.videoId) {
         await storage.createScheduledPost({
-          userId: "demo-user",
+          userId: userId,
           platform: "youtube",
-          scheduledFor: new Date(publishAt),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          scheduledFor: new Date(validatedPublishAt),
+          timezone: "UTC",
           title: title || "Untitled Video",
           description: description || "",
           mediaUrl: result.url,
@@ -1498,7 +1518,7 @@ export async function registerRoutes(
           status: "scheduled",
           postType: "auto",
           youtubeVideoId: result.videoId,
-          youtubePrivacyStatus: "private",
+          youtubePrivacyStatus: "private", // Always private for scheduled uploads
         });
       }
 
