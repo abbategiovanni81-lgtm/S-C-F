@@ -138,6 +138,18 @@ export async function registerRoutes(
       // Ensure user exists (create demo user if needed)
       await storage.ensureUser(result.data.userId);
       
+      // Check free tier limit: only 1 brand brief allowed
+      const [user] = await db.select().from(users).where(eq(users.id, result.data.userId));
+      if (user && user.tier === "free") {
+        const existingBriefs = await storage.getBrandBriefsByUser(result.data.userId);
+        if (existingBriefs.length >= 1) {
+          return res.status(403).json({ 
+            error: "Free tier limit reached", 
+            message: "Free accounts are limited to 1 brand brief. Upgrade to Premium for unlimited briefs." 
+          });
+        }
+      }
+      
       const brief = await storage.createBrandBrief(result.data);
       res.status(201).json(brief);
     } catch (error) {
