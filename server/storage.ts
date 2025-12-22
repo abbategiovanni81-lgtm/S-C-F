@@ -2,7 +2,7 @@ import { db } from "./db";
 import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts } from "@shared/schema";
 import type { 
   User, 
-  InsertUser, 
+  UpsertUser, 
   BrandBrief, 
   InsertBrandBrief,
   GeneratedContent,
@@ -28,8 +28,8 @@ import { eq, and, desc, gte, lte, between } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
   
   getBrandBrief(id: string): Promise<BrandBrief | undefined>;
   getBrandBriefsByUser(userId: string): Promise<BrandBrief[]>;
@@ -97,12 +97,12 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
   }
 
-  async createUser(insertUser: InsertUser & { id?: string }): Promise<User> {
+  async createUser(insertUser: UpsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
@@ -112,8 +112,7 @@ export class DatabaseStorage implements IStorage {
     if (!user) {
       const result = await db.insert(users).values({ 
         id: userId, 
-        username: userId, 
-        password: "demo" 
+        email: `${userId}@demo.local`
       }).returning();
       user = result[0];
     }

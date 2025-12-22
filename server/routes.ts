@@ -1934,5 +1934,102 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SCHEDULED POSTS ====================
+
+  // Get scheduled posts for a user (with optional date range)
+  app.get("/api/scheduled-posts", async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+      }
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+      }
+      
+      const posts = await storage.getScheduledPostsByUser(userId, startDate, endDate);
+      res.json(posts);
+    } catch (error: any) {
+      console.error("Error fetching scheduled posts:", error);
+      res.status(500).json({ error: "Failed to fetch scheduled posts" });
+    }
+  });
+
+  // Create a scheduled post (manual planning or YouTube auto-schedule)
+  app.post("/api/scheduled-posts", async (req, res) => {
+    try {
+      const { userId, platform, scheduledFor, ...rest } = req.body;
+      
+      if (!userId || !platform || !scheduledFor) {
+        return res.status(400).json({ error: "userId, platform, and scheduledFor are required" });
+      }
+
+      const post = await storage.createScheduledPost({
+        userId,
+        platform,
+        scheduledFor: new Date(scheduledFor),
+        ...rest
+      });
+      
+      res.json(post);
+    } catch (error: any) {
+      console.error("Error creating scheduled post:", error);
+      res.status(500).json({ error: error.message || "Failed to create scheduled post" });
+    }
+  });
+
+  // Get a single scheduled post
+  app.get("/api/scheduled-posts/:id", async (req, res) => {
+    try {
+      const post = await storage.getScheduledPost(req.params.id);
+      if (!post) {
+        return res.status(404).json({ error: "Scheduled post not found" });
+      }
+      res.json(post);
+    } catch (error: any) {
+      console.error("Error fetching scheduled post:", error);
+      res.status(500).json({ error: "Failed to fetch scheduled post" });
+    }
+  });
+
+  // Update a scheduled post
+  app.patch("/api/scheduled-posts/:id", async (req, res) => {
+    try {
+      const { scheduledFor, ...rest } = req.body;
+      const updateData: any = { ...rest };
+      
+      if (scheduledFor) {
+        updateData.scheduledFor = new Date(scheduledFor);
+      }
+      
+      const post = await storage.updateScheduledPost(req.params.id, updateData);
+      if (!post) {
+        return res.status(404).json({ error: "Scheduled post not found" });
+      }
+      res.json(post);
+    } catch (error: any) {
+      console.error("Error updating scheduled post:", error);
+      res.status(500).json({ error: "Failed to update scheduled post" });
+    }
+  });
+
+  // Delete a scheduled post
+  app.delete("/api/scheduled-posts/:id", async (req, res) => {
+    try {
+      await storage.deleteScheduledPost(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting scheduled post:", error);
+      res.status(500).json({ error: "Failed to delete scheduled post" });
+    }
+  });
+
   return httpServer;
 }
