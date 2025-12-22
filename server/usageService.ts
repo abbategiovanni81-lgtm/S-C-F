@@ -124,13 +124,17 @@ export async function applyTopup(userId: string, stripeSessionId: string, amount
     return false; // Already processed
   }
 
+  // Get user tier to determine multiplier (Pro gets 20%, Premium gets 40%)
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  const multiplier = user?.tier === "pro" ? 0.2 : 0.4;
+
   const [topup] = await db
     .insert(usageTopups)
     .values({
       usagePeriodId: period.id,
       userId,
       amount,
-      multiplier: 0.4,
+      multiplier,
       stripeSessionId,
       status: "completed",
     })
@@ -139,7 +143,7 @@ export async function applyTopup(userId: string, stripeSessionId: string, amount
   await db
     .update(usagePeriods)
     .set({
-      topupMultiplier: sql`${usagePeriods.topupMultiplier} + 0.4`,
+      topupMultiplier: sql`${usagePeriods.topupMultiplier} + ${multiplier}`,
     })
     .where(eq(usagePeriods.id, period.id));
 

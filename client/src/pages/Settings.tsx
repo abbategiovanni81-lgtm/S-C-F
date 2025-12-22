@@ -269,7 +269,7 @@ export default function Settings() {
                           <div>
                             <h3 className="font-medium">Need more quota?</h3>
                             <p className="text-sm text-muted-foreground">
-                              Top up for £10 and get 40% extra on all limits this month
+                              Top up for £10 and get {usageStats.tier === "pro" ? "20%" : "40%"} extra on all limits this month
                             </p>
                           </div>
                           <Button
