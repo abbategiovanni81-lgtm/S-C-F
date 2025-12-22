@@ -103,7 +103,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: UpsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
+    // Automatically assign "owner" tier to the owner email
+    const tier = insertUser.email === "gio.abbate@hotmail.com" ? "owner" : (insertUser.tier || "free");
+    const result = await db.insert(users).values({ ...insertUser, tier }).returning();
     return result[0];
   }
   
