@@ -1073,7 +1073,37 @@ export async function registerRoutes(
         return res.status(400).json({ error: "imageUrl is required" });
       }
 
+      // Check quota for videos (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "videos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const taskId = await a2eService.generateImageToVideo({ imageUrl, text });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "videos", 1);
+        }
+      }
+
       res.json({ taskId, status: "processing" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1208,7 +1238,38 @@ export async function registerRoutes(
       if (!videoUrl || !audioUrl) {
         return res.status(400).json({ error: "videoUrl and audioUrl are required" });
       }
+
+      // Check quota for videos (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "videos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const result = await falService.submitLipSync({ videoUrl, audioUrl });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "videos", 1);
+        }
+      }
+
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1232,6 +1293,27 @@ export async function registerRoutes(
       
       if (!files?.audio?.[0] && !audioUrl) {
         return res.status(400).json({ error: "Audio file or audioUrl is required" });
+      }
+
+      // Check quota for videos (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "videos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
       }
 
       // Upload video to Fal.ai storage
@@ -1259,6 +1341,14 @@ export async function registerRoutes(
         videoUrl: uploadedVideo.url,
         audioUrl: finalAudioUrl,
       });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "videos", 1);
+        }
+      }
 
       res.json({
         ...result,
