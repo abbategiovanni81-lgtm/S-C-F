@@ -1,4 +1,6 @@
-import { Crown, Lock } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -16,6 +18,45 @@ interface UpgradePromptProps {
 }
 
 export function UpgradePrompt({ feature, open, onOpenChange }: UpgradePromptProps) {
+  const [loading, setLoading] = useState(false);
+
+  const { data: products } = useQuery<{ products: any[] }>({
+    queryKey: ["/api/stripe/products"],
+    queryFn: async () => {
+      const res = await fetch("/api/stripe/products");
+      if (!res.ok) return { products: [] };
+      return res.json();
+    },
+  });
+
+  const monthlyPrice = products?.products?.find((p: any) => 
+    p.recurring?.interval === "month"
+  );
+
+  const handleUpgrade = async () => {
+    if (!monthlyPrice?.price_id) {
+      window.location.href = "/settings";
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ priceId: monthlyPrice.price_id }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+    }
+    setLoading(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="dialog-upgrade-prompt">
@@ -61,12 +102,25 @@ export function UpgradePrompt({ feature, open, onOpenChange }: UpgradePromptProp
             </h4>
             <p className="text-sm text-muted-foreground mb-3">
               Get unlimited access to all AI features with no API key setup required.
+              {monthlyPrice?.unit_amount && (
+                <span className="block mt-1 font-medium text-foreground">
+                  ${(monthlyPrice.unit_amount / 100).toFixed(2)}/month
+                </span>
+              )}
             </p>
             <Button
               className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              onClick={handleUpgrade}
+              disabled={loading}
               data-testid="button-upgrade-premium"
             >
-              Contact for Premium Access
+              {loading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+              ) : monthlyPrice?.price_id ? (
+                "Subscribe Now"
+              ) : (
+                "Contact for Premium Access"
+              )}
             </Button>
           </div>
         </div>

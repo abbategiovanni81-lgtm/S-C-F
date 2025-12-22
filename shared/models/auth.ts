@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   googleId: varchar("google_id"),
   tier: varchar("tier").notNull().default("free"), // "free", "premium", "owner"
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

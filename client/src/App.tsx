@@ -19,6 +19,7 @@ import EditMerge from "@/pages/EditMerge";
 import SocialListening from "@/pages/SocialListening";
 import Settings from "@/pages/Settings";
 import HowTo from "@/pages/HowTo";
+import Admin from "@/pages/Admin";
 
 function AuthenticatedRoutes() {
   return (
@@ -37,6 +38,7 @@ function AuthenticatedRoutes() {
       <Route path="/ai-engines" component={AIEngines} />
       <Route path="/settings" component={Settings} />
       <Route path="/how-to" component={HowTo} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

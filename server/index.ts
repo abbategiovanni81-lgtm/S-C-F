@@ -3,6 +3,9 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import cookieParser from "cookie-parser";
+import { runMigrations } from "stripe-replit-sync";
+import { getStripeSync } from "./stripeClient";
+import { WebhookHandlers } from "./webhookHandlers";
 
 const app = express();
 const httpServer = createServer(app);
@@ -15,6 +18,27 @@ declare module "http" {
 
 app.use(cookieParser());
 
+// Stripe webhook route MUST be registered BEFORE express.json()
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature' });
+    }
+
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
+);
+
 app.use(
   express.json({
     verify: (req, _res, buf) => {
@@ -24,6 +48,41 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+
+// Initialize Stripe on startup
+async function initStripe() {
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    console.log('Skipping Stripe init - DATABASE_URL not set');
+    return;
+  }
+
+  try {
+    console.log('Initializing Stripe schema...');
+    await runMigrations({ databaseUrl, schema: 'stripe' });
+    console.log('Stripe schema ready');
+
+    const stripeSync = await getStripeSync();
+    
+    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+    if (webhookBaseUrl && webhookBaseUrl !== 'https://undefined') {
+      console.log('Setting up managed webhook...');
+      await stripeSync.findOrCreateManagedWebhook(`${webhookBaseUrl}/api/stripe/webhook`);
+      console.log('Webhook configured');
+    }
+
+    console.log('Syncing Stripe data...');
+    stripeSync.syncBackfill().then(() => {
+      console.log('Stripe data synced');
+    }).catch((err: any) => {
+      console.error('Error syncing Stripe data:', err);
+    });
+  } catch (error) {
+    console.error('Failed to initialize Stripe:', error);
+  }
+}
+
+initStripe();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

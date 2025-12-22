@@ -5,7 +5,11 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { users, OWNER_EMAIL } from "@shared/models/auth";
+import { getUncachableStripeClient, getStripePublishableKey, getStripeSync } from "./stripeClient";
+import { WebhookHandlers } from "./webhookHandlers";
+import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, type ContentGenerationRequest } from "./openai";
@@ -488,6 +492,172 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error saving user API keys:", error);
       res.status(500).json({ error: "Failed to save API keys" });
+    }
+  });
+
+  // ==================== STRIPE ENDPOINTS ====================
+  
+  // Get Stripe publishable key
+  app.get("/api/stripe/publishable-key", async (req, res) => {
+    try {
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error: any) {
+      res.status(500).json({ error: "Stripe not configured" });
+    }
+  });
+
+  // Get subscription products/prices
+  app.get("/api/stripe/products", async (req, res) => {
+    try {
+      const result = await db.execute(
+        sql`SELECT 
+          p.id as product_id, p.name, p.description, p.metadata,
+          pr.id as price_id, pr.unit_amount, pr.currency, pr.recurring
+        FROM stripe.products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        WHERE p.active = true
+        ORDER BY pr.unit_amount`
+      );
+      res.json({ products: result.rows });
+    } catch (error: any) {
+      console.error("Error fetching Stripe products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // Create checkout session
+  app.post("/api/stripe/checkout", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { priceId } = req.body;
+
+      if (!priceId) {
+        return res.status(400).json({ error: "priceId is required" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Create or get customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: { userId: user.id }
+        });
+        await db.update(users).set({ stripeCustomerId: customer.id }).where(eq(users.id, userId));
+        customerId = customer.id;
+      }
+
+      // Create checkout session
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/settings?success=true`,
+        cancel_url: `${baseUrl}/settings?canceled=true`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create customer portal session (manage subscription)
+  app.post("/api/stripe/portal", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      if (!user?.stripeCustomerId) {
+        return res.status(400).json({ error: "No subscription found" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${baseUrl}/settings`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating portal session:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== ADMIN ENDPOINTS ====================
+
+  // Middleware to check if user is owner
+  const isOwner = async (req: any, res: any, next: any) => {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user || user.email !== OWNER_EMAIL) {
+      return res.status(403).json({ error: "Forbidden - Owner access required" });
+    }
+    next();
+  };
+
+  // Get all users (admin only)
+  app.get("/api/admin/users", isAuthenticated, isOwner, async (req, res) => {
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        tier: users.tier,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
+        createdAt: users.createdAt,
+      }).from(users).orderBy(users.createdAt);
+      
+      res.json({ users: allUsers });
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Update user tier (admin only)
+  app.patch("/api/admin/users/:userId/tier", isAuthenticated, isOwner, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { tier } = req.body;
+
+      if (!["free", "premium"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid tier. Must be 'free' or 'premium'" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Don't allow changing owner's tier
+      if (user.email === OWNER_EMAIL) {
+        return res.status(400).json({ error: "Cannot change owner's tier" });
+      }
+
+      await db.update(users).set({ tier, updatedAt: new Date() }).where(eq(users.id, userId));
+      
+      res.json({ success: true, message: `User tier updated to ${tier}` });
+    } catch (error: any) {
+      console.error("Error updating user tier:", error);
+      res.status(500).json({ error: "Failed to update user tier" });
     }
   });
 

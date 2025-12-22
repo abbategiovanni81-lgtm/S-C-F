@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -18,6 +19,8 @@ const NAV_ITEMS = [
   { icon: HelpCircle, label: "How To", href: "/how-to" },
 ];
 
+const ADMIN_ITEM = { icon: Shield, label: "Admin", href: "/admin" };
+
 interface SidebarProps {
   collapsed: boolean;
   toggleCollapsed: () => void;
@@ -25,6 +28,9 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, toggleCollapsed }: SidebarProps) {
   const [location] = useLocation();
+  const { tier } = useAuth();
+  
+  const navItems = tier === "owner" ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
 
   return (
     <div className={cn(
@@ -52,7 +58,7 @@ export function Sidebar({ collapsed, toggleCollapsed }: SidebarProps) {
       </div>
 
       <div className="flex-1 py-6 px-3 space-y-1">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>

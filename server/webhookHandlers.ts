@@ -1,0 +1,58 @@
+import { getStripeSync, getUncachableStripeClient } from './stripeClient';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
+
+export class WebhookHandlers {
+  static async processWebhook(payload: Buffer, signature: string): Promise<void> {
+    if (!Buffer.isBuffer(payload)) {
+      throw new Error(
+        'STRIPE WEBHOOK ERROR: Payload must be a Buffer. ' +
+        'Received type: ' + typeof payload + '. ' +
+        'This usually means express.json() parsed the body before reaching this handler. ' +
+        'FIX: Ensure webhook route is registered BEFORE app.use(express.json()).'
+      );
+    }
+
+    const sync = await getStripeSync();
+    await sync.processWebhook(payload, signature);
+
+    // After syncing, check for subscription events and update user tiers
+    const stripe = await getUncachableStripeClient();
+    const event = stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      (await sync.findOrCreateManagedWebhook('')).webhook.secret
+    );
+
+    // Handle subscription events to update user tier
+    if (event.type === 'customer.subscription.created' || 
+        event.type === 'customer.subscription.updated') {
+      const subscription = event.data.object as any;
+      const customerId = subscription.customer;
+      
+      // Find user by stripe customer id and upgrade to premium
+      if (subscription.status === 'active') {
+        await db.update(users)
+          .set({ 
+            tier: 'premium',
+            stripeCustomerId: customerId,
+            stripeSubscriptionId: subscription.id 
+          })
+          .where(eq(users.stripeCustomerId, customerId));
+        console.log(`User upgraded to premium via subscription: ${subscription.id}`);
+      }
+    }
+
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as any;
+      const customerId = subscription.customer;
+      
+      // Downgrade user to free when subscription is cancelled
+      await db.update(users)
+        .set({ tier: 'free', stripeSubscriptionId: null })
+        .where(eq(users.stripeCustomerId, customerId));
+      console.log(`User downgraded to free, subscription cancelled: ${subscription.id}`);
+    }
+  }
+}
