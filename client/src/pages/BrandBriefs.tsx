@@ -32,6 +32,7 @@ export default function BrandBriefs() {
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [selectedBriefForGenerate, setSelectedBriefForGenerate] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text">("video");
+  const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
 
   const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
@@ -61,12 +62,13 @@ export default function BrandBriefs() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async ({ briefId, topic, contentFormat }: { briefId: string; topic?: string; contentFormat?: string }) => {
+    mutationFn: async ({ briefId, topic, contentFormat, sceneCount }: { briefId: string; topic?: string; contentFormat?: string; sceneCount?: number }) => {
       const res = await apiRequest("POST", "/api/generate-content", {
         briefId,
         contentType: "both",
         contentFormat: contentFormat || "video",
         topic,
+        sceneCount: contentFormat === "video" ? sceneCount : undefined,
       });
       return res.json();
     },
@@ -129,7 +131,8 @@ export default function BrandBriefs() {
     generateContentMutation.mutate({ 
       briefId: selectedBriefForGenerate, 
       topic: generateTopic || undefined,
-      contentFormat: selectedFormat 
+      contentFormat: selectedFormat,
+      sceneCount: selectedFormat === "video" ? sceneCount : undefined,
     }, {
       onSettled: () => setGeneratingForBrief(null),
     });
@@ -380,6 +383,30 @@ export default function BrandBriefs() {
                 <span className="text-sm font-medium">Video</span>
                 <span className="text-xs text-muted-foreground text-center">Script, voiceover, AI video</span>
               </Label>
+
+            {selectedFormat === "video" && (
+              <div className="col-span-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <Label className="text-sm font-medium mb-2 block">Number of Scenes</Label>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map((num) => (
+                    <Button
+                      key={num}
+                      type="button"
+                      variant={sceneCount === num ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSceneCount(num)}
+                      className="flex-1"
+                      data-testid={`button-scene-count-${num}`}
+                    >
+                      {num} {num === 1 ? "Scene" : "Scenes"}
+                    </Button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Each scene generates a separate video clip for editing.
+                </p>
+              </div>
+            )}
 
               <Label
                 htmlFor="format-image"

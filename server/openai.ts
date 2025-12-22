@@ -17,6 +17,7 @@ export interface ContentGenerationRequest {
   topic?: string;
   avoidPatterns?: string[];
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
+  sceneCount?: number; // 1-3 scenes for video content
 }
 
 export interface ScenePrompt {
@@ -138,8 +139,26 @@ CAPTION DON'TS:
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
 
+  const numScenes = request.sceneCount || 3;
+  
   if (contentFormat === "video") {
-    formatSpecificPrompt = `Generate video content with script and 2-3 scene-specific video prompts.
+    const sceneInstructions = numScenes === 1 
+      ? `Generate video content with script and 1 scene (single continuous video).
+
+The single scene should combine the hook, main content, and CTA into one cohesive 15-20 second video.
+Start with an attention-grabbing opening, deliver value, and end with a call to action.`
+      : numScenes === 2
+      ? `Generate video content with script and 2 scene-specific video prompts.
+
+SCENE 1 IS THE HOOK (first 10 seconds) - CRITICAL for retention:
+- Must grab attention immediately using one of the 8 hook techniques
+- Start with the payoff, problem, question, or shocking fact
+- No slow intros, no "Hey guys", no channel branding
+
+SCENE 2 IS THE PAYOFF/CTA (10-15 seconds):
+- Deliver the main value and call to action
+- End strong with clear next steps`
+      : `Generate video content with script and 3 scene-specific video prompts.
 
 SCENE 1 IS THE HOOK (first 8 seconds) - CRITICAL for retention:
 - Must grab attention immediately using one of the 8 hook techniques
@@ -148,18 +167,28 @@ SCENE 1 IS THE HOOK (first 8 seconds) - CRITICAL for retention:
 - This scene determines if viewers stay or leave
 
 Focus on concrete actions, subjects, and dynamic camera movements.`;
+
+    formatSpecificPrompt = sceneInstructions;
+    
+    const sceneExamples = numScenes === 1
+      ? `{ "sceneNumber": 1, "duration": 18, "visualPrompt": "COMPLETE VIDEO - Hook opening, main content delivery, and strong CTA ending. Dynamic visuals throughout.", "sceneDescription": "Full video combining hook, content, and CTA" }`
+      : numScenes === 2
+      ? `{ "sceneNumber": 1, "duration": 10, "visualPrompt": "THE HOOK SCENE - Must be visually dynamic and attention-grabbing. Show the problem/payoff/shocking moment.", "sceneDescription": "The hook - grabs viewer attention" },
+      { "sceneNumber": 2, "duration": 12, "visualPrompt": "PAYOFF/CTA - Deliver the value and show the result, transformation, or call to action. End strong.", "sceneDescription": "The main content and call to action" }`
+      : `{ "sceneNumber": 1, "duration": 8, "visualPrompt": "THE HOOK SCENE - Must be visually dynamic and attention-grabbing. Show the problem/payoff/shocking moment. Use motion, close-ups, dramatic angles.", "sceneDescription": "The hook - grabs viewer attention in first 8 seconds" },
+      { "sceneNumber": 2, "duration": 10, "visualPrompt": "MAIN CONTENT - Deliver the value promised in the hook. Show the solution or story development.", "sceneDescription": "The main content delivery" },
+      { "sceneNumber": 3, "duration": 8, "visualPrompt": "PAYOFF/CTA - Show the result, transformation, or call to action. End strong.", "sceneDescription": "The payoff and call to action" }`;
+
     formatSpecificJson = `"videoPrompts": {
     "voiceoverText": "The exact text for AI voiceover. START WITH THE HOOK - first sentence must grab attention. Energetic and conversational.",
     "voiceStyle": "Description of voice style (e.g., 'Friendly, energetic female voice with excitement')",
     "scenePrompts": [
-      { "sceneNumber": 1, "duration": 8, "visualPrompt": "THE HOOK SCENE - Must be visually dynamic and attention-grabbing. Show the problem/payoff/shocking moment. Use motion, close-ups, dramatic angles.", "sceneDescription": "The hook - grabs viewer attention in first 8 seconds" },
-      { "sceneNumber": 2, "duration": 10, "visualPrompt": "MAIN CONTENT - Deliver the value promised in the hook. Show the solution or story development.", "sceneDescription": "The main content delivery" },
-      { "sceneNumber": 3, "duration": 8, "visualPrompt": "PAYOFF/CTA - Show the result, transformation, or call to action. End strong.", "sceneDescription": "The payoff and call to action" }
+      ${sceneExamples}
     ],
     "thumbnailPrompt": "Click-worthy thumbnail - clear subject, bold colors, expressive face if applicable, text overlay suggestion",
     "brollSuggestions": ["List of 3-5 B-roll footage ideas for visual variety"]
   }
-  NOTE: Scene 1 = HOOK (8s), Scene 2 = main content (10s), Scene 3 = payoff (8s). Total ~26 seconds.`;
+  NOTE: Generate exactly ${numScenes} scene${numScenes > 1 ? 's' : ''}.`;
   } else if (contentFormat === "image") {
     formatSpecificPrompt = `Generate a single promotional image post with AI image generation prompts.`;
     formatSpecificJson = `"imagePrompts": {
