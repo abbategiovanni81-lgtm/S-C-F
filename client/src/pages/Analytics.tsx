@@ -95,70 +95,98 @@ export default function Analytics() {
   });
 
   // Advanced YouTube Analytics queries
-  const { data: trafficSources } = useQuery<{ trafficSources: { source: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: trafficSources, isLoading: loadingTraffic, error: trafficError } = useQuery<{ trafficSources: { source: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/traffic-sources", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
         ? `/api/youtube/analytics/traffic-sources?accountId=${effectiveYouTubeAccountId}` 
         : "/api/youtube/analytics/traffic-sources";
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Traffic sources API error:", err);
+        return null;
+      }
       return res.json();
     },
     enabled: connectedYouTubeAccounts.length > 0,
+    retry: false,
   });
 
-  const { data: deviceAnalytics } = useQuery<{ devices: { device: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: deviceAnalytics, isLoading: loadingDevices, error: deviceError } = useQuery<{ devices: { device: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/devices", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
         ? `/api/youtube/analytics/devices?accountId=${effectiveYouTubeAccountId}` 
         : "/api/youtube/analytics/devices";
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Device analytics API error:", err);
+        return null;
+      }
       return res.json();
     },
     enabled: connectedYouTubeAccounts.length > 0,
+    retry: false,
   });
 
-  const { data: geoAnalytics } = useQuery<{ countries: { country: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: geoAnalytics, isLoading: loadingGeo, error: geoError } = useQuery<{ countries: { country: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/geography", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
         ? `/api/youtube/analytics/geography?accountId=${effectiveYouTubeAccountId}` 
         : "/api/youtube/analytics/geography";
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Geography analytics API error:", err);
+        return null;
+      }
       return res.json();
     },
     enabled: connectedYouTubeAccounts.length > 0,
+    retry: false,
   });
 
-  const { data: peakTimes } = useQuery<{ byDayOfWeek: { day: string; views: number }[]; bestDay: string } | null>({
+  const { data: peakTimes, isLoading: loadingPeakTimes, error: peakTimesError } = useQuery<{ byDayOfWeek: { day: string; views: number }[]; bestDay: string } | null>({
     queryKey: ["/api/youtube/analytics/peak-times", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
         ? `/api/youtube/analytics/peak-times?accountId=${effectiveYouTubeAccountId}` 
         : "/api/youtube/analytics/peak-times";
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Peak times API error:", err);
+        return null;
+      }
       return res.json();
     },
     enabled: connectedYouTubeAccounts.length > 0,
+    retry: false,
   });
 
-  const { data: topVideosData } = useQuery<{ topVideos: { videoId: string; title: string; thumbnail?: string; views: number; avgDuration: number; likes: number; comments: number }[] } | null>({
+  const { data: topVideosData, isLoading: loadingTopVideos, error: topVideosError } = useQuery<{ topVideos: { videoId: string; title: string; thumbnail?: string; views: number; avgDuration: number; likes: number; comments: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/top-videos", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
         ? `/api/youtube/analytics/top-videos?accountId=${effectiveYouTubeAccountId}` 
         : "/api/youtube/analytics/top-videos";
       const res = await fetch(url);
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Top videos API error:", err);
+        return null;
+      }
       return res.json();
     },
     enabled: connectedYouTubeAccounts.length > 0,
+    retry: false,
   });
+
+  const loadingAdvancedAnalytics = loadingTraffic || loadingDevices || loadingGeo || loadingPeakTimes || loadingTopVideos;
+  const hasAdvancedData = trafficSources?.trafficSources?.length || deviceAnalytics?.devices?.length || geoAnalytics?.countries?.length || peakTimes?.byDayOfWeek?.length || topVideosData?.topVideos?.length;
 
   // Consider connected if we have YouTube accounts in database OR cookie-based connection
   const isConnected = hasYouTubeAccounts || (!!channel && !channelError);
@@ -656,6 +684,33 @@ export default function Analytics() {
               <BarChart3 className="w-5 h-5 text-primary" />
               Advanced Analytics
             </h3>
+
+            {/* Loading state for advanced analytics */}
+            {loadingAdvancedAnalytics && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+                <span className="text-muted-foreground">Loading advanced analytics...</span>
+              </div>
+            )}
+
+            {/* Check if any advanced analytics data is available after loading */}
+            {!loadingAdvancedAnalytics && !hasAdvancedData && (
+              <Card className="border-none shadow-sm mb-6">
+                <CardContent className="p-6 text-center">
+                  <BarChart3 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+                  <h4 className="font-medium mb-2">Advanced Analytics Not Available</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    To see traffic sources, device breakdown, geography, and more, you may need to reconnect your YouTube account to grant analytics permissions. The YouTube Analytics API requires the "yt-analytics.readonly" scope.
+                  </p>
+                  <Link href="/accounts">
+                    <Button variant="outline" size="sm" data-testid="button-reconnect-youtube">
+                      <Youtube className="w-4 h-4 mr-2" />
+                      Reconnect YouTube
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Traffic Sources */}
