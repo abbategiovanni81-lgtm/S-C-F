@@ -1,4 +1,4 @@
-import { Sidebar } from "@/components/layout/Sidebar";
+import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +23,8 @@ import {
 
 export default function HowTo() {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-6 overflow-auto">
-        <div className="max-w-5xl mx-auto">
+    <Layout title="How To">
+      <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2" data-testid="text-howto-title">How to Use SocialCommand</h1>
             <p className="text-muted-foreground">
@@ -507,8 +505,7 @@ export default function HowTo() {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </div>
+    </Layout>
   );
 }
 
