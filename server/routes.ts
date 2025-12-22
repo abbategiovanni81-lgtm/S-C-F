@@ -1301,7 +1301,37 @@ export async function registerRoutes(
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
       }
+
+      // Check quota for videos (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "videos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const result = await falService.generateVideo({ prompt, negativePrompt, aspectRatio, duration });
+      
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "videos", 1);
+        }
+      }
       
       // Save the request ID to the content for resume polling
       if (contentId && result.requestId) {
@@ -1367,6 +1397,28 @@ export async function registerRoutes(
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
       }
+
+      // Check quota for images (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "images", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
       const result = await falService.generateImage({ prompt, negativePrompt, aspectRatio, style });
       
       // Poll for completion (Fal.ai is async)
@@ -1389,6 +1441,15 @@ export async function registerRoutes(
             } catch (downloadError) {
               console.error("Failed to download Fal.ai image:", downloadError);
             }
+            
+            // Increment usage after successful generation
+            if (userId) {
+              const [user] = await db.select().from(users).where(eq(users.id, userId));
+              if (user && (user.tier === "premium" || user.tier === "pro")) {
+                await incrementUsage(userId, "images", 1);
+              }
+            }
+            
             return res.json({ imageUrl: localImageUrl, status: "completed" });
           } else if (status.status === "failed") {
             return res.status(500).json({ error: "Image generation failed" });

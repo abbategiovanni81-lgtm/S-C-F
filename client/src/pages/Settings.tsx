@@ -247,7 +247,7 @@ export default function Settings() {
                       />
                       <UsageBar 
                         icon={<Video className="h-4 w-4" />}
-                        label="Avatar Videos"
+                        label="Videos"
                         used={usageStats.usage?.videos?.used || 0}
                         limit={usageStats.usage?.videos?.limit || 0}
                       />

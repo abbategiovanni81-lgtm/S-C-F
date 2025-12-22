@@ -26,7 +26,7 @@ Three subscription tiers with monthly usage limits:
 | Brand Briefs | 1 | 10 | 20 |
 | Script Generations | Own API keys | 500 | 1000 |
 | Voiceovers | Own API keys | 300 | 600 |
-| Avatar Videos | Own API keys | 50 | 100 |
+| Videos (Avatar + Normal) | Own API keys | 50 | 100 |
 | Image Generations | Own API keys | 500 | 1000 |
 | Social Listening Keywords | Own API keys | 5 | 10 |
 | Uses Platform API Keys | No | Yes | Yes |
