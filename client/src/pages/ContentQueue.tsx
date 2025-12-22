@@ -74,8 +74,8 @@ export default function ContentQueue() {
 
   // Video engine selection (A2E vs Fal.ai)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
-  // Image engine selection (A2E vs DALL-E vs Fal.ai)
-  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal">("a2e");
+  // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels)
+  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels">("a2e");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
   const [loadingAvatars, setLoadingAvatars] = useState(false);
@@ -194,6 +194,7 @@ export default function ContentQueue() {
       // Use selected image engine
       const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
         : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+        : imageEngine === "pexels" ? "/api/pexels/search-image"
         : "/api/fal/generate-image";
       const res = await fetch(endpoint, {
         method: "POST",
@@ -1471,7 +1472,7 @@ export default function ContentQueue() {
                   <div className="bg-muted/50 p-3 rounded-lg space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Image Engine:</Label>
-                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal") => setImageEngine(v)}>
+                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal" | "pexels") => setImageEngine(v)}>
                         <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
                           <SelectValue />
                         </SelectTrigger>
@@ -1485,6 +1486,9 @@ export default function ContentQueue() {
                           <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
                             Fal.ai {!aiEngines?.fal?.configured && "(not configured)"}
                           </SelectItem>
+                          <SelectItem value="pexels" disabled={!aiEngines?.pexels?.configured}>
+                            Pexels {!aiEngines?.pexels?.configured && "(not configured)"}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1493,6 +1497,8 @@ export default function ContentQueue() {
                         ? "A2E generates high-quality images with general or manga styles." 
                         : imageEngine === "dalle"
                         ? "DALL-E 3 generates high-quality images with excellent text rendering."
+                        : imageEngine === "pexels"
+                        ? "Pexels searches free stock photos matching your content."
                         : "Fal.ai generates fast AI images with various style options."}
                     </p>
                   </div>

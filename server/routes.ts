@@ -558,6 +558,34 @@ export async function registerRoutes(
     res.json({ configured: pexelsService.isConfigured() });
   });
 
+  // Pexels Image Search for content generation (returns first matching image)
+  app.post("/api/pexels/search-image", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      const results = await pexelsService.searchBRoll(prompt, "photos", 1);
+      if (results && results.length > 0) {
+        const photo = results[0];
+        // Download and save locally for persistence
+        let localImageUrl = photo.downloadUrl || photo.url;
+        try {
+          localImageUrl = await downloadAndSaveMedia(localImageUrl, "image");
+          console.log(`Downloaded Pexels image to ${localImageUrl}`);
+        } catch (downloadError) {
+          console.error("Failed to download Pexels image:", downloadError);
+        }
+        res.json({ imageUrl: localImageUrl, attribution: photo.attribution });
+      } else {
+        res.status(404).json({ error: "No matching images found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/pexels/search", async (req, res) => {
     try {
       const query = req.query.query as string;
