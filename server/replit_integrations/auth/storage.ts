@@ -1,4 +1,4 @@
-import { users, type User, type UpsertUser } from "@shared/models/auth";
+import { users, type User, type UpsertUser, OWNER_EMAIL } from "@shared/models/auth";
 import { db } from "../../db";
 import { eq, sql } from "drizzle-orm";
 
@@ -9,6 +9,14 @@ export interface CreateUserData {
   lastName?: string | null;
   profileImageUrl?: string | null;
   googleId?: string | null;
+  tier?: string;
+}
+
+function getTierForEmail(email: string): string {
+  if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
+    return "owner";
+  }
+  return "free";
 }
 
 export interface IAuthStorage {
@@ -31,6 +39,7 @@ class AuthStorage implements IAuthStorage {
   }
 
   async createUser(data: CreateUserData): Promise<User> {
+    const tier = data.tier || getTierForEmail(data.email);
     const [user] = await db
       .insert(users)
       .values({
@@ -40,6 +49,7 @@ class AuthStorage implements IAuthStorage {
         lastName: data.lastName || null,
         profileImageUrl: data.profileImageUrl || null,
         googleId: data.googleId || null,
+        tier: tier,
       })
       .returning();
     return user;
@@ -79,13 +89,17 @@ class AuthStorage implements IAuthStorage {
       }
     }
 
+    // Set tier based on email if not already set
+    const tier = userData.tier || (userData.email ? getTierForEmail(userData.email) : "free");
+
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({ ...userData, tier })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
+          tier,
           updatedAt: new Date(),
         },
       })

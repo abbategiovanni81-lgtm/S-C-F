@@ -226,8 +226,13 @@ export async function setupAuth(app: Express) {
       firstName: user.firstName,
       lastName: user.lastName,
       profileImageUrl: user.profileImageUrl,
+      tier: user.tier || "free",
     });
   });
+}
+
+export function hasFullAccess(user: any): boolean {
+  return user?.tier === "owner" || user?.tier === "premium";
 }
 
 export const isAuthenticated: RequestHandler = (req, res, next) => {

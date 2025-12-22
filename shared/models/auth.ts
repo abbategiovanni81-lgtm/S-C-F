@@ -13,6 +13,9 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)]
 );
 
+// Owner email - this account always gets premium access
+export const OWNER_EMAIL = "gio.abbate@hotmail.com";
+
 // User storage table.
 // (IMPORTANT) This table is mandatory for authentication, don't drop it.
 export const users = pgTable("users", {
@@ -23,6 +26,7 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   googleId: varchar("google_id"),
+  tier: varchar("tier").notNull().default("free"), // "free", "premium", "owner"
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
