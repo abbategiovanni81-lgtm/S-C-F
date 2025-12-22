@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Users, label: "Accounts", href: "/accounts" },
   { icon: Cpu, label: "AI Engines", href: "/ai-engines" },
+  { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
 interface SidebarProps {

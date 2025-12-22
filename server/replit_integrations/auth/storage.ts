@@ -1,6 +1,6 @@
 import { users, type User, type UpsertUser } from "@shared/models/auth";
 import { db } from "../../db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 // Interface for auth storage operations
 // (IMPORTANT) These user operations are mandatory for Replit Auth.
@@ -16,6 +16,28 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Check if a user with this email already exists (for migrating existing accounts)
+    if (userData.email) {
+      const [existingUserByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userData.email));
+      
+      if (existingUserByEmail && existingUserByEmail.id !== userData.id) {
+        // Migrate the existing account to use the new auth ID
+        // Update the user ID to the new Replit auth ID
+        await db.execute(sql`
+          UPDATE brand_briefs SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
+          UPDATE social_accounts SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
+          UPDATE analytics_snapshots SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
+          UPDATE social_listening_items SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
+          UPDATE listening_scan_runs SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
+          DELETE FROM users WHERE id = ${existingUserByEmail.id};
+        `);
+        console.log(`Migrated existing user ${existingUserByEmail.id} to new auth ID ${userData.id}`);
+      }
+    }
+
     const [user] = await db
       .insert(users)
       .values(userData)
