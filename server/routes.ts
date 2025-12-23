@@ -459,6 +459,7 @@ export async function registerRoutes(
   app.get("/api/ai-engines/status", async (req, res) => {
     res.json({
       openai: { configured: true, name: "OpenAI GPT-4" },
+      anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
       dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
       a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
       elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
@@ -480,6 +481,7 @@ export async function registerRoutes(
       // Return masked keys (only show if set or not)
       res.json({
         hasOpenai: !!keys?.openaiKey,
+        hasAnthropic: !!keys?.anthropicKey,
         hasElevenlabs: !!keys?.elevenlabsKey,
         hasA2e: !!keys?.a2eKey,
         hasFal: !!keys?.falKey,
@@ -498,7 +500,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { openaiKey, elevenlabsKey, a2eKey, falKey, pexelsKey } = req.body;
+      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey } = req.body;
       
       // Check if user already has keys
       const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
@@ -507,6 +509,7 @@ export async function registerRoutes(
         // Update existing keys (only update fields that are provided)
         const updates: any = { updatedAt: new Date() };
         if (openaiKey !== undefined) updates.openaiKey = openaiKey || null;
+        if (anthropicKey !== undefined) updates.anthropicKey = anthropicKey || null;
         if (elevenlabsKey !== undefined) updates.elevenlabsKey = elevenlabsKey || null;
         if (a2eKey !== undefined) updates.a2eKey = a2eKey || null;
         if (falKey !== undefined) updates.falKey = falKey || null;
@@ -518,6 +521,7 @@ export async function registerRoutes(
         await db.insert(userApiKeys).values({
           userId,
           openaiKey: openaiKey || null,
+          anthropicKey: anthropicKey || null,
           elevenlabsKey: elevenlabsKey || null,
           a2eKey: a2eKey || null,
           falKey: falKey || null,

@@ -19,6 +19,7 @@ export default function Settings() {
   const queryClient = useQueryClient();
 
   const [openaiKey, setOpenaiKey] = useState("");
+  const [anthropicKey, setAnthropicKey] = useState("");
   const [elevenlabsKey, setElevenlabsKey] = useState("");
   const [a2eKey, setA2eKey] = useState("");
   const [falKey, setFalKey] = useState("");
@@ -43,7 +44,7 @@ export default function Settings() {
   });
 
   const saveKeysMutation = useMutation({
-    mutationFn: async (keys: { openaiKey?: string; elevenlabsKey?: string; a2eKey?: string; falKey?: string; pexelsKey?: string }) => {
+    mutationFn: async (keys: { openaiKey?: string; anthropicKey?: string; elevenlabsKey?: string; a2eKey?: string; falKey?: string; pexelsKey?: string }) => {
       const res = await fetch("/api/user/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,6 +58,7 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });
       toast({ title: "API keys saved!", description: "Your keys have been securely stored." });
       setOpenaiKey("");
+      setAnthropicKey("");
       setElevenlabsKey("");
       setA2eKey("");
       setFalKey("");
@@ -110,6 +112,7 @@ export default function Settings() {
   const handleSaveKeys = () => {
     const keysToSave: any = {};
     if (openaiKey) keysToSave.openaiKey = openaiKey;
+    if (anthropicKey) keysToSave.anthropicKey = anthropicKey;
     if (elevenlabsKey) keysToSave.elevenlabsKey = elevenlabsKey;
     if (a2eKey) keysToSave.a2eKey = a2eKey;
     if (falKey) keysToSave.falKey = falKey;
@@ -380,6 +383,24 @@ export default function Settings() {
                         data-testid="input-openai-key" 
                       />
                       <p className="text-xs text-muted-foreground">For content generation and DALL-E images</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Anthropic API Key (Claude)</Label>
+                        {userApiKeys?.hasAnthropic && (
+                          <Badge variant="outline" className="text-xs">
+                            <Check className="h-3 w-3 mr-1" /> Saved
+                          </Badge>
+                        )}
+                      </div>
+                      <Input 
+                        type="password" 
+                        placeholder={userApiKeys?.hasAnthropic ? "••••••••••••" : "sk-ant-..."} 
+                        value={anthropicKey}
+                        onChange={(e) => setAnthropicKey(e.target.value)}
+                        data-testid="input-anthropic-key" 
+                      />
+                      <p className="text-xs text-muted-foreground">Alternative to OpenAI - for content generation with Claude</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">

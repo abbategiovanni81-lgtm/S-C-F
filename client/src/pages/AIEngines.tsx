@@ -12,6 +12,9 @@ interface AIEngineStatus {
 
 interface AIEnginesResponse {
   openai: AIEngineStatus;
+  anthropic: AIEngineStatus;
+  dalle: AIEngineStatus;
+  a2e: AIEngineStatus;
   elevenlabs: AIEngineStatus;
   fal: AIEngineStatus;
   pexels: AIEngineStatus;
@@ -25,6 +28,27 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     badge: { bg: "bg-emerald-500", text: "GPT" },
     keyName: "Configured via Replit AI Integration"
   },
+  anthropic: {
+    type: "Strategy & Copy (Alternative)",
+    description: "Claude AI for advanced reasoning, writing, and content strategy. Use as alternative to GPT-4.",
+    logo: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-orange-500", text: "CL" },
+    keyName: "ANTHROPIC_API_KEY (or Replit AI Integration)"
+  },
+  dalle: {
+    type: "AI Images",
+    description: "Generate stunning images from text prompts using OpenAI DALL-E 3.",
+    logo: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-pink-600", text: "DE" },
+    keyName: "OPENAI_DALLE_API_KEY"
+  },
+  a2e: {
+    type: "Avatar Videos & Images",
+    description: "Create realistic avatar videos with lip-sync and AI-generated images.",
+    logo: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-purple-600", text: "A2E" },
+    keyName: "A2E_API_KEY"
+  },
   elevenlabs: {
     type: "Voice & Audio",
     description: "Generates natural voiceovers and audio from text using AI voices.",
@@ -33,8 +57,8 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     keyName: "ELEVENLABS_API_KEY"
   },
   fal: {
-    type: "Avatar Pipeline",
-    description: "Handles lip-sync processing to match audio with avatar videos.",
+    type: "Video/Image Generation",
+    description: "Alternative AI video and image generation engine.",
     logo: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-indigo-600", text: "FAL" },
     keyName: "FAL_API_KEY"
@@ -242,7 +266,7 @@ export default function AIEngines() {
             </div>
             <p className="font-medium text-lg mb-2">More Engines Coming Soon</p>
             <p className="text-sm text-muted-foreground mb-6">
-              We're working on adding support for more AI services. Currently supported: OpenAI, ElevenLabs, and Fal.ai.
+              We're working on adding support for more AI services. Currently supported: OpenAI, Claude, DALL-E, A2E, ElevenLabs, Fal.ai, and Pexels.
             </p>
             <button
               onClick={() => setAddDialogOpen(false)}

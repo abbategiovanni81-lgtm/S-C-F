@@ -84,6 +84,7 @@ export const userApiKeys = pgTable("user_api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   openaiKey: text("openai_key"),
+  anthropicKey: text("anthropic_key"),
   elevenlabsKey: text("elevenlabs_key"),
   a2eKey: text("a2e_key"),
   falKey: text("fal_key"),
