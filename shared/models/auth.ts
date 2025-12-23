@@ -38,7 +38,7 @@ export const TIER_LIMITS = {
     brandBriefs: 5,
     scripts: -1,          // Unlimited
     voiceovers: 25,       // 25 min voiceover
-    a2eVideos: 6,         // 6 A2E video clips
+    a2eVideos: 4,         // 4 A2E video clips
     lipsync: 30,          // 30 lipsync videos
     avatars: 1,           // 1 avatar
     dalleImages: 150,     // 150 DALL-E images
@@ -50,7 +50,7 @@ export const TIER_LIMITS = {
     brandBriefs: 10,
     scripts: -1,          // Unlimited
     voiceovers: 60,       // 60 min voiceover
-    a2eVideos: 16,        // 16 A2E video clips
+    a2eVideos: 8,         // 8 A2E video clips
     lipsync: 75,          // 75 lipsync videos
     avatars: 3,           // 3 avatars
     dalleImages: 400,     // 400 DALL-E images
