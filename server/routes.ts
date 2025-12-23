@@ -94,20 +94,29 @@ export async function registerRoutes(
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // Helper to get user ID from authenticated session or query param (fallback)
-  const getUserId = (req: any): string => {
-    // If authenticated, use the session user ID
+  // Helper to get user ID from authenticated session - requires authentication
+  const getUserId = (req: any): string | null => {
+    // Only return user ID if properly authenticated
     if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
       return req.user.claims.sub;
     }
-    // Fallback to query parameter for backward compatibility
-    return (req.query.userId as string) || "demo-user";
+    return null;
+  };
+  
+  // Middleware to require authentication
+  const requireAuth = (req: any, res: any, next: any) => {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    req.userId = userId;
+    next();
   };
 
   // Brand Brief endpoints
-  app.get("/api/brand-briefs", async (req, res) => {
+  app.get("/api/brand-briefs", requireAuth, async (req: any, res) => {
     try {
-      const userId = getUserId(req);
+      const userId = req.userId;
       const briefs = await storage.getBrandBriefsByUser(userId);
       res.json(briefs);
     } catch (error) {
@@ -116,11 +125,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/brand-briefs/:id", async (req, res) => {
+  app.get("/api/brand-briefs/:id", requireAuth, async (req: any, res) => {
     try {
       const brief = await storage.getBrandBrief(req.params.id);
       if (!brief) {
         return res.status(404).json({ error: "Brand brief not found" });
+      }
+      // Check ownership
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
       res.json(brief);
     } catch (error) {
@@ -129,21 +142,22 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/brand-briefs", async (req, res) => {
+  app.post("/api/brand-briefs", requireAuth, async (req: any, res) => {
     try {
-      const result = insertBrandBriefSchema.safeParse(req.body);
+      const userId = req.userId;
+      const result = insertBrandBriefSchema.safeParse({ ...req.body, userId });
       if (!result.success) {
         return res.status(400).json({ error: fromZodError(result.error).message });
       }
       
-      // Ensure user exists (create demo user if needed)
-      await storage.ensureUser(result.data.userId);
+      // Ensure user exists
+      await storage.ensureUser(userId);
       
       // Check tier limit for brand briefs
-      const [user] = await db.select().from(users).where(eq(users.id, result.data.userId));
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
       if (user) {
         const tierLimits = TIER_LIMITS[user.tier as TierType] || TIER_LIMITS.free;
-        const existingBriefs = await storage.getBrandBriefsByUser(result.data.userId);
+        const existingBriefs = await storage.getBrandBriefsByUser(userId);
         if (existingBriefs.length >= tierLimits.brandBriefs) {
           return res.status(403).json({ 
             error: "Tier limit reached", 
@@ -160,17 +174,23 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/brand-briefs/:id", async (req, res) => {
+  app.patch("/api/brand-briefs/:id", requireAuth, async (req: any, res) => {
     try {
+      // Check ownership first
+      const existingBrief = await storage.getBrandBrief(req.params.id);
+      if (!existingBrief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      if (existingBrief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const partialSchema = insertBrandBriefSchema.partial();
       const result = partialSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: fromZodError(result.error).message });
       }
       const brief = await storage.updateBrandBrief(req.params.id, result.data);
-      if (!brief) {
-        return res.status(404).json({ error: "Brand brief not found" });
-      }
       res.json(brief);
     } catch (error) {
       console.error("Error updating brand brief:", error);
@@ -178,17 +198,38 @@ export async function registerRoutes(
     }
   });
 
+  // Helper to check content ownership via brand brief
+  const checkContentOwnership = async (contentId: string, userId: string): Promise<boolean> => {
+    const content = await storage.getGeneratedContent(contentId);
+    if (!content || !content.briefId) return false;
+    const brief = await storage.getBrandBrief(content.briefId);
+    return brief?.userId === userId;
+  };
+
   // Generated Content endpoints
-  app.get("/api/content", async (req, res) => {
+  app.get("/api/content", requireAuth, async (req: any, res) => {
     try {
       const { briefId, status } = req.query;
+      const userId = req.userId;
+      
+      // Get user's brand briefs to filter content
+      const userBriefs = await storage.getBrandBriefsByUser(userId);
+      const userBriefIds = new Set(userBriefs.map(b => b.id));
+      
       let content;
       if (briefId) {
+        // Check if user owns this brief
+        if (!userBriefIds.has(briefId as string)) {
+          return res.status(403).json({ error: "Access denied" });
+        }
         content = await storage.getContentByBrief(briefId as string);
       } else if (status) {
-        content = await storage.getContentByStatus(status as string);
+        // Get all content with status and filter by user's briefs
+        const allContent = await storage.getContentByStatus(status as string);
+        content = allContent.filter((c: any) => c.briefId && userBriefIds.has(c.briefId));
       } else {
-        content = await storage.getContentByStatus("pending");
+        const allContent = await storage.getContentByStatus("pending");
+        content = allContent.filter((c: any) => c.briefId && userBriefIds.has(c.briefId));
       }
       res.json(content);
     } catch (error) {
@@ -197,12 +238,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/content/:id", async (req, res) => {
+  app.get("/api/content/:id", requireAuth, async (req: any, res) => {
     try {
       const content = await storage.getGeneratedContent(req.params.id);
       if (!content) {
         return res.status(404).json({ error: "Content not found" });
       }
+      // Check ownership via brand brief
+      if (content.briefId) {
+        const brief = await storage.getBrandBrief(content.briefId);
+        if (!brief || brief.userId !== req.userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
       res.json(content);
     } catch (error) {
       console.error("Error fetching content:", error);
@@ -210,11 +258,18 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/content", async (req, res) => {
+  app.post("/api/content", requireAuth, async (req: any, res) => {
     try {
       const result = insertGeneratedContentSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+      // Check if user owns the brand brief
+      if (result.data.briefId) {
+        const brief = await storage.getBrandBrief(result.data.briefId);
+        if (!brief || brief.userId !== req.userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
       }
       const content = await storage.createGeneratedContent(result.data);
       res.status(201).json(content);
@@ -224,8 +279,13 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/content/:id", async (req, res) => {
+  app.patch("/api/content/:id", requireAuth, async (req: any, res) => {
     try {
+      // Check ownership
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const partialSchema = insertGeneratedContentSchema.partial();
       const result = partialSchema.safeParse(req.body);
       if (!result.success) {
@@ -242,8 +302,11 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/content/:id/approve", async (req, res) => {
+  app.patch("/api/content/:id/approve", requireAuth, async (req: any, res) => {
     try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const content = await storage.updateGeneratedContent(req.params.id, { status: "approved" });
       if (!content) {
         return res.status(404).json({ error: "Content not found" });
@@ -255,8 +318,11 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/content/:id/reject", async (req, res) => {
+  app.patch("/api/content/:id/reject", requireAuth, async (req: any, res) => {
     try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const content = await storage.updateGeneratedContent(req.params.id, { status: "rejected" });
       if (!content) {
         return res.status(404).json({ error: "Content not found" });
@@ -268,8 +334,11 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/content/:id/posted", async (req, res) => {
+  app.patch("/api/content/:id/posted", requireAuth, async (req: any, res) => {
     try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const content = await storage.updateGeneratedContent(req.params.id, { status: "posted" });
       if (!content) {
         return res.status(404).json({ error: "Content not found" });
@@ -1919,9 +1988,9 @@ export async function registerRoutes(
   });
 
   // Social Accounts endpoints
-  app.get("/api/social-accounts", async (req, res) => {
+  app.get("/api/social-accounts", requireAuth, async (req: any, res) => {
     try {
-      const userId = getUserId(req);
+      const userId = req.userId;
       const accounts = await storage.getSocialAccountsByUser(userId);
       res.json(accounts);
     } catch (error) {
@@ -1962,18 +2031,23 @@ export async function registerRoutes(
     res.redirect(authUrl);
   });
 
-  app.get("/api/auth/google/callback", async (req, res) => {
+  app.get("/api/auth/google/callback", async (req: any, res) => {
     try {
       const code = req.query.code as string;
       if (!code) {
         return res.redirect("/accounts?error=no_code");
       }
 
+      // Get authenticated user
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+
       const tokens = await getTokensFromCode(code);
       const channelInfo = await getChannelInfo(tokens.access_token!);
 
       // Store or update the connected YouTube account (supports multiple channels)
-      const userId = "demo-user";
       await storage.ensureUser(userId);
       
       const existingAccount = channelInfo.channelId 
@@ -2223,9 +2297,9 @@ export async function registerRoutes(
 
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 256 * 1024 * 1024 } });
 
-  app.post("/api/youtube/upload", upload.single("video"), async (req, res) => {
+  app.post("/api/youtube/upload", upload.single("video"), requireAuth, async (req: any, res) => {
     try {
-      const userId = "demo-user";
+      const userId = req.userId;
       const { accountId, videoUrl } = req.body;
       
       let account;
@@ -2464,9 +2538,10 @@ export async function registerRoutes(
   });
 
   // Create a listening hit (manual entry or from external source)
-  app.post("/api/listening/hits", async (req, res) => {
+  app.post("/api/listening/hits", requireAuth, async (req: any, res) => {
     try {
-      const { userId, briefId, platform, postContent, postUrl, authorName, authorHandle, postType } = req.body;
+      const userId = req.userId;
+      const { briefId, platform, postContent, postUrl, authorName, authorHandle, postType } = req.body;
       
       if (!platform || !postContent) {
         return res.status(400).json({ error: "platform and postContent are required" });
@@ -2489,7 +2564,7 @@ export async function registerRoutes(
       const analysis = await analyzePostForListening(postContent, brandKeywords);
 
       const hit = await storage.createListeningHit({
-        userId: userId || "demo-user",
+        userId: userId,
         briefId: briefId || null,
         platform,
         postContent,
@@ -2635,16 +2710,17 @@ export async function registerRoutes(
   });
 
   // Create/update a trending topic
-  app.post("/api/listening/trending", async (req, res) => {
+  app.post("/api/listening/trending", requireAuth, async (req: any, res) => {
     try {
-      const { userId, briefId, topic, keywords, platform, mentionCount, engagementTotal, sentiment } = req.body;
+      const userId = req.userId;
+      const { briefId, topic, keywords, platform, mentionCount, engagementTotal, sentiment } = req.body;
       
       if (!topic) {
         return res.status(400).json({ error: "topic is required" });
       }
 
       const trendingTopic = await storage.createTrendingTopic({
-        userId: userId || "demo-user",
+        userId: userId,
         briefId: briefId || null,
         topic,
         keywords: keywords || [],
