@@ -21,15 +21,30 @@ The platform includes a Social Listening module that allows users to:
 ### Tier System & Usage Quotas
 Three subscription tiers with monthly usage limits:
 
-| Feature | Free | Premium (£29/mo) | Pro (£49/mo) |
-|---------|------|------------------|--------------|
-| Brand Briefs | 1 | 10 | 20 |
-| Script Generations | Own API keys | 500 | 1000 |
-| Voiceovers | Own API keys | 300 | 600 |
-| Videos (Avatar + Normal) | Own API keys | 50 | 100 |
-| Image Generations | Own API keys | 500 | 1000 |
-| Social Listening Keywords | Own API keys | 5 | 10 |
+| Feature | Free | Premium (£29.99/mo) | Pro (£49.99/mo) |
+|---------|------|---------------------|-----------------|
+| Brand Briefs | 1 | 5 | 10 |
+| Scripts | Own API keys | Unlimited | Unlimited |
+| Voiceovers | Own API keys | 25 min | 60 min |
+| A2E Videos | Own API keys | 6 | 16 |
+| Lipsync | Own API keys | 30 | 75 |
+| Avatars | Own API keys | 1 | 3 |
+| DALL-E Images | Own API keys | 150 | 400 |
+| Sora Videos | Own API keys | 10 | 30 |
+| Social Listening Keywords | Own API keys | 3 | 6 |
 | Uses Platform API Keys | No | Yes | Yes |
+
+**Platform API Costs (£310/month total):**
+- A2E Max: £32/mo (5,400 credits)
+- ElevenLabs Pro: £78/mo (1,000 min voiceover)
+- OpenAI API: £200/mo (DALL-E + Sora)
+
+**Usage Type Definitions:**
+- `a2eVideos`: A2E video clips (30 credits each)
+- `lipsync`: A2E lipsync videos (5 credits per 5-sec)
+- `avatars`: A2E avatars (100 credits each)
+- `dalleImages`: OpenAI DALL-E images ($0.04 each)
+- `soraVideos`: OpenAI Sora videos ($0.10/sec)
 
 - **Owner Flag**: `isOwner=true` grants admin panel access (separate from tier)
 - **Usage Tracking**: Monthly periods with automatic reset on the 1st
