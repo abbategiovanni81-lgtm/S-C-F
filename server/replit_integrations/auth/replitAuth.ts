@@ -80,25 +80,15 @@ export async function setupAuth(app: Express) {
               return done(new Error("No email found in Google profile"));
             }
 
-            // Check if user exists
-            let user = await authStorage.getUserByEmail(email);
-            
-            if (!user) {
-              // Create new user from Google profile
-              user = await authStorage.createUser({
-                email,
-                firstName: profile.name?.givenName || null,
-                lastName: profile.name?.familyName || null,
-                profileImageUrl: profile.photos?.[0]?.value || null,
-                googleId: profile.id,
-              });
-            } else if (!user.googleId) {
-              // Link Google account to existing user
-              user = await authStorage.updateUser(user.id, {
-                googleId: profile.id,
-                profileImageUrl: user.profileImageUrl || profile.photos?.[0]?.value || null,
-              });
-            }
+            // ALWAYS use upsertUser to ensure owner flags are applied on every login
+            const user = await authStorage.upsertUser({
+              id: `google-${profile.id}`,
+              email,
+              firstName: profile.name?.givenName || null,
+              lastName: profile.name?.familyName || null,
+              profileImageUrl: profile.photos?.[0]?.value || null,
+              googleId: profile.id,
+            });
 
             return done(null, user);
           } catch (error) {
