@@ -40,13 +40,14 @@ export default function Terms() {
                 <li><strong className="text-white">Premium (£29.99/month):</strong> Includes monthly quotas for AI generations using platform-provided API access.</li>
                 <li><strong className="text-white">Pro (£49.99/month):</strong> Higher quotas and additional features using platform-provided API access.</li>
               </ul>
+              <p className="mt-3"><strong className="text-white">Creator Studio Add-on (£20/month):</strong> Available for Premium and Pro subscribers only. Includes advanced AI tools: voice cloning, talking photos, talking videos, face swap, AI dubbing, image-to-video, caption removal, video style transfer, and virtual try-on. Each feature has monthly usage limits. The add-on can be cancelled at any time.</p>
               <p className="mt-3">Subscriptions are billed monthly in advance. You may cancel at any time, but refunds are not provided for partial months. We reserve the right to change pricing with 30 days notice. Usage quotas reset on the 1st of each month.</p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold text-white mb-3">5. AI-Generated Content Disclaimer</h2>
               <p className="font-semibold text-white">IMPORTANT: Please read this section carefully.</p>
-              <p className="mt-2">The Service uses third-party AI providers (including OpenAI, ElevenLabs, A2E, Fal.ai, and others) to generate content. By using these features, you acknowledge and agree:</p>
+              <p className="mt-2">The Service uses third-party AI providers (including OpenAI, Anthropic/Claude, ElevenLabs, A2E, Fal.ai, and others) to generate content. By using these features, you acknowledge and agree:</p>
               <ul className="list-disc pl-6 space-y-2 mt-2">
                 <li><strong className="text-white">No Guarantee of Accuracy:</strong> AI-generated content may contain errors, inaccuracies, or inappropriate material. You are solely responsible for reviewing and editing all AI-generated content before publishing.</li>
                 <li><strong className="text-white">Content Ownership:</strong> You retain ownership of prompts you provide. AI-generated outputs are provided under the terms of the respective AI provider. We make no claim to ownership of your generated content.</li>

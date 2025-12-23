@@ -295,6 +295,12 @@ export default function HowTo() {
                               link="https://platform.openai.com"
                             />
                             <ApiRow
+                              service="Claude (Anthropic)"
+                              usedFor="Scripts, captions (alternative to OpenAI)"
+                              freeTier="No ($5 credit)"
+                              link="https://console.anthropic.com"
+                            />
+                            <ApiRow
                               service="ElevenLabs"
                               usedFor="Voice generation"
                               freeTier="Yes (10k chars/mo)"
@@ -358,6 +364,18 @@ export default function HowTo() {
                           "Click 'Create new secret key'",
                           "Copy the key (starts with 'sk-')",
                           "Add $5+ credit to your account",
+                        ]}
+                      />
+                      <Separator />
+                      <ApiInstructions
+                        service="Claude (Anthropic)"
+                        steps={[
+                          "Go to console.anthropic.com",
+                          "Create an account or sign in",
+                          "Navigate to API Keys",
+                          "Create a new API key",
+                          "Copy the key (starts with 'sk-ant-')",
+                          "Add credit to your account",
                         ]}
                       />
                       <Separator />
