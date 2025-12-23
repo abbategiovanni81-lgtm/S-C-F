@@ -26,11 +26,11 @@ Three subscription tiers with monthly usage limits:
 | Brand Briefs | 1 | 5 | 10 |
 | Scripts | Own API keys | Unlimited | Unlimited |
 | Voiceovers | Own API keys | 25 min | 60 min |
-| A2E Videos | Own API keys | 4 | 8 |
-| Lipsync | Own API keys | 30 | 75 |
-| Avatars | Own API keys | 1 | 3 |
+| A2E Videos | Own API keys | 8 | 16 |
+| Lipsync | Own API keys | 60 | 150 |
+| Avatars | Own API keys | 2 | 4 |
 | DALL-E Images | Own API keys | 150 | 400 |
-| Sora Videos | Own API keys | 10 | 30 |
+| Sora Videos | Own API keys | 12 | 30 |
 | Social Listening Keywords | Own API keys | 3 | 6 |
 | Uses Platform API Keys | No | Yes | Yes |
 
@@ -41,7 +41,7 @@ Three subscription tiers with monthly usage limits:
 
 **Usage Type Definitions:**
 - `a2eVideos`: A2E video clips (30 credits each)
-- `lipsync`: A2E lipsync videos (5 credits per 5-sec)
+- `lipsync`: A2E lipsync videos (1 credit per second)
 - `avatars`: A2E avatars (100 credits each)
 - `dalleImages`: OpenAI DALL-E images ($0.04 each)
 - `soraVideos`: OpenAI Sora videos ($0.10/sec)

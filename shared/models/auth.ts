@@ -17,7 +17,7 @@ export const sessions = pgTable(
 export const OWNER_EMAIL = "gio.abbate@hotmail.com";
 
 // Tier limits configuration
-// A2E Max ($39.90/mo): 5,400 credits/month - Videos 30cr, Lipsync 5cr/5s, Avatars 100cr
+// A2E Max ($39.90/mo): 5,400 credits/month - Videos 30cr, Lipsync 1cr/sec, Avatars 100cr
 // ElevenLabs Pro ($99/mo): 500k credits = 1,000 min voiceover
 // OpenAI API ($200/mo): DALL-E $0.04/img, Sora $0.10/sec
 // Total cost: £310/mo for 20 users
@@ -38,11 +38,11 @@ export const TIER_LIMITS = {
     brandBriefs: 5,
     scripts: -1,          // Unlimited
     voiceovers: 25,       // 25 min voiceover
-    a2eVideos: 4,         // 4 A2E video clips
-    lipsync: 30,          // 30 lipsync videos
-    avatars: 1,           // 1 avatar
+    a2eVideos: 8,         // 8 A2E video clips
+    lipsync: 60,          // 60 lipsync (1 credit/sec)
+    avatars: 2,           // 2 avatars
     dalleImages: 150,     // 150 DALL-E images
-    soraVideos: 10,       // 10 Sora videos
+    soraVideos: 12,       // 12 Sora videos
     socialListeningKeywords: 3,
     usesAppApis: true,
   },
@@ -50,9 +50,9 @@ export const TIER_LIMITS = {
     brandBriefs: 10,
     scripts: -1,          // Unlimited
     voiceovers: 60,       // 60 min voiceover
-    a2eVideos: 8,         // 8 A2E video clips
-    lipsync: 75,          // 75 lipsync videos
-    avatars: 3,           // 3 avatars
+    a2eVideos: 16,        // 16 A2E video clips
+    lipsync: 150,         // 150 lipsync (1 credit/sec)
+    avatars: 4,           // 4 avatars
     dalleImages: 400,     // 400 DALL-E images
     soraVideos: 30,       // 30 Sora videos
     socialListeningKeywords: 6,
