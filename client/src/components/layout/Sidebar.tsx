@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { icon: Scissors, label: "Edit & Merge", href: "/edit-merge" },
   { icon: Download, label: "Ready to Post", href: "/ready-to-post" },
   { icon: Headphones, label: "Social Listening", href: "/social-listening" },
+  { icon: Wand2, label: "Creator Studio", href: "/creator-studio" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Users, label: "Accounts", href: "/accounts" },

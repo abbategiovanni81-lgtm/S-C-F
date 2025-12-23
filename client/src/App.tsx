@@ -21,6 +21,7 @@ import Settings from "@/pages/Settings";
 import HowTo from "@/pages/HowTo";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
+import CreatorStudio from "@/pages/CreatorStudio";
 
 function AuthenticatedRoutes() {
   return (
@@ -39,6 +40,7 @@ function AuthenticatedRoutes() {
       <Route path="/ai-engines" component={AIEngines} />
       <Route path="/settings" component={Settings} />
       <Route path="/how-to" component={HowTo} />
+      <Route path="/creator-studio" component={CreatorStudio} />
       <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
