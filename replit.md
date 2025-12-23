@@ -18,6 +18,26 @@ The platform includes a Social Listening module that allows users to:
 - **Owner Account**: gio.abbate@hotmail.com (existing demo data linked to this account)
 - **Password Hashing**: bcryptjs with 10 salt rounds
 
+### CRITICAL: Authentication & Data Isolation Notes
+**DO NOT BREAK THESE PATTERNS:**
+
+1. **Owner Privileges**: The `upsertUser` function in `server/replit_integrations/auth/storage.ts` applies owner flags (tier=pro, isOwner=true, creatorStudioAccess=true) on EVERY login. Both email/password and Google OAuth call `upsertUser`.
+
+2. **User ID Retrieval**: The `getUserId` function in `server/routes.ts` must support BOTH auth formats:
+   - Replit auth: `req.user.claims.sub`
+   - Passport auth: `req.user.id`
+   Breaking this causes all APIs to appear unconfigured.
+
+3. **Data Isolation**: ALL data endpoints filter by userId:
+   - `getBrandBriefsByUser(userId)`
+   - `getSocialAccountsByUser(userId)`
+   - `getContentByUser(userId)`
+   Users must ONLY see their own data.
+
+4. **Platform API Access**: Premium/Pro users see platform API keys as configured. Free users see their own API key status. The `/api/ai-engines/status` endpoint handles this based on user tier.
+
+5. **Login Response**: Must include tier, isOwner, and creatorStudioAccess in the JSON response.
+
 ### Tier System & Usage Quotas
 Three subscription tiers with monthly usage limits:
 
