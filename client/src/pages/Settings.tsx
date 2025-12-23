@@ -145,6 +145,10 @@ export default function Settings() {
               <User className="h-4 w-4 mr-2" />
               Account
             </TabsTrigger>
+            <TabsTrigger value="subscription" data-testid="tab-subscription">
+              <Crown className="h-4 w-4 mr-2" />
+              Subscription
+            </TabsTrigger>
             {hasFullAccess && (
               <TabsTrigger value="usage" data-testid="tab-usage">
                 <BarChart3 className="h-4 w-4 mr-2" />
@@ -198,6 +202,15 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="subscription">
+            <SubscriptionTab 
+              tier={tier} 
+              hasFullAccess={hasFullAccess} 
+              usageStats={usageStats} 
+              loadingUsage={loadingUsage}
+            />
           </TabsContent>
 
           {hasFullAccess && (
@@ -560,6 +573,206 @@ function UsageBar({ icon, label, used, limit }: { icon: React.ReactNode; label: 
         value={percentage} 
         className={`h-2 ${isAtLimit ? '[&>div]:bg-red-500' : isNearLimit ? '[&>div]:bg-yellow-500' : ''}`}
       />
+    </div>
+  );
+}
+
+function SubscriptionTab({ tier, hasFullAccess, usageStats, loadingUsage }: { 
+  tier: string; 
+  hasFullAccess: boolean; 
+  usageStats: any; 
+  loadingUsage: boolean;
+}) {
+  const [subscribing, setSubscribing] = useState(false);
+
+  const handleSubscribe = async (priceType: string) => {
+    setSubscribing(true);
+    try {
+      const res = await fetch("/api/stripe/products");
+      const data = await res.json();
+      const product = data.products?.find((p: any) => 
+        priceType === "premium" 
+          ? p.unit_amount === 2999 
+          : p.unit_amount === 4999
+      );
+      
+      if (product?.price_id) {
+        const checkoutRes = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ priceId: product.price_id }),
+        });
+        const checkoutData = await checkoutRes.json();
+        if (checkoutData.url) {
+          window.location.href = checkoutData.url;
+        }
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+    }
+    setSubscribing(false);
+  };
+
+  const getUsageSummary = () => {
+    if (!usageStats?.usage) return null;
+    const u = usageStats.usage;
+    const items = [
+      { label: "Voiceovers", used: u.voiceovers?.used || 0, limit: u.voiceovers?.limit || 0, unit: "min" },
+      { label: "Videos", used: u.a2eVideos?.used || 0, limit: u.a2eVideos?.limit || 0 },
+      { label: "Images", used: u.dalleImages?.used || 0, limit: u.dalleImages?.limit || 0 },
+    ];
+    return items;
+  };
+
+  const summary = getUsageSummary();
+
+  if (!hasFullAccess) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Current Plan</CardTitle>
+                <CardDescription>You're on the Free plan</CardDescription>
+              </div>
+              <Badge variant="secondary">Free</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              Add your own API keys in Settings to use AI features, or upgrade to a paid plan for full access with no setup required.
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card className="border-purple-500/30">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-purple-500" />
+                  Premium
+                </CardTitle>
+                <Badge className="bg-purple-500">£29.99/mo</Badge>
+              </div>
+              <CardDescription>Great for creators getting started</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ul className="text-sm space-y-2">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 5 Brand Briefs</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 25 min voiceovers</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 16 A2E videos</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 150 DALL-E images</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 3 listening keywords</li>
+              </ul>
+              <Button 
+                className="w-full mt-4" 
+                onClick={() => handleSubscribe("premium")}
+                disabled={subscribing}
+                data-testid="button-subscribe-premium"
+              >
+                {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Upgrade to Premium
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-orange-500/5">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-500" />
+                  Pro
+                </CardTitle>
+                <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">£49.99/mo</Badge>
+              </div>
+              <CardDescription>For serious content creators</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <ul className="text-sm space-y-2">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 10 Brand Briefs</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 60 min voiceovers</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 32 A2E videos</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 400 DALL-E images</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 6 listening keywords</li>
+              </ul>
+              <Button 
+                className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
+                onClick={() => handleSubscribe("pro")}
+                disabled={subscribing}
+                data-testid="button-subscribe-pro"
+              >
+                {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Upgrade to Pro
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Current Plan</CardTitle>
+              <CardDescription>Your subscription details</CardDescription>
+            </div>
+            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
+              <Crown className="h-3 w-3 mr-1" />
+              {tier === "pro" ? "Pro" : "Premium"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingUsage ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : summary ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                {summary.map((item) => {
+                  const percent = item.limit > 0 ? Math.round((item.used / item.limit) * 100) : 0;
+                  const remaining = item.limit - item.used;
+                  return (
+                    <div key={item.label} className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-2xl font-bold">{percent}%</div>
+                      <div className="text-xs text-muted-foreground mb-2">{item.label} used</div>
+                      <div className="text-sm font-medium text-green-600">
+                        {remaining} {item.unit || ""} left
+                      </div>
+                      <Progress value={percent} className="h-1 mt-2" />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pt-4 border-t">
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const usageTab = document.querySelector('[data-testid="tab-usage"]') as HTMLButtonElement;
+                    if (usageTab) usageTab.click();
+                  }}
+                  className="text-sm text-purple-600 hover:underline flex items-center gap-1"
+                  data-testid="link-detailed-usage"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  View detailed usage breakdown
+                </a>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Usage data will appear here</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
