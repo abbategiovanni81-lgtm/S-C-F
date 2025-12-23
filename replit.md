@@ -26,9 +26,9 @@ Three subscription tiers with monthly usage limits:
 | Brand Briefs | 1 | 5 | 10 |
 | Scripts | Own API keys | Unlimited | Unlimited |
 | Voiceovers | Own API keys | 25 min | 60 min |
-| A2E Videos | Own API keys | 8 | 16 |
-| Lipsync | Own API keys | 60 | 150 |
-| Avatars | Own API keys | 2 | 4 |
+| A2E Videos | Own API keys | 16 | 32 |
+| Lipsync | Own API keys | 120 | 300 |
+| Avatars | Own API keys | 4 | 8 |
 | DALL-E Images | Own API keys | 150 | 400 |
 | Sora Videos | Own API keys | 12 | 30 |
 | Social Listening Keywords | Own API keys | 3 | 6 |

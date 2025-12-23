@@ -38,9 +38,9 @@ export const TIER_LIMITS = {
     brandBriefs: 5,
     scripts: -1,          // Unlimited
     voiceovers: 25,       // 25 min voiceover
-    a2eVideos: 8,         // 8 A2E video clips
-    lipsync: 60,          // 60 lipsync (1 credit/sec)
-    avatars: 2,           // 2 avatars
+    a2eVideos: 16,        // 16 A2E video clips (2 accounts)
+    lipsync: 120,         // 120 lipsync (1 credit/sec, 2 accounts)
+    avatars: 4,           // 4 avatars (2 accounts)
     dalleImages: 150,     // 150 DALL-E images
     soraVideos: 12,       // 12 Sora videos
     socialListeningKeywords: 3,
@@ -50,9 +50,9 @@ export const TIER_LIMITS = {
     brandBriefs: 10,
     scripts: -1,          // Unlimited
     voiceovers: 60,       // 60 min voiceover
-    a2eVideos: 16,        // 16 A2E video clips
-    lipsync: 150,         // 150 lipsync (1 credit/sec)
-    avatars: 4,           // 4 avatars
+    a2eVideos: 32,        // 32 A2E video clips (2 accounts)
+    lipsync: 300,         // 300 lipsync (1 credit/sec, 2 accounts)
+    avatars: 8,           // 8 avatars (2 accounts)
     dalleImages: 400,     // 400 DALL-E images
     soraVideos: 30,       // 30 Sora videos
     socialListeningKeywords: 6,
