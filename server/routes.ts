@@ -97,8 +97,9 @@ export async function registerRoutes(
   // Helper to get user ID from authenticated session - requires authentication
   const getUserId = (req: any): string | null => {
     // Only return user ID if properly authenticated
-    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-      return req.user.claims.sub;
+    if (req.isAuthenticated && req.isAuthenticated()) {
+      // Support both Replit auth (claims.sub) and Passport auth (user.id)
+      return req.user?.claims?.sub || req.user?.id || null;
     }
     return null;
   };
