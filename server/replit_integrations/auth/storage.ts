@@ -70,27 +70,6 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // Check if a user with this email already exists (for migrating existing accounts)
-    if (userData.email) {
-      const [existingUserByEmail] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, userData.email));
-      
-      if (existingUserByEmail && existingUserByEmail.id !== userData.id) {
-        // Migrate the existing account to use the new auth ID
-        await db.execute(sql`
-          UPDATE brand_briefs SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
-          UPDATE social_accounts SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
-          UPDATE analytics_snapshots SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
-          UPDATE social_listening_items SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
-          UPDATE listening_scan_runs SET user_id = ${userData.id} WHERE user_id = ${existingUserByEmail.id};
-          DELETE FROM users WHERE id = ${existingUserByEmail.id};
-        `);
-        console.log(`Migrated existing user ${existingUserByEmail.id} to new auth ID ${userData.id}`);
-      }
-    }
-
     // ALWAYS check owner email and force correct tier/isOwner values
     const { tier: ownerTier, isOwner: ownerFlag } = userData.email 
       ? getTierAndOwnerForEmail(userData.email) 
@@ -99,11 +78,44 @@ class AuthStorage implements IAuthStorage {
     // For owner email, ALWAYS use pro tier and isOwner=true, regardless of what's passed in
     const tier = ownerFlag ? "pro" : (userData.tier || ownerTier);
     const isOwner = ownerFlag;
-    const creatorStudioAccess = ownerFlag ? true : undefined;
+    const creatorStudioAccess = ownerFlag ? true : false;
 
+    // Check if a user with this email already exists
+    if (userData.email) {
+      const [existingUserByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, userData.email));
+      
+      if (existingUserByEmail) {
+        // User exists with this email - UPDATE them directly with owner flags
+        const [updatedUser] = await db
+          .update(users)
+          .set({
+            firstName: userData.firstName || existingUserByEmail.firstName,
+            lastName: userData.lastName || existingUserByEmail.lastName,
+            profileImageUrl: userData.profileImageUrl || existingUserByEmail.profileImageUrl,
+            googleId: userData.googleId || existingUserByEmail.googleId,
+            tier,
+            isOwner,
+            ...(ownerFlag && { creatorStudioAccess: true }),
+            updatedAt: new Date(),
+          })
+          .where(eq(users.email, userData.email))
+          .returning();
+        
+        if (ownerFlag) {
+          console.log(`Owner login detected for ${userData.email} - UPDATED existing user to tier=pro, isOwner=true, creatorStudioAccess=true`);
+        }
+        
+        return updatedUser;
+      }
+    }
+
+    // No existing user with this email - insert new user
     const [user] = await db
       .insert(users)
-      .values({ ...userData, tier, isOwner, creatorStudioAccess: creatorStudioAccess || false })
+      .values({ ...userData, tier, isOwner, creatorStudioAccess })
       .onConflictDoUpdate({
         target: users.id,
         set: {
@@ -116,9 +128,8 @@ class AuthStorage implements IAuthStorage {
       })
       .returning();
     
-    // Log when owner logs in
     if (ownerFlag) {
-      console.log(`Owner login detected for ${userData.email} - set tier=pro, isOwner=true, creatorStudioAccess=true`);
+      console.log(`Owner login detected for ${userData.email} - INSERTED new user with tier=pro, isOwner=true, creatorStudioAccess=true`);
     }
     
     return user;
