@@ -525,16 +525,59 @@ export async function registerRoutes(
   });
 
   // AI Engine Status endpoints
-  app.get("/api/ai-engines/status", async (req, res) => {
-    res.json({
-      openai: { configured: true, name: "OpenAI GPT-4" },
-      anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
-      dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
-      a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
-      elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
-      fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
-      pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
-    });
+  app.get("/api/ai-engines/status", async (req: any, res) => {
+    try {
+      // Get authenticated user if available
+      const userId = getUserId(req);
+      
+      // Check user tier - Premium/Pro users get platform API keys
+      let usesPlatformKeys = false;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          usesPlatformKeys = true;
+        }
+      }
+      
+      if (usesPlatformKeys) {
+        // Premium/Pro users see platform API key status
+        res.json({
+          openai: { configured: true, name: "OpenAI GPT-4" },
+          anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
+          dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
+          a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
+          elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
+          fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
+          pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
+        });
+      } else if (userId) {
+        // Free tier users see their own API key status
+        const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+        res.json({
+          openai: { configured: !!keys?.openaiKey, name: "OpenAI GPT-4" },
+          anthropic: { configured: !!keys?.anthropicKey, name: "Claude (Anthropic)" },
+          dalle: { configured: !!keys?.openaiKey, name: "DALL-E 3 Images" }, // DALL-E uses OpenAI key
+          a2e: { configured: !!keys?.a2eKey, name: "A2E Avatar Video & Images" },
+          elevenlabs: { configured: !!keys?.elevenlabsKey, name: "ElevenLabs Voice" },
+          fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
+          pexels: { configured: !!keys?.pexelsKey, name: "Pexels B-Roll" },
+        });
+      } else {
+        // Not authenticated - show all as not configured
+        res.json({
+          openai: { configured: false, name: "OpenAI GPT-4" },
+          anthropic: { configured: false, name: "Claude (Anthropic)" },
+          dalle: { configured: false, name: "DALL-E 3 Images" },
+          a2e: { configured: false, name: "A2E Avatar Video & Images" },
+          elevenlabs: { configured: false, name: "ElevenLabs Voice" },
+          fal: { configured: false, name: "Fal.ai Video/Image" },
+          pexels: { configured: false, name: "Pexels B-Roll" },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching AI engine status:", error);
+      res.status(500).json({ error: "Failed to fetch AI engine status" });
+    }
   });
 
   // User API Keys endpoints
