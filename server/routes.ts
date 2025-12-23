@@ -2901,5 +2901,288 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== CREATOR STUDIO ENDPOINTS ====================
+
+  // Middleware to check Creator Studio access
+  const requireCreatorStudio = async (req: any, res: any, next: any) => {
+    const userId = (req.user as any)?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user?.creatorStudioAccess) {
+      return res.status(403).json({ 
+        error: "Creator Studio access required", 
+        upgradeRequired: true,
+        message: "Subscribe to Creator Studio (£20/month) to unlock these features"
+      });
+    }
+    next();
+  };
+
+  // Get Creator Studio status and usage
+  app.get("/api/creator-studio/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const stats = await getUsageStats(userId);
+      
+      res.json({
+        hasAccess: stats.hasCreatorStudio,
+        usage: stats.creatorStudioUsage,
+        a2eConfigured: a2eService.isConfigured(),
+      });
+    } catch (error: any) {
+      console.error("Error fetching Creator Studio status:", error);
+      res.status(500).json({ error: "Failed to fetch status" });
+    }
+  });
+
+  // Voice Cloning
+  app.post("/api/creator-studio/voice-clone", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { audioUrl, voiceName } = req.body;
+
+      if (!audioUrl || !voiceName) {
+        return res.status(400).json({ error: "audioUrl and voiceName are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "voiceClones", 1);
+      
+      const taskId = await a2eService.cloneVoice({ audioUrl, voiceName });
+      await incrementCreatorStudioUsage(userId, "voiceClones", 1);
+
+      res.json({ taskId, message: "Voice cloning started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Voice clone error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // List cloned voices
+  app.get("/api/creator-studio/voices", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const voices = await a2eService.listVoices();
+      res.json(voices);
+    } catch (error: any) {
+      console.error("List voices error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Talking Photo
+  app.post("/api/creator-studio/talking-photo", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { imageUrl, text, voiceId } = req.body;
+
+      if (!imageUrl || !text) {
+        return res.status(400).json({ error: "imageUrl and text are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "talkingPhotos", 1);
+      
+      const taskId = await a2eService.generateTalkingPhoto({ imageUrl, text, voiceId });
+      await incrementCreatorStudioUsage(userId, "talkingPhotos", 1);
+
+      res.json({ taskId, message: "Talking photo generation started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Talking photo error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Talking Video
+  app.post("/api/creator-studio/talking-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { videoUrl, text, voiceId } = req.body;
+
+      if (!videoUrl || !text) {
+        return res.status(400).json({ error: "videoUrl and text are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "talkingVideos", 1);
+      
+      const taskId = await a2eService.generateTalkingVideo({ videoUrl, text, voiceId });
+      await incrementCreatorStudioUsage(userId, "talkingVideos", 1);
+
+      res.json({ taskId, message: "Talking video generation started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Talking video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Face Swap
+  app.post("/api/creator-studio/face-swap", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { sourceImageUrl, targetVideoUrl } = req.body;
+
+      if (!sourceImageUrl || !targetVideoUrl) {
+        return res.status(400).json({ error: "sourceImageUrl and targetVideoUrl are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "faceSwaps", 1);
+      
+      const taskId = await a2eService.generateFaceSwap({ sourceImageUrl, targetVideoUrl });
+      await incrementCreatorStudioUsage(userId, "faceSwaps", 1);
+
+      res.json({ taskId, message: "Face swap started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Face swap error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // AI Dubbing
+  app.post("/api/creator-studio/dubbing", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { videoUrl, targetLanguage } = req.body;
+
+      if (!videoUrl || !targetLanguage) {
+        return res.status(400).json({ error: "videoUrl and targetLanguage are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "aiDubbing", 1);
+      
+      const taskId = await a2eService.generateDubbing({ videoUrl, targetLanguage });
+      await incrementCreatorStudioUsage(userId, "aiDubbing", 1);
+
+      res.json({ taskId, message: "AI dubbing started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Dubbing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Image to Video
+  app.post("/api/creator-studio/image-to-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { imageUrl, text } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "imageToVideo", 1);
+      
+      const taskId = await a2eService.generateImageToVideo({ imageUrl, text });
+      await incrementCreatorStudioUsage(userId, "imageToVideo", 1);
+
+      res.json({ taskId, message: "Image to video generation started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Image to video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Caption Removal
+  app.post("/api/creator-studio/caption-removal", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { videoUrl } = req.body;
+
+      if (!videoUrl) {
+        return res.status(400).json({ error: "videoUrl is required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "captionRemoval", 1);
+      
+      const taskId = await a2eService.removeCaptions({ videoUrl });
+      await incrementCreatorStudioUsage(userId, "captionRemoval", 1);
+
+      res.json({ taskId, message: "Caption removal started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Caption removal error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Video to Video (Style Transfer)
+  app.post("/api/creator-studio/video-to-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { videoUrl, prompt } = req.body;
+
+      if (!videoUrl || !prompt) {
+        return res.status(400).json({ error: "videoUrl and prompt are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "videoToVideo", 1);
+      
+      const taskId = await a2eService.generateVideoToVideo({ videoUrl, prompt });
+      await incrementCreatorStudioUsage(userId, "videoToVideo", 1);
+
+      res.json({ taskId, message: "Video to video generation started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Video to video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Virtual Try-On
+  app.post("/api/creator-studio/virtual-tryon", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { personImageUrl, clothingImageUrl } = req.body;
+
+      if (!personImageUrl || !clothingImageUrl) {
+        return res.status(400).json({ error: "personImageUrl and clothingImageUrl are required" });
+      }
+
+      await assertCreatorStudioQuota(userId, "virtualTryOn", 1);
+      
+      const taskId = await a2eService.generateVirtualTryOn({ personImageUrl, clothingImageUrl });
+      await incrementCreatorStudioUsage(userId, "virtualTryOn", 1);
+
+      res.json({ taskId, message: "Virtual try-on started" });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Virtual try-on error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Check task status (generic for all Creator Studio tasks)
+  app.get("/api/creator-studio/task/:taskType/:taskId", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const { taskType, taskId } = req.params;
+      const status = await a2eService.checkTaskStatus(taskId, taskType);
+      res.json(status);
+    } catch (error: any) {
+      console.error("Task status check error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -210,6 +210,499 @@ class A2EService {
     throw new Error("A2E video generation timed out");
   }
 
+  // ==================== CREATOR STUDIO FEATURES ====================
+
+  // Voice Cloning - Clone a voice from audio/video
+  async cloneVoice(params: {
+    audioUrl: string;
+    voiceName: string;
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/voice_clone/train`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          audio_url: params.audioUrl,
+          voice_name: params.voiceName,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E voice clone error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.voice_id;
+    } catch (error: any) {
+      console.error("A2E voice clone error:", error);
+      throw error;
+    }
+  }
+
+  // List cloned voices
+  async listVoices(): Promise<any[]> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/voice_clone/list`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E list voices error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.voices || data.results || [];
+    } catch (error: any) {
+      console.error("A2E list voices error:", error);
+      throw error;
+    }
+  }
+
+  // Talking Photo - Animate a photo to speak
+  async generateTalkingPhoto(params: {
+    imageUrl: string;
+    text: string;
+    voiceId?: string;
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/talking_photo/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          image_url: params.imageUrl,
+          text: params.text,
+          voice_id: params.voiceId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E talking photo error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E talking photo error:", error);
+      throw error;
+    }
+  }
+
+  async checkTalkingPhotoStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/talking_photo/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check talking photo status error:", error);
+      throw error;
+    }
+  }
+
+  // Talking Video - Make existing video speak new audio
+  async generateTalkingVideo(params: {
+    videoUrl: string;
+    text: string;
+    voiceId?: string;
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/talking_video/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          video_url: params.videoUrl,
+          text: params.text,
+          voice_id: params.voiceId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E talking video error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E talking video error:", error);
+      throw error;
+    }
+  }
+
+  async checkTalkingVideoStatus(taskId: string): Promise<LipSyncStatus> {
+    return this.checkTalkingPhotoStatus(taskId); // Same endpoint pattern
+  }
+
+  // Face Swap
+  async generateFaceSwap(params: {
+    sourceImageUrl: string;  // Face to swap in
+    targetVideoUrl: string;  // Video to swap face into
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/face_swap/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          source_image_url: params.sourceImageUrl,
+          target_video_url: params.targetVideoUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E face swap error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E face swap error:", error);
+      throw error;
+    }
+  }
+
+  async checkFaceSwapStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/face_swap/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check face swap status error:", error);
+      throw error;
+    }
+  }
+
+  // AI Dubbing - Translate and dub video
+  async generateDubbing(params: {
+    videoUrl: string;
+    targetLanguage: string;  // "en", "es", "fr", etc.
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/dubbing/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          video_url: params.videoUrl,
+          target_language: params.targetLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E dubbing error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E dubbing error:", error);
+      throw error;
+    }
+  }
+
+  async checkDubbingStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/dubbing/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check dubbing status error:", error);
+      throw error;
+    }
+  }
+
+  // Caption Removal
+  async removeCaptions(params: {
+    videoUrl: string;
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/caption_removal/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          video_url: params.videoUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E caption removal error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E caption removal error:", error);
+      throw error;
+    }
+  }
+
+  async checkCaptionRemovalStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/caption_removal/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check caption removal status error:", error);
+      throw error;
+    }
+  }
+
+  // Video to Video - Style transfer
+  async generateVideoToVideo(params: {
+    videoUrl: string;
+    prompt: string;  // Style description
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/video_to_video/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          video_url: params.videoUrl,
+          prompt: params.prompt,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E video-to-video error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E video-to-video error:", error);
+      throw error;
+    }
+  }
+
+  async checkVideoToVideoStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/video_to_video/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check video-to-video status error:", error);
+      throw error;
+    }
+  }
+
+  // Virtual Try-On
+  async generateVirtualTryOn(params: {
+    personImageUrl: string;
+    clothingImageUrl: string;
+  }): Promise<string> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/virtual_tryon/start`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          person_image_url: params.personImageUrl,
+          clothing_image_url: params.clothingImageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E virtual try-on error: ${error}`);
+      }
+
+      const data = await response.json();
+      return data.task_id || data.id;
+    } catch (error: any) {
+      console.error("A2E virtual try-on error:", error);
+      throw error;
+    }
+  }
+
+  async checkVirtualTryOnStatus(taskId: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/virtual_tryon/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.image_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error("A2E check virtual try-on status error:", error);
+      throw error;
+    }
+  }
+
+  // Generic task status check (for any task type)
+  async checkTaskStatus(taskId: string, taskType: string): Promise<LipSyncStatus> {
+    if (!this.isConfigured()) {
+      throw new Error("A2E API key not configured");
+    }
+
+    try {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/${taskType}/${taskId}`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`A2E status check error: ${error}`);
+      }
+
+      const data = await response.json();
+      return {
+        id: taskId,
+        status: data.status,
+        output: data.output || data.video_url || data.image_url,
+        error_message: data.error_message,
+      };
+    } catch (error: any) {
+      console.error(`A2E check ${taskType} status error:`, error);
+      throw error;
+    }
+  }
+
   // Text-to-Image generation
   async generateImage(params: {
     prompt: string;
