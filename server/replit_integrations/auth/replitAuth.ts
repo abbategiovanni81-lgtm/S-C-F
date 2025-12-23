@@ -138,7 +138,7 @@ export async function setupAuth(app: Express) {
         }
         // Update last login timestamp
         await authStorage.updateUser(user.id, { lastLogin: new Date() });
-        return res.json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl } });
+        return res.json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, tier: user.tier, isOwner: user.isOwner, creatorStudioAccess: user.creatorStudioAccess } });
       });
     })(req, res, next);
   });
@@ -176,7 +176,7 @@ export async function setupAuth(app: Express) {
         }
         // Update last login timestamp
         await authStorage.updateUser(user.id, { lastLogin: new Date() });
-        return res.status(201).json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName } });
+        return res.status(201).json({ user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, tier: user.tier, isOwner: user.isOwner, creatorStudioAccess: user.creatorStudioAccess } });
       });
     } catch (error: any) {
       console.error("Signup error:", error);
