@@ -18,10 +18,19 @@ import {
   CheckCircle,
   ExternalLink,
   Key,
-  Zap
+  Zap,
+  Crown,
+  Rocket
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 export default function HowTo() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const isFreeUser = !user?.tier || user.tier === "free";
+
   return (
     <Layout title="How To">
       <div className="max-w-5xl mx-auto">
@@ -31,6 +40,49 @@ export default function HowTo() {
               Complete guide to all features, AI engines, and content creation workflows.
             </p>
           </div>
+
+          {/* Upgrade CTA - Only show for free users */}
+          {isFreeUser && (
+            <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-purple-500/5">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Rocket className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-1">Get Started Quickly</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Set up and connect your own API keys, or upgrade to <span className="font-medium text-primary">Premium for £29.99/month</span> and get all AI engines pre-connected and ready to use.
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <Badge variant="secondary" className="text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" /> OpenAI Included
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" /> ElevenLabs Included
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" /> A2E Videos Included
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" /> DALL-E Images Included
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => setLocation("/subscription")}
+                    className="gap-2 whitespace-nowrap"
+                    data-testid="button-upgrade-cta"
+                  >
+                    <Crown className="h-4 w-4" />
+                    Upgrade Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Tabs defaultValue="features" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-6">
