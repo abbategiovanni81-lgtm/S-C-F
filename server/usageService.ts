@@ -2,15 +2,30 @@ import { db } from "./db";
 import { users, usagePeriods, usageTopups, TIER_LIMITS, type TierType } from "@shared/models/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
-export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "avatarVideos" | "images" | "socialListening";
+export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening";
 
 const usageColumnMap = {
   brandBriefs: "brandBriefsUsed",
   scripts: "scriptsUsed",
   voiceovers: "voiceoversUsed",
-  avatarVideos: "avatarVideosUsed",
-  images: "imagesUsed",
+  a2eVideos: "a2eVideosUsed",
+  lipsync: "lipsyncUsed",
+  avatars: "avatarsUsed",
+  dalleImages: "dalleImagesUsed",
+  soraVideos: "soraVideosUsed",
   socialListening: "socialListeningUsed",
+} as const;
+
+const limitKeyMap = {
+  brandBriefs: "brandBriefs",
+  scripts: "scripts",
+  voiceovers: "voiceovers",
+  a2eVideos: "a2eVideos",
+  lipsync: "lipsync",
+  avatars: "avatars",
+  dalleImages: "dalleImages",
+  soraVideos: "soraVideos",
+  socialListening: "socialListeningKeywords",
 } as const;
 
 export async function getCurrentPeriod(userId: string) {
@@ -57,7 +72,10 @@ export async function getUsageStats(userId: string) {
 
   const topupMultiplier = period.topupMultiplier || 0;
 
-  const getLimit = (base: number) => Math.floor(base * (1 + topupMultiplier));
+  const getLimit = (base: number) => {
+    if (base === -1) return -1; // Unlimited
+    return Math.floor(base * (1 + topupMultiplier));
+  };
 
   return {
     period: {
@@ -70,8 +88,11 @@ export async function getUsageStats(userId: string) {
       brandBriefs: { used: period.brandBriefsUsed, limit: getLimit(limits.brandBriefs) },
       scripts: { used: period.scriptsUsed, limit: getLimit(limits.scripts) },
       voiceovers: { used: period.voiceoversUsed, limit: getLimit(limits.voiceovers) },
-      avatarVideos: { used: period.avatarVideosUsed, limit: getLimit(limits.avatarVideos) },
-      images: { used: period.imagesUsed, limit: getLimit(limits.images) },
+      a2eVideos: { used: period.a2eVideosUsed, limit: getLimit(limits.a2eVideos) },
+      lipsync: { used: period.lipsyncUsed, limit: getLimit(limits.lipsync) },
+      avatars: { used: period.avatarsUsed, limit: getLimit(limits.avatars) },
+      dalleImages: { used: period.dalleImagesUsed, limit: getLimit(limits.dalleImages) },
+      soraVideos: { used: period.soraVideosUsed, limit: getLimit(limits.soraVideos) },
       socialListening: { used: period.socialListeningUsed, limit: getLimit(limits.socialListeningKeywords) },
     },
     usesAppApis: limits.usesAppApis,
@@ -84,6 +105,11 @@ export async function checkQuota(userId: string, usageType: UsageType, count: nu
 
   if (!stats.usesAppApis && usageType !== "brandBriefs") {
     return { allowed: false, remaining: 0, limit: 0, used: 0 };
+  }
+
+  // -1 means unlimited
+  if (usage.limit === -1) {
+    return { allowed: true, remaining: Infinity, limit: -1, used: usage.used };
   }
 
   const remaining = usage.limit - usage.used;
@@ -113,7 +139,6 @@ export async function incrementUsage(userId: string, usageType: UsageType, count
 export async function applyTopup(userId: string, stripeSessionId: string, amount: number = 1000): Promise<boolean> {
   const period = await getCurrentPeriod(userId);
 
-  // Check for idempotency - only process each payment once
   const [existingTopup] = await db
     .select()
     .from(usageTopups)
@@ -121,10 +146,9 @@ export async function applyTopup(userId: string, stripeSessionId: string, amount
 
   if (existingTopup) {
     console.log(`Top-up already processed for session: ${stripeSessionId}`);
-    return false; // Already processed
+    return false;
   }
 
-  // Get user tier to determine multiplier (Pro gets 20%, Premium gets 40%)
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   const multiplier = user?.tier === "pro" ? 0.2 : 0.4;
 
@@ -147,7 +171,7 @@ export async function applyTopup(userId: string, stripeSessionId: string, amount
     })
     .where(eq(usagePeriods.id, period.id));
 
-  return true; // Successfully processed
+  return true;
 }
 
 export async function assertQuota(userId: string, usageType: UsageType, count: number = 1): Promise<void> {

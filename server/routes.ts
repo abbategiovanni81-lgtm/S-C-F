@@ -884,7 +884,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "images", 1);
+            await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -925,7 +925,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "images", 1);
+          await incrementUsage(userId, "dalleImages", 1);
         }
       }
       
@@ -949,7 +949,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "images", 1);
+            await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -989,7 +989,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "images", 1);
+          await incrementUsage(userId, "dalleImages", 1);
         }
       }
       
@@ -1034,7 +1034,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "avatarVideos", 1);
+            await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1060,7 +1060,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "avatarVideos", 1);
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
 
@@ -1101,7 +1101,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "avatarVideos", 1);
+            await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1122,7 +1122,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "avatarVideos", 1);
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
 
@@ -1267,7 +1267,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "avatarVideos", 1);
+            await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1288,7 +1288,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "avatarVideos", 1);
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
 
@@ -1323,7 +1323,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "avatarVideos", 1);
+            await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1368,7 +1368,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "avatarVideos", 1);
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
 
@@ -1420,7 +1420,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "avatarVideos", 1);
+            await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1441,7 +1441,7 @@ export async function registerRoutes(
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
-          await incrementUsage(userId, "avatarVideos", 1);
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
       
@@ -1516,7 +1516,7 @@ export async function registerRoutes(
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           try {
-            await assertQuota(userId, "images", 1);
+            await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
             if (error instanceof QuotaExceededError) {
               return res.status(429).json({ 
@@ -1558,7 +1558,7 @@ export async function registerRoutes(
             if (userId) {
               const [user] = await db.select().from(users).where(eq(users.id, userId));
               if (user && (user.tier === "premium" || user.tier === "pro")) {
-                await incrementUsage(userId, "images", 1);
+                await incrementUsage(userId, "dalleImages", 1);
               }
             }
             
@@ -1786,10 +1786,6 @@ export async function registerRoutes(
   // User endpoints (for demo purposes - create a default user)
   app.post("/api/users", async (req, res) => {
     try {
-      const existing = await storage.getUserByUsername(req.body.username);
-      if (existing) {
-        return res.json(existing);
-      }
       const user = await storage.createUser(req.body);
       res.status(201).json(user);
     } catch (error) {
