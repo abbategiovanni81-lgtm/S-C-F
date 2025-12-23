@@ -2,13 +2,13 @@ import { db } from "./db";
 import { users, usagePeriods, usageTopups, TIER_LIMITS, type TierType } from "@shared/models/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
-export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "videos" | "images" | "socialListening";
+export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "avatarVideos" | "images" | "socialListening";
 
 const usageColumnMap = {
   brandBriefs: "brandBriefsUsed",
   scripts: "scriptsUsed",
   voiceovers: "voiceoversUsed",
-  videos: "videosUsed",
+  avatarVideos: "avatarVideosUsed",
   images: "imagesUsed",
   socialListening: "socialListeningUsed",
 } as const;
@@ -70,7 +70,7 @@ export async function getUsageStats(userId: string) {
       brandBriefs: { used: period.brandBriefsUsed, limit: getLimit(limits.brandBriefs) },
       scripts: { used: period.scriptsUsed, limit: getLimit(limits.scripts) },
       voiceovers: { used: period.voiceoversUsed, limit: getLimit(limits.voiceovers) },
-      videos: { used: period.videosUsed, limit: getLimit(limits.videos) },
+      avatarVideos: { used: period.avatarVideosUsed, limit: getLimit(limits.avatarVideos) },
       images: { used: period.imagesUsed, limit: getLimit(limits.images) },
       socialListening: { used: period.socialListeningUsed, limit: getLimit(limits.socialListeningKeywords) },
     },
