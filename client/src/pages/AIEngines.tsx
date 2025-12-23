@@ -80,7 +80,7 @@ export default function AIEngines() {
   const { data: status, isLoading, refetch, isRefetching } = useQuery<AIEnginesResponse>({
     queryKey: ["/api/ai-engines/status"],
     queryFn: async () => {
-      const res = await fetch("/api/ai-engines/status");
+      const res = await fetch("/api/ai-engines/status", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch AI engines status");
       return res.json();
     },

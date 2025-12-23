@@ -28,9 +28,10 @@ export default function Settings() {
   const { data: aiStatus } = useQuery({
     queryKey: ["/api/ai-engines/status"],
     queryFn: async () => {
-      const res = await fetch("/api/ai-engines/status");
+      const res = await fetch("/api/ai-engines/status", { credentials: "include" });
       return res.json();
     },
+    enabled: !!user?.id,
   });
 
   const { data: userApiKeys, isLoading: loadingKeys } = useQuery({
@@ -72,7 +73,8 @@ export default function Settings() {
   const { data: youtubeAccounts } = useQuery({
     queryKey: ["/api/social-accounts"],
     queryFn: async () => {
-      const res = await fetch("/api/social-accounts?userId=" + user?.id);
+      const res = await fetch("/api/social-accounts", { credentials: "include" });
+      if (!res.ok) return [];
       return res.json();
     },
     enabled: !!user?.id,
