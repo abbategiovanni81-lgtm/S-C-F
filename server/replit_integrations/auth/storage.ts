@@ -91,25 +91,36 @@ class AuthStorage implements IAuthStorage {
       }
     }
 
-    // Set tier and owner based on email
-    const { tier: defaultTier, isOwner } = userData.email 
+    // ALWAYS check owner email and force correct tier/isOwner values
+    const { tier: ownerTier, isOwner: ownerFlag } = userData.email 
       ? getTierAndOwnerForEmail(userData.email) 
       : { tier: "free", isOwner: false };
-    const tier = userData.tier || defaultTier;
+    
+    // For owner email, ALWAYS use pro tier and isOwner=true, regardless of what's passed in
+    const tier = ownerFlag ? "pro" : (userData.tier || ownerTier);
+    const isOwner = ownerFlag;
+    const creatorStudioAccess = ownerFlag ? true : undefined;
 
     const [user] = await db
       .insert(users)
-      .values({ ...userData, tier, isOwner })
+      .values({ ...userData, tier, isOwner, creatorStudioAccess: creatorStudioAccess || false })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
           tier,
           isOwner,
+          ...(ownerFlag && { creatorStudioAccess: true }),
           updatedAt: new Date(),
         },
       })
       .returning();
+    
+    // Log when owner logs in
+    if (ownerFlag) {
+      console.log(`Owner login detected for ${userData.email} - set tier=pro, isOwner=true, creatorStudioAccess=true`);
+    }
+    
     return user;
   }
 }
