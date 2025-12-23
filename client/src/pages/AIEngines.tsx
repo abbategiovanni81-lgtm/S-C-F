@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, Zap, Settings, RefreshCw, Loader2, Key } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { CheckCircle2, XCircle, Zap, Settings, RefreshCw, Loader2, Key, Save, Trash2 } from "lucide-react";
 
 interface AIEngineStatus {
   configured: boolean;
@@ -20,55 +24,69 @@ interface AIEnginesResponse {
   pexels: AIEngineStatus;
 }
 
-const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string }> = {
+const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string; apiKeyField: string; placeholder: string }> = {
   openai: {
     type: "Strategy & Copy",
     description: "Writes captions, hashtags, scripts, and content strategy using GPT-4.",
     logo: "https://images.unsplash.com/photo-1692312349581-8a5316db048c?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-emerald-500", text: "GPT" },
-    keyName: "Configured via Replit AI Integration"
+    keyName: "OpenAI API Key",
+    apiKeyField: "openaiKey",
+    placeholder: "sk-..."
   },
   anthropic: {
     type: "Strategy & Copy (Alternative)",
     description: "Claude AI for advanced reasoning, writing, and content strategy. Use as alternative to GPT-4.",
     logo: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-orange-500", text: "CL" },
-    keyName: "ANTHROPIC_API_KEY (or Replit AI Integration)"
+    keyName: "Anthropic API Key",
+    apiKeyField: "anthropicKey",
+    placeholder: "sk-ant-..."
   },
   dalle: {
     type: "AI Images",
     description: "Generate stunning images from text prompts using OpenAI DALL-E 3.",
     logo: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-pink-600", text: "DE" },
-    keyName: "OPENAI_DALLE_API_KEY"
+    keyName: "OpenAI API Key (for DALL-E)",
+    apiKeyField: "openaiKey",
+    placeholder: "sk-..."
   },
   a2e: {
     type: "Avatar Videos & Images",
     description: "Create realistic avatar videos with lip-sync and AI-generated images.",
     logo: "https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-purple-600", text: "A2E" },
-    keyName: "A2E_API_KEY"
+    keyName: "A2E API Key",
+    apiKeyField: "a2eKey",
+    placeholder: "a2e_..."
   },
   elevenlabs: {
     type: "Voice & Audio",
     description: "Generates natural voiceovers and audio from text using AI voices.",
     logo: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-zinc-900", text: "11" },
-    keyName: "ELEVENLABS_API_KEY"
+    keyName: "ElevenLabs API Key",
+    apiKeyField: "elevenlabsKey",
+    placeholder: "xi-..."
   },
   fal: {
     type: "Video/Image Generation",
     description: "Alternative AI video and image generation engine.",
     logo: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-indigo-600", text: "FAL" },
-    keyName: "FAL_API_KEY"
+    keyName: "Fal.ai API Key",
+    apiKeyField: "falKey",
+    placeholder: "fal_..."
   },
   pexels: {
     type: "B-Roll Footage",
     description: "Provides high-quality stock videos and images for B-Roll content.",
     logo: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-teal-600", text: "PX" },
-    keyName: "PEXELS_API_KEY"
+    keyName: "Pexels API Key",
+    apiKeyField: "pexelsKey",
+    placeholder: "pexels_..."
   }
 };
 
@@ -76,6 +94,13 @@ export default function AIEngines() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [selectedEngine, setSelectedEngine] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  
+  const { user, hasFullAccess, tier } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const isPremiumOrPro = tier === "premium" || tier === "pro";
 
   const { data: status, isLoading, refetch, isRefetching } = useQuery<AIEnginesResponse>({
     queryKey: ["/api/ai-engines/status"],
@@ -83,6 +108,61 @@ export default function AIEngines() {
       const res = await fetch("/api/ai-engines/status", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch AI engines status");
       return res.json();
+    },
+  });
+
+  const { data: userApiKeys } = useQuery({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const res = await fetch("/api/user/api-keys", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const saveKeyMutation = useMutation({
+    mutationFn: async ({ field, value }: { field: string; value: string | null }) => {
+      const res = await fetch("/api/user/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error("Failed to save API key");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai-engines/status"] });
+      refetch();
+      toast({ title: "API key saved!", description: "Your key has been securely stored." });
+      setApiKeyInput("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeKeyMutation = useMutation({
+    mutationFn: async (field: string) => {
+      const res = await fetch("/api/user/api-keys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ [field]: null }),
+      });
+      if (!res.ok) throw new Error("Failed to remove API key");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai-engines/status"] });
+      refetch();
+      toast({ title: "API key removed", description: "Your key has been deleted." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to remove", description: error.message, variant: "destructive" });
     },
   });
 
@@ -95,7 +175,27 @@ export default function AIEngines() {
 
   const handleConfigureClick = (engineId: string) => {
     setSelectedEngine(engineId);
+    setApiKeyInput("");
     setConfigDialogOpen(true);
+  };
+
+  const handleSaveKey = () => {
+    if (!selectedEngine || !apiKeyInput.trim()) {
+      toast({ title: "Enter API key", description: "Please enter your API key to save", variant: "destructive" });
+      return;
+    }
+    const field = ENGINE_INFO[selectedEngine].apiKeyField;
+    saveKeyMutation.mutate({ field, value: apiKeyInput.trim() });
+  };
+
+  const handleRemoveKey = () => {
+    if (!selectedEngine) return;
+    const field = ENGINE_INFO[selectedEngine].apiKeyField;
+    removeKeyMutation.mutate(field);
+  };
+
+  const isEngineConfigured = (engineId: string) => {
+    return engines.find(e => e.id === engineId)?.configured || false;
   };
 
   return (
@@ -104,6 +204,9 @@ export default function AIEngines() {
         <div>
           <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-page-title">Connected Intelligence</h2>
           <p className="text-muted-foreground">Manage your AI content generation pipelines and API connections.</p>
+          {isPremiumOrPro && (
+            <p className="text-sm text-emerald-600 mt-2">Premium/Pro: You have access to platform API keys</p>
+          )}
         </div>
         <button 
           onClick={() => refetch()}
@@ -157,9 +260,9 @@ export default function AIEngines() {
                   {engine.description}
                 </p>
 
-                {!engine.configured && (
+                {!engine.configured && !isPremiumOrPro && (
                   <p className="text-xs text-amber-600 mt-2">
-                    API key required. Add the secret to configure this engine.
+                    API key required. Click Configure to add your key.
                   </p>
                 )}
 
@@ -215,33 +318,91 @@ export default function AIEngines() {
               <div className="p-4 rounded-lg bg-secondary/50 border border-border/50 mb-4">
                 <div className="flex items-center gap-3 mb-3">
                   <Key className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium">API Key</span>
+                  <span className="font-medium">{ENGINE_INFO[selectedEngine].keyName}</span>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {ENGINE_INFO[selectedEngine].keyName}
-                </p>
-                {engines.find(e => e.id === selectedEngine)?.configured ? (
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm">
+                
+                {isEngineConfigured(selectedEngine) ? (
+                  <div className="flex items-center gap-2 text-emerald-600 text-sm mb-3">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>API key is configured</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-amber-600 text-sm">
+                  <div className="flex items-center gap-2 text-amber-600 text-sm mb-3">
                     <XCircle className="w-4 h-4" />
-                    <span>API key not found</span>
+                    <span>API key not configured</span>
                   </div>
                 )}
+
+                {isPremiumOrPro && isEngineConfigured(selectedEngine) && (
+                  <p className="text-xs text-muted-foreground">
+                    Using platform API key (included with your subscription)
+                  </p>
+                )}
               </div>
-              
-              {!engines.find(e => e.id === selectedEngine)?.configured && (
+
+              {!isPremiumOrPro && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="apiKey" className="text-sm font-medium">
+                      {isEngineConfigured(selectedEngine) ? "Update API Key" : "Enter API Key"}
+                    </Label>
+                    <Input
+                      id="apiKey"
+                      type="password"
+                      placeholder={ENGINE_INFO[selectedEngine].placeholder}
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-api-key"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Your API key is stored securely and never shared.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveKey}
+                      disabled={!apiKeyInput.trim() || saveKeyMutation.isPending}
+                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      data-testid="button-save-key"
+                    >
+                      {saveKeyMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      Save Key
+                    </button>
+                    
+                    {isEngineConfigured(selectedEngine) && (
+                      <button
+                        onClick={handleRemoveKey}
+                        disabled={removeKeyMutation.isPending}
+                        className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        data-testid="button-remove-key"
+                      >
+                        {removeKeyMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isPremiumOrPro && (
                 <p className="text-sm text-muted-foreground">
-                  To add an API key, go to the Secrets tab in your Replit project and add <code className="px-1 py-0.5 bg-secondary rounded text-xs">{ENGINE_INFO[selectedEngine].keyName}</code>
+                  As a {tier} subscriber, you have access to platform API keys. No configuration needed.
                 </p>
               )}
 
               <button
                 onClick={() => setConfigDialogOpen(false)}
-                className="w-full mt-4 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                className="w-full mt-4 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
                 data-testid="button-done"
               >
                 Done
