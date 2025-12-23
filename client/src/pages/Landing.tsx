@@ -44,40 +44,47 @@ export default function Landing() {
         <div id="how-it-works" className="max-w-6xl mx-auto mb-12 md:mb-16 pt-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-8">How It Works</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-4 mb-8">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 text-center">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm">1</div>
-              <Zap className="h-5 w-5 md:h-6 md:w-6 text-purple-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-1 text-xs md:text-sm">Connect API Keys</h3>
-              <p className="text-gray-400 text-xs">Add OpenAI, ElevenLabs keys</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-8">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">1</div>
+              <Zap className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Connect APIs</h3>
+              <p className="text-gray-400 text-[10px]">Add your AI keys</p>
             </div>
             
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 text-center">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm">2</div>
-              <FileText className="h-5 w-5 md:h-6 md:w-6 text-purple-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-1 text-xs md:text-sm">Create Brand Brief</h3>
-              <p className="text-gray-400 text-xs">Define your brand voice</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">2</div>
+              <FileText className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Brand Brief</h3>
+              <p className="text-gray-400 text-[10px]">Define your voice</p>
             </div>
             
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 text-center">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm">3</div>
-              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-purple-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-1 text-xs md:text-sm">Generate Content</h3>
-              <p className="text-gray-400 text-xs">AI creates scripts & captions</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">3</div>
+              <Sparkles className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Analyze Content</h3>
+              <p className="text-gray-400 text-[10px]">Viral trends & mood</p>
             </div>
             
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 text-center">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm">4</div>
-              <Video className="h-5 w-5 md:h-6 md:w-6 text-purple-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-1 text-xs md:text-sm">Add Media</h3>
-              <p className="text-gray-400 text-xs">Voiceovers, videos, images</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">4</div>
+              <FileText className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Generate Content</h3>
+              <p className="text-gray-400 text-[10px]">Scripts & captions</p>
             </div>
             
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 md:p-5 text-center">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm">5</div>
-              <Calendar className="h-5 w-5 md:h-6 md:w-6 text-purple-400 mx-auto mb-2" />
-              <h3 className="text-white font-semibold mb-1 text-xs md:text-sm">Schedule & Post</h3>
-              <p className="text-gray-400 text-xs">Post to YouTube, TikTok, IG</p>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">5</div>
+              <Video className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Add Media</h3>
+              <p className="text-gray-400 text-[10px]">Voice, video, images</p>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">6</div>
+              <Calendar className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Schedule & Post</h3>
+              <p className="text-gray-400 text-[10px]">YouTube, TikTok, IG</p>
             </div>
           </div>
 
