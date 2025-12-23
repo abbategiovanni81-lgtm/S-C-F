@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { users, OWNER_EMAIL, TIER_LIMITS, usagePeriods, usageTopups, type TierType } from "@shared/models/auth";
 import { getUncachableStripeClient, getStripePublishableKey, getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -968,7 +968,7 @@ export async function registerRoutes(
             generationMetadata: generatedContent.generationMetadata,
             script: generatedContent.script,
           }).from(generatedContent)
-            .where(sql`${generatedContent.briefId} = ANY(${briefIds})`);
+            .where(inArray(generatedContent.briefId, briefIds));
 
           for (const c of content) {
             if (c.script) scriptsCount++;
