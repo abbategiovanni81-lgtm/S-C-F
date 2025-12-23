@@ -46,7 +46,7 @@ export function Sidebar({ collapsed, toggleCollapsed }: SidebarProps) {
           <img 
             src="/logo.png" 
             alt="SocialCommandFlow" 
-            className={cn("flex-shrink-0 object-contain", collapsed ? "w-10 h-10" : "w-8 h-8")}
+            className={cn("flex-shrink-0 object-contain", collapsed ? "w-16 h-16" : "w-14 h-14")}
           />
           {!collapsed && <span className="whitespace-nowrap">SocialCommandFlow</span>}
         </div>
