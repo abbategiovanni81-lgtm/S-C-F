@@ -3094,7 +3094,7 @@ export async function registerRoutes(
     },
   });
 
-  app.post("/api/creator-studio/upload", isAuthenticated, creatorStudioUpload.single("file"), async (req, res) => {
+  app.post("/api/creator-studio/upload", isAuthenticated, requireCreatorStudio, creatorStudioUpload.single("file"), async (req, res) => {
     try {
       const file = req.file;
       if (!file) {

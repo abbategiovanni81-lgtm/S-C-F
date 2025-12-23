@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MediaUpload } from "@/components/ui/media-upload";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -374,16 +375,15 @@ function VoiceCloneTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Audio/Video URL</Label>
-          <Input
-            placeholder="https://example.com/audio.mp3"
-            value={audioUrl}
-            onChange={(e) => setAudioUrl(e.target.value)}
-            data-testid="input-audio-url"
-          />
-          <p className="text-xs text-muted-foreground">Provide a URL to an audio or video file (10-60 seconds recommended)</p>
-        </div>
+        <MediaUpload
+          value={audioUrl}
+          onChange={setAudioUrl}
+          accept="audio,video"
+          label="Audio/Video File"
+          placeholder="https://example.com/audio.mp3"
+          description="Upload or paste URL to audio/video (10-60 seconds recommended)"
+          testId="voice-clone-audio"
+        />
         <div className="space-y-2">
           <Label>Voice Name</Label>
           <Input
@@ -453,16 +453,15 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Photo URL</Label>
-          <Input
-            placeholder="https://example.com/photo.jpg"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            data-testid="input-photo-url"
-          />
-          <p className="text-xs text-muted-foreground">Use a clear front-facing portrait photo</p>
-        </div>
+        <MediaUpload
+          value={imageUrl}
+          onChange={setImageUrl}
+          accept="image"
+          label="Portrait Photo"
+          placeholder="https://example.com/photo.jpg"
+          description="Use a clear front-facing portrait photo"
+          testId="talking-photo-image"
+        />
         <div className="space-y-2">
           <Label>Text to Speak</Label>
           <Textarea
@@ -533,15 +532,15 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Video URL</Label>
-          <Input
-            placeholder="https://example.com/video.mp4"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            data-testid="input-video-url"
-          />
-        </div>
+        <MediaUpload
+          value={videoUrl}
+          onChange={setVideoUrl}
+          accept="video"
+          label="Video File"
+          placeholder="https://example.com/video.mp4"
+          description="Upload video with clear face visibility"
+          testId="talking-video"
+        />
         <div className="space-y-2">
           <Label>New Text to Speak</Label>
           <Textarea
@@ -612,25 +611,24 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Source Face (Photo URL)</Label>
-          <Input
-            placeholder="https://example.com/face.jpg"
-            value={sourceImageUrl}
-            onChange={(e) => setSourceImageUrl(e.target.value)}
-            data-testid="input-source-face"
-          />
-          <p className="text-xs text-muted-foreground">Clear front-facing photo of the face to swap in</p>
-        </div>
-        <div className="space-y-2">
-          <Label>Target Video URL</Label>
-          <Input
-            placeholder="https://example.com/video.mp4"
-            value={targetVideoUrl}
-            onChange={(e) => setTargetVideoUrl(e.target.value)}
-            data-testid="input-target-video"
-          />
-        </div>
+        <MediaUpload
+          value={sourceImageUrl}
+          onChange={setSourceImageUrl}
+          accept="image"
+          label="Source Face (Photo)"
+          placeholder="https://example.com/face.jpg"
+          description="Clear front-facing photo of the face to swap in"
+          testId="face-swap-source"
+        />
+        <MediaUpload
+          value={targetVideoUrl}
+          onChange={setTargetVideoUrl}
+          accept="video"
+          label="Target Video"
+          placeholder="https://example.com/video.mp4"
+          description="Video where the face will be swapped"
+          testId="face-swap-target"
+        />
         <Button 
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending || !sourceImageUrl || !targetVideoUrl}
@@ -705,15 +703,15 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Video URL</Label>
-          <Input
-            placeholder="https://example.com/video.mp4"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            data-testid="input-dub-video-url"
-          />
-        </div>
+        <MediaUpload
+          value={videoUrl}
+          onChange={setVideoUrl}
+          accept="video"
+          label="Video File"
+          placeholder="https://example.com/video.mp4"
+          description="Upload video to translate and dub"
+          testId="dubbing-video"
+        />
         <div className="space-y-2">
           <Label>Target Language</Label>
           <Select value={targetLanguage} onValueChange={setTargetLanguage}>
@@ -787,15 +785,15 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Image URL</Label>
-          <Input
-            placeholder="https://example.com/image.jpg"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            data-testid="input-img-to-video-url"
-          />
-        </div>
+        <MediaUpload
+          value={imageUrl}
+          onChange={setImageUrl}
+          accept="image"
+          label="Image File"
+          placeholder="https://example.com/image.jpg"
+          description="Upload image to animate into video"
+          testId="image-to-video"
+        />
         <div className="space-y-2">
           <Label>Motion Description (optional)</Label>
           <Textarea
@@ -864,16 +862,15 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Video URL</Label>
-          <Input
-            placeholder="https://example.com/video.mp4"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            data-testid="input-caption-removal-url"
-          />
-          <p className="text-xs text-muted-foreground">Works best with clear, simple caption styles</p>
-        </div>
+        <MediaUpload
+          value={videoUrl}
+          onChange={setVideoUrl}
+          accept="video"
+          label="Video File"
+          placeholder="https://example.com/video.mp4"
+          description="Works best with clear, simple caption styles"
+          testId="caption-removal"
+        />
         <Button 
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending || !videoUrl}
@@ -934,15 +931,15 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Video URL</Label>
-          <Input
-            placeholder="https://example.com/video.mp4"
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            data-testid="input-style-video-url"
-          />
-        </div>
+        <MediaUpload
+          value={videoUrl}
+          onChange={setVideoUrl}
+          accept="video"
+          label="Video File"
+          placeholder="https://example.com/video.mp4"
+          description="Upload video to apply style transfer"
+          testId="video-style"
+        />
         <div className="space-y-2">
           <Label>Style Description</Label>
           <Textarea
@@ -1013,26 +1010,24 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label>Person Photo URL</Label>
-          <Input
-            placeholder="https://example.com/person.jpg"
-            value={personImageUrl}
-            onChange={(e) => setPersonImageUrl(e.target.value)}
-            data-testid="input-person-photo"
-          />
-          <p className="text-xs text-muted-foreground">Full body or upper body photo works best</p>
-        </div>
-        <div className="space-y-2">
-          <Label>Clothing Image URL</Label>
-          <Input
-            placeholder="https://example.com/clothing.jpg"
-            value={clothingImageUrl}
-            onChange={(e) => setClothingImageUrl(e.target.value)}
-            data-testid="input-clothing-image"
-          />
-          <p className="text-xs text-muted-foreground">Product photo of the clothing item</p>
-        </div>
+        <MediaUpload
+          value={personImageUrl}
+          onChange={setPersonImageUrl}
+          accept="image"
+          label="Person Photo"
+          placeholder="https://example.com/person.jpg"
+          description="Full body or upper body photo works best"
+          testId="virtual-tryon-person"
+        />
+        <MediaUpload
+          value={clothingImageUrl}
+          onChange={setClothingImageUrl}
+          accept="image"
+          label="Clothing Image"
+          placeholder="https://example.com/clothing.jpg"
+          description="Product photo of the clothing item"
+          testId="virtual-tryon-clothing"
+        />
         <Button 
           onClick={() => mutation.mutate()}
           disabled={mutation.isPending || !personImageUrl || !clothingImageUrl}
