@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, BarChart3, Calendar, Users, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -102,9 +102,8 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 items-start max-w-6xl mx-auto">
-          <div className="space-y-6">
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
+        <div className="max-w-md mx-auto">
+          <Card className="bg-white/10 border-white/20 backdrop-blur">
               <CardHeader>
                 <CardTitle className="text-white text-2xl">Get Started</CardTitle>
                 <CardDescription className="text-gray-300">
@@ -276,49 +275,6 @@ export default function Landing() {
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="pt-6 text-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Video className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">AI Video</h3>
-                <p className="text-gray-400 text-sm">Create videos with AI avatars</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="pt-6 text-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Zap className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Smart Content</h3>
-                <p className="text-gray-400 text-sm">AI scripts and captions</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="pt-6 text-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Analytics</h3>
-                <p className="text-gray-400 text-sm">Track performance</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="pt-6 text-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Multi-Platform</h3>
-                <p className="text-gray-400 text-sm">YouTube, TikTok, IG</p>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         <div className="text-center mt-12">
