@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Camera } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, ImagePlay } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -125,7 +125,7 @@ export default function Landing() {
               <p className="text-white text-xs font-medium">Voice Cloning</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
-              <Camera className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+              <ImagePlay className="h-5 w-5 text-pink-400 mx-auto mb-1" />
               <p className="text-white text-xs font-medium">Talking Photos</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
