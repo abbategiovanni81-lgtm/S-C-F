@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -88,7 +88,7 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-4">
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
               <Mic className="h-5 w-5 text-blue-400 mx-auto mb-1" />
               <p className="text-white text-xs font-medium">AI Voiceovers</p>
@@ -96,6 +96,10 @@ export default function Landing() {
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
               <Video className="h-5 w-5 text-blue-400 mx-auto mb-1" />
               <p className="text-white text-xs font-medium">Avatar Videos</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <Film className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">In-Scene Video</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
               <Image className="h-5 w-5 text-blue-400 mx-auto mb-1" />
@@ -106,12 +110,35 @@ export default function Landing() {
               <p className="text-white text-xs font-medium">Social Listening</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
-              <Scissors className="h-5 w-5 text-blue-400 mx-auto mb-1" />
-              <p className="text-white text-xs font-medium">Edit & Merge</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
               <Sparkles className="h-5 w-5 text-blue-400 mx-auto mb-1" />
               <p className="text-white text-xs font-medium">Content Analyzer</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+            <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-lg p-3 text-center">
+              <Wand2 className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">Creator Studio</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <Mic className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">Voice Cloning</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <Camera className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">Talking Photos</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <UserCircle className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">Face Swap</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <Languages className="h-5 w-5 text-pink-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">AI Dubbing</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+              <Scissors className="h-5 w-5 text-blue-400 mx-auto mb-1" />
+              <p className="text-white text-xs font-medium">Edit & Merge</p>
             </div>
           </div>
         </div>
