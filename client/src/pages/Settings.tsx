@@ -234,28 +234,40 @@ export default function Settings() {
                         limit={usageStats.usage?.brandBriefs?.limit || 0}
                       />
                       <UsageBar 
-                        icon={<FileText className="h-4 w-4" />}
-                        label="Script Generations"
-                        used={usageStats.usage?.scripts?.used || 0}
-                        limit={usageStats.usage?.scripts?.limit || 0}
-                      />
-                      <UsageBar 
                         icon={<Mic className="h-4 w-4" />}
-                        label="Voiceovers"
+                        label="Voiceovers (min)"
                         used={usageStats.usage?.voiceovers?.used || 0}
                         limit={usageStats.usage?.voiceovers?.limit || 0}
                       />
                       <UsageBar 
                         icon={<Video className="h-4 w-4" />}
-                        label="Videos"
-                        used={usageStats.usage?.videos?.used || 0}
-                        limit={usageStats.usage?.videos?.limit || 0}
+                        label="A2E Videos"
+                        used={usageStats.usage?.a2eVideos?.used || 0}
+                        limit={usageStats.usage?.a2eVideos?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Video className="h-4 w-4" />}
+                        label="Lipsync"
+                        used={usageStats.usage?.lipsync?.used || 0}
+                        limit={usageStats.usage?.lipsync?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Video className="h-4 w-4" />}
+                        label="Avatars"
+                        used={usageStats.usage?.avatars?.used || 0}
+                        limit={usageStats.usage?.avatars?.limit || 0}
                       />
                       <UsageBar 
                         icon={<Image className="h-4 w-4" />}
-                        label="Image Generations"
-                        used={usageStats.usage?.images?.used || 0}
-                        limit={usageStats.usage?.images?.limit || 0}
+                        label="DALL-E Images"
+                        used={usageStats.usage?.dalleImages?.used || 0}
+                        limit={usageStats.usage?.dalleImages?.limit || 0}
+                      />
+                      <UsageBar 
+                        icon={<Video className="h-4 w-4" />}
+                        label="Sora Videos"
+                        used={usageStats.usage?.soraVideos?.used || 0}
+                        limit={usageStats.usage?.soraVideos?.limit || 0}
                       />
                       <UsageBar 
                         icon={<MessageSquare className="h-4 w-4" />}

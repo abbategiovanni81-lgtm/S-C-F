@@ -761,8 +761,11 @@ export async function registerRoutes(
 
         let scriptsCount = 0;
         let voiceoversCount = 0;
-        let videosCount = 0;
-        let imagesCount = 0;
+        let a2eVideosCount = 0;
+        let lipsyncCount = 0;
+        let avatarsCount = 0;
+        let dalleImagesCount = 0;
+        let soraVideosCount = 0;
 
         if (briefIds.length > 0) {
           const content = await db.select({
@@ -775,10 +778,13 @@ export async function registerRoutes(
 
           for (const c of content) {
             if (c.script) scriptsCount++;
-            if (c.videoUrl) videosCount++;
-            if (c.thumbnailUrl) imagesCount++;
             const meta = c.generationMetadata as any;
             if (meta?.voiceGenerated || meta?.audioUrl) voiceoversCount++;
+            if (meta?.a2eVideo) a2eVideosCount++;
+            if (meta?.lipsync) lipsyncCount++;
+            if (meta?.avatar) avatarsCount++;
+            if (meta?.dalleImage || c.thumbnailUrl) dalleImagesCount++;
+            if (meta?.soraVideo) soraVideosCount++;
           }
         }
 
@@ -795,9 +801,10 @@ export async function registerRoutes(
         const postsCount = postsResult[0]?.count || 0;
 
         // Calculate estimated AI costs (only for premium/pro users using app keys)
-        // OpenAI: ~$0.01/script, ElevenLabs: ~$0.03/voice, A2E video: ~$1.00, A2E image: ~$0.10
+        // A2E video: $1.00, Lipsync: $0.50, Avatar: $2.00, DALL-E: $0.04, Sora: $0.50, Voice: $0.03
         const estimatedCost = u.tier === "premium" || u.tier === "pro"
-          ? (scriptsCount * 0.01) + (voiceoversCount * 0.03) + (videosCount * 1.00) + (imagesCount * 0.10)
+          ? (scriptsCount * 0.01) + (voiceoversCount * 0.03) + (a2eVideosCount * 1.00) + 
+            (lipsyncCount * 0.50) + (avatarsCount * 2.00) + (dalleImagesCount * 0.04) + (soraVideosCount * 0.50)
           : 0;
 
         return {
@@ -806,8 +813,11 @@ export async function registerRoutes(
             brandBriefs: briefsCount,
             scripts: scriptsCount,
             voiceovers: voiceoversCount,
-            videos: videosCount,
-            images: imagesCount,
+            a2eVideos: a2eVideosCount,
+            lipsync: lipsyncCount,
+            avatars: avatarsCount,
+            dalleImages: dalleImagesCount,
+            soraVideos: soraVideosCount,
             connectedAccounts: accountsCount,
             scheduledPosts: postsCount,
             estimatedCost: Math.round(estimatedCost * 100) / 100,

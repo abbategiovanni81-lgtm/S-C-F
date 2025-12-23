@@ -14,8 +14,11 @@ interface UserStats {
   brandBriefs: number;
   scripts: number;
   voiceovers: number;
-  videos: number;
-  images: number;
+  a2eVideos: number;
+  lipsync: number;
+  avatars: number;
+  dalleImages: number;
+  soraVideos: number;
   connectedAccounts: number;
   scheduledPosts: number;
   estimatedCost: number;
@@ -236,8 +239,11 @@ export default function Admin() {
                           <StatItem icon={<FileText className="h-4 w-4" />} label="Brand Briefs" value={u.stats.brandBriefs} />
                           <StatItem icon={<FileText className="h-4 w-4" />} label="Scripts" value={u.stats.scripts} />
                           <StatItem icon={<Mic className="h-4 w-4" />} label="Voiceovers" value={u.stats.voiceovers} />
-                          <StatItem icon={<Video className="h-4 w-4" />} label="Videos" value={u.stats.videos} />
-                          <StatItem icon={<Image className="h-4 w-4" />} label="Images" value={u.stats.images} />
+                          <StatItem icon={<Video className="h-4 w-4" />} label="A2E Videos" value={u.stats.a2eVideos} />
+                          <StatItem icon={<Video className="h-4 w-4" />} label="Lipsync" value={u.stats.lipsync} />
+                          <StatItem icon={<Video className="h-4 w-4" />} label="Avatars" value={u.stats.avatars} />
+                          <StatItem icon={<Image className="h-4 w-4" />} label="DALL-E Images" value={u.stats.dalleImages} />
+                          <StatItem icon={<Video className="h-4 w-4" />} label="Sora Videos" value={u.stats.soraVideos} />
                           <StatItem icon={<Link2 className="h-4 w-4" />} label="Accounts" value={u.stats.connectedAccounts} />
                           <StatItem icon={<Calendar className="h-4 w-4" />} label="Scheduled" value={u.stats.scheduledPosts} />
                           <StatItem 
