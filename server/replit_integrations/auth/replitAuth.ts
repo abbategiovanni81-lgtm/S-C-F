@@ -52,7 +52,18 @@ export async function setupAuth(app: Express) {
           if (!isValid) {
             return done(null, false, { message: "Incorrect password" });
           }
-          return done(null, user);
+          
+          // ALWAYS run upsertUser to apply owner flags on every login
+          const updatedUser = await authStorage.upsertUser({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profileImageUrl: user.profileImageUrl,
+            password: user.password,
+          });
+          
+          return done(null, updatedUser);
         } catch (error) {
           return done(error);
         }
