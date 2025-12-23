@@ -291,10 +291,13 @@ export default function Landing() {
             </Card>
         </div>
 
-        <div className="text-center mt-12">
+        <div className="text-center mt-12 space-y-2">
           <p className="text-gray-500 text-sm">
             Powered by OpenAI, ElevenLabs, A2E, Fal.ai, and Pexels
           </p>
+          <a href="/terms" className="text-gray-500 text-sm hover:text-purple-400 underline">
+            Terms of Service
+          </a>
         </div>
       </div>
     </div>
