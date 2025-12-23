@@ -3026,12 +3026,16 @@ export async function registerRoutes(
 
   // ==================== CREATOR STUDIO ENDPOINTS ====================
 
-  // Middleware to check Creator Studio access
+  // Middleware to check Creator Studio access (owners always have access)
   const requireCreatorStudio = async (req: any, res: any, next: any) => {
     const userId = (req.user as any)?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+    // Owners always have access to Creator Studio
+    if (user?.isOwner) {
+      return next();
+    }
     if (!user?.creatorStudioAccess) {
       return res.status(403).json({ 
         error: "Creator Studio access required", 
@@ -3048,8 +3052,12 @@ export async function registerRoutes(
       const userId = (req.user as any)?.id;
       const stats = await getUsageStats(userId);
       
+      // Check if user is owner - owners always have access
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      const hasAccess = stats.hasCreatorStudio || user?.isOwner === true;
+      
       res.json({
-        hasAccess: stats.hasCreatorStudio,
+        hasAccess,
         usage: stats.creatorStudioUsage,
         a2eConfigured: a2eService.isConfigured(),
       });

@@ -97,8 +97,8 @@ export function useAuth() {
     },
   });
 
-  const hasFullAccess = user?.tier === "pro" || user?.tier === "premium";
   const isOwner = user?.isOwner || false;
+  const hasFullAccess = user?.tier === "pro" || user?.tier === "premium" || isOwner;
 
   return {
     user,

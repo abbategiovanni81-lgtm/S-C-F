@@ -53,7 +53,7 @@ type CreatorStudioStatus = {
 };
 
 export default function CreatorStudio() {
-  const { user, hasFullAccess, tier } = useAuth();
+  const { user, hasFullAccess, tier, isOwner } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -96,26 +96,11 @@ export default function CreatorStudio() {
     );
   }
 
-  if (!hasFullAccess) {
-    return (
-      <Layout>
-        <div className="container mx-auto p-6 max-w-4xl">
-          <LockedState 
-            title="Upgrade Required"
-            description="Creator Studio requires a Premium or Pro subscription."
-            action={
-              <Button className="gap-2" onClick={() => window.location.href = "/settings"}>
-                <Crown className="h-4 w-4" />
-                View Plans
-              </Button>
-            }
-          />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!status?.hasAccess) {
+  // Show unlock screen for users who can see tools but haven't subscribed to Creator Studio
+  // Owners and Premium/Pro users who haven't subscribed to Creator Studio add-on
+  const canUseCreatorStudio = status?.hasAccess || isOwner;
+  
+  if (!canUseCreatorStudio && !status?.hasAccess) {
     return (
       <Layout>
         <div className="container mx-auto p-6 max-w-4xl">
@@ -189,7 +174,7 @@ export default function CreatorStudio() {
           </Badge>
         </div>
 
-        <UsageOverview usage={status.usage} />
+        {status?.usage && <UsageOverview usage={status.usage} />}
 
         <Tabs defaultValue="voice-clone" className="space-y-6 mt-6">
           <TabsList className="flex-wrap h-auto gap-1">
@@ -232,39 +217,39 @@ export default function CreatorStudio() {
           </TabsList>
 
           <TabsContent value="voice-clone">
-            <VoiceCloneTab usage={status.usage?.voiceClones} />
+            <VoiceCloneTab usage={status?.usage?.voiceClones} />
           </TabsContent>
 
           <TabsContent value="talking-photo">
-            <TalkingPhotoTab usage={status.usage?.talkingPhotos} />
+            <TalkingPhotoTab usage={status?.usage?.talkingPhotos} />
           </TabsContent>
 
           <TabsContent value="talking-video">
-            <TalkingVideoTab usage={status.usage?.talkingVideos} />
+            <TalkingVideoTab usage={status?.usage?.talkingVideos} />
           </TabsContent>
 
           <TabsContent value="face-swap">
-            <FaceSwapTab usage={status.usage?.faceSwaps} />
+            <FaceSwapTab usage={status?.usage?.faceSwaps} />
           </TabsContent>
 
           <TabsContent value="dubbing">
-            <DubbingTab usage={status.usage?.aiDubbing} />
+            <DubbingTab usage={status?.usage?.aiDubbing} />
           </TabsContent>
 
           <TabsContent value="image-to-video">
-            <ImageToVideoTab usage={status.usage?.imageToVideo} />
+            <ImageToVideoTab usage={status?.usage?.imageToVideo} />
           </TabsContent>
 
           <TabsContent value="caption-removal">
-            <CaptionRemovalTab usage={status.usage?.captionRemoval} />
+            <CaptionRemovalTab usage={status?.usage?.captionRemoval} />
           </TabsContent>
 
           <TabsContent value="video-style">
-            <VideoStyleTab usage={status.usage?.videoToVideo} />
+            <VideoStyleTab usage={status?.usage?.videoToVideo} />
           </TabsContent>
 
           <TabsContent value="virtual-tryon">
-            <VirtualTryOnTab usage={status.usage?.virtualTryOn} />
+            <VirtualTryOnTab usage={status?.usage?.virtualTryOn} />
           </TabsContent>
         </Tabs>
       </div>
