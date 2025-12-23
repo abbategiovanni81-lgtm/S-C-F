@@ -120,7 +120,19 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               <div className="p-4 rounded-lg bg-secondary/50 border border-border/50">
-                <h3 className="font-medium mb-2">1. Create a Brand Brief</h3>
+                <h3 className="font-medium mb-2">1. Check AI Engines</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  See which AI services are connected and configured.
+                </p>
+                <Link href="/ai-engines">
+                  <a className="text-sm text-primary font-medium hover:underline" data-testid="link-ai-engines">
+                    View AI Engines →
+                  </a>
+                </Link>
+              </div>
+
+              <div className="p-4 rounded-lg bg-secondary/50 border border-border/50">
+                <h3 className="font-medium mb-2">2. Create a Brand Brief</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Define your brand voice, target audience, and content goals.
                 </p>
@@ -132,25 +144,13 @@ export default function Dashboard() {
               </div>
 
               <div className="p-4 rounded-lg bg-secondary/50 border border-border/50">
-                <h3 className="font-medium mb-2">2. Generate Content</h3>
+                <h3 className="font-medium mb-2">3. Generate Content</h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   AI will create scripts, captions, and hashtags based on your brief.
                 </p>
                 <Link href="/content-queue">
                   <a className="text-sm text-primary font-medium hover:underline" data-testid="link-content-queue">
                     View Content Queue →
-                  </a>
-                </Link>
-              </div>
-
-              <div className="p-4 rounded-lg bg-secondary/50 border border-border/50">
-                <h3 className="font-medium mb-2">3. Check AI Engines</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  See which AI services are connected and configured.
-                </p>
-                <Link href="/ai-engines">
-                  <a className="text-sm text-primary font-medium hover:underline" data-testid="link-ai-engines">
-                    View AI Engines →
                   </a>
                 </Link>
               </div>
