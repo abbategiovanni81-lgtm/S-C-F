@@ -1,8 +1,10 @@
 import { db } from "./db";
-import { users, usagePeriods, usageTopups, TIER_LIMITS, type TierType } from "@shared/models/auth";
+import { users, usagePeriods, usageTopups, TIER_LIMITS, CREATOR_STUDIO_LIMITS, type TierType } from "@shared/models/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
 export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening";
+
+export type CreatorStudioUsageType = "voiceClones" | "talkingPhotos" | "talkingVideos" | "faceSwaps" | "aiDubbing" | "imageToVideo" | "captionRemoval" | "videoToVideo" | "virtualTryOn";
 
 const usageColumnMap = {
   brandBriefs: "brandBriefsUsed",
@@ -14,6 +16,18 @@ const usageColumnMap = {
   dalleImages: "dalleImagesUsed",
   soraVideos: "soraVideosUsed",
   socialListening: "socialListeningUsed",
+} as const;
+
+const creatorStudioColumnMap = {
+  voiceClones: "voiceClonesUsed",
+  talkingPhotos: "talkingPhotosUsed",
+  talkingVideos: "talkingVideosUsed",
+  faceSwaps: "faceSwapsUsed",
+  aiDubbing: "aiDubbingUsed",
+  imageToVideo: "imageToVideoUsed",
+  captionRemoval: "captionRemovalUsed",
+  videoToVideo: "videoToVideoUsed",
+  virtualTryOn: "virtualTryOnUsed",
 } as const;
 
 const limitKeyMap = {
@@ -69,6 +83,7 @@ export async function getUsageStats(userId: string) {
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   const tier = (user?.tier || "free") as TierType;
   const limits = TIER_LIMITS[tier] || TIER_LIMITS.free;
+  const hasCreatorStudio = user?.creatorStudioAccess || false;
 
   const topupMultiplier = period.topupMultiplier || 0;
 
@@ -84,6 +99,7 @@ export async function getUsageStats(userId: string) {
     },
     tier,
     topupMultiplier,
+    hasCreatorStudio,
     usage: {
       brandBriefs: { used: period.brandBriefsUsed, limit: getLimit(limits.brandBriefs) },
       scripts: { used: period.scriptsUsed, limit: getLimit(limits.scripts) },
@@ -95,6 +111,17 @@ export async function getUsageStats(userId: string) {
       soraVideos: { used: period.soraVideosUsed, limit: getLimit(limits.soraVideos) },
       socialListening: { used: period.socialListeningUsed, limit: getLimit(limits.socialListeningKeywords) },
     },
+    creatorStudioUsage: hasCreatorStudio ? {
+      voiceClones: { used: period.voiceClonesUsed || 0, limit: CREATOR_STUDIO_LIMITS.voiceClones },
+      talkingPhotos: { used: period.talkingPhotosUsed || 0, limit: CREATOR_STUDIO_LIMITS.talkingPhotos },
+      talkingVideos: { used: period.talkingVideosUsed || 0, limit: CREATOR_STUDIO_LIMITS.talkingVideos },
+      faceSwaps: { used: period.faceSwapsUsed || 0, limit: CREATOR_STUDIO_LIMITS.faceSwaps },
+      aiDubbing: { used: period.aiDubbingUsed || 0, limit: CREATOR_STUDIO_LIMITS.aiDubbing },
+      imageToVideo: { used: period.imageToVideoUsed || 0, limit: CREATOR_STUDIO_LIMITS.imageToVideo },
+      captionRemoval: { used: period.captionRemovalUsed || 0, limit: CREATOR_STUDIO_LIMITS.captionRemoval },
+      videoToVideo: { used: period.videoToVideoUsed || 0, limit: CREATOR_STUDIO_LIMITS.videoToVideo },
+      virtualTryOn: { used: period.virtualTryOnUsed || 0, limit: CREATOR_STUDIO_LIMITS.virtualTryOn },
+    } : null,
     usesAppApis: limits.usesAppApis,
   };
 }
@@ -134,6 +161,94 @@ export async function incrementUsage(userId: string, usageType: UsageType, count
       [columnName]: sql`${usagePeriods[columnName]} + ${count}`,
     })
     .where(eq(usagePeriods.id, period.id));
+}
+
+// Creator Studio quota checking
+export async function checkCreatorStudioQuota(userId: string, usageType: CreatorStudioUsageType, count: number = 1): Promise<{ allowed: boolean; remaining: number; limit: number; used: number; hasAccess: boolean }> {
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  
+  if (!user?.creatorStudioAccess) {
+    return { allowed: false, remaining: 0, limit: 0, used: 0, hasAccess: false };
+  }
+
+  const period = await getCurrentPeriod(userId);
+  const limit = CREATOR_STUDIO_LIMITS[usageType];
+  const columnName = creatorStudioColumnMap[usageType];
+  const used = (period as any)[columnName] || 0;
+  const remaining = limit - used;
+  const allowed = remaining >= count;
+
+  return { allowed, remaining, limit, used, hasAccess: true };
+}
+
+export async function incrementCreatorStudioUsage(userId: string, usageType: CreatorStudioUsageType, count: number = 1): Promise<void> {
+  const period = await getCurrentPeriod(userId);
+  const columnName = creatorStudioColumnMap[usageType];
+  
+  await db
+    .update(usagePeriods)
+    .set({
+      [columnName]: sql`${usagePeriods[columnName]} + ${count}`,
+    })
+    .where(eq(usagePeriods.id, period.id));
+}
+
+export async function assertCreatorStudioQuota(userId: string, usageType: CreatorStudioUsageType, count: number = 1): Promise<void> {
+  const check = await checkCreatorStudioQuota(userId, usageType, count);
+  
+  if (!check.hasAccess) {
+    throw new CreatorStudioAccessError("Creator Studio access required. Subscribe for £20/month to unlock these features.");
+  }
+  
+  if (!check.allowed) {
+    throw new QuotaExceededError(
+      `Monthly ${usageType} limit reached (${check.used}/${check.limit}). Wait until next month.`,
+      usageType as any,
+      check
+    );
+  }
+}
+
+export class CreatorStudioAccessError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CreatorStudioAccessError";
+  }
+}
+
+// Get total Creator Studio users for capacity planning
+export async function getCreatorStudioUserCount(): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(users)
+    .where(eq(users.creatorStudioAccess, true));
+  return result[0]?.count || 0;
+}
+
+// A2E capacity check for admin alerts (5,400 credits per account)
+export async function getA2ECapacityStatus(): Promise<{
+  creatorStudioUsers: number;
+  creditsPerUser: number;
+  totalCreditsNeeded: number;
+  accountsNeeded: number;
+  capacityWarning: boolean;
+}> {
+  const userCount = await getCreatorStudioUserCount();
+  const creditsPerUser = 1300; // Based on CREATOR_STUDIO_LIMITS
+  const creditsPerAccount = 5400;
+  const totalCreditsNeeded = userCount * creditsPerUser;
+  const accountsNeeded = Math.ceil(totalCreditsNeeded / creditsPerAccount);
+  
+  // Warning if we need more than 1 account (adjustable threshold)
+  const capacityWarning = accountsNeeded > 1;
+  
+  return {
+    creatorStudioUsers: userCount,
+    creditsPerUser,
+    totalCreditsNeeded,
+    accountsNeeded,
+    capacityWarning,
+  };
 }
 
 export async function applyTopup(userId: string, stripeSessionId: string, amount: number = 1000): Promise<boolean> {

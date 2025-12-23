@@ -62,6 +62,21 @@ export const TIER_LIMITS = {
 
 export type TierType = "free" | "premium" | "pro";
 
+// Creator Studio Add-on (£20/month) - requires Premium or Pro subscription
+// Uses separate A2E account pool (~1,300 credits per user per month)
+export const CREATOR_STUDIO_LIMITS = {
+  voiceClones: 2,       // ~50 credits each = 100
+  talkingPhotos: 10,    // ~30 credits each = 300
+  talkingVideos: 5,     // ~30 credits each = 150
+  faceSwaps: 8,         // ~20 credits each = 160
+  aiDubbing: 3,         // ~50 credits each = 150
+  imageToVideo: 5,      // ~30 credits each = 150
+  captionRemoval: 10,   // ~10 credits each = 100
+  videoToVideo: 3,      // ~30 credits each = 90
+  virtualTryOn: 5,      // ~20 credits each = 100
+  // Total: ~1,300 credits per user per month
+} as const;
+
 // User storage table.
 // (IMPORTANT) This table is mandatory for authentication, don't drop it.
 export const users = pgTable("users", {
@@ -74,6 +89,8 @@ export const users = pgTable("users", {
   googleId: varchar("google_id"),
   tier: varchar("tier").notNull().default("free"), // "free", "premium", "pro"
   isOwner: boolean("is_owner").notNull().default(false), // Admin privileges
+  creatorStudioAccess: boolean("creator_studio_access").notNull().default(false), // £20/mo add-on
+  creatorStudioStripeId: varchar("creator_studio_stripe_id"), // Separate subscription ID
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
   lastLogin: timestamp("last_login"),
@@ -98,6 +115,16 @@ export const usagePeriods = pgTable("usage_periods", {
   soraVideosUsed: integer("sora_videos_used").notNull().default(0),     // OpenAI Sora videos
   socialListeningUsed: integer("social_listening_used").notNull().default(0),
   topupMultiplier: real("topup_multiplier").notNull().default(0), // Sum of all top-ups (0.4 per £10)
+  // Creator Studio usage
+  voiceClonesUsed: integer("voice_clones_used").notNull().default(0),
+  talkingPhotosUsed: integer("talking_photos_used").notNull().default(0),
+  talkingVideosUsed: integer("talking_videos_used").notNull().default(0),
+  faceSwapsUsed: integer("face_swaps_used").notNull().default(0),
+  aiDubbingUsed: integer("ai_dubbing_used").notNull().default(0),
+  imageToVideoUsed: integer("image_to_video_used").notNull().default(0),
+  captionRemovalUsed: integer("caption_removal_used").notNull().default(0),
+  videoToVideoUsed: integer("video_to_video_used").notNull().default(0),
+  virtualTryOnUsed: integer("virtual_try_on_used").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
