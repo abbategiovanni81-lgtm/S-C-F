@@ -20,7 +20,7 @@ import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
-import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError } from "./usageService";
+import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError, checkCreatorStudioQuota, incrementCreatorStudioUsage, assertCreatorStudioQuota, CreatorStudioAccessError, getA2ECapacityStatus } from "./usageService";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -691,6 +691,82 @@ export async function registerRoutes(
     }
   });
 
+  // Create Creator Studio checkout session (£20/month add-on)
+  app.post("/api/stripe/creator-studio", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Only allow premium/pro users to subscribe to Creator Studio
+      if (user.tier !== "premium" && user.tier !== "pro") {
+        return res.status(400).json({ error: "Creator Studio requires a Premium or Pro subscription first" });
+      }
+
+      // Check if already has Creator Studio
+      if (user.creatorStudioAccess) {
+        return res.status(400).json({ error: "You already have Creator Studio access" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+
+      // Create or get customer
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || undefined,
+          metadata: { userId: user.id }
+        });
+        await db.update(users).set({ stripeCustomerId: customer.id }).where(eq(users.id, userId));
+        customerId = customer.id;
+      }
+
+      const creatorStudioPriceId = process.env.STRIPE_CREATOR_STUDIO_PRICE_ID;
+      
+      // If no price ID configured, create inline price
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      
+      const sessionConfig: any = {
+        customer: customerId,
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        success_url: `${baseUrl}/creator-studio?success=true`,
+        cancel_url: `${baseUrl}/settings?creator_studio=canceled`,
+        metadata: {
+          userId: user.id,
+          type: 'creator_studio',
+        },
+      };
+
+      if (creatorStudioPriceId) {
+        sessionConfig.line_items = [{ price: creatorStudioPriceId, quantity: 1 }];
+      } else {
+        sessionConfig.line_items = [{
+          price_data: {
+            currency: 'gbp',
+            product_data: {
+              name: 'Creator Studio',
+              description: 'Advanced AI creation tools: Voice cloning, talking photos, face swap, dubbing, and more',
+            },
+            unit_amount: 2000, // £20.00
+            recurring: { interval: 'month' },
+          },
+          quantity: 1,
+        }];
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating Creator Studio checkout:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Create customer portal session (manage subscription)
   app.post("/api/stripe/portal", isAuthenticated, async (req, res) => {
     try {
@@ -739,6 +815,7 @@ export async function registerRoutes(
         firstName: users.firstName,
         lastName: users.lastName,
         tier: users.tier,
+        creatorStudioAccess: users.creatorStudioAccess,
         stripeCustomerId: users.stripeCustomerId,
         stripeSubscriptionId: users.stripeSubscriptionId,
         lastLogin: users.lastLogin,
@@ -858,6 +935,39 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error updating user tier:", error);
       res.status(500).json({ error: "Failed to update user tier" });
+    }
+  });
+
+  // Get A2E capacity status (admin only) - for capacity planning alerts
+  app.get("/api/admin/a2e-capacity", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const capacity = await getA2ECapacityStatus();
+      res.json(capacity);
+    } catch (error: any) {
+      console.error("Error fetching A2E capacity:", error);
+      res.status(500).json({ error: "Failed to fetch A2E capacity" });
+    }
+  });
+
+  // Toggle Creator Studio access for a user (admin only)
+  app.patch("/api/admin/users/:userId/creator-studio", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { enabled } = req.body;
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await db.update(users)
+        .set({ creatorStudioAccess: enabled, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+      
+      res.json({ success: true, message: `Creator Studio ${enabled ? 'enabled' : 'disabled'} for user` });
+    } catch (error: any) {
+      console.error("Error toggling Creator Studio:", error);
+      res.status(500).json({ error: "Failed to toggle Creator Studio" });
     }
   });
 

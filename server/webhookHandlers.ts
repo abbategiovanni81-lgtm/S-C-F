@@ -1,7 +1,7 @@
 import { getStripeSync, getUncachableStripeClient } from './stripeClient';
 import { db } from './db';
-import { users } from '@shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { users } from '@shared/models/auth';
+import { eq } from 'drizzle-orm';
 import { applyTopup } from './usageService';
 
 export class WebhookHandlers {
@@ -56,7 +56,7 @@ export class WebhookHandlers {
       console.log(`User downgraded to free, subscription cancelled: ${subscription.id}`);
     }
 
-    // Handle completed checkout sessions for top-ups
+    // Handle completed checkout sessions for top-ups and Creator Studio
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any;
       
@@ -73,6 +73,32 @@ export class WebhookHandlers {
           }
         }
       }
+
+      // Check if this is a Creator Studio subscription
+      if (session.metadata?.type === 'creator_studio' && session.subscription) {
+        const userId = session.metadata.userId;
+        
+        if (userId) {
+          await db.update(users)
+            .set({ 
+              creatorStudioAccess: true,
+              creatorStudioStripeId: session.subscription 
+            })
+            .where(eq(users.id, userId));
+          console.log(`Creator Studio enabled for user: ${userId}`);
+        }
+      }
+    }
+
+    // Handle Creator Studio subscription cancellation
+    if (event.type === 'customer.subscription.deleted') {
+      const subscription = event.data.object as any;
+      
+      // Check if this is a Creator Studio subscription being cancelled
+      await db.update(users)
+        .set({ creatorStudioAccess: false, creatorStudioStripeId: null })
+        .where(eq(users.creatorStudioStripeId, subscription.id));
+      console.log(`Creator Studio disabled for subscription: ${subscription.id}`);
     }
   }
 }
