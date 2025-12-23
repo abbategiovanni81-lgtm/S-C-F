@@ -53,6 +53,29 @@ Three subscription tiers with monthly usage limits:
 - **Database Tables**: `usage_periods` (monthly tracking), `usage_topups` (purchase records)
 - **Service Layer**: `server/usageService.ts` handles all quota logic
 
+### Creator Studio Add-on (£20/month)
+Advanced AI creation tools available as a paid add-on for Premium/Pro subscribers:
+
+| Feature | Monthly Limit | Description |
+|---------|---------------|-------------|
+| Voice Cloning | 2 | Clone any voice from audio/video |
+| Talking Photos | 10 | Animate photos to speak text |
+| Talking Videos | 5 | Make videos speak new dialogue |
+| Face Swap | 8 | Swap faces in videos |
+| AI Dubbing | 3 | Translate and dub videos |
+| Image to Video | 5 | Animate still images |
+| Caption Removal | 10 | Remove burned-in captions |
+| Video Style Transfer | 3 | Apply artistic styles to videos |
+| Virtual Try-On | 5 | Try clothes on photos |
+
+**A2E Credits per Creator Studio User**: ~1,300/month
+**Platform Capacity**: 1 A2E account (5,400 credits) supports ~4 Creator Studio users
+
+- **Stripe Product**: `creator_studio` (£20/month recurring)
+- **Access Control**: `users.creatorStudioAccess` boolean flag
+- **Webhook Handling**: Auto-enables on checkout, auto-disables on subscription deletion
+- **Quota Service**: `server/usageService.ts` with CREATOR_STUDIO_LIMITS
+
 ### How To Page
 In-app documentation accessible at `/how-to` covering:
 - All 10 features with detailed explanations
