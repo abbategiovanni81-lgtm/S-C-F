@@ -475,7 +475,7 @@ export default function HowTo() {
                     <CardContent>
                       <div className="space-y-3">
                         <ChecklistItem text="Create an account (email or Google)" />
-                        <ChecklistItem text="Add OpenAI API key (for scripts & captions)" />
+                        <ChecklistItem text="Add OpenAI or Claude API key (for scripts & captions)" />
                         <ChecklistItem text="Add ElevenLabs API key (for voiceovers)" />
                         <ChecklistItem text="Create your first Brand Brief" />
                         <ChecklistItem text="Generate your first piece of content!" />
