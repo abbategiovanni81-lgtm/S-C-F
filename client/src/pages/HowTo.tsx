@@ -266,6 +266,31 @@ export default function HowTo() {
             <TabsContent value="apis">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-4 pr-4">
+                  <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-amber-600">
+                        <Zap className="h-5 w-5" />
+                        Important: Tier-Based API Access
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
+                          <div className="font-medium text-green-700 dark:text-green-300 mb-1">Premium & Pro Subscribers</div>
+                          <div className="text-green-600 dark:text-green-400">
+                            All AI features work automatically using platform API keys. No setup needed!
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                          <div className="font-medium text-blue-700 dark:text-blue-300 mb-1">Free Tier Users</div>
+                          <div className="text-blue-600 dark:text-blue-400">
+                            You need to add your own API keys to use AI features. See the table below for where to get them.
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -419,51 +444,68 @@ export default function HowTo() {
             <TabsContent value="setup">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
+                  <Card className="border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-blue-500" />
+                        Premium & Pro Users
+                      </CardTitle>
+                      <CardDescription>You don't need to add any API keys!</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <p className="text-sm">
+                          Premium and Pro subscribers automatically get access to all AI features using our platform API keys. 
+                          You can start generating content immediately without any setup.
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                          <Badge variant="secondary" className="justify-center py-1">OpenAI</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">ElevenLabs</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">A2E Avatars</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">DALL-E</Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="h-5 w-5" />
-                        How to Set Up API Keys
+                        Free Users: How to Add Your API Keys
                       </CardTitle>
+                      <CardDescription>Two easy ways to configure your own API keys</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ol className="space-y-4">
-                        <li className="flex gap-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">1</div>
-                          <div>
-                            <div className="font-medium">Sign in to SocialCommand</div>
-                            <div className="text-sm text-muted-foreground">Use email/password or Google sign-in</div>
+                      <div className="space-y-6">
+                        <div className="p-4 bg-muted rounded-lg">
+                          <div className="font-medium mb-3 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm">A</span>
+                            Option A: From AI Engines Page (Recommended)
                           </div>
-                        </li>
-                        <li className="flex gap-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">2</div>
-                          <div>
-                            <div className="font-medium">Go to Settings</div>
-                            <div className="text-sm text-muted-foreground">Click the gear icon in the sidebar</div>
+                          <ol className="space-y-2 text-sm text-muted-foreground ml-8">
+                            <li>1. Go to <strong>AI Engines</strong> in the sidebar</li>
+                            <li>2. Find the engine you want to configure (OpenAI, ElevenLabs, etc.)</li>
+                            <li>3. Click the <strong>"Configure"</strong> button next to it</li>
+                            <li>4. Paste your API key in the dialog</li>
+                            <li>5. Click <strong>"Save Key"</strong></li>
+                            <li>6. The engine will show a green checkmark when configured</li>
+                          </ol>
+                        </div>
+
+                        <div className="p-4 bg-muted rounded-lg">
+                          <div className="font-medium mb-3 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center text-sm">B</span>
+                            Option B: From Settings Page
                           </div>
-                        </li>
-                        <li className="flex gap-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">3</div>
-                          <div>
-                            <div className="font-medium">Find AI Engines Section</div>
-                            <div className="text-sm text-muted-foreground">Scroll to see all available API key fields</div>
-                          </div>
-                        </li>
-                        <li className="flex gap-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">4</div>
-                          <div>
-                            <div className="font-medium">Enter Each API Key</div>
-                            <div className="text-sm text-muted-foreground">Paste your keys in the corresponding fields</div>
-                          </div>
-                        </li>
-                        <li className="flex gap-4">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">5</div>
-                          <div>
-                            <div className="font-medium">Click Save</div>
-                            <div className="text-sm text-muted-foreground">Green checkmarks will appear next to configured engines</div>
-                          </div>
-                        </li>
-                      </ol>
+                          <ol className="space-y-2 text-sm text-muted-foreground ml-8">
+                            <li>1. Go to <strong>Settings</strong> (gear icon in sidebar)</li>
+                            <li>2. Scroll to <strong>AI Engines</strong> section</li>
+                            <li>3. Enter your API keys in the respective fields</li>
+                            <li>4. Click <strong>Save</strong> at the bottom</li>
+                          </ol>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
 
