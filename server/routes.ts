@@ -3068,6 +3068,59 @@ export async function registerRoutes(
     }
   });
 
+  // Creator Studio file upload endpoint
+  const creatorStudioUploadDir = path.join(process.cwd(), "public", "creator-studio-uploads");
+  if (!fs.existsSync(creatorStudioUploadDir)) {
+    fs.mkdirSync(creatorStudioUploadDir, { recursive: true });
+  }
+  app.use("/creator-studio-uploads", express.static(creatorStudioUploadDir));
+
+  const creatorStudioUpload = multer({
+    storage: multer.diskStorage({
+      destination: creatorStudioUploadDir,
+      filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ["image/", "video/", "audio/"];
+      if (allowedTypes.some(type => file.mimetype.startsWith(type))) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only image, video, and audio files are allowed"));
+      }
+    },
+  });
+
+  app.post("/api/creator-studio/upload", isAuthenticated, creatorStudioUpload.single("file"), async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      // Get the full URL for the uploaded file
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "https";
+      const host = req.headers.host || "localhost:5000";
+      const relativePath = `/creator-studio-uploads/${file.filename}`;
+      const fullUrl = `${protocol}://${host}${relativePath}`;
+
+      res.json({ 
+        success: true, 
+        url: fullUrl,
+        relativePath,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size
+      });
+    } catch (error: any) {
+      console.error("Creator Studio upload error:", error);
+      res.status(500).json({ error: error.message || "Upload failed" });
+    }
+  });
+
   // Voice Cloning
   app.post("/api/creator-studio/voice-clone", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
