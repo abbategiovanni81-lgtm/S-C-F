@@ -85,16 +85,45 @@ export default function HowTo() {
           )}
 
           <Tabs defaultValue="features" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
-              <TabsTrigger value="features" data-testid="tab-features">Features</TabsTrigger>
-              <TabsTrigger value="workflows" data-testid="tab-workflows">Workflows</TabsTrigger>
-              <TabsTrigger value="apis" data-testid="tab-apis">API Keys</TabsTrigger>
-              <TabsTrigger value="setup" data-testid="tab-setup">Setup Guide</TabsTrigger>
+            <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1 mb-6">
+              <TabsTrigger value="features" className="flex-1 min-w-[80px]" data-testid="tab-features">Features</TabsTrigger>
+              <TabsTrigger value="workflows" className="flex-1 min-w-[80px]" data-testid="tab-workflows">Workflows</TabsTrigger>
+              <TabsTrigger value="apis" className="flex-1 min-w-[80px]" data-testid="tab-apis">API Keys</TabsTrigger>
+              <TabsTrigger value="setup" className="flex-1 min-w-[80px]" data-testid="tab-setup">Setup</TabsTrigger>
             </TabsList>
 
             <TabsContent value="features">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
+                  {/* Upgrade CTA inside Features tab */}
+                  {isFreeUser && (
+                    <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-purple-500/5">
+                      <CardContent className="p-5">
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <Rocket className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">Get Started Quickly</h3>
+                              <p className="text-muted-foreground text-sm">
+                                Set up your own API keys, or upgrade to <span className="font-medium text-primary">Premium (£29.99/mo)</span> for pre-connected AI engines.
+                              </p>
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={() => setLocation("/subscription")}
+                            className="gap-2 w-full"
+                            data-testid="button-upgrade-features"
+                          >
+                            <Crown className="h-4 w-4" />
+                            Upgrade Now
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <FeatureCard
                     icon={<Sparkles className="h-6 w-6" />}
                     title="1. Brand Briefs"
