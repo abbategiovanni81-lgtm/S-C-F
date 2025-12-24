@@ -704,67 +704,60 @@ export interface ImageReformatRequest {
 
 export interface ImageReformatResult {
   imageUrl: string;
-  originalDescription: string;
   revisedPrompt?: string;
 }
 
 export async function reformatImage(request: ImageReformatRequest): Promise<ImageReformatResult> {
   if (!isDalleConfigured()) {
-    throw new Error("DALL-E API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
+    throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
-  // Step 1: Use GPT-4 Vision to describe the image
-  const visionResponse = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: "Describe this image in detail for regeneration purposes. Include: subject, style, colors, composition, mood, lighting, and any text visible. Be specific and detailed so the image can be recreated accurately. Output only the description, no preamble."
-          },
-          {
-            type: "image_url",
-            image_url: { url: request.imageUrl }
-          }
-        ]
-      }
-    ],
-    max_tokens: 500,
-  });
-
-  const imageDescription = visionResponse.choices[0]?.message?.content;
-  if (!imageDescription) {
-    throw new Error("Failed to analyze image");
+  // Download the image and convert to buffer for the edit API
+  const imageResponse = await fetch(request.imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error("Failed to fetch source image");
   }
+  const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+  
+  // Create a File-like object for the API
+  const imageFile = new File([imageBuffer], "image.png", { type: "image/png" });
 
-  // Step 2: Generate new image with DALL-E 3 in the target aspect ratio
+  // Size mapping for different aspect ratios
   const sizeMap = {
-    landscape: "1792x1024" as const,
-    portrait: "1024x1792" as const,
+    landscape: "1536x1024" as const,  // GPT Image landscape
+    portrait: "1024x1536" as const,   // GPT Image portrait
     square: "1024x1024" as const,
   };
 
-  const prompt = `Recreate this image in ${request.targetAspectRatio} format, maintaining the same subject, style, and mood: ${imageDescription}`;
+  const aspectLabels = {
+    landscape: "landscape/horizontal (16:9)",
+    portrait: "portrait/vertical (9:16)", 
+    square: "square (1:1)",
+  };
 
-  const dalleResponse = await dalleClient.images.generate({
-    model: "dall-e-3",
+  const prompt = `Recreate this exact same image but reformatted to ${aspectLabels[request.targetAspectRatio]} aspect ratio. Keep the same subject, style, colors, and mood. Extend the composition naturally to fill the new format.`;
+
+  // Use GPT Image model for editing with image input
+  const response = await dalleClient.images.edit({
+    model: "gpt-image-1",
+    image: imageFile,
     prompt,
     n: 1,
     size: sizeMap[request.targetAspectRatio],
-    quality: "standard",
-    style: "vivid",
   });
 
-  const newImageUrl = dalleResponse.data[0]?.url;
+  const newImageUrl = response.data[0]?.url || response.data[0]?.b64_json;
   if (!newImageUrl) {
     throw new Error("Failed to generate reformatted image");
   }
 
+  // If b64_json, convert to data URL
+  const finalUrl = response.data[0]?.url 
+    ? response.data[0].url 
+    : `data:image/png;base64,${response.data[0]?.b64_json}`;
+
   return {
-    imageUrl: newImageUrl,
-    originalDescription: imageDescription,
-    revisedPrompt: dalleResponse.data[0]?.revised_prompt,
+    imageUrl: finalUrl,
+    revisedPrompt: (response.data[0] as any)?.revised_prompt,
   };
 }
