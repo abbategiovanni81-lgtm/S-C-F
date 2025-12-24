@@ -696,3 +696,75 @@ export async function generateDalleImage(request: DalleImageRequest): Promise<Da
 export function isDalleConfigured(): boolean {
   return !!(process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY);
 }
+
+export interface ImageReformatRequest {
+  imageUrl: string;
+  targetAspectRatio: "landscape" | "portrait" | "square"; // landscape=16:9, portrait=9:16, square=1:1
+}
+
+export interface ImageReformatResult {
+  imageUrl: string;
+  originalDescription: string;
+  revisedPrompt?: string;
+}
+
+export async function reformatImage(request: ImageReformatRequest): Promise<ImageReformatResult> {
+  if (!isDalleConfigured()) {
+    throw new Error("DALL-E API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
+  }
+
+  // Step 1: Use GPT-4 Vision to describe the image
+  const visionResponse = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Describe this image in detail for regeneration purposes. Include: subject, style, colors, composition, mood, lighting, and any text visible. Be specific and detailed so the image can be recreated accurately. Output only the description, no preamble."
+          },
+          {
+            type: "image_url",
+            image_url: { url: request.imageUrl }
+          }
+        ]
+      }
+    ],
+    max_tokens: 500,
+  });
+
+  const imageDescription = visionResponse.choices[0]?.message?.content;
+  if (!imageDescription) {
+    throw new Error("Failed to analyze image");
+  }
+
+  // Step 2: Generate new image with DALL-E 3 in the target aspect ratio
+  const sizeMap = {
+    landscape: "1792x1024" as const,
+    portrait: "1024x1792" as const,
+    square: "1024x1024" as const,
+  };
+
+  const prompt = `Recreate this image in ${request.targetAspectRatio} format, maintaining the same subject, style, and mood: ${imageDescription}`;
+
+  const dalleResponse = await dalleClient.images.generate({
+    model: "dall-e-3",
+    prompt,
+    n: 1,
+    size: sizeMap[request.targetAspectRatio],
+    quality: "standard",
+    style: "vivid",
+  });
+
+  const newImageUrl = dalleResponse.data[0]?.url;
+  if (!newImageUrl) {
+    throw new Error("Failed to generate reformatted image");
+  }
+
+  return {
+    imageUrl: newImageUrl,
+    originalDescription: imageDescription,
+    revisedPrompt: dalleResponse.data[0]?.revised_prompt,
+  };
+}

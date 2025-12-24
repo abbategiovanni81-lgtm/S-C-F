@@ -3357,6 +3357,40 @@ export async function registerRoutes(
     }
   });
 
+  // Image Reformat (portrait to landscape or vice versa using DALL-E)
+  app.post("/api/creator-studio/image-reformat", isAuthenticated, requireCreatorStudio, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { imageUrl, targetAspectRatio } = req.body;
+
+      if (!imageUrl || !targetAspectRatio) {
+        return res.status(400).json({ error: "imageUrl and targetAspectRatio are required" });
+      }
+
+      if (!["landscape", "portrait", "square"].includes(targetAspectRatio)) {
+        return res.status(400).json({ error: "targetAspectRatio must be 'landscape', 'portrait', or 'square'" });
+      }
+
+      await assertCreatorStudioQuota(userId, "imageReformat", 1);
+      
+      const { reformatImage } = await import("./openai");
+      const result = await reformatImage({ imageUrl, targetAspectRatio });
+      await incrementCreatorStudioUsage(userId, "imageReformat", 1);
+
+      res.json({ 
+        imageUrl: result.imageUrl, 
+        originalDescription: result.originalDescription,
+        revisedPrompt: result.revisedPrompt 
+      });
+    } catch (error: any) {
+      if (error instanceof QuotaExceededError || error instanceof CreatorStudioAccessError) {
+        return res.status(429).json({ error: error.message, quotaExceeded: true });
+      }
+      console.error("Image reformat error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Check task status (generic for all Creator Studio tasks)
   app.get("/api/creator-studio/task/:taskType/:taskId", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {

@@ -32,7 +32,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  Maximize2
 } from "lucide-react";
 
 type CreatorStudioUsage = {
@@ -45,6 +46,7 @@ type CreatorStudioUsage = {
   captionRemoval: { used: number; limit: number };
   videoToVideo: { used: number; limit: number };
   virtualTryOn: { used: number; limit: number };
+  imageReformat: { used: number; limit: number };
 };
 
 type CreatorStudioStatus = {
@@ -215,6 +217,10 @@ export default function CreatorStudio() {
               <Shirt className="h-4 w-4 mr-2" />
               Virtual Try-On
             </TabsTrigger>
+            <TabsTrigger value="image-reformat" data-testid="tab-image-reformat">
+              <Maximize2 className="h-4 w-4 mr-2" />
+              Image Reformat
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="voice-clone">
@@ -251,6 +257,10 @@ export default function CreatorStudio() {
 
           <TabsContent value="virtual-tryon">
             <VirtualTryOnTab usage={status?.usage?.virtualTryOn} />
+          </TabsContent>
+
+          <TabsContent value="image-reformat">
+            <ImageReformatTab usage={status?.usage?.imageReformat} />
           </TabsContent>
         </Tabs>
       </div>
