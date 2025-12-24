@@ -4,7 +4,7 @@ import { eq, and, gte, lte, sql } from "drizzle-orm";
 
 export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening";
 
-export type CreatorStudioUsageType = "voiceClones" | "talkingPhotos" | "talkingVideos" | "faceSwaps" | "aiDubbing" | "imageToVideo" | "captionRemoval" | "videoToVideo" | "virtualTryOn";
+export type CreatorStudioUsageType = "voiceClones" | "talkingPhotos" | "talkingVideos" | "faceSwaps" | "aiDubbing" | "imageToVideo" | "captionRemoval" | "videoToVideo" | "virtualTryOn" | "imageReformat";
 
 const usageColumnMap = {
   brandBriefs: "brandBriefsUsed",
@@ -28,6 +28,7 @@ const creatorStudioColumnMap = {
   captionRemoval: "captionRemovalUsed",
   videoToVideo: "videoToVideoUsed",
   virtualTryOn: "virtualTryOnUsed",
+  imageReformat: "imageReformatUsed",
 } as const;
 
 const limitKeyMap = {
@@ -121,6 +122,7 @@ export async function getUsageStats(userId: string) {
       captionRemoval: { used: period.captionRemovalUsed || 0, limit: CREATOR_STUDIO_LIMITS.captionRemoval },
       videoToVideo: { used: period.videoToVideoUsed || 0, limit: CREATOR_STUDIO_LIMITS.videoToVideo },
       virtualTryOn: { used: period.virtualTryOnUsed || 0, limit: CREATOR_STUDIO_LIMITS.virtualTryOn },
+      imageReformat: { used: (period as any).imageReformatUsed || 0, limit: CREATOR_STUDIO_LIMITS.imageReformat },
     } : null,
     usesAppApis: limits.usesAppApis,
   };

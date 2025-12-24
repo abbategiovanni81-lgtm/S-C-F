@@ -74,6 +74,7 @@ export const CREATOR_STUDIO_LIMITS = {
   captionRemoval: 10,   // ~10 credits each = 100
   videoToVideo: 3,      // ~30 credits each = 90
   virtualTryOn: 5,      // ~20 credits each = 100
+  imageReformat: 10,    // Uses DALL-E to change image aspect ratio
   // Total: ~1,300 credits per user per month
 } as const;
 
@@ -125,6 +126,7 @@ export const usagePeriods = pgTable("usage_periods", {
   captionRemovalUsed: integer("caption_removal_used").notNull().default(0),
   videoToVideoUsed: integer("video_to_video_used").notNull().default(0),
   virtualTryOnUsed: integer("virtual_try_on_used").notNull().default(0),
+  imageReformatUsed: integer("image_reformat_used").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
