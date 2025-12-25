@@ -60,3 +60,74 @@ The project is organized into `client/` for the React frontend, `server/` for th
 -   `recharts`
 -   `date-fns`
 -   `wouter`
+
+---
+
+## Project Implementation Phases (12 Phases)
+
+### Phase 1: Database Schema Updates - COMPLETE
+- [x] TierType enum with free, core, premium, pro, studio
+- [x] TIER_LIMITS defined for all tiers
+- [x] Steve AI quota fields (steveAIVideos, steveAIGenerative, steveAIImages)
+- [x] Social channel limits per tier (0/1/3/5/9)
+- [x] Usage tracking columns for Steve AI
+
+### Phase 2: Usage Service Updates - COMPLETE
+- [x] usageService.ts with Steve AI usage types
+- [x] Free tier restrictions (scripts + images only)
+- [x] Core tier handling (full tools, own APIs)
+- [x] Studio quota enforcement
+
+### Phase 3: Stripe Integration - COMPLETE
+- [x] Stripe products created (Core £9.99, Studio £99.99)
+- [x] Webhook handlers for new tiers
+- [x] Checkout endpoints updated
+
+### Phase 4: Social Media Channels Setup - 90%
+- [x] YouTube, Twitter/X, LinkedIn, Facebook, Instagram OAuth
+- [x] TikTok, Threads, Bluesky, Pinterest - CODE COMPLETE
+- [ ] End-to-end verification pending (requires API credentials)
+
+### Phase 5: User Migration - 50%
+- [x] Owner account set to Studio tier
+- [ ] Existing free users migration to Core (manual or automated?)
+
+### Phase 6: Feature Gating - COMPLETE
+- [x] Routes for tier-based access control
+- [x] /api/ai-engines/status for tier-specific APIs
+- [x] Social channel limit enforcement per tier
+
+### Phase 7: Admin Panel - 80%
+- [x] Tier dropdown (Free, Core, Premium, Pro, Studio)
+- [ ] Session count display for Studio
+
+### Phase 8: Creator Studio UI - COMPLETE
+- [x] All tools visible to all users
+- [x] "Upgrade to Creator Studio" box for non-subscribers
+- [x] "Upgrade to Studio Package" box for Steve AI features
+
+### Phase 9: Steve AI Features (Studio Only) - COMPLETE
+- [x] Text-to-Long-Form Video (5 styles, up to 3 min)
+- [x] Blog/URL-to-Video
+- [x] Voice-to-Video
+- [x] Multi-Voice Scenes
+- [x] Scene Properties
+- [x] Getty Images B-roll search
+
+### Phase 10: Content Queue Updates - COMPLETE
+- [x] Getty Images as image engine choice
+- [x] Free tier blocks voiceover/video
+- [x] Steve AI options for Studio only
+
+### Phase 11: Multi-Login for Studio - NOT STARTED
+- [ ] Session tracking (max 5 concurrent)
+- [ ] Block 6th+ simultaneous login
+
+### Phase 12: Documentation & UI Updates - COMPLETE
+- [x] How To page: Steve AI features documentation
+- [x] How To page: Getty Images documentation
+- [x] How To page: New Tiers tab with subscription info and social channel limits
+- [x] Dashboard: tier display and upgrade prompts
+- [x] Settings/Pricing: new tier options
+- [x] Sidebar: Creator Studio visibility
+- [x] replit.md documentation

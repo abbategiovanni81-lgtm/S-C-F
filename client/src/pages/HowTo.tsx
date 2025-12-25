@@ -20,7 +20,11 @@ import {
   Key,
   Zap,
   Crown,
-  Rocket
+  Rocket,
+  Users,
+  Globe,
+  Palette,
+  Languages
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -87,6 +91,7 @@ export default function HowTo() {
           <Tabs defaultValue="features" className="w-full">
             <TabsList className="w-full flex flex-wrap gap-1 h-auto p-1 mb-6">
               <TabsTrigger value="features" className="flex-1 min-w-[80px]" data-testid="tab-features">Features</TabsTrigger>
+              <TabsTrigger value="tiers" className="flex-1 min-w-[80px]" data-testid="tab-tiers">Tiers</TabsTrigger>
               <TabsTrigger value="workflows" className="flex-1 min-w-[80px]" data-testid="tab-workflows">Workflows</TabsTrigger>
               <TabsTrigger value="apis" className="flex-1 min-w-[80px]" data-testid="tab-apis">API Keys</TabsTrigger>
               <TabsTrigger value="setup" className="flex-1 min-w-[80px]" data-testid="tab-setup">Setup</TabsTrigger>
@@ -197,7 +202,7 @@ export default function HowTo() {
 
                   <FeatureCard
                     icon={<Image className="h-6 w-6" />}
-                    title="6. AI Image Generation (4 Options)"
+                    title="6. AI Image Generation (5 Options)"
                     description="Generate images for your social media posts using multiple AI engines."
                     howItWorks={
                       <div className="space-y-3">
@@ -219,6 +224,12 @@ export default function HowTo() {
                               Pexels <Badge variant="secondary" className="bg-green-100 text-green-700">FREE</Badge>
                             </div>
                             <div className="text-sm text-muted-foreground">Professional stock photos. No key needed!</div>
+                          </div>
+                          <div className="p-3 bg-muted rounded-lg border-2 border-orange-500">
+                            <div className="font-medium flex items-center gap-2">
+                              Getty Images <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs">Studio</Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">Premium stock photos. Studio tier only.</div>
                           </div>
                         </div>
                       </div>
@@ -282,6 +293,237 @@ export default function HowTo() {
                     pricing="FREE - uses your YouTube account"
                     isFree
                   />
+
+                  {/* Steve AI Suite - Studio Tier Only */}
+                  <Card className="border-2 border-orange-500/30 bg-gradient-to-r from-orange-500/5 to-red-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg">
+                          <Film className="h-6 w-6 text-white" />
+                        </div>
+                        11. Steve AI Suite
+                        <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">Studio Only</Badge>
+                      </CardTitle>
+                      <CardDescription>Professional video generation with 6 powerful features - exclusive to Studio tier (£99.99/mo)</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Film className="h-4 w-4 text-orange-500" />
+                            Long-Form Videos
+                          </div>
+                          <div className="text-sm text-muted-foreground">Create videos up to 3 minutes with 5 style options (animation, live action, generative, talking head, documentary). 200 min/month.</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Globe className="h-4 w-4 text-orange-500" />
+                            Blog/URL to Video
+                          </div>
+                          <div className="text-sm text-muted-foreground">Paste any blog post or article URL and convert it into a professional video automatically.</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Mic className="h-4 w-4 text-orange-500" />
+                            Voice to Video
+                          </div>
+                          <div className="text-sm text-muted-foreground">Upload your audio file and get AI-generated visuals that match your narration.</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Languages className="h-4 w-4 text-orange-500" />
+                            Multi-Voice Scenes
+                          </div>
+                          <div className="text-sm text-muted-foreground">Create videos with different AI voices for each scene - perfect for dialogues and interviews.</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Palette className="h-4 w-4 text-orange-500" />
+                            Scene Properties
+                          </div>
+                          <div className="text-sm text-muted-foreground">Customize backgrounds, weather effects, furniture, and visual effects for your scenes.</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium flex items-center gap-2">
+                            <Image className="h-4 w-4 text-orange-500" />
+                            Getty Images B-Roll
+                          </div>
+                          <div className="text-sm text-muted-foreground">Access premium Getty Images stock footage for professional B-roll content.</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-sm pt-2">
+                        <div>
+                          <span className="font-medium">Monthly Limits:</span>{" "}
+                          <span className="text-muted-foreground">Videos: 200 min | Generative: 7.5 min | Images: 1,600</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">API:</span>{" "}
+                          <span className="text-muted-foreground">Steve AI Enterprise (contact team@steve.ai)</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <FeatureCard
+                    icon={<Image className="h-6 w-6" />}
+                    title="12. Getty Images (Studio Tier)"
+                    description="Access premium Getty Images stock photos as B-roll for your videos."
+                    howItWorks={
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Go to Creator Studio &gt; Steve AI Suite &gt; Getty tab</li>
+                        <li>Search for images or videos by keyword</li>
+                        <li>Select assets to use in your Multi-Voice scenes</li>
+                        <li>Premium stock content enhances your video quality</li>
+                      </ol>
+                    }
+                    apiNeeded="Getty Images (via Steve AI)"
+                    pricing="Included with Studio tier (£99.99/mo)"
+                  />
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="tiers">
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <div className="space-y-6 pr-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Crown className="h-5 w-5 text-purple-500" />
+                        Subscription Tiers
+                      </CardTitle>
+                      <CardDescription>
+                        Choose the plan that fits your content creation needs
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-bold text-lg">Free</div>
+                          <div className="text-2xl font-bold mb-2">£0<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>Scripts + Images only</li>
+                            <li>Use your own API keys</li>
+                            <li>0 social channels</li>
+                            <li>1 brand brief</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg border-blue-500/50 bg-blue-500/5">
+                          <div className="font-bold text-lg text-blue-600">Core</div>
+                          <div className="text-2xl font-bold mb-2">£9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>All tools unlocked</li>
+                            <li>Use your own API keys</li>
+                            <li>1 social channel</li>
+                            <li>3 brand briefs</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg border-purple-500/50 bg-purple-500/5">
+                          <div className="font-bold text-lg text-purple-600">Premium</div>
+                          <div className="text-2xl font-bold mb-2">£29.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>Platform APIs included</li>
+                            <li>3 social channels</li>
+                            <li>5 brand briefs</li>
+                            <li>25 min voiceovers</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg border-yellow-500/50 bg-yellow-500/5">
+                          <div className="font-bold text-lg text-yellow-600">Pro</div>
+                          <div className="text-2xl font-bold mb-2">£49.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>2x Premium quotas</li>
+                            <li>5 social channels</li>
+                            <li>10 brand briefs</li>
+                            <li>60 min voiceovers</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border-2 rounded-lg border-pink-500 bg-gradient-to-br from-pink-500/10 to-red-500/10">
+                          <div className="font-bold text-lg bg-gradient-to-r from-pink-600 to-red-600 bg-clip-text text-transparent">Studio</div>
+                          <div className="text-2xl font-bold mb-2">£99.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
+                          <Badge className="mb-2 bg-pink-500 text-white text-xs">Early Adopter</Badge>
+                          <ul className="text-sm space-y-1 text-muted-foreground">
+                            <li>All 9 social channels</li>
+                            <li>Creator Studio included</li>
+                            <li>Steve AI Suite</li>
+                            <li>Getty Images B-roll</li>
+                            <li>5 concurrent logins</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Globe className="h-5 w-5" />
+                        Social Channels by Tier
+                      </CardTitle>
+                      <CardDescription>
+                        Connect and auto-post to these platforms based on your subscription
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-3 font-medium">Platform</th>
+                              <th className="text-center p-3 font-medium">Free</th>
+                              <th className="text-center p-3 font-medium">Core</th>
+                              <th className="text-center p-3 font-medium">Premium</th>
+                              <th className="text-center p-3 font-medium">Pro</th>
+                              <th className="text-center p-3 font-medium">Studio</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b"><td className="p-3">YouTube</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">Twitter/X</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">LinkedIn</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">Facebook</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">Instagram</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">TikTok</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">Threads</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">Bluesky</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr><td className="p-3">Pinterest</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-4">
+                        Channel limits are shared across all platforms. For example, Core users can connect 1 total channel (e.g., 1 YouTube OR 1 TikTok).
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5" />
+                        Creator Studio Add-on
+                      </CardTitle>
+                      <CardDescription>
+                        Advanced AI creation tools for Premium and Pro subscribers
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="p-4 border rounded-lg bg-purple-500/5 border-purple-500/30 mb-4">
+                        <div className="font-bold text-lg text-purple-600">£20/month add-on</div>
+                        <p className="text-sm text-muted-foreground">Available for Premium and Pro subscribers. Included free with Studio tier.</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Voice Cloning</strong> - 2/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Photos</strong> - 10/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Videos</strong> - 5/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Face Swap</strong> - 8/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>AI Dubbing</strong> - 3/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Image to Video</strong> - 5/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Caption Removal</strong> - 10/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Video Style Transfer</strong> - 3/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Virtual Try-On</strong> - 5/month</div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </ScrollArea>
             </TabsContent>
