@@ -254,7 +254,7 @@ export default function Admin() {
                               <SelectItem value="core">Core (£9.99)</SelectItem>
                               <SelectItem value="premium">Premium (£29.99)</SelectItem>
                               <SelectItem value="pro">Pro (£49.99)</SelectItem>
-                              <SelectItem value="studio">Studio (£99.99)</SelectItem>
+                              <SelectItem value="studio">Studio (£99.99) - Early Adopter</SelectItem>
                             </SelectContent>
                           </Select>
                         )}

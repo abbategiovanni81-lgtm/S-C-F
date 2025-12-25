@@ -63,7 +63,7 @@ The platform includes a Social Listening module that allows users to:
 ### Tier System & Usage Quotas
 Five subscription tiers with monthly usage limits:
 
-| Feature | Free | Core (£9.99/mo) | Premium (£29.99/mo) | Pro (£49.99/mo) | Studio (£99.99/mo) |
+| Feature | Free | Core (£9.99/mo) | Premium (£29.99/mo) | Pro (£49.99/mo) | Studio (£99.99/mo)* |
 |---------|------|-----------------|---------------------|-----------------|-------------------|
 | Social Channels | 0 | 1 | 3 | 5 | 9 (all) |
 | Brand Briefs | 1 | 3 | 5 | 10 | 15 |
@@ -87,7 +87,7 @@ Five subscription tiers with monthly usage limits:
 - **Free**: Scripts + DALL-E images only (must provide own OpenAI API key), no voiceover/video, 0 social channels
 - **Core**: Unlimited with own API keys, 1 social channel for scheduling
 - **Premium/Pro**: Platform API keys included, tiered quotas
-- **Studio**: Enterprise tier with Creator Studio included, Steve AI video generation, Getty Images, all 9 social platforms, 5 concurrent sessions
+- **Studio**: Enterprise tier with Creator Studio included, Steve AI video generation, Getty Images, all 9 social platforms, 5 concurrent sessions. **Early adopter pricing. Limited time.**
 
 **Platform API Costs (£310/month total):**
 - A2E Max: £32/mo (5,400 credits)
