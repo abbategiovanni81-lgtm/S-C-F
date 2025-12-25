@@ -22,6 +22,8 @@ interface AIEnginesResponse {
   elevenlabs: AIEngineStatus;
   fal: AIEngineStatus;
   pexels: AIEngineStatus;
+  steveai: AIEngineStatus;
+  getty: AIEngineStatus;
 }
 
 const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string; apiKeyField: string; placeholder: string }> = {
@@ -87,6 +89,24 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     keyName: "Pexels API Key",
     apiKeyField: "pexelsKey",
     placeholder: "pexels_..."
+  },
+  steveai: {
+    type: "Long-Form Video",
+    description: "Create polished, professional videos up to 3 minutes for YouTube and educational content. Studio tier only.",
+    logo: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-blue-600", text: "ST" },
+    keyName: "Steve AI API Key",
+    apiKeyField: "steveaiKey",
+    placeholder: "steve_..."
+  },
+  getty: {
+    type: "Premium Stock Images",
+    description: "Access Getty Images' premium stock photo library. Studio tier only.",
+    logo: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-red-600", text: "GT" },
+    keyName: "Getty Images API Key",
+    apiKeyField: "gettyKey",
+    placeholder: "getty_..."
   }
 };
 
@@ -166,12 +186,14 @@ export default function AIEngines() {
     },
   });
 
-  const engines = status ? Object.entries(status).map(([key, value]) => ({
-    id: key,
-    name: value.name,
-    configured: value.configured,
-    ...ENGINE_INFO[key]
-  })) : [];
+  const engines = status ? Object.entries(status)
+    .filter(([key]) => ENGINE_INFO[key]) // Only include engines that have ENGINE_INFO entries
+    .map(([key, value]) => ({
+      id: key,
+      name: value.name,
+      configured: value.configured,
+      ...ENGINE_INFO[key]
+    })) : [];
 
   const handleConfigureClick = (engineId: string) => {
     setSelectedEngine(engineId);
