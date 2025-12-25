@@ -1471,6 +1471,109 @@ export async function registerRoutes(
     }
   });
 
+  // Steve AI Generative Video routes
+  app.get("/api/steveai/generative/styles", async (req, res) => {
+    const styles = steveAIService.getGenerativeStyles();
+    res.json({ styles });
+  });
+
+  app.post("/api/steveai/generative/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Check Studio tier - Steve AI Generative is only available for Studio tier
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI Generative is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Steve AI API not configured. Contact team@steve.ai for Enterprise API access.",
+          needsConfig: true 
+        });
+      }
+
+      const { prompt, aspectRatio, duration, style } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      const result = await steveAIService.generateGenerativeVideo({
+        prompt,
+        aspectRatio: aspectRatio || "16:9",
+        duration: duration || 10,
+        style: style || "cinematic",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/steveai/generative/status/:requestId", async (req, res) => {
+    try {
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured" });
+      }
+
+      const status = await steveAIService.checkGenerativeStatus(req.params.requestId);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Steve AI Image Generation routes
+  app.get("/api/steveai/images/styles", async (req, res) => {
+    const styles = steveAIService.getImageStyles();
+    res.json({ styles });
+  });
+
+  app.post("/api/steveai/images/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Check Studio tier - Steve AI Images is only available for Studio tier
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI Images is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Steve AI API not configured. Contact team@steve.ai for Enterprise API access.",
+          needsConfig: true 
+        });
+      }
+
+      const { prompt, aspectRatio, style, count } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      const result = await steveAIService.generateImages({
+        prompt,
+        aspectRatio: aspectRatio || "1:1",
+        style: style || "photorealistic",
+        count: count || 1,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/pexels/status", async (req, res) => {
     res.json({ configured: pexelsService.isConfigured() });
   });

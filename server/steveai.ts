@@ -26,6 +26,27 @@ export interface VideoGenerationResult {
   error?: string;
 }
 
+export interface GenerativeVideoRequest {
+  prompt: string;
+  aspectRatio: "16:9" | "9:16" | "1:1";
+  duration: number; // in seconds (max 30 for generative)
+  style?: "realistic" | "artistic" | "cinematic" | "anime";
+}
+
+export interface ImageGenerationRequest {
+  prompt: string;
+  aspectRatio: "16:9" | "9:16" | "1:1" | "4:3" | "3:4";
+  style?: "photorealistic" | "illustration" | "3d" | "anime" | "digital_art";
+  count?: number; // 1-4 images
+}
+
+export interface ImageGenerationResult {
+  images: { url: string; id: string }[];
+  requestId: string;
+  status: "completed" | "failed";
+  error?: string;
+}
+
 export interface Voice {
   id: string;
   name: string;
@@ -144,6 +165,124 @@ export class SteveAIService {
       thumbnailUrl: data.thumbnail_url,
       status: "completed",
     };
+  }
+
+  async generateGenerativeVideo(request: GenerativeVideoRequest): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured. Please add STEVE_AI_API_KEY to your secrets.");
+    }
+
+    const payload = {
+      prompt: request.prompt,
+      aspect_ratio: request.aspectRatio,
+      duration_seconds: Math.min(request.duration, 30), // Max 30 seconds for generative
+      style: request.style || "cinematic",
+      type: "generative",
+    };
+
+    const response = await fetch(`${this.baseUrl}/generative/create`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI Generative API error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId: data.request_id || data.id,
+      videoUrl: "",
+      status: "queued",
+      estimatedTimeSeconds: data.estimated_time_seconds || 120,
+    };
+  }
+
+  async checkGenerativeStatus(requestId: string): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const response = await fetch(`${this.baseUrl}/generative/${requestId}/status`, {
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI generative status check error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId,
+      videoUrl: data.video_url || "",
+      thumbnailUrl: data.thumbnail_url,
+      status: this.mapStatus(data.status),
+      progress: data.progress,
+      estimatedTimeSeconds: data.estimated_time_remaining,
+      error: data.error,
+    };
+  }
+
+  async generateImages(request: ImageGenerationRequest): Promise<ImageGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured. Please add STEVE_AI_API_KEY to your secrets.");
+    }
+
+    const payload = {
+      prompt: request.prompt,
+      aspect_ratio: request.aspectRatio,
+      style: request.style || "photorealistic",
+      count: Math.min(request.count || 1, 4),
+    };
+
+    const response = await fetch(`${this.baseUrl}/images/generate`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI Image API error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId: data.request_id || data.id,
+      images: data.images || [],
+      status: data.status === "completed" ? "completed" : "failed",
+      error: data.error,
+    };
+  }
+
+  getGenerativeStyles(): { id: string; name: string; description: string }[] {
+    return [
+      { id: "realistic", name: "Realistic", description: "Photorealistic AI-generated footage" },
+      { id: "artistic", name: "Artistic", description: "Creative and stylized visuals" },
+      { id: "cinematic", name: "Cinematic", description: "Movie-quality cinematography" },
+      { id: "anime", name: "Anime", description: "Japanese animation style" },
+    ];
+  }
+
+  getImageStyles(): { id: string; name: string; description: string }[] {
+    return [
+      { id: "photorealistic", name: "Photorealistic", description: "Ultra-realistic photography" },
+      { id: "illustration", name: "Illustration", description: "Hand-drawn artistic style" },
+      { id: "3d", name: "3D Render", description: "3D computer graphics" },
+      { id: "anime", name: "Anime", description: "Japanese animation style" },
+      { id: "digital_art", name: "Digital Art", description: "Modern digital artwork" },
+    ];
   }
 
   async getVoices(): Promise<Voice[]> {
