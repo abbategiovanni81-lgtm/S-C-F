@@ -82,10 +82,14 @@ export default function Admin() {
 
   const getTierBadge = (userTier: string) => {
     switch (userTier) {
+      case "studio":
+        return <Badge className="bg-gradient-to-r from-pink-600 to-red-600"><Crown className="h-3 w-3 mr-1" /> Studio</Badge>;
       case "pro":
         return <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500"><Crown className="h-3 w-3 mr-1" /> Pro</Badge>;
       case "premium":
         return <Badge className="bg-gradient-to-r from-purple-500 to-pink-500"><Crown className="h-3 w-3 mr-1" /> Premium</Badge>;
+      case "core":
+        return <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500"><User className="h-3 w-3 mr-1" /> Core</Badge>;
       default:
         return <Badge variant="secondary"><User className="h-3 w-3 mr-1" /> Free</Badge>;
     }
@@ -115,14 +119,36 @@ export default function Admin() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-blue-500" />
                 <div>
                   <p className="text-2xl font-bold">{data?.users?.length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-sm text-muted-foreground">Total</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-pink-600" />
+                <div>
+                  <p className="text-2xl font-bold">{data?.users?.filter(u => u.tier === "studio").length || 0}</p>
+                  <p className="text-sm text-muted-foreground">Studio</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="text-2xl font-bold">{data?.users?.filter(u => u.tier === "pro").length || 0}</p>
+                  <p className="text-sm text-muted-foreground">Pro</p>
                 </div>
               </div>
             </CardContent>
@@ -133,7 +159,7 @@ export default function Admin() {
                 <Crown className="h-5 w-5 text-purple-500" />
                 <div>
                   <p className="text-2xl font-bold">{data?.users?.filter(u => u.tier === "premium").length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Premium Users</p>
+                  <p className="text-sm text-muted-foreground">Premium</p>
                 </div>
               </div>
             </CardContent>
@@ -141,10 +167,10 @@ export default function Admin() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-gray-500" />
+                <User className="h-5 w-5 text-cyan-500" />
                 <div>
-                  <p className="text-2xl font-bold">{data?.users?.filter(u => u.tier === "free").length || 0}</p>
-                  <p className="text-sm text-muted-foreground">Free Users</p>
+                  <p className="text-2xl font-bold">{data?.users?.filter(u => u.tier === "core").length || 0}</p>
+                  <p className="text-sm text-muted-foreground">Core</p>
                 </div>
               </div>
             </CardContent>
@@ -155,7 +181,7 @@ export default function Admin() {
                 <DollarSign className="h-5 w-5 text-green-500" />
                 <div>
                   <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
-                  <p className="text-sm text-muted-foreground">Est. AI Costs</p>
+                  <p className="text-sm text-muted-foreground">AI Costs</p>
                 </div>
               </div>
             </CardContent>
@@ -225,8 +251,10 @@ export default function Admin() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="free">Free</SelectItem>
-                              <SelectItem value="premium">Premium</SelectItem>
-                              <SelectItem value="pro">Pro</SelectItem>
+                              <SelectItem value="core">Core (£9.99)</SelectItem>
+                              <SelectItem value="premium">Premium (£29.99)</SelectItem>
+                              <SelectItem value="pro">Pro (£49.99)</SelectItem>
+                              <SelectItem value="studio">Studio (£99.99)</SelectItem>
                             </SelectContent>
                           </Select>
                         )}
