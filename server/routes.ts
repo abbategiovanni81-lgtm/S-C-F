@@ -1404,8 +1404,19 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/steveai/generate", async (req, res) => {
+  app.post("/api/steveai/generate", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Check Studio tier - Steve AI is only available for Studio tier
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI video generation is only available for Studio tier users" });
+      }
+
       if (!steveAIService.isConfigured()) {
         return res.status(400).json({ 
           error: "Steve AI API not configured. Contact team@steve.ai for Enterprise API access.",
@@ -2888,11 +2899,9 @@ export async function registerRoutes(
 
       await storage.ensureUser(userId);
 
-      // Check social channel limit before connecting new pages
       const { checkSocialChannelLimit } = await import("./usageService");
-      const channelCheck = await checkSocialChannelLimit(userId);
 
-      // Connect all Facebook pages
+      // Connect all Facebook pages (re-check limit for each new account)
       for (const page of pages.data || []) {
         const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Facebook", page.id);
 
@@ -2902,15 +2911,19 @@ export async function registerRoutes(
             isConnected: "connected",
             accessToken: page.access_token,
           });
-        } else if (channelCheck.allowed) {
-          await storage.createSocialAccount({
-            userId,
-            platform: "Facebook",
-            accountName: page.name,
-            isConnected: "connected",
-            accessToken: page.access_token,
-            platformAccountId: page.id,
-          });
+        } else {
+          // Re-check limit before creating each new account
+          const channelCheck = await checkSocialChannelLimit(userId);
+          if (channelCheck.allowed) {
+            await storage.createSocialAccount({
+              userId,
+              platform: "Facebook",
+              accountName: page.name,
+              isConnected: "connected",
+              accessToken: page.access_token,
+              platformAccountId: page.id,
+            });
+          }
         }
 
         // Check for connected Instagram account
@@ -2920,15 +2933,19 @@ export async function registerRoutes(
             const igId = igAccount.instagram_business_account.id;
             const existingIg = await storage.getSocialAccountByPlatformAccountId(userId, "Instagram", igId);
 
-            if (!existingIg && channelCheck.allowed) {
-              await storage.createSocialAccount({
-                userId,
-                platform: "Instagram",
-                accountName: `${page.name} (Instagram)`,
-                isConnected: "connected",
-                accessToken: page.access_token,
-                platformAccountId: igId,
-              });
+            if (!existingIg) {
+              // Re-check limit before creating Instagram account
+              const igChannelCheck = await checkSocialChannelLimit(userId);
+              if (igChannelCheck.allowed) {
+                await storage.createSocialAccount({
+                  userId,
+                  platform: "Instagram",
+                  accountName: `${page.name} (Instagram)`,
+                  isConnected: "connected",
+                  accessToken: page.access_token,
+                  platformAccountId: igId,
+                });
+              }
             }
           }
         } catch (igError) {
