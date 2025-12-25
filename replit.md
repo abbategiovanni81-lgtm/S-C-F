@@ -4,6 +4,28 @@
 
 SocialCommand is a unified social media management platform that allows users to manage multiple social media channels, schedule posts, and track analytics from a single dashboard. The application features AI-powered content generation using OpenAI for copywriting, ElevenLabs for voice synthesis, and Fal.ai for video lip-sync processing. Users can create brand briefs that define their brand voice and content strategy, then generate social media content (scripts, captions, hashtags) based on those briefs.
 
+### Auto-Posting Feature (December 2025)
+The platform supports OAuth-based auto-posting to 9 social media platforms:
+
+| Platform | Auth Type | API | Environment Variables |
+|----------|-----------|-----|----------------------|
+| YouTube | OAuth 2.0 | Google API | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET |
+| Twitter/X | OAuth 2.0 + PKCE | Twitter API v2 | TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET |
+| LinkedIn | OAuth 2.0 | LinkedIn API | LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET |
+| Facebook | OAuth 2.0 | Graph API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
+| Instagram | OAuth 2.0 (via Facebook) | Graph API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
+| TikTok | OAuth 2.0 | Content Posting API | TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET |
+| Threads | OAuth 2.0 | Threads API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
+| Bluesky | App Password | AT Protocol | (user provides app password) |
+| Pinterest | OAuth 2.0 | Pinterest API | PINTEREST_APP_ID, PINTEREST_APP_SECRET |
+
+**Key Implementation Details:**
+- OAuth routes in `server/routes.ts` with CSRF protection via session state
+- Platform service layer in `server/socialPlatforms.ts`
+- Universal posting endpoint: `POST /api/social/post`
+- All OAuth initiation routes require authentication (`requireAuth` middleware)
+- Session state saved with `req.session.save()` before redirects
+
 ### Social Listening Feature
 The platform includes a Social Listening module that allows users to:
 - **Monitor mentions**: Track posts/comments from various platforms (YouTube, TikTok, Instagram, X/Twitter, Reddit)
@@ -146,6 +168,7 @@ server/           # Express backend
   openai.ts       # OpenAI integration for content generation
   elevenlabs.ts   # ElevenLabs voice synthesis service
   fal.ts          # Fal.ai lip-sync processing service
+  socialPlatforms.ts  # Social media OAuth and posting service
 shared/           # Shared code between frontend and backend
   schema.ts       # Drizzle database schema and Zod validation
 ```
