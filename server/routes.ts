@@ -19,6 +19,7 @@ import { falService } from "./fal";
 import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
+import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError, checkCreatorStudioQuota, incrementCreatorStudioUsage, assertCreatorStudioQuota, CreatorStudioAccessError, getA2ECapacityStatus } from "./usageService";
 import multer from "multer";
@@ -2479,6 +2480,586 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("YouTube upload error:", error);
       res.status(500).json({ error: error.message || "Failed to upload video" });
+    }
+  });
+
+  // ============================================
+  // SOCIAL PLATFORM OAUTH & POSTING ENDPOINTS
+  // ============================================
+
+  // Get available platforms status
+  app.get("/api/social-platforms/status", (req, res) => {
+    res.json(socialPlatforms.getSocialPlatformStatus());
+  });
+
+  // --- TWITTER/X OAuth ---
+  app.get("/api/auth/twitter", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isTwitterConfigured()) {
+      return res.redirect("/accounts?error=twitter_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    const codeVerifier = socialPlatforms.generateCodeVerifier();
+    
+    // Store state and verifier in session (sessions are configured via express-session + pg-simple)
+    req.session.twitterState = state;
+    req.session.twitterCodeVerifier = codeVerifier;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getTwitterAuthUrl(state, codeVerifier);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/twitter/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.twitterState;
+      const codeVerifier = req.session?.twitterCodeVerifier;
+      
+      if (!code || !storedState || state !== storedState || !codeVerifier) {
+        return res.redirect("/accounts?error=twitter_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getTwitterTokens(code, codeVerifier);
+      const userInfo = await socialPlatforms.getTwitterUserInfo(tokens.access_token);
+
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Twitter", userInfo.id);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: userInfo.name,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.profileImageUrl,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "Twitter",
+          accountName: userInfo.name,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.profileImageUrl,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+          platformAccountId: userInfo.id,
+        });
+      }
+
+      delete req.session.twitterState;
+      delete req.session.twitterCodeVerifier;
+      res.redirect("/accounts?connected=twitter");
+    } catch (error) {
+      console.error("Twitter OAuth error:", error);
+      res.redirect("/accounts?error=twitter_oauth_failed");
+    }
+  });
+
+  // --- LINKEDIN OAuth ---
+  app.get("/api/auth/linkedin", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isLinkedInConfigured()) {
+      return res.redirect("/accounts?error=linkedin_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    req.session.linkedinState = state;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getLinkedInAuthUrl(state);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/linkedin/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.linkedinState;
+      if (!code || !storedState || state !== storedState) {
+        return res.redirect("/accounts?error=linkedin_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getLinkedInTokens(code);
+      const userInfo = await socialPlatforms.getLinkedInUserInfo(tokens.access_token);
+
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "LinkedIn", userInfo.sub);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: userInfo.name,
+          accountHandle: userInfo.email,
+          profileUrl: userInfo.picture,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "LinkedIn",
+          accountName: userInfo.name,
+          accountHandle: userInfo.email,
+          profileUrl: userInfo.picture,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+          platformAccountId: userInfo.sub,
+        });
+      }
+
+      delete req.session.linkedinState;
+      res.redirect("/accounts?connected=linkedin");
+    } catch (error) {
+      console.error("LinkedIn OAuth error:", error);
+      res.redirect("/accounts?error=linkedin_oauth_failed");
+    }
+  });
+
+  // --- BLUESKY Auth (username/password) ---
+  app.post("/api/auth/bluesky", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { identifier, password } = req.body;
+
+      if (!identifier || !password) {
+        return res.status(400).json({ error: "Username and app password required" });
+      }
+
+      const session = await socialPlatforms.loginToBluesky(identifier, password);
+      
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Bluesky", session.did);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: session.handle,
+          accountHandle: `@${session.handle}`,
+          isConnected: "connected",
+          accessToken: session.accessJwt,
+          refreshToken: session.refreshJwt,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "Bluesky",
+          accountName: session.handle,
+          accountHandle: `@${session.handle}`,
+          isConnected: "connected",
+          accessToken: session.accessJwt,
+          refreshToken: session.refreshJwt,
+          platformAccountId: session.did,
+        });
+      }
+
+      res.json({ success: true, handle: session.handle });
+    } catch (error: any) {
+      console.error("Bluesky auth error:", error);
+      res.status(400).json({ error: error.message || "Bluesky login failed" });
+    }
+  });
+
+  // --- FACEBOOK OAuth ---
+  app.get("/api/auth/facebook", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isFacebookConfigured()) {
+      return res.redirect("/accounts?error=facebook_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    req.session.facebookState = state;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getFacebookAuthUrl(state);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/facebook/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.facebookState;
+      if (!code || !storedState || state !== storedState) {
+        return res.redirect("/accounts?error=facebook_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getFacebookTokens(code);
+      const longLivedToken = await socialPlatforms.getFacebookLongLivedToken(tokens.access_token);
+      const pages = await socialPlatforms.getFacebookPages(longLivedToken.access_token);
+
+      await storage.ensureUser(userId);
+
+      // Connect all Facebook pages
+      for (const page of pages.data || []) {
+        const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Facebook", page.id);
+
+        if (existingAccount) {
+          await storage.updateSocialAccount(existingAccount.id, {
+            accountName: page.name,
+            isConnected: "connected",
+            accessToken: page.access_token,
+          });
+        } else {
+          await storage.createSocialAccount({
+            userId,
+            platform: "Facebook",
+            accountName: page.name,
+            isConnected: "connected",
+            accessToken: page.access_token,
+            platformAccountId: page.id,
+          });
+        }
+
+        // Check for connected Instagram account
+        try {
+          const igAccount = await socialPlatforms.getInstagramAccounts(page.id, page.access_token);
+          if (igAccount.instagram_business_account) {
+            const igId = igAccount.instagram_business_account.id;
+            const existingIg = await storage.getSocialAccountByPlatformAccountId(userId, "Instagram", igId);
+
+            if (!existingIg) {
+              await storage.createSocialAccount({
+                userId,
+                platform: "Instagram",
+                accountName: `${page.name} (Instagram)`,
+                isConnected: "connected",
+                accessToken: page.access_token,
+                platformAccountId: igId,
+              });
+            }
+          }
+        } catch (igError) {
+          console.log("No Instagram account linked to page:", page.name);
+        }
+      }
+
+      delete req.session.facebookState;
+      res.redirect("/accounts?connected=facebook");
+    } catch (error) {
+      console.error("Facebook OAuth error:", error);
+      res.redirect("/accounts?error=facebook_oauth_failed");
+    }
+  });
+
+  // --- TIKTOK OAuth ---
+  app.get("/api/auth/tiktok", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isTikTokConfigured()) {
+      return res.redirect("/accounts?error=tiktok_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    req.session.tiktokState = state;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getTikTokAuthUrl(state);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/tiktok/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.tiktokState;
+      if (!code || !storedState || state !== storedState) {
+        return res.redirect("/accounts?error=tiktok_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getTikTokTokens(code);
+      const userInfo = await socialPlatforms.getTikTokUserInfo(tokens.access_token);
+
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "TikTok", userInfo.data.user.open_id);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: userInfo.data.user.display_name,
+          profileUrl: userInfo.data.user.avatar_url,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "TikTok",
+          accountName: userInfo.data.user.display_name,
+          profileUrl: userInfo.data.user.avatar_url,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+          platformAccountId: userInfo.data.user.open_id,
+        });
+      }
+
+      delete req.session.tiktokState;
+      res.redirect("/accounts?connected=tiktok");
+    } catch (error) {
+      console.error("TikTok OAuth error:", error);
+      res.redirect("/accounts?error=tiktok_oauth_failed");
+    }
+  });
+
+  // --- THREADS OAuth ---
+  app.get("/api/auth/threads", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isFacebookConfigured()) {
+      return res.redirect("/accounts?error=threads_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    req.session.threadsState = state;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getThreadsAuthUrl(state);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/threads/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.threadsState;
+      if (!code || !storedState || state !== storedState) {
+        return res.redirect("/accounts?error=threads_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getThreadsTokens(code);
+      const userInfo = await socialPlatforms.getThreadsUserInfo(tokens.access_token, tokens.user_id);
+
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Threads", tokens.user_id);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: userInfo.username,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.threads_profile_picture_url,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "Threads",
+          accountName: userInfo.username,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.threads_profile_picture_url,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          platformAccountId: tokens.user_id,
+        });
+      }
+
+      delete req.session.threadsState;
+      res.redirect("/accounts?connected=threads");
+    } catch (error) {
+      console.error("Threads OAuth error:", error);
+      res.redirect("/accounts?error=threads_oauth_failed");
+    }
+  });
+
+  // --- PINTEREST OAuth ---
+  app.get("/api/auth/pinterest", requireAuth, (req: any, res) => {
+    if (!socialPlatforms.isPinterestConfigured()) {
+      return res.redirect("/accounts?error=pinterest_not_configured");
+    }
+    const state = socialPlatforms.generateOAuthState();
+    req.session.pinterestState = state;
+    req.session.save(() => {
+      const authUrl = socialPlatforms.getPinterestAuthUrl(state);
+      res.redirect(authUrl);
+    });
+  });
+
+  app.get("/api/auth/pinterest/callback", async (req: any, res) => {
+    try {
+      const { code, state } = req.query;
+      const userId = getUserId(req);
+      
+      if (!userId) {
+        return res.redirect("/accounts?error=not_authenticated");
+      }
+      
+      const storedState = req.session?.pinterestState;
+      if (!code || !storedState || state !== storedState) {
+        return res.redirect("/accounts?error=pinterest_invalid_state");
+      }
+
+      const tokens = await socialPlatforms.getPinterestTokens(code);
+      const userInfo = await socialPlatforms.getPinterestUserInfo(tokens.access_token);
+
+      await storage.ensureUser(userId);
+      const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Pinterest", userInfo.id);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: userInfo.username,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.profile_image,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "Pinterest",
+          accountName: userInfo.username,
+          accountHandle: `@${userInfo.username}`,
+          profileUrl: userInfo.profile_image,
+          isConnected: "connected",
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null,
+          platformAccountId: userInfo.id,
+        });
+      }
+
+      delete req.session.pinterestState;
+      res.redirect("/accounts?connected=pinterest");
+    } catch (error) {
+      console.error("Pinterest OAuth error:", error);
+      res.redirect("/accounts?error=pinterest_oauth_failed");
+    }
+  });
+
+  // ============================================
+  // UNIVERSAL POSTING ENDPOINT
+  // ============================================
+  
+  app.post("/api/social/post", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { accountId, text, imageUrl, videoUrl, title, description } = req.body;
+
+      if (!accountId) {
+        return res.status(400).json({ error: "Account ID is required" });
+      }
+
+      const account = await storage.getSocialAccount(accountId);
+      if (!account || account.userId !== userId) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+
+      if (!account.accessToken) {
+        return res.status(401).json({ error: "Account not connected. Please reconnect." });
+      }
+
+      let result;
+      
+      switch (account.platform) {
+        case "Twitter":
+          result = await socialPlatforms.postToTwitter(account.accessToken, text);
+          break;
+          
+        case "LinkedIn":
+          const authorUrn = `urn:li:person:${account.platformAccountId}`;
+          result = await socialPlatforms.postToLinkedIn(account.accessToken, authorUrn, text, imageUrl);
+          break;
+          
+        case "Bluesky":
+          result = await socialPlatforms.postToBluesky(
+            account.accessToken, 
+            account.platformAccountId!, 
+            text
+          );
+          break;
+          
+        case "Facebook":
+          result = await socialPlatforms.postToFacebookPage(
+            account.accessToken,
+            account.platformAccountId!,
+            text,
+            imageUrl
+          );
+          break;
+          
+        case "Instagram":
+          if (!imageUrl) {
+            return res.status(400).json({ error: "Instagram requires an image" });
+          }
+          result = await socialPlatforms.postToInstagram(
+            account.accessToken,
+            account.platformAccountId!,
+            text,
+            imageUrl
+          );
+          break;
+          
+        case "TikTok":
+          if (!videoUrl) {
+            return res.status(400).json({ error: "TikTok requires a video URL" });
+          }
+          result = await socialPlatforms.initTikTokVideoUpload(
+            account.accessToken,
+            videoUrl,
+            title || text
+          );
+          break;
+          
+        case "Threads":
+          result = await socialPlatforms.postToThreads(
+            account.accessToken,
+            account.platformAccountId!,
+            text,
+            imageUrl
+          );
+          break;
+          
+        case "Pinterest":
+          if (!imageUrl) {
+            return res.status(400).json({ error: "Pinterest requires an image" });
+          }
+          // For Pinterest, we'd need to get the user's boards first
+          // This is a simplified version
+          const boards = await socialPlatforms.getPinterestBoards(account.accessToken);
+          const defaultBoard = boards.items?.[0];
+          if (!defaultBoard) {
+            return res.status(400).json({ error: "No Pinterest boards found" });
+          }
+          result = await socialPlatforms.postToPinterest(
+            account.accessToken,
+            defaultBoard.id,
+            title || "Pin",
+            text || description || "",
+            imageUrl
+          );
+          break;
+          
+        default:
+          return res.status(400).json({ error: `Posting to ${account.platform} not supported` });
+      }
+
+      res.json({ success: true, result, platform: account.platform });
+    } catch (error: any) {
+      console.error("Social post error:", error);
+      res.status(500).json({ error: error.message || "Failed to post to social platform" });
     }
   });
 

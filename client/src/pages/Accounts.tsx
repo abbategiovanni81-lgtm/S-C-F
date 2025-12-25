@@ -7,18 +7,36 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2 } from "lucide-react";
+import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2, CloudSun, MessageCircle, Pin } from "lucide-react";
 import type { SocialAccount } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 const DEMO_USER_ID = "demo-user";
 
-const PLATFORMS = [
-  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, manualOption: true },
-  { name: "Twitter/X", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: false, manualOption: false },
-  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: false, manualOption: false },
-  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: false, manualOption: false },
-  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: false, manualOption: false },
-  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black", bgLight: "bg-black/10", oauth: false, manualOption: false },
+interface PlatformConfig {
+  name: string;
+  icon: any;
+  color: string;
+  hoverColor: string;
+  textColor: string;
+  bgLight: string;
+  oauth: boolean;
+  oauthUrl?: string;
+  authType?: "oauth" | "password";
+  manualOption?: boolean;
+  comingSoon?: boolean;
+}
+
+const PLATFORMS: PlatformConfig[] = [
+  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, oauthUrl: "/api/auth/google", manualOption: true },
+  { name: "Twitter", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: true, oauthUrl: "/api/auth/twitter" },
+  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: true, oauthUrl: "/api/auth/linkedin" },
+  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: true, oauthUrl: "/api/auth/facebook" },
+  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: true, oauthUrl: "/api/auth/facebook" },
+  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black dark:text-white", bgLight: "bg-black/10 dark:bg-white/10", oauth: true, oauthUrl: "/api/auth/tiktok" },
+  { name: "Threads", icon: MessageCircle, color: "bg-gray-900", hoverColor: "hover:bg-gray-800", textColor: "text-gray-900 dark:text-white", bgLight: "bg-gray-900/10", oauth: true, oauthUrl: "/api/auth/threads" },
+  { name: "Bluesky", icon: CloudSun, color: "bg-sky-400", hoverColor: "hover:bg-sky-500", textColor: "text-sky-400", bgLight: "bg-sky-400/10", oauth: false, authType: "password" },
+  { name: "Pinterest", icon: Pin, color: "bg-red-600", hoverColor: "hover:bg-red-700", textColor: "text-red-600", bgLight: "bg-red-600/10", oauth: true, oauthUrl: "/api/auth/pinterest" },
 ];
 
 export default function Accounts() {
@@ -26,10 +44,18 @@ export default function Accounts() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [accountName, setAccountName] = useState("");
   const [accountHandle, setAccountHandle] = useState("");
+  const [blueskyPassword, setBlueskyPassword] = useState("");
+  const [showYouTubeChoice, setShowYouTubeChoice] = useState(false);
+  const [showBlueskyLogin, setShowBlueskyLogin] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: accounts = [], isLoading } = useQuery<SocialAccount[]>({
     queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+  });
+
+  const { data: platformStatus } = useQuery<Record<string, boolean>>({
+    queryKey: ["/api/social-platforms/status"],
   });
 
   const createMutation = useMutation({
@@ -52,6 +78,23 @@ export default function Accounts() {
     },
   });
 
+  const blueskyMutation = useMutation({
+    mutationFn: async (data: { identifier: string; password: string }) => {
+      return await apiRequest("POST", "/api/auth/bluesky", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+      setDialogOpen(false);
+      setShowBlueskyLogin(false);
+      setAccountHandle("");
+      setBlueskyPassword("");
+      toast({ title: "Bluesky connected successfully!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Bluesky login failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       return await apiRequest("DELETE", `/api/social-accounts/${id}`);
@@ -61,17 +104,25 @@ export default function Accounts() {
     },
   });
 
-  const [showYouTubeChoice, setShowYouTubeChoice] = useState(false);
-
   const handlePlatformSelect = (platformName: string) => {
     const platform = PLATFORMS.find(p => p.name === platformName);
-    if (platform?.oauth && platform?.manualOption) {
+    
+    if (platform?.manualOption) {
       setShowYouTubeChoice(true);
-    } else if (platform?.oauth) {
-      window.location.href = "/api/auth/google";
-    } else {
-      setSelectedPlatform(platformName);
+      return;
     }
+    
+    if (platform?.authType === "password") {
+      setShowBlueskyLogin(true);
+      return;
+    }
+    
+    if (platform?.oauth && platform?.oauthUrl) {
+      window.location.href = platform.oauthUrl;
+      return;
+    }
+    
+    setSelectedPlatform(platformName);
   };
 
   const handleYouTubeOAuth = () => {
@@ -81,6 +132,14 @@ export default function Accounts() {
   const handleYouTubeManual = () => {
     setShowYouTubeChoice(false);
     setSelectedPlatform("YouTube");
+  };
+
+  const handleBlueskyLogin = () => {
+    if (!accountHandle.trim() || !blueskyPassword.trim()) return;
+    blueskyMutation.mutate({
+      identifier: accountHandle.includes(".") ? accountHandle : `${accountHandle}.bsky.social`,
+      password: blueskyPassword,
+    });
   };
 
   const handleAddAccount = () => {
@@ -220,26 +279,78 @@ export default function Accounts() {
         if (!open) {
           setSelectedPlatform(null);
           setShowYouTubeChoice(false);
+          setShowBlueskyLogin(false);
           setAccountName("");
           setAccountHandle("");
+          setBlueskyPassword("");
         }
       }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedPlatform ? `Add ${selectedPlatform} Channel` : showYouTubeChoice ? "Add YouTube Channel" : "Add Social Channel"}
+              {selectedPlatform ? `Add ${selectedPlatform} Channel` : showBlueskyLogin ? "Connect Bluesky" : showYouTubeChoice ? "Add YouTube Channel" : "Add Social Channel"}
             </DialogTitle>
             <DialogDescription>
               {selectedPlatform 
                 ? "Enter your account details"
+                : showBlueskyLogin
+                ? "Enter your Bluesky handle and app password"
                 : showYouTubeChoice
                 ? "Choose how to add your YouTube channel"
-                : "Choose a platform to add"
+                : "Choose a platform to connect"
               }
             </DialogDescription>
           </DialogHeader>
           
-          {showYouTubeChoice ? (
+          {showBlueskyLogin ? (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="blueskyHandle">Handle</Label>
+                <Input
+                  id="blueskyHandle"
+                  placeholder="username or username.bsky.social"
+                  value={accountHandle}
+                  onChange={(e) => setAccountHandle(e.target.value)}
+                  data-testid="input-bluesky-handle"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="blueskyPassword">App Password</Label>
+                <Input
+                  id="blueskyPassword"
+                  type="password"
+                  placeholder="xxxx-xxxx-xxxx-xxxx"
+                  value={blueskyPassword}
+                  onChange={(e) => setBlueskyPassword(e.target.value)}
+                  data-testid="input-bluesky-password"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Create an app password at Settings → App Passwords in Bluesky
+                </p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowBlueskyLogin(false)}
+                >
+                  Back
+                </Button>
+                <Button
+                  className="flex-1 bg-sky-400 hover:bg-sky-500"
+                  onClick={handleBlueskyLogin}
+                  disabled={!accountHandle.trim() || !blueskyPassword.trim() || blueskyMutation.isPending}
+                  data-testid="button-connect-bluesky"
+                >
+                  {blueskyMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Connect"
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : showYouTubeChoice ? (
             <div className="space-y-3 py-4">
               <button
                 onClick={handleYouTubeOAuth}
@@ -272,7 +383,7 @@ export default function Accounts() {
               </Button>
             </div>
           ) : !selectedPlatform ? (
-            <div className="grid grid-cols-1 gap-3 py-4">
+            <div className="grid grid-cols-1 gap-3 py-4 max-h-[60vh] overflow-y-auto">
               {PLATFORMS.map((platform) => (
                 <button
                   key={platform.name}
@@ -286,8 +397,17 @@ export default function Accounts() {
                     <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
                   )}
                   <span className="font-medium">{platform.name}</span>
-                  {platform.oauth && (
+                  {platform.oauth && platform.name === "YouTube" && (
                     <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
+                  )}
+                  {platform.oauth && platform.name !== "YouTube" && (
+                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect</span>
+                  )}
+                  {platform.authType === "password" && (
+                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Login</span>
+                  )}
+                  {platform.name === "Instagram" && (
+                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">via Facebook</span>
                   )}
                 </button>
               ))}
