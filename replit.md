@@ -43,7 +43,7 @@ The platform includes a Social Listening module that allows users to:
 ### CRITICAL: Authentication & Data Isolation Notes
 **DO NOT BREAK THESE PATTERNS:**
 
-1. **Owner Privileges**: The `upsertUser` function in `server/replit_integrations/auth/storage.ts` applies owner flags (tier=pro, isOwner=true, creatorStudioAccess=true) on EVERY login. Both email/password and Google OAuth call `upsertUser`.
+1. **Owner Privileges**: The `upsertUser` function in `server/replit_integrations/auth/storage.ts` applies owner flags (tier=studio, isOwner=true, creatorStudioAccess=true) on EVERY login. Both email/password and Google OAuth call `upsertUser`.
 
 2. **User ID Retrieval**: The `getUserId` function in `server/routes.ts` must support BOTH auth formats:
    - Replit auth: `req.user.claims.sub`
@@ -61,25 +61,39 @@ The platform includes a Social Listening module that allows users to:
 5. **Login Response**: Must include tier, isOwner, and creatorStudioAccess in the JSON response.
 
 ### Tier System & Usage Quotas
-Three subscription tiers with monthly usage limits:
+Five subscription tiers with monthly usage limits:
 
-| Feature | Free | Premium (£29.99/mo) | Pro (£49.99/mo) |
-|---------|------|---------------------|-----------------|
-| Brand Briefs | 1 | 5 | 10 |
-| Scripts | Own API keys | Unlimited | Unlimited |
-| Voiceovers | Own API keys | 25 min | 60 min |
-| A2E Videos | Own API keys | 16 | 32 |
-| Lipsync | Own API keys | 120 | 300 |
-| Avatars | Own API keys | 4 | 8 |
-| DALL-E Images | Own API keys | 150 | 400 |
-| Sora Videos | Own API keys | 12 | 30 |
-| Social Listening Keywords | Own API keys | 3 | 6 |
-| Uses Platform API Keys | No | Yes | Yes |
+| Feature | Free | Core (£9.99/mo) | Premium (£29.99/mo) | Pro (£49.99/mo) | Studio (£99.99/mo) |
+|---------|------|-----------------|---------------------|-----------------|-------------------|
+| Social Channels | 0 | 1 | 3 | 5 | 9 (all) |
+| Brand Briefs | 1 | 3 | 5 | 10 | 15 |
+| Scripts | Own API | Unlimited (own) | Unlimited | Unlimited | Unlimited |
+| Voiceovers | - | Own API | 25 min | 60 min | 75 min |
+| A2E Videos | - | Own API | 16 | 32 | 48 |
+| Lipsync | - | Own API | 120 | 300 | 360 |
+| Avatars | - | Own API | 4 | 8 | 12 |
+| DALL-E Images | Own API | Own API | 150 | 400 | 450 |
+| Sora Videos | - | Own API | 12 | 30 | 36 |
+| Social Listening | - | Own API | 3 keywords | 6 keywords | 9 keywords |
+| Steve AI Videos | - | - | - | - | 200 min |
+| Steve AI Generative | - | - | - | - | 7.5 min |
+| Steve AI Images | - | - | - | - | 1600 |
+| Getty Images | - | - | - | - | Yes |
+| Creator Studio | - | - | £20/mo add-on | £20/mo add-on | Included |
+| Concurrent Logins | 1 | 1 | 1 | 1 | 5 |
+| Uses Platform APIs | No | No | Yes | Yes | Yes |
+
+**Tier Notes:**
+- **Free**: Scripts + DALL-E images only (must provide own OpenAI API key), no voiceover/video, 0 social channels
+- **Core**: Unlimited with own API keys, 1 social channel for scheduling
+- **Premium/Pro**: Platform API keys included, tiered quotas
+- **Studio**: Enterprise tier with Creator Studio included, Steve AI video generation, Getty Images, all 9 social platforms, 5 concurrent sessions
 
 **Platform API Costs (£310/month total):**
 - A2E Max: £32/mo (5,400 credits)
 - ElevenLabs Pro: £78/mo (1,000 min voiceover)
 - OpenAI API: £200/mo (DALL-E + Sora)
+- Steve AI: Enterprise pricing (Studio tier only)
 
 **Usage Type Definitions:**
 - `a2eVideos`: A2E video clips (30 credits each)
