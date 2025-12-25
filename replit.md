@@ -192,9 +192,10 @@ shared/           # Shared code between frontend and backend
 - **Fal.ai**: AI video/image generation (backup engine) via `FAL_API_KEY`
 
 ### Video Engine Selection
-Users can choose between two video generation engines in the Content Queue:
+Users can choose between three video generation engines in the Content Queue:
 - **A2E (default)**: Creates realistic lip-sync avatar videos from text using 50+ pre-built avatars
 - **Fal.ai**: Generates AI video clips from visual prompts
+- **Steve AI**: Creates polished, long-form faceless videos (up to 3 minutes) for YouTube/educational content with 5 style options (animation, live_action, generative, talking_head, documentary). Requires Enterprise API access - contact team@steve.ai for API key.
 
 ### Image Engine Selection
 Users can choose between four image generation engines in the Content Queue:
