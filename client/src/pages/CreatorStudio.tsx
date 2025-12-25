@@ -193,10 +193,6 @@ export default function CreatorStudio() {
               <Maximize2 className="h-4 w-4 mr-2" />
               Image Reformat
             </TabsTrigger>
-            <TabsTrigger value="steve-ai" data-testid="tab-steve-ai">
-              <Film className="h-4 w-4 mr-2" />
-              Steve AI Video
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="voice-clone">
@@ -238,11 +234,10 @@ export default function CreatorStudio() {
           <TabsContent value="image-reformat">
             <ImageReformatTab usage={status?.usage?.imageReformat} />
           </TabsContent>
-
-          <TabsContent value="steve-ai">
-            <SteveAITab />
-          </TabsContent>
         </Tabs>
+
+        {/* Steve AI Video Suite - Standalone Section for Studio Tier */}
+        <SteveAISection />
       </div>
     </Layout>
   );
@@ -1120,9 +1115,9 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
   );
 }
 
-function SteveAITab() {
+function SteveAISection() {
   const { toast } = useToast();
-  const { tier } = useAuth();
+  const { tier, isOwner } = useAuth();
   const [script, setScript] = useState("");
   const [style, setStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
@@ -1130,7 +1125,7 @@ function SteveAITab() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
-  const isStudioTier = tier === "studio";
+  const isStudioTier = tier === "studio" || isOwner;
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -1183,35 +1178,51 @@ function SteveAITab() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Film className="h-5 w-5 text-purple-500" />
-              Steve AI Video
-            </CardTitle>
-            <CardDescription>Create polished, long-form videos up to 3 minutes</CardDescription>
+    <div className="mt-10 pt-10 border-t">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500">
+            <Film className="h-6 w-6 text-white" />
           </div>
-          {!isStudioTier && (
-            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-              <Lock className="h-3 w-3 mr-1" />
-              Studio Tier Only
-            </Badge>
-          )}
+          <div>
+            <h2 className="text-2xl font-bold">Steve AI Video Suite</h2>
+            <p className="text-muted-foreground">Create polished, professional long-form videos up to 3 minutes</p>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!isStudioTier ? (
-          <Alert className="border-yellow-500/50 bg-yellow-500/10">
-            <Crown className="h-4 w-4 text-yellow-500" />
-            <AlertTitle className="text-yellow-500">Studio Tier Required</AlertTitle>
-            <AlertDescription className="text-muted-foreground">
-              Steve AI video generation is only available for Studio tier subscribers (£99.99/mo - Early adopter pricing, limited time).
-            </AlertDescription>
-          </Alert>
+        {isStudioTier ? (
+          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
+            <Sparkles className="h-3 w-3 mr-1" />
+            Active
+          </Badge>
         ) : (
-          <>
+          <Badge variant="outline" className="border-orange-500 text-orange-500">
+            <Lock className="h-3 w-3 mr-1" />
+            Studio Tier Only
+          </Badge>
+        )}
+      </div>
+
+      {!isStudioTier ? (
+        <Alert className="border-orange-500/50 bg-orange-500/10">
+          <Crown className="h-4 w-4 text-orange-500" />
+          <AlertTitle className="text-orange-500">Unlock Steve AI Video Suite</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            Create stunning long-form videos with AI-generated visuals, voiceover, and music. 
+            Steve AI is exclusively available for Studio tier subscribers (£99.99/mo - Early adopter pricing, limited time).
+            <br /><br />
+            <strong>Includes:</strong> 200 min video generation, 7.5 min generative AI, 1,600 AI images per month
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Card className="border-orange-500/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Film className="h-5 w-5 text-orange-500" />
+              Generate Video
+            </CardTitle>
+            <CardDescription>Enter your script and let Steve AI create a complete video with visuals, voiceover, and music</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Video Script</Label>
               <Textarea
@@ -1274,7 +1285,7 @@ function SteveAITab() {
             <Button 
               onClick={() => generateMutation.mutate()}
               disabled={generateMutation.isPending || !script.trim() || !!requestId}
-              className="gap-2"
+              className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
               data-testid="button-generate-steve"
             >
               {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
@@ -1289,7 +1300,7 @@ function SteveAITab() {
                   ) : statusData?.status === "failed" ? (
                     <XCircle className="h-5 w-5 text-red-500" />
                   ) : (
-                    <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+                    <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
                   )}
                   <span className="font-medium">
                     {statusData?.status === "completed" ? "Video Ready!" : 
@@ -1305,9 +1316,9 @@ function SteveAITab() {
                 )}
               </div>
             )}
-          </>
-        )}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
