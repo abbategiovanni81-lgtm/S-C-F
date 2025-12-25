@@ -1,249 +1,62 @@
 # SocialCommand
 
 ## Overview
-
-SocialCommand is a unified social media management platform that allows users to manage multiple social media channels, schedule posts, and track analytics from a single dashboard. The application features AI-powered content generation using OpenAI for copywriting, ElevenLabs for voice synthesis, and Fal.ai for video lip-sync processing. Users can create brand briefs that define their brand voice and content strategy, then generate social media content (scripts, captions, hashtags) based on those briefs.
-
-### Auto-Posting Feature (December 2025)
-The platform supports OAuth-based auto-posting to 9 social media platforms:
-
-| Platform | Auth Type | API | Environment Variables |
-|----------|-----------|-----|----------------------|
-| YouTube | OAuth 2.0 | Google API | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET |
-| Twitter/X | OAuth 2.0 + PKCE | Twitter API v2 | TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET |
-| LinkedIn | OAuth 2.0 | LinkedIn API | LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET |
-| Facebook | OAuth 2.0 | Graph API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
-| Instagram | OAuth 2.0 (via Facebook) | Graph API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
-| TikTok | OAuth 2.0 | Content Posting API | TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET |
-| Threads | OAuth 2.0 | Threads API | FACEBOOK_APP_ID, FACEBOOK_APP_SECRET |
-| Bluesky | App Password | AT Protocol | (user provides app password) |
-| Pinterest | OAuth 2.0 | Pinterest API | PINTEREST_APP_ID, PINTEREST_APP_SECRET |
-
-**Key Implementation Details:**
-- OAuth routes in `server/routes.ts` with CSRF protection via session state
-- Platform service layer in `server/socialPlatforms.ts`
-- Universal posting endpoint: `POST /api/social/post`
-- All OAuth initiation routes require authentication (`requireAuth` middleware)
-- Session state saved with `req.session.save()` before redirects
-
-### Social Listening Feature
-The platform includes a Social Listening module that allows users to:
-- **Monitor mentions**: Track posts/comments from various platforms (YouTube, TikTok, Instagram, X/Twitter, Reddit)
-- **AI-powered analysis**: Automatically analyze sentiment, detect questions, and identify matched keywords
-- **AI reply generation**: Generate contextual replies based on brand briefs with multiple tone options (helpful, promotional, educational, friendly)
-- **Reply management**: Review, edit, and approve AI-generated replies before posting
-- **Trending topics**: Track trending topics and keywords across monitored content
-
-### Authentication System
-- **Custom Auth**: Email/password + Google OAuth using Passport.js
-- **Session Storage**: PostgreSQL-backed sessions (7-day TTL)
-- **Owner Account**: gio.abbate@hotmail.com (existing demo data linked to this account)
-- **Password Hashing**: bcryptjs with 10 salt rounds
-
-### CRITICAL: Authentication & Data Isolation Notes
-**DO NOT BREAK THESE PATTERNS:**
-
-1. **Owner Privileges**: The `upsertUser` function in `server/replit_integrations/auth/storage.ts` applies owner flags (tier=studio, isOwner=true, creatorStudioAccess=true) on EVERY login. Both email/password and Google OAuth call `upsertUser`.
-
-2. **User ID Retrieval**: The `getUserId` function in `server/routes.ts` must support BOTH auth formats:
-   - Replit auth: `req.user.claims.sub`
-   - Passport auth: `req.user.id`
-   Breaking this causes all APIs to appear unconfigured.
-
-3. **Data Isolation**: ALL data endpoints filter by userId:
-   - `getBrandBriefsByUser(userId)`
-   - `getSocialAccountsByUser(userId)`
-   - `getContentByUser(userId)`
-   Users must ONLY see their own data.
-
-4. **Platform API Access**: Premium/Pro users see platform API keys as configured. Free users see their own API key status. The `/api/ai-engines/status` endpoint handles this based on user tier.
-
-5. **Login Response**: Must include tier, isOwner, and creatorStudioAccess in the JSON response.
-
-### Tier System & Usage Quotas
-Five subscription tiers with monthly usage limits:
-
-| Feature | Free | Core (£9.99/mo) | Premium (£29.99/mo) | Pro (£49.99/mo) | Studio (£99.99/mo)* |
-|---------|------|-----------------|---------------------|-----------------|-------------------|
-| Social Channels | 0 | 1 | 3 | 5 | 9 (all) |
-| Brand Briefs | 1 | 3 | 5 | 10 | 15 |
-| Scripts | Own API | Unlimited (own) | Unlimited | Unlimited | Unlimited |
-| Voiceovers | - | Own API | 25 min | 60 min | 75 min |
-| A2E Videos | - | Own API | 16 | 32 | 48 |
-| Lipsync | - | Own API | 120 | 300 | 360 |
-| Avatars | - | Own API | 4 | 8 | 12 |
-| DALL-E Images | Own API | Own API | 150 | 400 | 450 |
-| Sora Videos | - | Own API | 12 | 30 | 36 |
-| Social Listening | - | Own API | 3 keywords | 6 keywords | 9 keywords |
-| Steve AI Videos | - | - | - | - | 200 min |
-| Steve AI Generative | - | - | - | - | 7.5 min |
-| Steve AI Images | - | - | - | - | 1600 |
-| Getty Images | - | - | - | - | Yes |
-| Creator Studio | - | - | £20/mo add-on | £20/mo add-on | Included |
-| Concurrent Logins | 1 | 1 | 1 | 1 | 5 |
-| Uses Platform APIs | No | No | Yes | Yes | Yes |
-
-**Tier Notes:**
-- **Free**: Scripts + DALL-E images only (must provide own OpenAI API key), no voiceover/video, 0 social channels
-- **Core**: Unlimited with own API keys, 1 social channel for scheduling
-- **Premium/Pro**: Platform API keys included, tiered quotas
-- **Studio**: Enterprise tier with Creator Studio included, Steve AI video generation, Getty Images, all 9 social platforms, 5 concurrent sessions. **Early adopter pricing. Limited time.**
-
-**Platform API Costs (£310/month total):**
-- A2E Max: £32/mo (5,400 credits)
-- ElevenLabs Pro: £78/mo (1,000 min voiceover)
-- OpenAI API: £200/mo (DALL-E + Sora)
-- Steve AI: Enterprise pricing (Studio tier only)
-
-**Usage Type Definitions:**
-- `a2eVideos`: A2E video clips (30 credits each)
-- `lipsync`: A2E lipsync videos (1 credit per second)
-- `avatars`: A2E avatars (100 credits each)
-- `dalleImages`: OpenAI DALL-E images ($0.04 each)
-- `soraVideos`: OpenAI Sora videos ($0.10/sec)
-
-- **Owner Flag**: `isOwner=true` grants admin panel access (separate from tier)
-- **Usage Tracking**: Monthly periods with automatic reset on the 1st
-- **Top-Up System**: £10 one-time payment adds 40% to current month's quotas
-- **Quota Enforcement**: All AI generation endpoints check quotas before processing
-- **Database Tables**: `usage_periods` (monthly tracking), `usage_topups` (purchase records)
-- **Service Layer**: `server/usageService.ts` handles all quota logic
-
-### Creator Studio Add-on (£20/month)
-Advanced AI creation tools available as a paid add-on for Premium/Pro subscribers:
-
-| Feature | Monthly Limit | Description |
-|---------|---------------|-------------|
-| Voice Cloning | 2 | Clone any voice from audio/video |
-| Talking Photos | 10 | Animate photos to speak text |
-| Talking Videos | 5 | Make videos speak new dialogue |
-| Face Swap | 8 | Swap faces in videos |
-| AI Dubbing | 3 | Translate and dub videos |
-| Image to Video | 5 | Animate still images |
-| Caption Removal | 10 | Remove burned-in captions |
-| Video Style Transfer | 3 | Apply artistic styles to videos |
-| Virtual Try-On | 5 | Try clothes on photos |
-
-**A2E Credits per Creator Studio User**: ~1,300/month
-**Platform Capacity**: 1 A2E account (5,400 credits) supports ~4 Creator Studio users
-
-- **Stripe Product**: `creator_studio` (£20/month recurring)
-- **Access Control**: `users.creatorStudioAccess` boolean flag
-- **Webhook Handling**: Auto-enables on checkout, auto-disables on subscription deletion
-- **Quota Service**: `server/usageService.ts` with CREATOR_STUDIO_LIMITS
-
-### How To Page
-In-app documentation accessible at `/how-to` covering:
-- All 10 features with detailed explanations
-- 4 content creation workflow diagrams
-- API key requirements and pricing for each service
-- Step-by-step setup guide for new users
-- Quick start checklist
+SocialCommand is a unified social media management platform designed for managing multiple social media channels, scheduling posts, and analyzing performance from a single dashboard. It leverages AI for content generation, including copywriting via OpenAI, voice synthesis via ElevenLabs, and video lip-sync processing via Fal.ai. Users can define brand voice and strategy through brand briefs to generate social media content such as scripts, captions, and hashtags. The platform also features an auto-posting capability for 9 social media platforms and a Social Listening module for monitoring mentions, sentiment analysis, and AI-powered reply generation.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Frontend Architecture
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight router)
-- **State Management**: TanStack React Query for server state caching and synchronization
-- **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: Tailwind CSS v4 with custom theme variables and CSS-in-JS via class-variance-authority
-- **Build Tool**: Vite with custom plugins for meta images and Replit integration
-- **Fonts**: Inter and Outfit from Google Fonts
+The frontend is built with React 18 and TypeScript, utilizing Wouter for routing and TanStack React Query for state management. UI components are developed using shadcn/ui (based on Radix UI) and styled with Tailwind CSS v4. Vite is used as the build tool, and fonts are sourced from Google Fonts.
 
 ### Backend Architecture
-- **Runtime**: Node.js with Express.js
-- **Language**: TypeScript compiled with tsx for development, esbuild for production
-- **API Pattern**: REST endpoints under `/api/*` prefix
-- **Database ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema Location**: Shared schema in `shared/schema.ts` used by both frontend and backend
+The backend is a Node.js Express.js application written in TypeScript. It uses RESTful API endpoints under the `/api/*` prefix. Drizzle ORM with a PostgreSQL dialect handles database interactions, with a shared schema located in `shared/schema.ts` for consistency between frontend and backend.
 
 ### Data Storage
-- **Database**: PostgreSQL (connection via `DATABASE_URL` environment variable)
-- **Object Storage**: Google Cloud Storage via Replit's sidecar endpoint for file uploads
-- **Session Storage**: Express sessions with pg-simple connector
+PostgreSQL serves as the primary database, configured via `DATABASE_URL`. Google Cloud Storage is used for file uploads, accessed via Replit's sidecar endpoint. Express sessions are managed with a `pg-simple` connector for session storage.
 
 ### Application Structure
-```
-client/           # React frontend
-  src/
-    components/   # UI components (shadcn/ui in ui/, layout in layout/)
-    pages/        # Route pages (Dashboard, BrandBriefs, ContentQueue, etc.)
-    lib/          # Utilities, mock data, query client
-    hooks/        # Custom React hooks
-server/           # Express backend
-  routes.ts       # API route definitions
-  storage.ts      # Database access layer
-  db.ts           # Database connection
-  openai.ts       # OpenAI integration for content generation
-  elevenlabs.ts   # ElevenLabs voice synthesis service
-  fal.ts          # Fal.ai lip-sync processing service
-  socialPlatforms.ts  # Social media OAuth and posting service
-shared/           # Shared code between frontend and backend
-  schema.ts       # Drizzle database schema and Zod validation
-```
+The project is organized into `client/` for the React frontend, `server/` for the Express backend, and `shared/` for common code like database schemas and Zod validation.
 
 ### Key Design Decisions
-
-1. **Shared Schema Pattern**: Database schema defined once in `shared/schema.ts` using Drizzle, with Zod schemas auto-generated via `drizzle-zod` for validation on both client and server.
-
-2. **Service Layer Pattern**: External AI services (OpenAI, ElevenLabs, Fal.ai) encapsulated in dedicated service classes that check configuration status before making API calls.
-
-3. **API Status Endpoint**: `/api/ai-engines/status` endpoint allows frontend to display which AI services are configured.
-
-4. **Build Strategy**: Vite for frontend, esbuild for backend with selective bundling of dependencies to optimize cold start times.
+1.  **Shared Schema Pattern**: Drizzle ORM defines the database schema once in `shared/schema.ts`, with Zod schemas auto-generated for validation across the stack.
+2.  **Service Layer Pattern**: External AI services are encapsulated within dedicated service classes, ensuring configuration checks before API calls.
+3.  **API Status Endpoint**: An `/api/ai-engines/status` endpoint allows the frontend to display configured AI services.
+4.  **Tier System & Usage Quotas**: A comprehensive tier system (Free, Core, Premium, Pro, Studio) with distinct usage quotas for AI features and social channels is enforced. The system tracks monthly usage, allows top-ups, and includes an `isOwner` flag for admin access, separate from subscription tiers.
+5.  **Authentication & Data Isolation**: A custom authentication system using email/password and Google OAuth (Passport.js) is implemented. Critical patterns include ensuring the `upsertUser` function applies owner flags correctly, `getUserId` supports both Replit and Passport auth formats, and all data endpoints strictly filter by `userId` to ensure data isolation. Premium/Pro users have access to platform API keys, while Free users see their own API key status.
 
 ## External Dependencies
 
-### AI Services (require API keys in environment)
-- **OpenAI**: Content generation (scripts, captions, hashtags, content ideas) + DALL-E 3 images via `AI_INTEGRATIONS_OPENAI_API_KEY`
-- **ElevenLabs**: Voice synthesis for video voiceovers via `ELEVENLABS_API_KEY`
-- **A2E**: Avatar lip-sync video generation (default engine) via `A2E_API_KEY`
-- **Fal.ai**: AI video/image generation (backup engine) via `FAL_API_KEY`
+### AI Services
+-   **OpenAI**: For content generation (scripts, captions, hashtags, ideas) and DALL-E 3 image generation.
+-   **ElevenLabs**: For voice synthesis.
+-   **A2E**: Default engine for avatar lip-sync video generation.
+-   **Fal.ai**: Backup engine for AI video/image generation.
+-   **Steve AI**: Enterprise-level video creation for Studio tier.
 
-### Video Engine Selection
-Users can choose between three video generation engines in the Content Queue:
-- **A2E (default)**: Creates realistic lip-sync avatar videos from text using 50+ pre-built avatars
-- **Fal.ai**: Generates AI video clips from visual prompts
-- **Steve AI**: Creates polished, long-form faceless videos (up to 3 minutes) for YouTube/educational content with 5 style options (animation, live_action, generative, talking_head, documentary). Requires Enterprise API access - contact team@steve.ai for API key.
-
-### Image Engine Selection
-Users can choose between four image generation engines in the Content Queue:
-- **A2E (default)**: High-quality images with general or manga styles, uses same API as video avatars
-- **DALL-E 3**: OpenAI's image generation with excellent text rendering via `OPENAI_DALLE_API_KEY`
-- **Fal.ai**: Fast AI image generation with various style options (requires balance)
-- **Pexels**: Free stock photos matching your content prompt
-
-### Caption Generation Framework
-AI-generated captions follow a structured SEO-first approach:
-1. **CONTEXT**: Lead with searchable keyword phrase
-2. **BELIEF BREAK**: Challenge assumption or surprising insight  
-3. **PAYOFF**: Deliver the promised value
-4. **CTA**: End with a question to drive comments
-
-Caption Rules:
-- Search-first writing for Instagram/TikTok SEO
-- Keyword repetition (2-3x) over hashtag reliance
-- Standalone captions that work without video audio
-- Platform-specific length and style
-- Max 3-5 targeted hashtags
-- Comment-based CTAs (questions > statements)
+### Social Media Platforms (OAuth 2.0 unless specified)
+-   YouTube (Google API)
+-   Twitter/X (Twitter API v2)
+-   LinkedIn (LinkedIn API)
+-   Facebook (Graph API)
+-   Instagram (via Facebook Graph API)
+-   TikTok (Content Posting API)
+-   Threads (Threads API)
+-   Bluesky (App Password, AT Protocol)
+-   Pinterest (Pinterest API)
 
 ### Database
-- **PostgreSQL**: Primary data store, connection string via `DATABASE_URL`
-- **Drizzle Kit**: Schema migrations via `drizzle-kit push`
+-   **PostgreSQL**: Primary data store.
 
 ### Cloud Storage
-- **Google Cloud Storage**: File uploads through Replit sidecar at `http://127.0.0.1:1106`
+-   **Google Cloud Storage**: For file uploads.
 
 ### Key NPM Packages
-- `@tanstack/react-query`: Server state management
-- `drizzle-orm` + `drizzle-kit`: Database ORM and migrations
-- `zod` + `drizzle-zod`: Schema validation
-- `recharts`: Analytics charts
-- `date-fns`: Date manipulation
-- `wouter`: Client-side routing
+-   `@tanstack/react-query`
+-   `drizzle-orm`, `drizzle-kit`
+-   `zod`, `drizzle-zod`
+-   `recharts`
+-   `date-fns`
+-   `wouter`
