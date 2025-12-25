@@ -154,6 +154,50 @@ export default function ContentQueue() {
   );
   const hasYouTubeAccounts = youtubeAccounts.length > 0;
 
+  // All connected platform accounts with proper token validation
+  const getConnectedAccounts = (platform: string, requireTokens = false) => 
+    socialAccounts.filter((a) => {
+      const baseMatch = a.platform === platform && a.isConnected === "connected";
+      if (requireTokens) {
+        return baseMatch && a.accessToken && a.refreshToken;
+      }
+      return baseMatch;
+    });
+  
+  // YouTube requires full OAuth tokens for video upload
+  const platformAccounts = useMemo(() => ({
+    YouTube: getConnectedAccounts("YouTube", true),
+    Twitter: getConnectedAccounts("Twitter", true),
+    LinkedIn: getConnectedAccounts("LinkedIn", true),
+    Facebook: getConnectedAccounts("Facebook", true),
+    Instagram: getConnectedAccounts("Instagram", true),
+    TikTok: getConnectedAccounts("TikTok", true),
+    Threads: getConnectedAccounts("Threads", true),
+    Pinterest: getConnectedAccounts("Pinterest", true),
+    Bluesky: getConnectedAccounts("Bluesky"),  // Bluesky uses password auth, stored differently
+  }), [socialAccounts]);
+
+  // Map platform variations to canonical names
+  const normalizePlatformName = (platform: string): string => {
+    const lower = platform.toLowerCase();
+    if (lower.includes("youtube")) return "YouTube";
+    if (lower.includes("instagram")) return "Instagram";
+    if (lower.includes("tiktok")) return "TikTok";
+    if (lower.includes("twitter") || lower === "x") return "Twitter";
+    if (lower.includes("linkedin")) return "LinkedIn";
+    if (lower.includes("facebook")) return "Facebook";
+    if (lower.includes("threads")) return "Threads";
+    if (lower.includes("pinterest")) return "Pinterest";
+    if (lower.includes("bluesky")) return "Bluesky";
+    return platform;
+  };
+
+  // Universal publish state
+  const [selectedPublishPlatform, setSelectedPublishPlatform] = useState<string | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+
   const invalidateContentQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=approved"] });
@@ -328,6 +372,49 @@ export default function ContentQueue() {
     onError: (error: Error) => {
       toast({
         title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Universal social post mutation for all platforms except YouTube
+  const socialPostMutation = useMutation({
+    mutationFn: async (data: {
+      accountId: string;
+      text: string;
+      mediaUrl?: string;
+      scheduleTime?: string;
+    }) => {
+      const response = await fetch("/api/social/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Post failed");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const platform = selectedPublishPlatform || "social media";
+      toast({
+        title: scheduleEnabled ? "Post Scheduled!" : "Posted!",
+        description: scheduleEnabled 
+          ? `Your content will be posted to ${platform} at the scheduled time.`
+          : `Your content is now live on ${platform}!`,
+      });
+      setPublishDialogOpen(false);
+      setSelectedContent(null);
+      setSelectedPublishPlatform(null);
+      setPublishForm({ title: "", description: "", tags: "", privacyStatus: "private", accountId: "" });
+      invalidateContentQueries();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Post Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -1023,50 +1110,89 @@ export default function ContentQueue() {
     return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || content.videoUrl || null;
   };
 
-  const openPublishDialog = (content: GeneratedContent) => {
+  const openPublishDialog = (content: GeneratedContent, platform?: string) => {
     setSelectedContent(content);
+    setSelectedPublishPlatform(platform || null);
     const videoUrl = getVideoUrlFromContent(content);
+    const accounts = platform ? (platformAccounts as any)[platform] || [] : youtubeAccounts;
     setPublishForm({
-      title: content.script?.substring(0, 100) || "My Video",
+      title: content.script?.substring(0, 100) || "My Post",
       description: content.caption || "",
       tags: content.hashtags?.join(", ") || "",
       privacyStatus: "private",
-      accountId: youtubeAccounts.length > 0 ? youtubeAccounts[0].id : "",
+      accountId: accounts.length > 0 ? accounts[0].id : "",
     });
     setSelectedVideoFile(null);
     setUseGeneratedVideo(!!videoUrl);
+    setScheduleEnabled(false);
+    setScheduleDate("");
+    setScheduleTime("");
     setPublishDialogOpen(true);
   };
 
   const handlePublish = () => {
     const videoUrl = selectedContent ? getVideoUrlFromContent(selectedContent) : null;
+    const imageUrl = selectedContent ? getImageUrlFromContent(selectedContent) : null;
+    const mediaUrl = videoUrl || imageUrl;
     
-    if (!selectedVideoFile && !useGeneratedVideo) {
-      toast({
-        title: "No Video Selected",
-        description: "Please select a video source",
-        variant: "destructive",
+    // For YouTube, use the upload mutation (video upload)
+    if (selectedPublishPlatform === "YouTube" || !selectedPublishPlatform) {
+      if (!selectedVideoFile && !useGeneratedVideo) {
+        toast({
+          title: "No Video Selected",
+          description: "Please select a video source",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const formData = new FormData();
+      
+      if (useGeneratedVideo && videoUrl) {
+        formData.append("videoUrl", videoUrl);
+      } else if (selectedVideoFile) {
+        formData.append("video", selectedVideoFile);
+      }
+      
+      formData.append("title", publishForm.title);
+      formData.append("description", publishForm.description);
+      formData.append("tags", JSON.stringify(publishForm.tags.split(",").map(t => t.trim()).filter(Boolean)));
+      formData.append("privacyStatus", publishForm.privacyStatus);
+      if (publishForm.accountId) {
+        formData.append("accountId", publishForm.accountId);
+      }
+      if (scheduleEnabled && scheduleDate && scheduleTime) {
+        formData.append("scheduledTime", new Date(`${scheduleDate}T${scheduleTime}`).toISOString());
+      }
+
+      uploadMutation.mutate(formData);
+    } else {
+      // For other platforms, use the universal social post endpoint
+      if (!publishForm.accountId) {
+        toast({
+          title: "No Account Selected",
+          description: "Please connect your account first",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const postText = `${publishForm.title}\n\n${publishForm.description}${publishForm.tags ? `\n\n${publishForm.tags.split(",").map(t => `#${t.trim()}`).join(" ")}` : ""}`;
+      
+      socialPostMutation.mutate({
+        accountId: publishForm.accountId,
+        text: postText,
+        mediaUrl: mediaUrl || undefined,
+        scheduleTime: scheduleEnabled && scheduleDate && scheduleTime 
+          ? new Date(`${scheduleDate}T${scheduleTime}`).toISOString() 
+          : undefined,
       });
-      return;
     }
+  };
 
-    const formData = new FormData();
-    
-    if (useGeneratedVideo && videoUrl) {
-      formData.append("videoUrl", videoUrl);
-    } else if (selectedVideoFile) {
-      formData.append("video", selectedVideoFile);
-    }
-    
-    formData.append("title", publishForm.title);
-    formData.append("description", publishForm.description);
-    formData.append("tags", JSON.stringify(publishForm.tags.split(",").map(t => t.trim()).filter(Boolean)));
-    formData.append("privacyStatus", publishForm.privacyStatus);
-    if (publishForm.accountId) {
-      formData.append("accountId", publishForm.accountId);
-    }
-
-    uploadMutation.mutate(formData);
+  const getImageUrlFromContent = (content: GeneratedContent): string | null => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.uploadedImageUrl || metadata?.generatedImageUrl || content.thumbnailUrl || null;
   };
 
   const ContentCard = ({ content, showActions = true }: { content: GeneratedContent; showActions?: boolean }) => (
@@ -1822,26 +1948,85 @@ export default function ContentQueue() {
           );
         })()}
 
-        {content.status === "approved" && content.platforms.includes("YouTube") && (
-          <div className="pt-2">
-            {hasYouTubeAccounts ? (
-              <Button
-                className="w-full bg-red-600 hover:bg-red-700"
-                onClick={() => openPublishDialog(content)}
-                data-testid={`button-publish-youtube-${content.id}`}
-              >
-                <Youtube className="w-4 h-4 mr-2" />
-                Publish to YouTube
-              </Button>
-            ) : (
+        {content.status === "approved" && content.platforms.length > 0 && (
+          <div className="pt-2 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Post or Schedule to:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {content.platforms.map((rawPlatform) => {
+                const platform = normalizePlatformName(rawPlatform);
+                const accounts = (platformAccounts as any)[platform] || [];
+                const hasAccount = accounts.length > 0;
+                const platformStyles: Record<string, { bg: string; icon: any }> = {
+                  YouTube: { bg: "bg-red-600 hover:bg-red-700", icon: Youtube },
+                  Twitter: { bg: "bg-black hover:bg-gray-800", icon: null },
+                  LinkedIn: { bg: "bg-blue-700 hover:bg-blue-800", icon: null },
+                  Facebook: { bg: "bg-blue-600 hover:bg-blue-700", icon: null },
+                  Instagram: { bg: "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600", icon: null },
+                  TikTok: { bg: "bg-black hover:bg-gray-800", icon: null },
+                  Threads: { bg: "bg-black hover:bg-gray-800", icon: null },
+                  Pinterest: { bg: "bg-red-600 hover:bg-red-700", icon: null },
+                  Bluesky: { bg: "bg-sky-400 hover:bg-sky-500", icon: null },
+                };
+                const style = platformStyles[platform] || { bg: "bg-gray-600 hover:bg-gray-700", icon: null };
+                
+                if (hasAccount) {
+                  return (
+                    <Button
+                      key={`${rawPlatform}-${content.id}`}
+                      className={`${style.bg} text-white text-xs py-1.5`}
+                      size="sm"
+                      onClick={() => openPublishDialog(content, platform)}
+                      data-testid={`button-publish-${platform.toLowerCase()}-${content.id}`}
+                    >
+                      {platform === "YouTube" && <Youtube className="w-3 h-3 mr-1" />}
+                      {rawPlatform}
+                    </Button>
+                  );
+                } else {
+                  const connectUrl = platform === "YouTube" ? "/api/auth/google"
+                    : platform === "Twitter" ? "/api/auth/twitter"
+                    : platform === "LinkedIn" ? "/api/auth/linkedin"
+                    : platform === "Facebook" || platform === "Instagram" ? "/api/auth/facebook"
+                    : platform === "TikTok" ? "/api/auth/tiktok"
+                    : platform === "Threads" ? "/api/auth/threads"
+                    : platform === "Pinterest" ? "/api/auth/pinterest"
+                    : platform === "Bluesky" ? "/accounts" 
+                    : "/accounts";
+                  return (
+                    <Button
+                      key={`${rawPlatform}-${content.id}`}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => window.location.href = connectUrl}
+                      data-testid={`button-connect-${platform.toLowerCase()}-${content.id}`}
+                    >
+                      Connect {platform}
+                    </Button>
+                  );
+                }
+              })}
+            </div>
+            
+            {/* Download button */}
+            {(getVideoUrlFromContent(content) || getImageUrlFromContent(content)) && (
               <Button
                 variant="outline"
-                className="w-full"
-                onClick={() => window.location.href = "/api/auth/google"}
-                data-testid={`button-connect-youtube-${content.id}`}
+                size="sm"
+                className="w-full mt-2"
+                onClick={() => {
+                  const url = getVideoUrlFromContent(content) || getImageUrlFromContent(content);
+                  if (url) {
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `content-${content.id}`;
+                    link.click();
+                  }
+                }}
+                data-testid={`button-download-${content.id}`}
               >
-                <Youtube className="w-4 h-4 mr-2" />
-                Connect YouTube to Publish
+                <Download className="w-3 h-3 mr-2" />
+                Download
               </Button>
             )}
           </div>
@@ -1951,35 +2136,44 @@ export default function ContentQueue() {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Youtube className="w-5 h-5 text-red-600" />
-              Publish to YouTube
+              {selectedPublishPlatform === "YouTube" && <Youtube className="w-5 h-5 text-red-600" />}
+              Post to {selectedPublishPlatform || "Platform"}
             </DialogTitle>
             <DialogDescription>
-              Upload your video and publish it to YouTube with the generated content.
+              {selectedPublishPlatform === "YouTube" 
+                ? "Upload your video and publish it to YouTube."
+                : `Post your content to ${selectedPublishPlatform || "social media"}.`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {youtubeAccounts.length > 1 && (
-              <div className="space-y-2">
-                <Label htmlFor="youtube-channel">YouTube Channel</Label>
-                <Select
-                  value={publishForm.accountId}
-                  onValueChange={(value) => setPublishForm(prev => ({ ...prev, accountId: value }))}
-                >
-                  <SelectTrigger data-testid="select-youtube-channel">
-                    <SelectValue placeholder="Select channel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {youtubeAccounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.accountName || account.accountHandle || "YouTube Channel"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* Account selector for platforms with multiple accounts */}
+            {(() => {
+              const accounts = selectedPublishPlatform ? (platformAccounts as any)[selectedPublishPlatform] || [] : youtubeAccounts;
+              if (accounts.length > 1) {
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor="account-select">{selectedPublishPlatform} Account</Label>
+                    <Select
+                      value={publishForm.accountId}
+                      onValueChange={(value) => setPublishForm(prev => ({ ...prev, accountId: value }))}
+                    >
+                      <SelectTrigger data-testid="select-account">
+                        <SelectValue placeholder="Select account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account: any) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.accountName || account.accountHandle || `${selectedPublishPlatform} Account`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="space-y-3">
               <Label>Video Source</Label>
@@ -2093,23 +2287,69 @@ export default function ContentQueue() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="privacy-status">Privacy</Label>
-              <Select
-                value={publishForm.privacyStatus}
-                onValueChange={(value: "private" | "unlisted" | "public") => 
-                  setPublishForm(prev => ({ ...prev, privacyStatus: value }))
-                }
-              >
-                <SelectTrigger data-testid="select-privacy-status">
-                  <SelectValue placeholder="Select privacy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">Private</SelectItem>
-                  <SelectItem value="unlisted">Unlisted</SelectItem>
-                  <SelectItem value="public">Public</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Privacy only for YouTube */}
+            {selectedPublishPlatform === "YouTube" && (
+              <div className="space-y-2">
+                <Label htmlFor="privacy-status">Privacy</Label>
+                <Select
+                  value={publishForm.privacyStatus}
+                  onValueChange={(value: "private" | "unlisted" | "public") => 
+                    setPublishForm(prev => ({ ...prev, privacyStatus: value }))
+                  }
+                >
+                  <SelectTrigger data-testid="select-privacy-status">
+                    <SelectValue placeholder="Select privacy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="private">Private</SelectItem>
+                    <SelectItem value="unlisted">Unlisted</SelectItem>
+                    <SelectItem value="public">Public</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Scheduling */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="schedule-post"
+                  checked={scheduleEnabled}
+                  onChange={(e) => setScheduleEnabled(e.target.checked)}
+                  className="rounded"
+                  data-testid="checkbox-schedule"
+                />
+                <Label htmlFor="schedule-post" className="font-medium cursor-pointer">
+                  Schedule for later
+                </Label>
+              </div>
+              
+              {scheduleEnabled && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-date">Date</Label>
+                    <Input
+                      id="schedule-date"
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      data-testid="input-schedule-date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="schedule-time">Time</Label>
+                    <Input
+                      id="schedule-time"
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      data-testid="input-schedule-time"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2117,26 +2357,31 @@ export default function ContentQueue() {
             <Button
               variant="outline"
               onClick={() => setPublishDialogOpen(false)}
-              disabled={uploadMutation.isPending}
+              disabled={uploadMutation.isPending || socialPostMutation.isPending}
               data-testid="button-cancel-publish"
             >
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700"
+              className={selectedPublishPlatform === "YouTube" ? "bg-red-600 hover:bg-red-700" : ""}
               onClick={handlePublish}
-              disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile)}
+              disabled={
+                uploadMutation.isPending || 
+                socialPostMutation.isPending || 
+                (selectedPublishPlatform === "YouTube" && !useGeneratedVideo && !selectedVideoFile) ||
+                (scheduleEnabled && (!scheduleDate || !scheduleTime))
+              }
               data-testid="button-confirm-publish"
             >
-              {uploadMutation.isPending ? (
+              {(uploadMutation.isPending || socialPostMutation.isPending) ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Uploading...
+                  {scheduleEnabled ? "Scheduling..." : "Posting..."}
                 </>
               ) : (
                 <>
                   <Upload className="w-4 h-4 mr-2" />
-                  Publish
+                  {scheduleEnabled ? "Schedule" : "Post Now"}
                 </>
               )}
             </Button>
