@@ -30,11 +30,11 @@ export default function ContentQueue() {
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
   
   // Fetch user's own API keys status
-  const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
+  const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean; hasSteveai: boolean }>({
     queryKey: ["/api/user/api-keys"],
     queryFn: async () => {
       const res = await fetch("/api/user/api-keys", { credentials: "include" });
-      if (!res.ok) return { hasOpenai: false, hasElevenlabs: false, hasA2e: false, hasFal: false, hasPexels: false };
+      if (!res.ok) return { hasOpenai: false, hasElevenlabs: false, hasA2e: false, hasFal: false, hasPexels: false, hasSteveai: false };
       return res.json();
     },
     enabled: !!user?.id && !hasFullAccess,
@@ -101,10 +101,12 @@ export default function ContentQueue() {
   const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
 
-  // Video engine selection (A2E vs Fal.ai)
-  const [videoEngine, setVideoEngine] = useState<"a2e" | "fal">("a2e");
+  // Video engine selection (A2E vs Fal.ai vs Steve AI)
+  const [videoEngine, setVideoEngine] = useState<"a2e" | "fal" | "steveai">("a2e");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels)
   const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels">("a2e");
+  // Steve AI specific settings
+  const [steveAIStyle, setSteveAIStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
   const [loadingAvatars, setLoadingAvatars] = useState(false);
@@ -1399,7 +1401,7 @@ export default function ContentQueue() {
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Video Engine:</Label>
-                      <Select value={videoEngine} onValueChange={(v: "a2e" | "fal") => setVideoEngine(v)}>
+                      <Select value={videoEngine} onValueChange={(v: "a2e" | "fal" | "steveai") => setVideoEngine(v)}>
                         <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-video-engine">
                           <SelectValue />
                         </SelectTrigger>
@@ -1412,6 +1414,11 @@ export default function ContentQueue() {
                           <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
                             <span className="flex items-center gap-2">
                               Fal.ai Video {!aiEngines?.fal?.configured && "(Not configured)"}
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="steveai" disabled={!aiEngines?.steveai?.configured}>
+                            <span className="flex items-center gap-2">
+                              Steve AI {!aiEngines?.steveai?.configured && "(Not configured)"}
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -1441,10 +1448,30 @@ export default function ContentQueue() {
                         )}
                       </div>
                     )}
+
+                    {videoEngine === "steveai" && aiEngines?.steveai?.configured && (
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs font-medium">Style:</Label>
+                        <Select value={steveAIStyle} onValueChange={(v: any) => setSteveAIStyle(v)}>
+                          <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-steveai-style">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="animation">Animation</SelectItem>
+                            <SelectItem value="live_action">Live Action</SelectItem>
+                            <SelectItem value="generative">Generative AI</SelectItem>
+                            <SelectItem value="talking_head">Talking Head</SelectItem>
+                            <SelectItem value="documentary">Documentary</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {videoEngine === "a2e" 
                       ? "A2E creates realistic lip-sync avatar videos from your script text." 
+                      : videoEngine === "steveai"
+                      ? "Steve AI creates polished videos in multiple styles (animation, live action, AI-generated). Up to 3 minutes."
                       : "Fal.ai generates AI video clips from visual prompts."}
                   </p>
                 </div>

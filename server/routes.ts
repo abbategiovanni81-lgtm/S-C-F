@@ -18,6 +18,7 @@ import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
+import { steveAIService } from "./steveai";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
@@ -551,6 +552,7 @@ export async function registerRoutes(
           elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
           pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
+          steveai: { configured: steveAIService.isConfigured(), name: "Steve AI Video" },
         });
       } else if (userId) {
         // Free tier users see their own API key status
@@ -558,11 +560,12 @@ export async function registerRoutes(
         res.json({
           openai: { configured: !!keys?.openaiKey, name: "OpenAI GPT-4" },
           anthropic: { configured: !!keys?.anthropicKey, name: "Claude (Anthropic)" },
-          dalle: { configured: !!keys?.openaiKey, name: "DALL-E 3 Images" }, // DALL-E uses OpenAI key
+          dalle: { configured: !!keys?.openaiKey, name: "DALL-E 3 Images" },
           a2e: { configured: !!keys?.a2eKey, name: "A2E Avatar Video & Images" },
           elevenlabs: { configured: !!keys?.elevenlabsKey, name: "ElevenLabs Voice" },
           fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
           pexels: { configured: !!keys?.pexelsKey, name: "Pexels B-Roll" },
+          steveai: { configured: !!keys?.steveaiKey, name: "Steve AI Video" },
         });
       } else {
         // Not authenticated - show all as not configured
@@ -574,6 +577,7 @@ export async function registerRoutes(
           elevenlabs: { configured: false, name: "ElevenLabs Voice" },
           fal: { configured: false, name: "Fal.ai Video/Image" },
           pexels: { configured: false, name: "Pexels B-Roll" },
+          steveai: { configured: false, name: "Steve AI Video" },
         });
       }
     } catch (error: any) {
@@ -600,6 +604,7 @@ export async function registerRoutes(
         hasA2e: !!keys?.a2eKey,
         hasFal: !!keys?.falKey,
         hasPexels: !!keys?.pexelsKey,
+        hasSteveai: !!keys?.steveaiKey,
       });
     } catch (error: any) {
       console.error("Error fetching user API keys:", error);
@@ -1365,6 +1370,81 @@ export async function registerRoutes(
       }
 
       res.json({ taskId, status: "processing" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Steve AI API routes
+  app.get("/api/steveai/status", async (req, res) => {
+    res.json({ configured: steveAIService.isConfigured() });
+  });
+
+  app.get("/api/steveai/styles", async (req, res) => {
+    const styles = steveAIService.getVideoStyles();
+    res.json({ styles });
+  });
+
+  app.get("/api/steveai/voices", async (req, res) => {
+    try {
+      const voices = await steveAIService.getVoices();
+      res.json({ voices });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/steveai/generate", async (req, res) => {
+    try {
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Steve AI API not configured. Contact team@steve.ai for Enterprise API access.",
+          needsConfig: true 
+        });
+      }
+
+      const { script, style, aspectRatio, duration, voiceId, language } = req.body;
+
+      if (!script) {
+        return res.status(400).json({ error: "Script is required" });
+      }
+
+      const result = await steveAIService.generateVideo({
+        script,
+        style: style || "animation",
+        aspectRatio: aspectRatio || "16:9",
+        duration: duration || 60,
+        voiceId,
+        language,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/steveai/status/:requestId", async (req, res) => {
+    try {
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured" });
+      }
+
+      const status = await steveAIService.checkStatus(req.params.requestId);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/steveai/result/:requestId", async (req, res) => {
+    try {
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured" });
+      }
+
+      const result = await steveAIService.getResult(req.params.requestId);
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
