@@ -115,11 +115,38 @@ export default function CreatorStudio() {
               <p className="text-muted-foreground">Advanced AI creation tools</p>
             </div>
           </div>
-          <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-            <Sparkles className="h-3 w-3 mr-1" />
-            Active
-          </Badge>
+          {canUseCreatorStudio ? (
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Active
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+              <Lock className="h-3 w-3 mr-1" />
+              Upgrade Required
+            </Badge>
+          )}
         </div>
+
+        {showUpgradeOverlay && (
+          <Alert className="mb-6 border-purple-500/50 bg-purple-500/10">
+            <Crown className="h-4 w-4 text-purple-500" />
+            <AlertTitle className="text-purple-500">Unlock Creator Studio</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              Get access to advanced AI tools: voice cloning, talking photos, face swap, AI dubbing, and more.
+              {tier === "studio" ? " Studio tier includes Creator Studio." : " Add Creator Studio to your subscription for £20/month, or upgrade to Studio tier (£99.99/mo - Early adopter pricing, limited time) to get it included."}
+              <Button 
+                onClick={() => subscribeMutation.mutate()} 
+                disabled={subscribeMutation.isPending}
+                className="ml-4 bg-gradient-to-r from-purple-600 to-pink-600"
+                size="sm"
+              >
+                {subscribeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                Subscribe Now
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {status?.usage && <UsageOverview usage={status.usage} />}
 
