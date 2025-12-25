@@ -258,10 +258,38 @@ export class SteveAIService {
     }
 
     const data = await response.json();
+    const status = data.status?.toLowerCase();
     return {
       requestId: data.request_id || data.id,
       images: data.images || [],
-      status: data.status === "completed" ? "completed" : "failed",
+      status: (status === "completed" || status === "done") ? "completed" : 
+              (status === "failed" || status === "error") ? "failed" : "completed",
+      error: data.error,
+    };
+  }
+
+  async checkImageStatus(requestId: string): Promise<ImageGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const response = await fetch(`${this.baseUrl}/images/${requestId}/status`, {
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI image status check error: ${error}`);
+    }
+
+    const data = await response.json();
+    const status = this.mapStatus(data.status);
+    return {
+      requestId,
+      images: data.images || [],
+      status: status === "completed" ? "completed" : status === "failed" ? "failed" : "completed",
       error: data.error,
     };
   }

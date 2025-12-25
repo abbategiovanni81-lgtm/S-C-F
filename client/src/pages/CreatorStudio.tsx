@@ -1202,6 +1202,7 @@ function SteveAIVideosTab() {
   const [duration, setDuration] = useState(60);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -1220,6 +1221,8 @@ function SteveAIVideosTab() {
     onSuccess: (data) => {
       toast({ title: "Video generation started!", description: "Your video is being created." });
       setRequestId(data.requestId);
+      setGenerationComplete(false);
+      setVideoUrl(null);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1234,8 +1237,8 @@ function SteveAIVideosTab() {
       if (!res.ok) throw new Error("Failed to check status");
       return res.json();
     },
-    enabled: !!requestId,
-    refetchInterval: requestId && !videoUrl ? 5000 : false,
+    enabled: !!requestId && !generationComplete,
+    refetchInterval: requestId && !generationComplete ? 5000 : false,
   });
 
   const { data: resultData } = useQuery({
@@ -1246,9 +1249,15 @@ function SteveAIVideosTab() {
       if (!res.ok) throw new Error("Failed to get result");
       return res.json();
     },
-    enabled: !!requestId && statusData?.status === "completed",
+    enabled: !!requestId && statusData?.status === "completed" && !videoUrl,
   });
 
+  if (statusData?.status === "completed" && !generationComplete) {
+    setGenerationComplete(true);
+  }
+  if (statusData?.status === "failed" && !generationComplete) {
+    setGenerationComplete(true);
+  }
   if (resultData?.videoUrl && !videoUrl) {
     setVideoUrl(resultData.videoUrl);
   }
@@ -1322,12 +1331,12 @@ function SteveAIVideosTab() {
 
         <Button 
           onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || !script.trim() || !!requestId}
+          disabled={generateMutation.isPending || !script.trim() || (!!requestId && !generationComplete)}
           className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
           data-testid="button-generate-steve"
         >
           {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-          Generate Video
+          {generationComplete ? "Generate Another" : "Generate Video"}
         </Button>
 
         {requestId && (
@@ -1367,6 +1376,7 @@ function SteveAIGenerativeTab() {
   const [duration, setDuration] = useState(10);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -1385,6 +1395,8 @@ function SteveAIGenerativeTab() {
     onSuccess: (data) => {
       toast({ title: "Generative video started!", description: "AI is creating your footage." });
       setRequestId(data.requestId);
+      setGenerationComplete(false);
+      setVideoUrl(null);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1399,12 +1411,18 @@ function SteveAIGenerativeTab() {
       if (!res.ok) throw new Error("Failed to check status");
       return res.json();
     },
-    enabled: !!requestId,
-    refetchInterval: requestId && !videoUrl ? 5000 : false,
+    enabled: !!requestId && !generationComplete,
+    refetchInterval: requestId && !generationComplete ? 5000 : false,
   });
 
-  if (statusData?.videoUrl && !videoUrl) {
-    setVideoUrl(statusData.videoUrl);
+  if (statusData?.status === "completed" && !generationComplete) {
+    setGenerationComplete(true);
+    if (statusData.videoUrl) {
+      setVideoUrl(statusData.videoUrl);
+    }
+  }
+  if (statusData?.status === "failed" && !generationComplete) {
+    setGenerationComplete(true);
   }
 
   return (
@@ -1476,12 +1494,12 @@ function SteveAIGenerativeTab() {
 
         <Button 
           onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || !prompt.trim() || !!requestId}
+          disabled={generateMutation.isPending || !prompt.trim() || (!!requestId && !generationComplete)}
           className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
           data-testid="button-generate-steve-generative"
         >
           {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Generate AI Video
+          {generationComplete ? "Generate Another" : "Generate AI Video"}
         </Button>
 
         {requestId && (
