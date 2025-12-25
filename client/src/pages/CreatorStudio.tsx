@@ -236,7 +236,7 @@ export default function CreatorStudio() {
           </TabsContent>
         </Tabs>
 
-        {/* Steve AI Video Suite - Standalone Section for Studio Tier */}
+        {/* Studio Package - Standalone Section for Studio Tier */}
         <SteveAISection />
       </div>
     </Layout>
@@ -1127,8 +1127,8 @@ function SteveAISection() {
             <Film className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">Steve AI Suite</h2>
-            <p className="text-muted-foreground">Professional video and image generation powered by Steve AI</p>
+            <h2 className="text-2xl font-bold">Studio Package</h2>
+            <p className="text-muted-foreground">Professional video and image generation tools</p>
           </div>
         </div>
         {isStudioTier ? (
@@ -1147,9 +1147,9 @@ function SteveAISection() {
       {!isStudioTier ? (
         <Alert className="border-orange-500/50 bg-orange-500/10">
           <Crown className="h-4 w-4 text-orange-500" />
-          <AlertTitle className="text-orange-500">Unlock Steve AI Suite</AlertTitle>
+          <AlertTitle className="text-orange-500">Unlock Studio Package</AlertTitle>
           <AlertDescription className="text-muted-foreground">
-            Create stunning content with Steve AI's professional tools.
+            Create stunning content with professional video and image tools.
             Available exclusively for Studio tier subscribers (£99.99/mo - Early adopter pricing, limited time).
             <br /><br />
             <strong>Monthly Limits:</strong>
