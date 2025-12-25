@@ -19,6 +19,7 @@ import { falService } from "./fal";
 import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
+import { gettyService } from "./getty";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
@@ -533,18 +534,20 @@ export async function registerRoutes(
       // Get authenticated user if available
       const userId = getUserId(req);
       
-      // Check user tier - Premium/Pro users get platform API keys
+      // Check user tier - Premium/Pro/Studio users get platform API keys
       let usesPlatformKeys = false;
+      let isStudioTier = false;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user && (user.tier === "premium" || user.tier === "pro" || user.tier === "studio")) {
           usesPlatformKeys = true;
+          isStudioTier = user.tier === "studio";
         }
       }
       
       if (usesPlatformKeys) {
-        // Premium/Pro users see platform API key status
-        res.json({
+        // Premium/Pro/Studio users see platform API key status
+        const baseEngines: any = {
           openai: { configured: true, name: "OpenAI GPT-4" },
           anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
           dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
@@ -552,8 +555,15 @@ export async function registerRoutes(
           elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
           pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
-          steveai: { configured: steveAIService.isConfigured(), name: "Steve AI Video" },
-        });
+          steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
+        };
+        
+        // Studio tier gets Getty Images
+        if (isStudioTier) {
+          baseEngines.getty = { configured: gettyService.isConfigured(), name: "Getty Images" };
+        }
+        
+        res.json(baseEngines);
       } else if (userId) {
         // Free tier users see their own API key status
         const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
@@ -1494,6 +1504,51 @@ export async function registerRoutes(
 
       const results = await pexelsService.searchBRoll(query, mediaType, perPage);
       res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Getty Images endpoints (Studio tier only)
+  app.get("/api/getty/status", async (req, res) => {
+    res.json({ configured: gettyService.isConfigured() });
+  });
+
+  app.post("/api/getty/search-image", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Check Studio tier
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Getty Images is only available for Studio tier users" });
+      }
+
+      const { prompt } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      if (!gettyService.isConfigured()) {
+        return res.status(400).json({ error: "Getty Images API not configured" });
+      }
+
+      const results = await gettyService.searchImages(prompt, { limit: 1 });
+      if (results.images && results.images.length > 0) {
+        const image = results.images[0];
+        // Return preview URL - download requires license
+        res.json({ 
+          imageUrl: image.previewUri || image.thumbUri, 
+          imageId: image.id,
+          title: image.title,
+          attribution: `Getty Images - ${image.title}`
+        });
+      } else {
+        res.status(404).json({ error: "No matching images found" });
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

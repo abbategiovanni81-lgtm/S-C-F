@@ -103,8 +103,8 @@ export default function ContentQueue() {
 
   // Video engine selection (A2E vs Fal.ai vs Steve AI)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal" | "steveai">("a2e");
-  // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels)
-  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels">("a2e");
+  // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
+  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("a2e");
   // Steve AI specific settings
   const [steveAIStyle, setSteveAIStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
@@ -280,6 +280,7 @@ export default function ContentQueue() {
       const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
         : imageEngine === "dalle" ? "/api/dalle/generate-image" 
         : imageEngine === "pexels" ? "/api/pexels/search-image"
+        : imageEngine === "getty" ? "/api/getty/search-image"
         : "/api/fal/generate-image";
       const res = await fetch(endpoint, {
         method: "POST",
@@ -1952,7 +1953,7 @@ export default function ContentQueue() {
                   <div className="bg-muted/50 p-3 rounded-lg space-y-2">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Image Engine:</Label>
-                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal" | "pexels") => setImageEngine(v)}>
+                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal" | "pexels" | "getty") => setImageEngine(v)}>
                         <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
                           <SelectValue />
                         </SelectTrigger>
@@ -1969,6 +1970,11 @@ export default function ContentQueue() {
                           <SelectItem value="pexels" disabled={!aiEngines?.pexels?.configured}>
                             Pexels {!aiEngines?.pexels?.configured && "(not configured)"}
                           </SelectItem>
+                          {aiEngines?.getty && (
+                            <SelectItem value="getty" disabled={!aiEngines?.getty?.configured}>
+                              Getty {!aiEngines?.getty?.configured && "(not configured)"}
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1979,6 +1985,8 @@ export default function ContentQueue() {
                         ? "DALL-E 3 generates high-quality images with excellent text rendering."
                         : imageEngine === "pexels"
                         ? "Pexels searches free stock photos matching your content."
+                        : imageEngine === "getty"
+                        ? "Getty Images provides premium stock photos (Studio tier only)."
                         : "Fal.ai generates fast AI images with various style options."}
                     </p>
                   </div>
