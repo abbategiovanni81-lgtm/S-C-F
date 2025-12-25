@@ -2,7 +2,7 @@ import { db } from "./db";
 import { users, usagePeriods, usageTopups, TIER_LIMITS, CREATOR_STUDIO_LIMITS, type TierType } from "@shared/models/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
-export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening";
+export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening" | "steveAIVideos" | "steveAIGenerative" | "steveAIImages";
 
 export type CreatorStudioUsageType = "voiceClones" | "talkingPhotos" | "talkingVideos" | "faceSwaps" | "aiDubbing" | "imageToVideo" | "captionRemoval" | "videoToVideo" | "virtualTryOn" | "imageReformat";
 
@@ -16,6 +16,9 @@ const usageColumnMap = {
   dalleImages: "dalleImagesUsed",
   soraVideos: "soraVideosUsed",
   socialListening: "socialListeningUsed",
+  steveAIVideos: "steveAIVideosUsed",
+  steveAIGenerative: "steveAIGenerativeUsed",
+  steveAIImages: "steveAIImagesUsed",
 } as const;
 
 const creatorStudioColumnMap = {
@@ -41,6 +44,9 @@ const limitKeyMap = {
   dalleImages: "dalleImages",
   soraVideos: "soraVideos",
   socialListening: "socialListeningKeywords",
+  steveAIVideos: "steveAIVideos",
+  steveAIGenerative: "steveAIGenerative",
+  steveAIImages: "steveAIImages",
 } as const;
 
 export async function getCurrentPeriod(userId: string) {
@@ -93,6 +99,9 @@ export async function getUsageStats(userId: string) {
     return Math.floor(base * (1 + topupMultiplier));
   };
 
+  // Studio tier always has Creator Studio access
+  const effectiveCreatorStudio = tier === "studio" || hasCreatorStudio;
+  
   return {
     period: {
       start: period.periodStart,
@@ -100,7 +109,9 @@ export async function getUsageStats(userId: string) {
     },
     tier,
     topupMultiplier,
-    hasCreatorStudio,
+    hasCreatorStudio: effectiveCreatorStudio,
+    socialChannels: (limits as any).socialChannels || 0,
+    allowedApis: (limits as any).allowedApis || ["all"],
     usage: {
       brandBriefs: { used: period.brandBriefsUsed, limit: getLimit(limits.brandBriefs) },
       scripts: { used: period.scriptsUsed, limit: getLimit(limits.scripts) },
@@ -111,8 +122,12 @@ export async function getUsageStats(userId: string) {
       dalleImages: { used: period.dalleImagesUsed, limit: getLimit(limits.dalleImages) },
       soraVideos: { used: period.soraVideosUsed, limit: getLimit(limits.soraVideos) },
       socialListening: { used: period.socialListeningUsed, limit: getLimit(limits.socialListeningKeywords) },
+      // Steve AI usage (Studio tier only)
+      steveAIVideos: { used: (period as any).steveAIVideosUsed || 0, limit: getLimit((limits as any).steveAIVideos || 0) },
+      steveAIGenerative: { used: (period as any).steveAIGenerativeUsed || 0, limit: getLimit((limits as any).steveAIGenerative || 0) },
+      steveAIImages: { used: (period as any).steveAIImagesUsed || 0, limit: getLimit((limits as any).steveAIImages || 0) },
     },
-    creatorStudioUsage: hasCreatorStudio ? {
+    creatorStudioUsage: effectiveCreatorStudio ? {
       voiceClones: { used: period.voiceClonesUsed || 0, limit: CREATOR_STUDIO_LIMITS.voiceClones },
       talkingPhotos: { used: period.talkingPhotosUsed || 0, limit: CREATOR_STUDIO_LIMITS.talkingPhotos },
       talkingVideos: { used: period.talkingVideosUsed || 0, limit: CREATOR_STUDIO_LIMITS.talkingVideos },
@@ -128,11 +143,33 @@ export async function getUsageStats(userId: string) {
   };
 }
 
-export async function checkQuota(userId: string, usageType: UsageType, count: number = 1): Promise<{ allowed: boolean; remaining: number; limit: number; used: number }> {
+export async function checkQuota(userId: string, usageType: UsageType, count: number = 1): Promise<{ allowed: boolean; remaining: number; limit: number; used: number; tierBlocked?: boolean }> {
   const stats = await getUsageStats(userId);
   const usage = stats.usage[usageType];
 
-  if (!stats.usesAppApis && usageType !== "brandBriefs") {
+  // Free tier can only use scripts and images (dalleImages with own API)
+  if (stats.tier === "free") {
+    const freeAllowed = ["brandBriefs", "scripts", "dalleImages"];
+    if (!freeAllowed.includes(usageType)) {
+      return { allowed: false, remaining: 0, limit: 0, used: 0, tierBlocked: true };
+    }
+  }
+
+  // Steve AI features only for Studio tier
+  if (usageType.startsWith("steveAI") && stats.tier !== "studio") {
+    return { allowed: false, remaining: 0, limit: 0, used: 0, tierBlocked: true };
+  }
+
+  // Core tier must use own APIs (unlimited if they have API keys)
+  if (stats.tier === "core" && !stats.usesAppApis && usageType !== "brandBriefs") {
+    // Core has -1 (unlimited) for most things when using own APIs
+    if (usage.limit === -1) {
+      return { allowed: true, remaining: Infinity, limit: -1, used: usage.used };
+    }
+  }
+
+  // Premium/Pro/Studio use platform APIs with quotas
+  if (!stats.usesAppApis && usageType !== "brandBriefs" && stats.tier !== "core") {
     return { allowed: false, remaining: 0, limit: 0, used: 0 };
   }
 
@@ -165,11 +202,31 @@ export async function incrementUsage(userId: string, usageType: UsageType, count
     .where(eq(usagePeriods.id, period.id));
 }
 
+// Check social channel limit for a user's tier
+export async function checkSocialChannelLimit(userId: string): Promise<{ allowed: boolean; limit: number; used: number }> {
+  const stats = await getUsageStats(userId);
+  const limit = stats.socialChannels;
+  
+  // Count existing social accounts
+  const { socialAccounts } = await import("@shared/schema");
+  const accounts = await db.select().from(socialAccounts).where(eq(socialAccounts.userId, userId));
+  const used = accounts.length;
+  
+  return {
+    allowed: used < limit,
+    limit,
+    used,
+  };
+}
+
 // Creator Studio quota checking
 export async function checkCreatorStudioQuota(userId: string, usageType: CreatorStudioUsageType, count: number = 1): Promise<{ allowed: boolean; remaining: number; limit: number; used: number; hasAccess: boolean }> {
   const [user] = await db.select().from(users).where(eq(users.id, userId));
   
-  if (!user?.creatorStudioAccess) {
+  // Studio tier has Creator Studio included
+  const hasAccess = user?.tier === "studio" || user?.creatorStudioAccess;
+  
+  if (!hasAccess) {
     return { allowed: false, remaining: 0, limit: 0, used: 0, hasAccess: false };
   }
 

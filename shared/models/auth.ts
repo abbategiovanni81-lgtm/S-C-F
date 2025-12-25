@@ -13,54 +13,106 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)]
 );
 
-// Owner email - this account always gets pro access with owner privileges
+// Owner email - this account always gets studio access with owner privileges
 export const OWNER_EMAIL = "gio.abbate@hotmail.com";
 
 // Tier limits configuration
 // A2E Max ($39.90/mo): 5,400 credits/month - Videos 30cr, Lipsync 1cr/sec, Avatars 100cr
 // ElevenLabs Pro ($99/mo): 500k credits = 1,000 min voiceover
 // OpenAI API ($200/mo): DALL-E $0.04/img, Sora $0.10/sec
-// Total cost: £310/mo for 20 users
+// Steve AI Generative ($129/mo): 400 min video, 3200 img credits, 15 min generative
+// Total cost: £310/mo for 20 users (base) + Steve AI for Studio
 export const TIER_LIMITS = {
   free: {
     brandBriefs: 1,
-    scripts: 0,
-    voiceovers: 0,        // minutes
-    a2eVideos: 0,         // A2E video clips (30 credits each)
-    lipsync: 0,           // A2E lipsync videos (5 credits per 5-sec)
-    avatars: 0,           // A2E avatars (100 credits each)
-    dalleImages: 0,       // OpenAI DALL-E images
-    soraVideos: 0,        // OpenAI Sora videos
+    scripts: -1,          // Unlimited scripts
+    voiceovers: 0,        // minutes - blocked
+    a2eVideos: 0,         // blocked
+    lipsync: 0,           // blocked
+    avatars: 0,           // blocked
+    dalleImages: -1,      // Unlimited with own API key
+    soraVideos: 0,        // blocked
     socialListeningKeywords: 0,
+    socialChannels: 0,    // No social channels
     usesAppApis: false,
+    allowedApis: ["openai", "claude", "pexels"], // Only these APIs
+    steveAIVideos: 0,
+    steveAIGenerative: 0,
+    steveAIImages: 0,
+  },
+  core: {
+    brandBriefs: 1,
+    scripts: -1,          // Unlimited
+    voiceovers: -1,       // Unlimited with own API
+    a2eVideos: -1,        // Unlimited with own API
+    lipsync: -1,          // Unlimited with own API
+    avatars: -1,          // Unlimited with own API
+    dalleImages: -1,      // Unlimited with own API
+    soraVideos: -1,       // Unlimited with own API
+    socialListeningKeywords: -1,
+    socialChannels: 1,    // 1 social channel
+    usesAppApis: false,   // Must use own APIs
+    allowedApis: ["all"], // All APIs allowed
+    steveAIVideos: 0,     // Own API if they get one
+    steveAIGenerative: 0,
+    steveAIImages: 0,
   },
   premium: {
     brandBriefs: 5,
     scripts: -1,          // Unlimited
     voiceovers: 25,       // 25 min voiceover
-    a2eVideos: 16,        // 16 A2E video clips (2 accounts)
-    lipsync: 120,         // 120 lipsync (1 credit/sec, 2 accounts)
-    avatars: 4,           // 4 avatars (2 accounts)
+    a2eVideos: 16,        // 16 A2E video clips
+    lipsync: 120,         // 120 lipsync
+    avatars: 4,           // 4 avatars
     dalleImages: 150,     // 150 DALL-E images
     soraVideos: 12,       // 12 Sora videos
     socialListeningKeywords: 3,
+    socialChannels: 3,    // 3 social channels
     usesAppApis: true,
+    allowedApis: ["all"],
+    steveAIVideos: 0,
+    steveAIGenerative: 0,
+    steveAIImages: 0,
   },
   pro: {
     brandBriefs: 10,
     scripts: -1,          // Unlimited
     voiceovers: 60,       // 60 min voiceover
-    a2eVideos: 32,        // 32 A2E video clips (2 accounts)
-    lipsync: 300,         // 300 lipsync (1 credit/sec, 2 accounts)
-    avatars: 8,           // 8 avatars (2 accounts)
+    a2eVideos: 32,        // 32 A2E video clips
+    lipsync: 300,         // 300 lipsync
+    avatars: 8,           // 8 avatars
     dalleImages: 400,     // 400 DALL-E images
     soraVideos: 30,       // 30 Sora videos
     socialListeningKeywords: 6,
+    socialChannels: 5,    // 5 social channels
     usesAppApis: true,
+    allowedApis: ["all"],
+    steveAIVideos: 0,
+    steveAIGenerative: 0,
+    steveAIImages: 0,
+  },
+  studio: {
+    brandBriefs: 10,
+    scripts: -1,          // Unlimited
+    voiceovers: 75,       // 3x Premium (25 * 3)
+    a2eVideos: 48,        // 3x Premium (16 * 3)
+    lipsync: 360,         // 3x Premium (120 * 3)
+    avatars: 12,          // 3x Premium (4 * 3)
+    dalleImages: 450,     // 3x Premium (150 * 3)
+    soraVideos: 36,       // 3x Premium (12 * 3)
+    socialListeningKeywords: 9,
+    socialChannels: 9,    // All 9 social channels
+    usesAppApis: true,
+    allowedApis: ["all"],
+    steveAIVideos: 200,   // Half of $129 plan (400/2)
+    steveAIGenerative: 7.5, // Half of 15 min
+    steveAIImages: 1600,  // Half of 3200
+    includesCreatorStudio: true, // Built-in
+    maxSessions: 5,       // Multi-login support
   },
 } as const;
 
-export type TierType = "free" | "premium" | "pro";
+export type TierType = "free" | "core" | "premium" | "pro" | "studio";
 
 // Creator Studio Add-on (£20/month) - requires Premium or Pro subscription
 // Uses separate A2E account pool (~1,300 credits per user per month)
@@ -88,12 +140,13 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   googleId: varchar("google_id"),
-  tier: varchar("tier").notNull().default("free"), // "free", "premium", "pro"
+  tier: varchar("tier").notNull().default("free"), // "free", "core", "premium", "pro", "studio"
   isOwner: boolean("is_owner").notNull().default(false), // Admin privileges
-  creatorStudioAccess: boolean("creator_studio_access").notNull().default(false), // £20/mo add-on
+  creatorStudioAccess: boolean("creator_studio_access").notNull().default(false), // £20/mo add-on (auto-true for studio)
   creatorStudioStripeId: varchar("creator_studio_stripe_id"), // Separate subscription ID
   stripeCustomerId: varchar("stripe_customer_id"),
   stripeSubscriptionId: varchar("stripe_subscription_id"),
+  maxSessions: integer("max_sessions").notNull().default(1), // Multi-login for Studio (5)
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -127,6 +180,10 @@ export const usagePeriods = pgTable("usage_periods", {
   videoToVideoUsed: integer("video_to_video_used").notNull().default(0),
   virtualTryOnUsed: integer("virtual_try_on_used").notNull().default(0),
   imageReformatUsed: integer("image_reformat_used").notNull().default(0),
+  // Steve AI usage (Studio tier only)
+  steveAIVideosUsed: integer("steve_ai_videos_used").notNull().default(0),      // Minutes of AI video
+  steveAIGenerativeUsed: real("steve_ai_generative_used").notNull().default(0), // Minutes of generative AI
+  steveAIImagesUsed: integer("steve_ai_images_used").notNull().default(0),      // Image credits
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
