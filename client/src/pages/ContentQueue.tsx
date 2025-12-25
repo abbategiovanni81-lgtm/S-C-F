@@ -607,7 +607,7 @@ export default function ContentQueue() {
     try {
       const aspectRatio = platforms.includes("TikTok") || platforms.includes("Instagram Reels") ? "9:16" : "16:9";
       
-      // Use A2E or Fal.ai based on selected engine
+      // Use A2E, Steve AI, or Fal.ai based on selected engine
       if (videoEngine === "a2e" && aiEngines?.a2e?.configured && selectedA2EAvatar) {
         // A2E lip-sync avatar video generation
         const res = await fetch("/api/a2e/generate", {
@@ -653,6 +653,52 @@ export default function ContentQueue() {
         
         toast({ title: `Scene ${sceneNumber} generating with A2E...`, description: "This may take a few minutes." });
         pollA2ESceneVideoStatus(contentId, sceneNumber, data.lipSyncId);
+      } else if (videoEngine === "steveai" && aiEngines?.steveai?.configured) {
+        // Steve AI video generation
+        const res = await fetch("/api/steveai/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            script: prompt, 
+            style: steveAIStyle,
+            aspectRatio,
+            duration: 60
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to start Steve AI video generation");
+        }
+        
+        const data = await res.json();
+        setSceneVideos(prev => ({
+          ...prev,
+          [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.requestId } }
+        }));
+        
+        // Save request ID to database
+        try {
+          const contentRes = await fetch(`/api/content/${contentId}`);
+          if (contentRes.ok) {
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            const sceneRequests = existingMetadata.sceneRequests || {};
+            sceneRequests[sceneNumber] = { requestId: data.requestId, status: "processing", engine: "steveai" };
+            await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { ...existingMetadata, sceneRequests }
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save scene request:", e);
+        }
+        
+        toast({ title: `Scene ${sceneNumber} generating with Steve AI...`, description: "This may take several minutes for longer videos." });
+        pollSteveAISceneVideoStatus(contentId, sceneNumber, data.requestId);
       } else {
         // Fal.ai video generation (fallback)
         const res = await fetch("/api/fal/generate-video", {
@@ -766,6 +812,67 @@ export default function ContentQueue() {
     poll();
   };
 
+  // Steve AI polling function
+  const pollSteveAISceneVideoStatus = async (contentId: string, sceneNumber: number, requestId: string) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/steveai/status/${requestId}`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (data.status === "completed" && data.videoUrl) {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.videoUrl, requestId } }
+          }));
+          
+          // Save to database
+          try {
+            const contentRes = await fetch(`/api/content/${contentId}`);
+            if (contentRes.ok) {
+              const content = await contentRes.json();
+              const existingMetadata = content?.generationMetadata || {};
+              const existingClips = existingMetadata.generatedClips || [];
+              const updatedClips = existingClips.filter((c: any) => c.sceneNumber !== sceneNumber);
+              updatedClips.push({ sceneNumber, videoUrl: data.videoUrl, requestId, engine: "steveai" });
+              updatedClips.sort((a: any, b: any) => a.sceneNumber - b.sceneNumber);
+              
+              const sceneRequests = existingMetadata.sceneRequests || {};
+              if (sceneRequests[sceneNumber]) {
+                sceneRequests[sceneNumber] = { ...sceneRequests[sceneNumber], status: "completed" };
+              }
+              
+              await fetch(`/api/content/${contentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  generationMetadata: { ...existingMetadata, generatedClips: updatedClips, sceneRequests }
+                }),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to save Steve AI scene video:", e);
+          }
+          
+          toast({ title: `Scene ${sceneNumber} complete!`, description: "Steve AI video generated successfully." });
+          invalidateContentQueries();
+        } else if (data.status === "failed") {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId } }
+          }));
+          toast({ title: `Scene ${sceneNumber} failed`, description: data.error || "Steve AI generation failed", variant: "destructive" });
+        } else {
+          // Still processing - poll again in 10 seconds (Steve AI takes longer)
+          setTimeout(poll, 10000);
+        }
+      } catch {
+        setTimeout(poll, 10000);
+      }
+    };
+    poll();
+  };
+
   // Load existing generated clips and resume polling for in-progress scene video generation on page load
   const scenePollingStartedRef = useRef<Set<string>>(new Set());
   const clipLoadedRef = useRef<Set<string>>(new Set());
@@ -799,7 +906,14 @@ export default function ContentQueue() {
               ...prev,
               [content.id]: { ...(prev[content.id] || {}), [sceneNumber]: { status: "processing", requestId: reqData.requestId } }
             }));
-            pollSceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            // Use the correct polling function based on engine
+            if (reqData.engine === "a2e") {
+              pollA2ESceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            } else if (reqData.engine === "steveai") {
+              pollSteveAISceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            } else {
+              pollSceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            }
           }
         }
       });
