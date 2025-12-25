@@ -2630,6 +2630,15 @@ export async function registerRoutes(
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Twitter", userInfo.id);
 
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
+
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
           accountName: userInfo.name,
@@ -2697,6 +2706,15 @@ export async function registerRoutes(
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "LinkedIn", userInfo.sub);
 
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
+
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
           accountName: userInfo.name,
@@ -2742,6 +2760,17 @@ export async function registerRoutes(
       
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Bluesky", session.did);
+
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.status(403).json({ 
+            error: `Social channel limit reached (${channelCheck.used}/${channelCheck.limit}). Upgrade your plan to connect more channels.`
+          });
+        }
+      }
 
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
@@ -2804,6 +2833,10 @@ export async function registerRoutes(
 
       await storage.ensureUser(userId);
 
+      // Check social channel limit before connecting new pages
+      const { checkSocialChannelLimit } = await import("./usageService");
+      const channelCheck = await checkSocialChannelLimit(userId);
+
       // Connect all Facebook pages
       for (const page of pages.data || []) {
         const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Facebook", page.id);
@@ -2814,7 +2847,7 @@ export async function registerRoutes(
             isConnected: "connected",
             accessToken: page.access_token,
           });
-        } else {
+        } else if (channelCheck.allowed) {
           await storage.createSocialAccount({
             userId,
             platform: "Facebook",
@@ -2889,6 +2922,15 @@ export async function registerRoutes(
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "TikTok", userInfo.data.user.open_id);
 
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
+
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
           accountName: userInfo.data.user.display_name,
@@ -2953,6 +2995,15 @@ export async function registerRoutes(
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Threads", tokens.user_id);
 
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
+
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
           accountName: userInfo.username,
@@ -3014,6 +3065,15 @@ export async function registerRoutes(
 
       await storage.ensureUser(userId);
       const existingAccount = await storage.getSocialAccountByPlatformAccountId(userId, "Pinterest", userInfo.id);
+
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
 
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
