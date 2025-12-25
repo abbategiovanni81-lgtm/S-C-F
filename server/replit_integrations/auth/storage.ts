@@ -75,10 +75,12 @@ class AuthStorage implements IAuthStorage {
       ? getTierAndOwnerForEmail(userData.email) 
       : { tier: "free", isOwner: false };
     
-    // For owner email, ALWAYS use pro tier and isOwner=true, regardless of what's passed in
-    const tier = ownerFlag ? "pro" : (userData.tier || ownerTier);
+    // For owner email, ALWAYS use studio tier and isOwner=true, regardless of what's passed in
+    const tier = ownerFlag ? "studio" : (userData.tier || ownerTier);
     const isOwner = ownerFlag;
     const creatorStudioAccess = ownerFlag ? true : false;
+    // Studio tier gets 5 concurrent sessions, all others get 1
+    const maxSessions = tier === "studio" ? 5 : 1;
 
     // Check if a user with this email already exists
     if (userData.email) {
@@ -98,6 +100,7 @@ class AuthStorage implements IAuthStorage {
             googleId: userData.googleId || existingUserByEmail.googleId,
             tier,
             isOwner,
+            maxSessions,
             ...(ownerFlag && { creatorStudioAccess: true }),
             updatedAt: new Date(),
           })
@@ -105,7 +108,7 @@ class AuthStorage implements IAuthStorage {
           .returning();
         
         if (ownerFlag) {
-          console.log(`Owner login detected for ${userData.email} - UPDATED existing user to tier=studio, isOwner=true, creatorStudioAccess=true`);
+          console.log(`Owner login detected for ${userData.email} - UPDATED existing user to tier=studio, isOwner=true, creatorStudioAccess=true, maxSessions=5`);
         }
         
         return updatedUser;
@@ -115,13 +118,14 @@ class AuthStorage implements IAuthStorage {
     // No existing user with this email - insert new user
     const [user] = await db
       .insert(users)
-      .values({ ...userData, tier, isOwner, creatorStudioAccess })
+      .values({ ...userData, tier, isOwner, creatorStudioAccess, maxSessions })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
           tier,
           isOwner,
+          maxSessions,
           ...(ownerFlag && { creatorStudioAccess: true }),
           updatedAt: new Date(),
         },
@@ -129,7 +133,7 @@ class AuthStorage implements IAuthStorage {
       .returning();
     
     if (ownerFlag) {
-      console.log(`Owner login detected for ${userData.email} - INSERTED new user with tier=pro, isOwner=true, creatorStudioAccess=true`);
+      console.log(`Owner login detected for ${userData.email} - INSERTED new user with tier=studio, isOwner=true, creatorStudioAccess=true, maxSessions=5`);
     }
     
     return user;
