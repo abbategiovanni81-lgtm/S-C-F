@@ -32,16 +32,43 @@ export class WebhookHandlers {
       const subscription = event.data.object as any;
       const customerId = subscription.customer;
       
-      // Find user by stripe customer id and upgrade to premium
+      // Determine the tier from the subscription's product metadata
+      let tier = 'premium'; // Default
+      let creatorStudioAccess = false;
+      let maxSessions = 1;
+      
+      if (subscription.items?.data?.length > 0) {
+        const priceId = subscription.items.data[0].price?.id;
+        if (priceId) {
+          const price = await stripe.prices.retrieve(priceId, { expand: ['product'] });
+          const product = price.product as any;
+          const productTier = product?.metadata?.tier;
+          
+          if (productTier === 'core') {
+            tier = 'core';
+          } else if (productTier === 'premium') {
+            tier = 'premium';
+          } else if (productTier === 'pro') {
+            tier = 'pro';
+          } else if (productTier === 'studio') {
+            tier = 'studio';
+            creatorStudioAccess = true;
+            maxSessions = 5;
+          }
+        }
+      }
+      
+      // Find user by stripe customer id and update tier
       if (subscription.status === 'active') {
         await db.update(users)
           .set({ 
-            tier: 'premium',
+            tier,
             stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id 
+            stripeSubscriptionId: subscription.id,
+            ...(tier === 'studio' && { creatorStudioAccess, maxSessions })
           })
           .where(eq(users.stripeCustomerId, customerId));
-        console.log(`User upgraded to premium via subscription: ${subscription.id}`);
+        console.log(`User upgraded to ${tier} via subscription: ${subscription.id}`);
       }
     }
 
@@ -49,11 +76,17 @@ export class WebhookHandlers {
       const subscription = event.data.object as any;
       const customerId = subscription.customer;
       
-      // Downgrade user to free when subscription is cancelled
-      await db.update(users)
-        .set({ tier: 'free', stripeSubscriptionId: null })
-        .where(eq(users.stripeCustomerId, customerId));
-      console.log(`User downgraded to free, subscription cancelled: ${subscription.id}`);
+      // Check if this is a main subscription (not Creator Studio add-on)
+      // and downgrade to free
+      const [user] = await db.select().from(users)
+        .where(eq(users.stripeSubscriptionId, subscription.id));
+      
+      if (user) {
+        await db.update(users)
+          .set({ tier: 'free', stripeSubscriptionId: null, maxSessions: 1 })
+          .where(eq(users.stripeSubscriptionId, subscription.id));
+        console.log(`User downgraded to free, subscription cancelled: ${subscription.id}`);
+      }
     }
 
     // Handle completed checkout sessions for top-ups and Creator Studio

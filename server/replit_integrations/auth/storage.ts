@@ -15,7 +15,7 @@ export interface CreateUserData {
 
 function getTierAndOwnerForEmail(email: string): { tier: string; isOwner: boolean } {
   if (email.toLowerCase() === OWNER_EMAIL.toLowerCase()) {
-    return { tier: "pro", isOwner: true };
+    return { tier: "studio", isOwner: true };
   }
   return { tier: "free", isOwner: false };
 }
@@ -105,7 +105,7 @@ class AuthStorage implements IAuthStorage {
           .returning();
         
         if (ownerFlag) {
-          console.log(`Owner login detected for ${userData.email} - UPDATED existing user to tier=pro, isOwner=true, creatorStudioAccess=true`);
+          console.log(`Owner login detected for ${userData.email} - UPDATED existing user to tier=studio, isOwner=true, creatorStudioAccess=true`);
         }
         
         return updatedUser;

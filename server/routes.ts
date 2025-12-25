@@ -2124,11 +2124,21 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/social-accounts", async (req, res) => {
+  app.post("/api/social-accounts", requireAuth, async (req: any, res) => {
     try {
-      const result = insertSocialAccountSchema.safeParse(req.body);
+      const userId = req.userId;
+      const result = insertSocialAccountSchema.safeParse({ ...req.body, userId });
       if (!result.success) {
         return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+      
+      // Check social channel limit before creating account
+      const { checkSocialChannelLimit } = await import("./usageService");
+      const channelCheck = await checkSocialChannelLimit(userId);
+      if (!channelCheck.allowed) {
+        return res.status(403).json({ 
+          error: `Social channel limit reached (${channelCheck.used}/${channelCheck.limit}). Upgrade your plan to connect more channels.`
+        });
       }
       
       await storage.ensureUser(result.data.userId);
@@ -2178,6 +2188,15 @@ export async function registerRoutes(
       const existingAccount = channelInfo.channelId 
         ? await storage.getSocialAccountByPlatformAccountId(userId, "YouTube", channelInfo.channelId)
         : null;
+      
+      // Check social channel limit for new accounts
+      if (!existingAccount) {
+        const { checkSocialChannelLimit } = await import("./usageService");
+        const channelCheck = await checkSocialChannelLimit(userId);
+        if (!channelCheck.allowed) {
+          return res.redirect(`/accounts?error=channel_limit&limit=${channelCheck.limit}&used=${channelCheck.used}`);
+        }
+      }
       
       if (existingAccount) {
         await storage.updateSocialAccount(existingAccount.id, {
@@ -4040,7 +4059,6 @@ export async function registerRoutes(
 
       res.json({ 
         imageUrl: result.imageUrl, 
-        originalDescription: result.originalDescription,
         revisedPrompt: result.revisedPrompt 
       });
     } catch (error: any) {
