@@ -1162,18 +1162,30 @@ function SteveAISection() {
         </Alert>
       ) : (
         <Tabs defaultValue="videos" className="space-y-4">
-          <TabsList className="bg-orange-500/10 border border-orange-500/30">
-            <TabsTrigger value="videos" data-testid="tab-steve-videos" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-              <Film className="h-4 w-4 mr-2" />
-              Videos (200 min)
+          <TabsList className="bg-orange-500/10 border border-orange-500/30 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="videos" data-testid="tab-steve-videos" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Film className="h-3 w-3 mr-1" />
+              Long-Form
             </TabsTrigger>
-            <TabsTrigger value="generative" data-testid="tab-steve-generative" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generative (7.5 min)
+            <TabsTrigger value="url-to-video" data-testid="tab-steve-url" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Video className="h-3 w-3 mr-1" />
+              Blog/URL
             </TabsTrigger>
-            <TabsTrigger value="images" data-testid="tab-steve-images" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white">
-              <Image className="h-4 w-4 mr-2" />
-              Images (1,600)
+            <TabsTrigger value="voice-to-video" data-testid="tab-steve-voice" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Mic className="h-3 w-3 mr-1" />
+              Voice
+            </TabsTrigger>
+            <TabsTrigger value="multi-voice" data-testid="tab-steve-multivoice" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Languages className="h-3 w-3 mr-1" />
+              Multi-Voice
+            </TabsTrigger>
+            <TabsTrigger value="scene-props" data-testid="tab-steve-scene" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Palette className="h-3 w-3 mr-1" />
+              Scene Props
+            </TabsTrigger>
+            <TabsTrigger value="getty" data-testid="tab-steve-getty" className="data-[state=active]:bg-orange-500 data-[state=active]:text-white text-xs">
+              <Image className="h-3 w-3 mr-1" />
+              Getty
             </TabsTrigger>
           </TabsList>
 
@@ -1181,12 +1193,24 @@ function SteveAISection() {
             <SteveAIVideosTab />
           </TabsContent>
 
-          <TabsContent value="generative">
-            <SteveAIGenerativeTab />
+          <TabsContent value="url-to-video">
+            <SteveAIUrlToVideoTab />
           </TabsContent>
 
-          <TabsContent value="images">
-            <SteveAIImagesTab />
+          <TabsContent value="voice-to-video">
+            <SteveAIVoiceToVideoTab />
+          </TabsContent>
+
+          <TabsContent value="multi-voice">
+            <SteveAIMultiVoiceTab />
+          </TabsContent>
+
+          <TabsContent value="scene-props">
+            <SteveAIScenePropsTab />
+          </TabsContent>
+
+          <TabsContent value="getty">
+            <SteveAIGettyTab />
           </TabsContent>
         </Tabs>
       )}
@@ -1652,6 +1676,733 @@ function SteveAIImagesTab() {
                 <img src={img.url} alt={`Generated ${idx + 1}`} className="w-full" />
               </div>
             ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAIUrlToVideoTab() {
+  const { toast } = useToast();
+  const [url, setUrl] = useState("");
+  const [style, setStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("documentary");
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/steveai/url-to-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ url, style, aspectRatio }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate video");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Video generation started!", description: "Converting your article to video." });
+      setRequestId(data.requestId);
+      setGenerationComplete(false);
+      setVideoUrl(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const { data: statusData } = useQuery({
+    queryKey: ["/api/steveai/status", requestId],
+    queryFn: async () => {
+      if (!requestId) return null;
+      const res = await fetch(`/api/steveai/status/${requestId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check status");
+      return res.json();
+    },
+    enabled: !!requestId && !generationComplete,
+    refetchInterval: requestId && !generationComplete ? 5000 : false,
+  });
+
+  if (statusData?.status === "completed" && !generationComplete) {
+    setGenerationComplete(true);
+    if (statusData.videoUrl) setVideoUrl(statusData.videoUrl);
+  }
+  if (statusData?.status === "failed" && !generationComplete) {
+    setGenerationComplete(true);
+  }
+
+  return (
+    <Card className="border-orange-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Video className="h-5 w-5 text-orange-500" />
+          Blog/URL to Video
+        </CardTitle>
+        <CardDescription>Paste any blog post or article URL and convert it into a video</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Article URL</Label>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com/blog/your-article"
+            type="url"
+            data-testid="input-steve-url"
+          />
+          <p className="text-xs text-muted-foreground">Paste a blog post, news article, or any web page URL</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Video Style</Label>
+            <Select value={style} onValueChange={(v: typeof style) => setStyle(v)}>
+              <SelectTrigger data-testid="select-steve-url-style">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="animation">Animation</SelectItem>
+                <SelectItem value="live_action">Live Action</SelectItem>
+                <SelectItem value="generative">Generative AI</SelectItem>
+                <SelectItem value="talking_head">Talking Head</SelectItem>
+                <SelectItem value="documentary">Documentary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Aspect Ratio</Label>
+            <Select value={aspectRatio} onValueChange={(v: typeof aspectRatio) => setAspectRatio(v)}>
+              <SelectTrigger data-testid="select-steve-url-aspect">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                <SelectItem value="1:1">Square (1:1)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button 
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending || !url.trim() || (!!requestId && !generationComplete)}
+          className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          data-testid="button-generate-steve-url"
+        >
+          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+          {generationComplete ? "Convert Another URL" : "Convert to Video"}
+        </Button>
+
+        {requestId && (
+          <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 mb-2">
+              {statusData?.status === "completed" ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : statusData?.status === "failed" ? (
+                <XCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+              )}
+              <span className="font-medium">
+                {statusData?.status === "completed" ? "Video Ready!" : 
+                 statusData?.status === "failed" ? "Generation Failed" : 
+                 "Converting article..."}
+              </span>
+            </div>
+            {statusData?.progress && <Progress value={statusData.progress} className="mb-2" />}
+            {videoUrl && <video src={videoUrl} controls className="w-full rounded mt-2" />}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAIVoiceToVideoTab() {
+  const { toast } = useToast();
+  const [audioUrl, setAudioUrl] = useState("");
+  const [style, setStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("documentary");
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/steveai/voice-to-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ audioUrl, style, aspectRatio }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate video");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Video generation started!", description: "Creating visuals for your audio." });
+      setRequestId(data.requestId);
+      setGenerationComplete(false);
+      setVideoUrl(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const { data: statusData } = useQuery({
+    queryKey: ["/api/steveai/status", requestId],
+    queryFn: async () => {
+      if (!requestId) return null;
+      const res = await fetch(`/api/steveai/status/${requestId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check status");
+      return res.json();
+    },
+    enabled: !!requestId && !generationComplete,
+    refetchInterval: requestId && !generationComplete ? 5000 : false,
+  });
+
+  if (statusData?.status === "completed" && !generationComplete) {
+    setGenerationComplete(true);
+    if (statusData.videoUrl) setVideoUrl(statusData.videoUrl);
+  }
+  if (statusData?.status === "failed" && !generationComplete) {
+    setGenerationComplete(true);
+  }
+
+  return (
+    <Card className="border-orange-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Mic className="h-5 w-5 text-orange-500" />
+          Voice to Video
+        </CardTitle>
+        <CardDescription>Upload audio and get AI-generated visuals to match</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label>Audio File</Label>
+          <MediaUpload
+            accept="audio/*"
+            onUploadComplete={(url) => setAudioUrl(url)}
+            buttonText="Upload Audio"
+          />
+          {audioUrl && (
+            <div className="mt-2">
+              <audio src={audioUrl} controls className="w-full" />
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Video Style</Label>
+            <Select value={style} onValueChange={(v: typeof style) => setStyle(v)}>
+              <SelectTrigger data-testid="select-steve-voice-style">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="animation">Animation</SelectItem>
+                <SelectItem value="live_action">Live Action</SelectItem>
+                <SelectItem value="generative">Generative AI</SelectItem>
+                <SelectItem value="talking_head">Talking Head</SelectItem>
+                <SelectItem value="documentary">Documentary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Aspect Ratio</Label>
+            <Select value={aspectRatio} onValueChange={(v: typeof aspectRatio) => setAspectRatio(v)}>
+              <SelectTrigger data-testid="select-steve-voice-aspect">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                <SelectItem value="1:1">Square (1:1)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button 
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending || !audioUrl || (!!requestId && !generationComplete)}
+          className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+          data-testid="button-generate-steve-voice"
+        >
+          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+          {generationComplete ? "Generate Another" : "Generate Video from Audio"}
+        </Button>
+
+        {requestId && (
+          <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 mb-2">
+              {statusData?.status === "completed" ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : statusData?.status === "failed" ? (
+                <XCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+              )}
+              <span className="font-medium">
+                {statusData?.status === "completed" ? "Video Ready!" : 
+                 statusData?.status === "failed" ? "Generation Failed" : 
+                 "Creating visuals..."}
+              </span>
+            </div>
+            {statusData?.progress && <Progress value={statusData.progress} className="mb-2" />}
+            {videoUrl && <video src={videoUrl} controls className="w-full rounded mt-2" />}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAIMultiVoiceTab() {
+  const { toast } = useToast();
+  const [scenes, setScenes] = useState<Array<{ id: string; text: string; voiceId: string }>>([
+    { id: "1", text: "", voiceId: "emma" }
+  ]);
+  const [style, setStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [generationComplete, setGenerationComplete] = useState(false);
+
+  const voices = [
+    { id: "emma", name: "Emma (Female, US)" },
+    { id: "james", name: "James (Male, US)" },
+    { id: "sophia", name: "Sophia (Female, UK)" },
+    { id: "oliver", name: "Oliver (Male, UK)" },
+    { id: "charlotte", name: "Charlotte (Female, AU)" },
+    { id: "william", name: "William (Male, AU)" },
+  ];
+
+  const addScene = () => {
+    setScenes([...scenes, { id: String(scenes.length + 1), text: "", voiceId: "emma" }]);
+  };
+
+  const removeScene = (id: string) => {
+    if (scenes.length > 1) {
+      setScenes(scenes.filter(s => s.id !== id));
+    }
+  };
+
+  const updateScene = (id: string, field: "text" | "voiceId", value: string) => {
+    setScenes(scenes.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/steveai/multi-voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ scenes, style, aspectRatio }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate video");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Video generation started!", description: "Creating multi-voice video." });
+      setRequestId(data.requestId);
+      setGenerationComplete(false);
+      setVideoUrl(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const { data: statusData } = useQuery({
+    queryKey: ["/api/steveai/status", requestId],
+    queryFn: async () => {
+      if (!requestId) return null;
+      const res = await fetch(`/api/steveai/status/${requestId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check status");
+      return res.json();
+    },
+    enabled: !!requestId && !generationComplete,
+    refetchInterval: requestId && !generationComplete ? 5000 : false,
+  });
+
+  if (statusData?.status === "completed" && !generationComplete) {
+    setGenerationComplete(true);
+    if (statusData.videoUrl) setVideoUrl(statusData.videoUrl);
+  }
+  if (statusData?.status === "failed" && !generationComplete) {
+    setGenerationComplete(true);
+  }
+
+  const hasValidScenes = scenes.every(s => s.text.trim());
+
+  return (
+    <Card className="border-orange-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Languages className="h-5 w-5 text-orange-500" />
+          Multi-Voice Scenes
+        </CardTitle>
+        <CardDescription>Create videos with different AI voices for each scene</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-4">
+          {scenes.map((scene, idx) => (
+            <div key={scene.id} className="p-4 border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="font-medium">Scene {idx + 1}</Label>
+                {scenes.length > 1 && (
+                  <Button variant="ghost" size="sm" onClick={() => removeScene(scene.id)}>
+                    <XCircle className="h-4 w-4 text-destructive" />
+                  </Button>
+                )}
+              </div>
+              <Textarea
+                value={scene.text}
+                onChange={(e) => updateScene(scene.id, "text", e.target.value)}
+                placeholder="Enter dialogue or narration for this scene..."
+                rows={3}
+              />
+              <Select value={scene.voiceId} onValueChange={(v) => updateScene(scene.id, "voiceId", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select voice" />
+                </SelectTrigger>
+                <SelectContent>
+                  {voices.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ))}
+          <Button variant="outline" onClick={addScene} className="w-full">
+            + Add Scene
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Video Style</Label>
+            <Select value={style} onValueChange={(v: typeof style) => setStyle(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="animation">Animation</SelectItem>
+                <SelectItem value="live_action">Live Action</SelectItem>
+                <SelectItem value="generative">Generative AI</SelectItem>
+                <SelectItem value="talking_head">Talking Head</SelectItem>
+                <SelectItem value="documentary">Documentary</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Aspect Ratio</Label>
+            <Select value={aspectRatio} onValueChange={(v: typeof aspectRatio) => setAspectRatio(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                <SelectItem value="1:1">Square (1:1)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Button 
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending || !hasValidScenes || (!!requestId && !generationComplete)}
+          className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+        >
+          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+          {generationComplete ? "Generate Another" : "Generate Multi-Voice Video"}
+        </Button>
+
+        {requestId && (
+          <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+            <div className="flex items-center gap-2 mb-2">
+              {statusData?.status === "completed" ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : statusData?.status === "failed" ? (
+                <XCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+              )}
+              <span className="font-medium">
+                {statusData?.status === "completed" ? "Video Ready!" : 
+                 statusData?.status === "failed" ? "Generation Failed" : 
+                 "Generating scenes..."}
+              </span>
+            </div>
+            {statusData?.progress && <Progress value={statusData.progress} className="mb-2" />}
+            {videoUrl && <video src={videoUrl} controls className="w-full rounded mt-2" />}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAIScenePropsTab() {
+  const { data: options } = useQuery({
+    queryKey: ["/api/steveai/scene-properties"],
+    queryFn: async () => {
+      const res = await fetch("/api/steveai/scene-properties", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch options");
+      return res.json();
+    },
+  });
+
+  const [background, setBackground] = useState("office");
+  const [weather, setWeather] = useState("none");
+  const [timeOfDay, setTimeOfDay] = useState("day");
+  const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
+  const [selectedEffects, setSelectedEffects] = useState<string[]>([]);
+
+  const toggleFurniture = (item: string) => {
+    setSelectedFurniture(prev => 
+      prev.includes(item) ? prev.filter(f => f !== item) : [...prev, item]
+    );
+  };
+
+  const toggleEffect = (item: string) => {
+    setSelectedEffects(prev => 
+      prev.includes(item) ? prev.filter(e => e !== item) : [...prev, item]
+    );
+  };
+
+  return (
+    <Card className="border-orange-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Palette className="h-5 w-5 text-orange-500" />
+          Scene Properties
+        </CardTitle>
+        <CardDescription>Customize scene backgrounds, weather, furniture, and visual effects</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label>Background</Label>
+            <Select value={background} onValueChange={setBackground}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(options?.backgrounds || ["office", "living_room", "outdoor_park", "studio"]).map((bg: string) => (
+                  <SelectItem key={bg} value={bg}>{bg.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Weather</Label>
+            <Select value={weather} onValueChange={setWeather}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(options?.weather || ["none", "rain", "snow", "sunny"]).map((w: string) => (
+                  <SelectItem key={w} value={w}>{w.replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Time of Day</Label>
+            <Select value={timeOfDay} onValueChange={setTimeOfDay}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(options?.timeOfDay || ["day", "night", "sunset", "sunrise"]).map((t: string) => (
+                  <SelectItem key={t} value={t}>{t.replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Furniture (click to add)</Label>
+          <div className="flex flex-wrap gap-2">
+            {(options?.furniture || ["desk", "chair", "sofa", "table", "bookshelf", "lamp", "plant"]).map((f: string) => (
+              <Badge 
+                key={f} 
+                variant={selectedFurniture.includes(f) ? "default" : "outline"}
+                className={`cursor-pointer ${selectedFurniture.includes(f) ? "bg-orange-500" : ""}`}
+                onClick={() => toggleFurniture(f)}
+              >
+                {f.replace(/\b\w/g, l => l.toUpperCase())}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Visual Effects (click to add)</Label>
+          <div className="flex flex-wrap gap-2">
+            {(options?.effects || ["none", "blur_background", "vignette", "film_grain", "bokeh"]).map((e: string) => (
+              <Badge 
+                key={e} 
+                variant={selectedEffects.includes(e) ? "default" : "outline"}
+                className={`cursor-pointer ${selectedEffects.includes(e) ? "bg-orange-500" : ""}`}
+                onClick={() => toggleEffect(e)}
+              >
+                {e.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 border rounded-lg bg-muted/50">
+          <p className="text-sm font-medium mb-2">Current Scene Configuration:</p>
+          <p className="text-xs text-muted-foreground">
+            Background: {background.replace(/_/g, " ")} | 
+            Weather: {weather} | 
+            Time: {timeOfDay} | 
+            Furniture: {selectedFurniture.length > 0 ? selectedFurniture.join(", ") : "none"} | 
+            Effects: {selectedEffects.length > 0 ? selectedEffects.join(", ") : "none"}
+          </p>
+          <p className="text-xs text-orange-500 mt-2">
+            Use these settings when creating Multi-Voice scenes for consistent styling.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAIGettyTab() {
+  const { toast } = useToast();
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState<"image" | "video">("image");
+  const [assets, setAssets] = useState<Array<{ id: string; title: string; url: string; thumbnailUrl: string; type: string }>>([]);
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+
+  const searchMutation = useMutation({
+    mutationFn: async () => {
+      const params = new URLSearchParams({ query, type, limit: "20" });
+      const res = await fetch(`/api/steveai/getty/search?${params}`, { credentials: "include" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to search");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setAssets(data.assets || []);
+      if (data.assets?.length === 0) {
+        toast({ title: "No results", description: "Try a different search term." });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleAsset = (id: string) => {
+    setSelectedAssets(prev => 
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <Card className="border-orange-500/30">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Image className="h-5 w-5 text-orange-500" />
+          Getty Images B-Roll
+        </CardTitle>
+        <CardDescription>Search premium Getty Images for high-quality B-roll content</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for images or videos..."
+            className="flex-1"
+            onKeyDown={(e) => e.key === "Enter" && searchMutation.mutate()}
+            data-testid="input-getty-search"
+          />
+          <Select value={type} onValueChange={(v: "image" | "video") => setType(v)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="image">Images</SelectItem>
+              <SelectItem value="video">Videos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button 
+            onClick={() => searchMutation.mutate()}
+            disabled={searchMutation.isPending || !query.trim()}
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+            data-testid="button-getty-search"
+          >
+            {searchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+          </Button>
+        </div>
+
+        {assets.length > 0 && (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Found {assets.length} results. Click to select for your video.
+              {selectedAssets.length > 0 && ` (${selectedAssets.length} selected)`}
+            </p>
+            <div className="grid grid-cols-4 gap-2 max-h-96 overflow-y-auto">
+              {assets.map(asset => (
+                <div 
+                  key={asset.id}
+                  className={`relative border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    selectedAssets.includes(asset.id) ? "ring-2 ring-orange-500" : ""
+                  }`}
+                  onClick={() => toggleAsset(asset.id)}
+                >
+                  <img 
+                    src={asset.thumbnailUrl} 
+                    alt={asset.title} 
+                    className="w-full h-24 object-cover"
+                  />
+                  {selectedAssets.includes(asset.id) && (
+                    <div className="absolute top-1 right-1 bg-orange-500 rounded-full p-1">
+                      <CheckCircle className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {selectedAssets.length > 0 && (
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <p className="text-sm font-medium mb-2">{selectedAssets.length} asset(s) selected</p>
+            <p className="text-xs text-muted-foreground">
+              These assets will be available for use in your Multi-Voice scenes as B-roll.
+            </p>
           </div>
         )}
       </CardContent>

@@ -1574,6 +1574,151 @@ export async function registerRoutes(
     }
   });
 
+  // Steve AI URL-to-Video (Blog/Article to Video)
+  app.post("/api/steveai/url-to-video", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI URL-to-Video is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured", needsConfig: true });
+      }
+
+      const { url, style, aspectRatio, voiceId, language } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      const result = await steveAIService.generateVideoFromUrl({
+        url,
+        style: style || "documentary",
+        aspectRatio: aspectRatio || "16:9",
+        voiceId,
+        language,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Steve AI Voice-to-Video
+  app.post("/api/steveai/voice-to-video", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI Voice-to-Video is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured", needsConfig: true });
+      }
+
+      const { audioUrl, style, aspectRatio } = req.body;
+
+      if (!audioUrl) {
+        return res.status(400).json({ error: "Audio URL is required" });
+      }
+
+      const result = await steveAIService.generateVideoFromVoice({
+        audioUrl,
+        style: style || "documentary",
+        aspectRatio: aspectRatio || "16:9",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Steve AI Multi-Voice Scenes
+  app.post("/api/steveai/multi-voice", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Steve AI Multi-Voice is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured", needsConfig: true });
+      }
+
+      const { scenes, style, aspectRatio } = req.body;
+
+      if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+        return res.status(400).json({ error: "At least one scene is required" });
+      }
+
+      const result = await steveAIService.generateMultiVoiceVideo({
+        scenes,
+        style: style || "animation",
+        aspectRatio: aspectRatio || "16:9",
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Steve AI Scene Properties Options
+  app.get("/api/steveai/scene-properties", async (req, res) => {
+    const options = steveAIService.getScenePropertyOptions();
+    res.json(options);
+  });
+
+  // Steve AI Getty Images Search
+  app.get("/api/steveai/getty/search", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier !== "studio") {
+        return res.status(403).json({ error: "Getty Images is only available for Studio tier users" });
+      }
+
+      if (!steveAIService.isConfigured()) {
+        return res.status(400).json({ error: "Steve AI API not configured", needsConfig: true });
+      }
+
+      const query = req.query.query as string;
+      const type = (req.query.type as "image" | "video") || "image";
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      if (!query) {
+        return res.status(400).json({ error: "Query is required" });
+      }
+
+      const assets = await steveAIService.searchGettyAssets({ query, type, limit });
+      res.json({ assets });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/pexels/status", async (req, res) => {
     res.json({ configured: pexelsService.isConfigured() });
   });

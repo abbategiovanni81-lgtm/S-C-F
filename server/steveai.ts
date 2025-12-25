@@ -47,6 +47,65 @@ export interface ImageGenerationResult {
   error?: string;
 }
 
+export interface UrlToVideoRequest {
+  url: string;
+  style: "animation" | "live_action" | "generative" | "talking_head" | "documentary";
+  aspectRatio: "16:9" | "9:16" | "1:1";
+  voiceId?: string;
+  language?: string;
+}
+
+export interface VoiceToVideoRequest {
+  audioUrl: string;
+  style: "animation" | "live_action" | "generative" | "talking_head" | "documentary";
+  aspectRatio: "16:9" | "9:16" | "1:1";
+}
+
+export interface Scene {
+  id: string;
+  text: string;
+  voiceId?: string;
+  duration?: number;
+  properties?: SceneProperties;
+  brollAssets?: BrollAsset[];
+}
+
+export interface SceneProperties {
+  background?: string;
+  weather?: "none" | "rain" | "snow" | "fog" | "sunny" | "cloudy";
+  timeOfDay?: "day" | "night" | "sunset" | "sunrise";
+  furniture?: string[];
+  effects?: string[];
+}
+
+export interface BrollAsset {
+  type: "image" | "video";
+  url: string;
+  source: "getty" | "pexels" | "upload";
+  duration?: number;
+}
+
+export interface MultiVoiceSceneRequest {
+  scenes: Scene[];
+  style: "animation" | "live_action" | "generative" | "talking_head" | "documentary";
+  aspectRatio: "16:9" | "9:16" | "1:1";
+}
+
+export interface GettySearchRequest {
+  query: string;
+  type: "image" | "video";
+  limit?: number;
+}
+
+export interface GettyAsset {
+  id: string;
+  title: string;
+  url: string;
+  thumbnailUrl: string;
+  type: "image" | "video";
+  duration?: number;
+}
+
 export interface Voice {
   id: string;
   name: string;
@@ -291,6 +350,186 @@ export class SteveAIService {
       images: data.images || [],
       status: status === "completed" ? "completed" : status === "failed" ? "failed" : "completed",
       error: data.error,
+    };
+  }
+
+  async generateVideoFromUrl(request: UrlToVideoRequest): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const payload = {
+      url: request.url,
+      style: request.style,
+      aspect_ratio: request.aspectRatio,
+      voice_id: request.voiceId,
+      language: request.language || "en-US",
+    };
+
+    const response = await fetch(`${this.baseUrl}/videos/from-url`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI URL-to-Video error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId: data.request_id || data.id,
+      videoUrl: "",
+      status: "queued",
+      estimatedTimeSeconds: data.estimated_time_seconds || 180,
+    };
+  }
+
+  async generateVideoFromVoice(request: VoiceToVideoRequest): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const payload = {
+      audio_url: request.audioUrl,
+      style: request.style,
+      aspect_ratio: request.aspectRatio,
+    };
+
+    const response = await fetch(`${this.baseUrl}/videos/from-voice`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI Voice-to-Video error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId: data.request_id || data.id,
+      videoUrl: "",
+      status: "queued",
+      estimatedTimeSeconds: data.estimated_time_seconds || 120,
+    };
+  }
+
+  async generateMultiVoiceVideo(request: MultiVoiceSceneRequest): Promise<VideoGenerationResult> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const payload = {
+      scenes: request.scenes.map(scene => ({
+        id: scene.id,
+        text: scene.text,
+        voice_id: scene.voiceId,
+        duration: scene.duration,
+        properties: scene.properties ? {
+          background: scene.properties.background,
+          weather: scene.properties.weather,
+          time_of_day: scene.properties.timeOfDay,
+          furniture: scene.properties.furniture,
+          effects: scene.properties.effects,
+        } : undefined,
+        broll_assets: scene.brollAssets?.map(asset => ({
+          type: asset.type,
+          url: asset.url,
+          source: asset.source,
+          duration: asset.duration,
+        })),
+      })),
+      style: request.style,
+      aspect_ratio: request.aspectRatio,
+    };
+
+    const response = await fetch(`${this.baseUrl}/videos/multi-voice`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Steve AI Multi-Voice error: ${error}`);
+    }
+
+    const data = await response.json();
+    return {
+      requestId: data.request_id || data.id,
+      videoUrl: "",
+      status: "queued",
+      estimatedTimeSeconds: data.estimated_time_seconds || 300,
+    };
+  }
+
+  async searchGettyAssets(request: GettySearchRequest): Promise<GettyAsset[]> {
+    if (!this.apiKey) {
+      throw new Error("Steve AI API key not configured.");
+    }
+
+    const params = new URLSearchParams({
+      query: request.query,
+      type: request.type,
+      limit: String(request.limit || 20),
+    });
+
+    const response = await fetch(`${this.baseUrl}/getty/search?${params}`, {
+      headers: {
+        "Authorization": `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.assets || []).map((asset: any) => ({
+      id: asset.id,
+      title: asset.title,
+      url: asset.url,
+      thumbnailUrl: asset.thumbnail_url || asset.preview_url,
+      type: asset.type,
+      duration: asset.duration,
+    }));
+  }
+
+  getScenePropertyOptions(): {
+    backgrounds: string[];
+    weather: string[];
+    timeOfDay: string[];
+    furniture: string[];
+    effects: string[];
+  } {
+    return {
+      backgrounds: [
+        "office", "living_room", "bedroom", "kitchen", "outdoor_park", 
+        "beach", "mountain", "city_skyline", "studio", "cafe",
+        "classroom", "library", "gym", "hospital", "warehouse"
+      ],
+      weather: ["none", "rain", "snow", "fog", "sunny", "cloudy"],
+      timeOfDay: ["day", "night", "sunset", "sunrise"],
+      furniture: [
+        "desk", "chair", "sofa", "table", "bookshelf", "lamp",
+        "plant", "rug", "curtains", "bed", "wardrobe"
+      ],
+      effects: [
+        "none", "blur_background", "vignette", "film_grain", 
+        "color_grade_warm", "color_grade_cool", "lens_flare", "bokeh"
+      ],
     };
   }
 
