@@ -6,7 +6,7 @@ interface User {
   firstName: string | null;
   lastName: string | null;
   profileImageUrl: string | null;
-  tier: "free" | "premium" | "pro";
+  tier: "free" | "core" | "premium" | "pro" | "studio";
   isOwner: boolean;
 }
 
@@ -98,7 +98,7 @@ export function useAuth() {
   });
 
   const isOwner = user?.isOwner || false;
-  const hasFullAccess = user?.tier === "pro" || user?.tier === "premium" || isOwner;
+  const hasFullAccess = user?.tier === "pro" || user?.tier === "premium" || user?.tier === "studio" || isOwner;
 
   return {
     user,

@@ -99,66 +99,10 @@ export default function CreatorStudio() {
     );
   }
 
-  // Show unlock screen for users who can see tools but haven't subscribed to Creator Studio
-  // Owners and Premium/Pro users who haven't subscribed to Creator Studio add-on
-  const canUseCreatorStudio = status?.hasAccess || isOwner;
-  
-  if (!canUseCreatorStudio && !status?.hasAccess) {
-    return (
-      <Layout>
-        <div className="container mx-auto p-6 max-w-4xl">
-          <div className="flex items-center gap-3 mb-8">
-            <Wand2 className="h-8 w-8 text-purple-500" />
-            <div>
-              <h1 className="text-3xl font-bold">Creator Studio</h1>
-              <p className="text-muted-foreground">Advanced AI creation tools for professional content</p>
-            </div>
-          </div>
-
-          <Card className="border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-purple-500" />
-                <CardTitle>Unlock Creator Studio</CardTitle>
-              </div>
-              <CardDescription>
-                Get access to 9 powerful AI tools for just £20/month
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-3 gap-4 mb-6">
-                <FeatureCard icon={<Mic />} title="Voice Cloning" description="Clone any voice from audio" limit="2/month" />
-                <FeatureCard icon={<Image />} title="Talking Photos" description="Make photos speak" limit="10/month" />
-                <FeatureCard icon={<Video />} title="Talking Videos" description="Reanimate video speech" limit="5/month" />
-                <FeatureCard icon={<Sparkles />} title="Face Swap" description="Swap faces in videos" limit="8/month" />
-                <FeatureCard icon={<Languages />} title="AI Dubbing" description="Translate and dub videos" limit="3/month" />
-                <FeatureCard icon={<Play />} title="Image to Video" description="Animate still images" limit="5/month" />
-                <FeatureCard icon={<Scissors />} title="Caption Removal" description="Clean captions from videos" limit="10/month" />
-                <FeatureCard icon={<Palette />} title="Video Style Transfer" description="Apply artistic styles" limit="3/month" />
-                <FeatureCard icon={<Shirt />} title="Virtual Try-On" description="Try clothes on photos" limit="5/month" />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between items-center border-t pt-6">
-              <div>
-                <p className="text-2xl font-bold">£20<span className="text-sm text-muted-foreground">/month</span></p>
-                <p className="text-sm text-muted-foreground">Cancel anytime</p>
-              </div>
-              <Button 
-                size="lg"
-                className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600"
-                onClick={() => subscribeMutation.mutate()}
-                disabled={subscribeMutation.isPending}
-                data-testid="button-subscribe-creator-studio"
-              >
-                {subscribeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Subscribe to Creator Studio
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
+  // Show all tools but with upgrade boxes for non-subscribers
+  // Studio tier has Creator Studio included, others need to subscribe
+  const canUseCreatorStudio = status?.hasAccess || isOwner || tier === "studio";
+  const showUpgradeOverlay = !canUseCreatorStudio;
 
   return (
     <Layout>
@@ -1047,6 +991,94 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
           {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
           Try On
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [imageUrl, setImageUrl] = useState("");
+  const [targetAspectRatio, setTargetAspectRatio] = useState<"landscape" | "portrait" | "square">("landscape");
+  const [resultUrl, setResultUrl] = useState("");
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/creator-studio/image-reformat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageUrl, targetAspectRatio }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reformat");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Image reformatted!", description: "Your new image is ready." });
+      queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
+      setResultUrl(data.imageUrl);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Maximize2 className="h-5 w-5 text-purple-500" />
+              Image Reformat
+            </CardTitle>
+            <CardDescription>Change image aspect ratio using AI</CardDescription>
+          </div>
+          <UsageBadge usage={usage} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <MediaUpload
+          value={imageUrl}
+          onChange={setImageUrl}
+          accept="image"
+          label="Source Image"
+          placeholder="https://example.com/image.jpg"
+          description="The image you want to reformat"
+          testId="image-reformat-source"
+        />
+        <div className="space-y-2">
+          <Label>Target Aspect Ratio</Label>
+          <Select value={targetAspectRatio} onValueChange={(v: "landscape" | "portrait" | "square") => setTargetAspectRatio(v)}>
+            <SelectTrigger data-testid="select-aspect-ratio">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="landscape">Landscape (16:9)</SelectItem>
+              <SelectItem value="portrait">Portrait (9:16)</SelectItem>
+              <SelectItem value="square">Square (1:1)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button 
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending || !imageUrl}
+          className="gap-2"
+          data-testid="button-image-reformat"
+        >
+          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
+          Reformat Image
+        </Button>
+        {resultUrl && (
+          <div className="mt-4 border rounded-lg p-4">
+            <p className="text-sm text-muted-foreground mb-2">Result:</p>
+            <img src={resultUrl} alt="Reformatted image" className="max-w-full rounded" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
