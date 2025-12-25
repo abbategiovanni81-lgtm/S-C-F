@@ -1893,9 +1893,10 @@ function SteveAIVoiceToVideoTab() {
         <div className="space-y-2">
           <Label>Audio File</Label>
           <MediaUpload
-            accept="audio/*"
-            onUploadComplete={(url) => setAudioUrl(url)}
-            buttonText="Upload Audio"
+            value={audioUrl}
+            onChange={setAudioUrl}
+            accept="audio"
+            label="Audio File"
           />
           {audioUrl && (
             <div className="mt-2">

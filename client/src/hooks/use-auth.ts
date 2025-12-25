@@ -106,7 +106,7 @@ export function useAuth() {
     isAuthenticated: !!user,
     hasFullAccess,
     isOwner,
-    tier: user?.tier || "free",
+    tier: (user?.tier || "free") as "free" | "core" | "premium" | "pro" | "studio",
     login: loginMutation.mutate,
     loginAsync: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
