@@ -2920,7 +2920,7 @@ export async function registerRoutes(
             const igId = igAccount.instagram_business_account.id;
             const existingIg = await storage.getSocialAccountByPlatformAccountId(userId, "Instagram", igId);
 
-            if (!existingIg) {
+            if (!existingIg && channelCheck.allowed) {
               await storage.createSocialAccount({
                 userId,
                 platform: "Instagram",
