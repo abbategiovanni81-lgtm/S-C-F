@@ -33,7 +33,8 @@ import {
   XCircle,
   Clock,
   RefreshCw,
-  Maximize2
+  Maximize2,
+  Film
 } from "lucide-react";
 
 type CreatorStudioUsage = {
@@ -192,6 +193,10 @@ export default function CreatorStudio() {
               <Maximize2 className="h-4 w-4 mr-2" />
               Image Reformat
             </TabsTrigger>
+            <TabsTrigger value="steve-ai" data-testid="tab-steve-ai">
+              <Film className="h-4 w-4 mr-2" />
+              Steve AI Video
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="voice-clone">
@@ -232,6 +237,10 @@ export default function CreatorStudio() {
 
           <TabsContent value="image-reformat">
             <ImageReformatTab usage={status?.usage?.imageReformat} />
+          </TabsContent>
+
+          <TabsContent value="steve-ai">
+            <SteveAITab />
           </TabsContent>
         </Tabs>
       </div>
@@ -1105,6 +1114,198 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
             <p className="text-sm text-muted-foreground mb-2">Result:</p>
             <img src={resultUrl} alt="Reformatted image" className="max-w-full rounded" />
           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SteveAITab() {
+  const { toast } = useToast();
+  const { tier } = useAuth();
+  const [script, setScript] = useState("");
+  const [style, setStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16" | "1:1">("16:9");
+  const [duration, setDuration] = useState(60);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  const isStudioTier = tier === "studio";
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/steveai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ script, style, aspectRatio, duration }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to generate video");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Video generation started!", description: "Your video is being created." });
+      setRequestId(data.requestId);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const { data: statusData, isLoading: statusLoading } = useQuery({
+    queryKey: ["/api/steveai/status", requestId],
+    queryFn: async () => {
+      if (!requestId) return null;
+      const res = await fetch(`/api/steveai/status/${requestId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check status");
+      return res.json();
+    },
+    enabled: !!requestId,
+    refetchInterval: requestId && !videoUrl ? 5000 : false,
+  });
+
+  const { data: resultData } = useQuery({
+    queryKey: ["/api/steveai/result", requestId],
+    queryFn: async () => {
+      if (!requestId) return null;
+      const res = await fetch(`/api/steveai/result/${requestId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to get result");
+      return res.json();
+    },
+    enabled: !!requestId && statusData?.status === "completed",
+  });
+
+  if (resultData?.videoUrl && !videoUrl) {
+    setVideoUrl(resultData.videoUrl);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Film className="h-5 w-5 text-purple-500" />
+              Steve AI Video
+            </CardTitle>
+            <CardDescription>Create polished, long-form videos up to 3 minutes</CardDescription>
+          </div>
+          {!isStudioTier && (
+            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+              <Lock className="h-3 w-3 mr-1" />
+              Studio Tier Only
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!isStudioTier ? (
+          <Alert className="border-yellow-500/50 bg-yellow-500/10">
+            <Crown className="h-4 w-4 text-yellow-500" />
+            <AlertTitle className="text-yellow-500">Studio Tier Required</AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              Steve AI video generation is only available for Studio tier subscribers (£99.99/mo - Early adopter pricing, limited time).
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label>Video Script</Label>
+              <Textarea
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                placeholder="Enter your video script or topic..."
+                rows={6}
+                data-testid="input-steve-script"
+              />
+              <p className="text-xs text-muted-foreground">Describe what you want in your video. Steve AI will generate visuals, voiceover, and music.</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Video Style</Label>
+                <Select value={style} onValueChange={(v: typeof style) => setStyle(v)}>
+                  <SelectTrigger data-testid="select-steve-style">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="animation">Animation</SelectItem>
+                    <SelectItem value="live_action">Live Action</SelectItem>
+                    <SelectItem value="generative">Generative AI</SelectItem>
+                    <SelectItem value="talking_head">Talking Head</SelectItem>
+                    <SelectItem value="documentary">Documentary</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Aspect Ratio</Label>
+                <Select value={aspectRatio} onValueChange={(v: typeof aspectRatio) => setAspectRatio(v)}>
+                  <SelectTrigger data-testid="select-steve-aspect">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="16:9">Landscape (16:9)</SelectItem>
+                    <SelectItem value="9:16">Portrait (9:16)</SelectItem>
+                    <SelectItem value="1:1">Square (1:1)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Duration (seconds): {duration}s</Label>
+              <input
+                type="range"
+                min="30"
+                max="180"
+                step="30"
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className="w-full"
+                data-testid="slider-steve-duration"
+              />
+              <p className="text-xs text-muted-foreground">30s to 3 minutes</p>
+            </div>
+
+            <Button 
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending || !script.trim() || !!requestId}
+              className="gap-2"
+              data-testid="button-generate-steve"
+            >
+              {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+              Generate Video
+            </Button>
+
+            {requestId && (
+              <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                <div className="flex items-center gap-2 mb-2">
+                  {statusData?.status === "completed" ? (
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                  ) : statusData?.status === "failed" ? (
+                    <XCircle className="h-5 w-5 text-red-500" />
+                  ) : (
+                    <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+                  )}
+                  <span className="font-medium">
+                    {statusData?.status === "completed" ? "Video Ready!" : 
+                     statusData?.status === "failed" ? "Generation Failed" : 
+                     "Generating..."}
+                  </span>
+                </div>
+                {statusData?.progress && (
+                  <Progress value={statusData.progress} className="mb-2" />
+                )}
+                {videoUrl && (
+                  <video src={videoUrl} controls className="w-full rounded mt-2" />
+                )}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
