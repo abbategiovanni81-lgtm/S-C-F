@@ -51,6 +51,124 @@ The project is organized into `client/` for the React frontend, `server/` for th
 - Customer Reviews, Link Stickers, Countdown
 - Product Launch, UGC (User Generated Content)
 
+### Viral Hook Templates (All Platforms)
+
+**Curiosity & Intrigue:**
+- "Everyone is asking me about..."
+- "You're never gonna believe this"
+- "I can't believe what just happened"
+- "I just discovered the secret to..."
+- "Here's a secret no one is talking about..."
+
+**Mistakes & Lessons:**
+- "I never knew I was doing (this wrong)"
+- "My biggest mistake ever was..."
+- "Stop doing (this) if you want (that)"
+- "The best piece of advice I've had is..."
+
+**Urgency & Value:**
+- "This is the fastest way to..."
+- "5 ways to crush your (thing)"
+- "I wish I knew this 10 years ago"
+- "Pay attention, this is important..."
+- "Mind blowing hack to..."
+
+**POV & Relatability:**
+- "POV: When you realise..."
+- "Watch till the end for (this bonus)"
+- "Honestly, I am shocked"
+- "Unpopular opinion: I hate..."
+
+### Content Hooks That Convert
+
+**Engagement Starters:**
+- "Wait... are you seeing what I'm seeing?"
+- "Imagine where you'd be if you knew this a year ago"
+- "Bet you've been doing ____ wrong this whole time"
+- "I'm probably going to get a lot of comments for this but..."
+- "The reason why __ isn't working for you"
+
+**Story-Based Hooks:**
+- "POV: You're scrolling, and you accidentally stumble on the answer to ___"
+- "I took __ seriously, and this happened"
+- "This blew my mind – and now it's your turn"
+- "The day I stopped following the rules, everything shifted"
+
+**Challenge Hooks:**
+- "Be honest: Are you team A or team B?"
+- "The best-kept secret in [industry] that you need to know"
+- "Why everyone is talking about __"
+- "The most shocking way to [get a benefit]"
+- "Think fast: What's the first thing that comes to mind?"
+
+### Negative Hooks (High Reach)
+
+**Problem-Focused:**
+1. "Most people fail at [goal] because of this one thing"
+2. "You've been lied to about [strategy or trend]"
+3. "The dark side of [popular platform or tool] no one talks about"
+4. "[Thing everyone's doing] isn't working anymore"
+5. "Why [niche or industry] experts don't want you to know this"
+
+**Calling Out Mistakes:**
+6. "You're following [common path] straight into burnout"
+7. "You're building the wrong audience with [specific tactic]"
+8. "Think you're doing everything right? Think again"
+9. "[Goal] isn't your problem—[habit] is"
+10. "You're overcomplicating [simple but essential task]"
+
+**Truth Bombs:**
+11. "Your [platform] strategy is working... against you"
+12. "[Trusted source] was wrong about this"
+13. "If you keep doing [mistake], you'll stay stuck forever"
+14. "You're doing too much of [action] and not enough of [better action]"
+15. "The truth about [easy tactic everyone promotes]"
+
+**Harsh Realities:**
+16. "The harsh truth about [why people unfollow or ignore]"
+17. "[Thing you thought was a strength] is actually a weakness"
+18. "[Common framework] is outdated—and here's what works instead"
+19. "People scroll past because of [mistake] you didn't notice"
+20. "Your audience doesn't trust you because of [invisible mistake]"
+
+### 30 Strategies for Relatable Content
+
+**Personal & Authentic:**
+1. Share a personal mistake or failure
+2. Tell a story about your failures
+3. Use casual, everyday language
+4. Share mini "behind-the-scenes"
+5. Talk about common fears + doubts
+6. Show your beginner phase
+7. Tell stories in real time
+8. Use a 5th grade reading level
+9. Use humor
+10. Show vulnerability
+
+**Connection Building:**
+11. Talk about unpopular opinions
+12. Share small, everyday wins
+13. Let people see your quirks
+14. Express genuine gratitude
+15. Tell stories that show real emotions, not just highlight reels
+16. Write like you're texting a friend
+17. Use memes, gifs, or pop culture
+18. Ask open-ended questions
+
+**Content Style:**
+19. Start captions with "real talk..."
+20. Avoid buzzwords
+21. Avoid heavy industry jargon
+22. Keep sentences short and punchy
+23. Add playful or casual phrasing
+24. Share experiences
+25. Talk about the "messy stuff"
+26. Share things no one talks about
+27. Use captions as a second "hook"
+28. Talk about well known experiences
+29. Use "you" language instead of "I"
+30. Most relatable subjects: money, relationships, and food
+
 ---
 
 ## External Dependencies
