@@ -27,6 +27,32 @@ The project is organized into `client/` for the React frontend, `server/` for th
 4.  **Tier System & Usage Quotas**: A comprehensive tier system (Free, Core, Premium, Pro, Studio) with distinct usage quotas for AI features and social channels is enforced. The system tracks monthly usage, allows top-ups, and includes an `isOwner` flag for admin access, separate from subscription tiers.
 5.  **Authentication & Data Isolation**: A custom authentication system using email/password and Google OAuth (Passport.js) is implemented. Critical patterns include ensuring the `upsertUser` function applies owner flags correctly, `getUserId` supports both Replit and Passport auth formats, and all data endpoints strictly filter by `userId` to ensure data isolation. Premium/Pro users have access to platform API keys, while Free users see their own API key status.
 
+## AI Content Knowledge Base
+
+### Instagram Content Ideas by Format
+
+**Single Posts:**
+- Checklists, Memes, Quotes, Routines, Personal Milestones
+- Wallpapers, Work Samples, Photos of your team, Infographics
+- Moodboard, Promotion, Recipes
+
+**Reels:**
+- Tutorials, Behind the Scenes, Before and After, Trends
+- Talking Head Style, Acting Skit, Product Reviews
+- Q&A Response, Day in the Life
+
+**Carousels:**
+- Tutorials, Photodump, Toolkit, Case Studies
+- How to Guides, Blueprints, Strategy Guides
+- Product Showcase, Fashion Lookbook, Collab Post
+
+**Stories:**
+- Q&As, Polls, Ask Me Anything, Behind the Scenes
+- Customer Reviews, Link Stickers, Countdown
+- Product Launch, UGC (User Generated Content)
+
+---
+
 ## External Dependencies
 
 ### AI Services
