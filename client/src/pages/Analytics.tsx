@@ -700,16 +700,44 @@ export default function Analytics() {
                   <BarChart3 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
                   <h4 className="font-medium mb-2">Advanced Analytics Not Available</h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    To see traffic sources, device breakdown, geography, and more, you may need to reconnect your YouTube account to grant analytics permissions. The YouTube Analytics API requires the "yt-analytics.readonly" scope.
+                    To see traffic sources, device breakdown, geography, and more, you need to grant analytics permissions. Click below to revoke old permissions and reconnect with the required analytics scope.
                   </p>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     data-testid="button-reconnect-youtube"
-                    onClick={() => window.location.href = "/api/youtube/connect"}
+                    onClick={async () => {
+                      if (!selectedYouTubeAccountId) {
+                        toast({
+                          title: "Select an account",
+                          description: "Please select a YouTube account first",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      try {
+                        const res = await fetch(`/api/youtube/revoke-and-reconnect/${selectedYouTubeAccountId}`, {
+                          method: "POST",
+                          credentials: "include",
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          window.location.href = data.authUrl;
+                        } else {
+                          const error = await res.json();
+                          toast({
+                            title: "Failed to reconnect",
+                            description: error.error || "Please try again",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (err) {
+                        window.location.href = "/api/youtube/connect";
+                      }
+                    }}
                   >
                     <Youtube className="w-4 h-4 mr-2" />
-                    Reconnect YouTube
+                    Revoke &amp; Reconnect YouTube
                   </Button>
                 </CardContent>
               </Card>

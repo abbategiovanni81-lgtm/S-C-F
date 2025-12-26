@@ -151,6 +151,14 @@ export async function refreshAccessToken(refreshToken: string) {
   };
 }
 
+export async function revokeToken(token: string) {
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  await auth.revokeToken(token);
+}
+
 export interface VideoUploadParams {
   accessToken: string;
   title: string;

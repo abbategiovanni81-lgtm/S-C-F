@@ -20,7 +20,7 @@ import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
-import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
+import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, revokeToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError, checkCreatorStudioQuota, incrementCreatorStudioUsage, assertCreatorStudioQuota, CreatorStudioAccessError, getA2ECapacityStatus } from "./usageService";
@@ -2479,6 +2479,49 @@ export async function registerRoutes(
     const authUrl = getAuthUrl();
     console.log("[YouTube OAuth] Redirecting to:", authUrl);
     res.redirect(authUrl);
+  });
+
+  // Revoke YouTube tokens and reconnect (to get new scopes)
+  app.post("/api/youtube/revoke-and-reconnect/:accountId", async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const account = await storage.getSocialAccount(req.params.accountId);
+      if (!account || account.userId !== userId) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+
+      // Try to revoke the token if we have one
+      if (account.accessToken || account.refreshToken) {
+        try {
+          const tokenToRevoke = account.accessToken || account.refreshToken;
+          if (tokenToRevoke) {
+            await revokeToken(tokenToRevoke);
+            console.log("[YouTube] Token revoked successfully");
+          }
+        } catch (revokeError: any) {
+          console.log("[YouTube] Token revoke failed (may already be revoked):", revokeError.message);
+        }
+      }
+
+      // Clear the tokens from the account so next OAuth will create fresh ones
+      await storage.updateSocialAccount(account.id, {
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiry: null,
+        isConnected: "pending_reauth",
+      });
+
+      // Return the OAuth URL for the frontend to redirect
+      const authUrl = getAuthUrl();
+      res.json({ authUrl });
+    } catch (error: any) {
+      console.error("[YouTube] Revoke error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get("/api/youtube/callback", async (req: any, res) => {
