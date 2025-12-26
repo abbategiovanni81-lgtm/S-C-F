@@ -702,12 +702,15 @@ export default function Analytics() {
                   <p className="text-sm text-muted-foreground mb-4">
                     To see traffic sources, device breakdown, geography, and more, you may need to reconnect your YouTube account to grant analytics permissions. The YouTube Analytics API requires the "yt-analytics.readonly" scope.
                   </p>
-                  <Link href="/accounts">
-                    <Button variant="outline" size="sm" data-testid="button-reconnect-youtube">
-                      <Youtube className="w-4 h-4 mr-2" />
-                      Reconnect YouTube
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    data-testid="button-reconnect-youtube"
+                    onClick={() => window.location.href = "/api/youtube/connect"}
+                  >
+                    <Youtube className="w-4 h-4 mr-2" />
+                    Reconnect YouTube
+                  </Button>
                 </CardContent>
               </Card>
             )}
