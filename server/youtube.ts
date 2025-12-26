@@ -2,14 +2,14 @@ import { google } from "googleapis";
 
 function getYouTubeRedirectUri(): string {
   if (process.env.APP_URL) {
-    return `${process.env.APP_URL}/api/auth/youtube/callback`;
+    return `${process.env.APP_URL}/api/auth/google/callback`;
   }
   if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
     const domains = process.env.REPLIT_DOMAINS.split(",");
     const productionDomain = domains.find(d => d.endsWith(".replit.app") || d.endsWith(".com")) || domains[0];
-    return `https://${productionDomain}/api/auth/youtube/callback`;
+    return `https://${productionDomain}/api/auth/google/callback`;
   }
-  return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/youtube/callback`;
+  return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
 }
 
 const oauth2Client = new google.auth.OAuth2(

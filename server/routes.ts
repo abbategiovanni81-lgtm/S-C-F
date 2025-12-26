@@ -2480,7 +2480,7 @@ export async function registerRoutes(
     res.redirect(authUrl);
   });
 
-  app.get("/api/auth/youtube/callback", async (req: any, res) => {
+  app.get("/api/auth/google/callback", async (req: any, res) => {
     try {
       const code = req.query.code as string;
       if (!code) {
