@@ -8,10 +8,20 @@
 // ============================================
 
 function getRedirectUri(platform: string): string {
-  const baseUrl = process.env.APP_URL || 
-    (process.env.NODE_ENV === "production" 
-      ? `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app`
-      : `https://${process.env.REPLIT_DEV_DOMAIN}`);
+  let baseUrl = process.env.APP_URL;
+  
+  if (!baseUrl) {
+    if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
+      const domains = process.env.REPLIT_DOMAINS.split(",");
+      const productionDomain = domains.find(d => d.endsWith(".replit.app")) || domains[0];
+      baseUrl = `https://${productionDomain}`;
+    } else if (process.env.REPLIT_DEV_DOMAIN) {
+      baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    } else {
+      baseUrl = `https://${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.replit.app`;
+    }
+  }
+  
   return `${baseUrl}/api/auth/${platform}/callback`;
 }
 
