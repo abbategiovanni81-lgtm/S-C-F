@@ -48,3 +48,6 @@ integrations = ["javascript_openai_ai_integrations:1.0.0", "javascript_log_in_wi
 [userenv.shared]
 STRIPE_PREMIUM_PRICE_ID = "price_1ShFldGnFucWw5hQB5EaDyYE"
 STRIPE_PRO_PRICE_ID = "price_1ShFmVGnFucWw5hQnFvIYDNP"
+
+[userenv.production]
+APP_URL = "https://socialcommandflow.com"
