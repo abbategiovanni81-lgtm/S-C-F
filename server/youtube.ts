@@ -1,11 +1,21 @@
 import { google } from "googleapis";
 
+function getYouTubeRedirectUri(): string {
+  if (process.env.APP_URL) {
+    return `${process.env.APP_URL}/api/auth/google/callback`;
+  }
+  if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
+    const domains = process.env.REPLIT_DOMAINS.split(",");
+    const productionDomain = domains.find(d => d.endsWith(".replit.app") || d.endsWith(".com")) || domains[0];
+    return `https://${productionDomain}/api/auth/google/callback`;
+  }
+  return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
+}
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.NODE_ENV === "production"
-    ? "https://channel-commander--abbategiovanni8.replit.app/api/auth/google/callback"
-    : `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`
+  getYouTubeRedirectUri()
 );
 
 const SCOPES = [
