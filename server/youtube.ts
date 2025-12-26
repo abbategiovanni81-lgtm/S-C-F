@@ -1,22 +1,29 @@
 import { google } from "googleapis";
 
 function getYouTubeRedirectUri(): string {
+  let uri: string;
   if (process.env.APP_URL) {
-    return `${process.env.APP_URL}/api/auth/google/callback`;
-  }
-  if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
+    uri = `${process.env.APP_URL}/api/auth/google/callback`;
+  } else if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
     const domains = process.env.REPLIT_DOMAINS.split(",");
     const productionDomain = domains.find(d => d.endsWith(".replit.app") || d.endsWith(".com")) || domains[0];
-    return `https://${productionDomain}/api/auth/google/callback`;
+    uri = `https://${productionDomain}/api/auth/google/callback`;
+  } else {
+    uri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
   }
-  return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
+  console.log("[YouTube OAuth] Using redirect URI:", uri);
+  return uri;
 }
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  getYouTubeRedirectUri()
-);
+// Create OAuth client dynamically to pick up current env vars
+function getOAuth2Client() {
+  const redirectUri = getYouTubeRedirectUri();
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri
+  );
+}
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
@@ -26,6 +33,7 @@ const SCOPES = [
 ];
 
 export function getAuthUrl(): string {
+  const oauth2Client = getOAuth2Client();
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: SCOPES,
@@ -34,11 +42,13 @@ export function getAuthUrl(): string {
 }
 
 export async function getTokensFromCode(code: string) {
+  const oauth2Client = getOAuth2Client();
   const { tokens } = await oauth2Client.getToken(code);
   return tokens;
 }
 
 export function setCredentials(tokens: any) {
+  const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials(tokens);
 }
 

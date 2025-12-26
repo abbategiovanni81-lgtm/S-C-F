@@ -2477,13 +2477,23 @@ export async function registerRoutes(
   // Google/YouTube OAuth endpoints
   app.get("/api/auth/google", (req, res) => {
     const authUrl = getAuthUrl();
+    console.log("[YouTube OAuth] Redirecting to:", authUrl);
     res.redirect(authUrl);
   });
 
   app.get("/api/auth/google/callback", async (req: any, res) => {
+    console.log("[YouTube OAuth] Callback received, query:", JSON.stringify(req.query));
     try {
       const code = req.query.code as string;
+      const error = req.query.error as string;
+      
+      if (error) {
+        console.error("[YouTube OAuth] Google returned error:", error);
+        return res.redirect(`/accounts?error=${error}`);
+      }
+      
       if (!code) {
+        console.error("[YouTube OAuth] No code received");
         return res.redirect("/accounts?error=no_code");
       }
 
@@ -2543,8 +2553,9 @@ export async function registerRoutes(
       res.cookie("youtube_channel_id", channelInfo.channelId, { httpOnly: true, maxAge: 30 * 24 * 3600000 });
 
       res.redirect("/accounts?connected=youtube");
-    } catch (error) {
-      console.error("OAuth callback error:", error);
+    } catch (error: any) {
+      console.error("[YouTube OAuth] Callback error:", error?.message || error);
+      console.error("[YouTube OAuth] Full error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       res.redirect("/accounts?error=oauth_failed");
     }
   });
