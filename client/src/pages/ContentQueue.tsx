@@ -2132,7 +2132,7 @@ export default function ContentQueue() {
                     </Button>
                   );
                 } else {
-                  const connectUrl = platform === "YouTube" ? "/api/auth/google"
+                  const connectUrl = platform === "YouTube" ? "/api/youtube/connect"
                     : platform === "Twitter" ? "/api/auth/twitter"
                     : platform === "LinkedIn" ? "/api/auth/linkedin"
                     : platform === "Facebook" || platform === "Instagram" ? "/api/auth/facebook"

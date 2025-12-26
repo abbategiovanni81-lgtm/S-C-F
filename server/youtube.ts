@@ -3,13 +3,13 @@ import { google } from "googleapis";
 function getYouTubeRedirectUri(): string {
   let uri: string;
   if (process.env.APP_URL) {
-    uri = `${process.env.APP_URL}/api/auth/google/callback`;
+    uri = `${process.env.APP_URL}/api/youtube/callback`;
   } else if (process.env.NODE_ENV === "production" && process.env.REPLIT_DOMAINS) {
     const domains = process.env.REPLIT_DOMAINS.split(",");
     const productionDomain = domains.find(d => d.endsWith(".replit.app") || d.endsWith(".com")) || domains[0];
-    uri = `https://${productionDomain}/api/auth/google/callback`;
+    uri = `https://${productionDomain}/api/youtube/callback`;
   } else {
-    uri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/google/callback`;
+    uri = `https://${process.env.REPLIT_DEV_DOMAIN}/api/youtube/callback`;
   }
   console.log("[YouTube OAuth] Using redirect URI:", uri);
   return uri;

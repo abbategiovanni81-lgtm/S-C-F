@@ -2474,14 +2474,14 @@ export async function registerRoutes(
     }
   });
 
-  // Google/YouTube OAuth endpoints
-  app.get("/api/auth/google", (req, res) => {
+  // YouTube OAuth endpoints (separate from Google Login OAuth)
+  app.get("/api/youtube/connect", (req, res) => {
     const authUrl = getAuthUrl();
     console.log("[YouTube OAuth] Redirecting to:", authUrl);
     res.redirect(authUrl);
   });
 
-  app.get("/api/auth/google/callback", async (req: any, res) => {
+  app.get("/api/youtube/callback", async (req: any, res) => {
     console.log("[YouTube OAuth] Callback received, query:", JSON.stringify(req.query));
     try {
       const code = req.query.code as string;

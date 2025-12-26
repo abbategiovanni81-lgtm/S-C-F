@@ -28,7 +28,7 @@ interface PlatformConfig {
 }
 
 const PLATFORMS: PlatformConfig[] = [
-  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, oauthUrl: "/api/auth/google", manualOption: true },
+  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, oauthUrl: "/api/youtube/connect", manualOption: true },
   { name: "Twitter", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: true, oauthUrl: "/api/auth/twitter" },
   { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: true, oauthUrl: "/api/auth/linkedin" },
   { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: true, oauthUrl: "/api/auth/facebook" },
@@ -126,7 +126,7 @@ export default function Accounts() {
   };
 
   const handleYouTubeOAuth = () => {
-    window.location.href = "/api/auth/google";
+    window.location.href = "/api/youtube/connect";
   };
 
   const handleYouTubeManual = () => {
@@ -238,7 +238,7 @@ export default function Accounts() {
                       variant="outline"
                       size="sm"
                       className="w-full mt-3 text-xs"
-                      onClick={() => window.location.href = "/api/auth/google"}
+                      onClick={() => window.location.href = "/api/youtube/connect"}
                       data-testid={`button-add-another-youtube-${account.id}`}
                     >
                       <Plus className="w-3 h-3 mr-1" />

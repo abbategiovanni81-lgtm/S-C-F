@@ -400,7 +400,7 @@ export default function ReadyToPost() {
                   ) : (
                     <Button
                       variant="outline"
-                      onClick={() => window.location.href = "/api/auth/google"}
+                      onClick={() => window.location.href = "/api/youtube/connect"}
                       className="w-full gap-2"
                       data-testid={`button-connect-youtube-${content.id}`}
                     >
