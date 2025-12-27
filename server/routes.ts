@@ -1048,8 +1048,8 @@ export async function registerRoutes(
       const { userId } = req.params;
       const { tier } = req.body;
 
-      if (!["free", "premium", "pro"].includes(tier)) {
-        return res.status(400).json({ error: "Invalid tier. Must be 'free', 'premium', or 'pro'" });
+      if (!["free", "core", "premium", "pro", "studio"].includes(tier)) {
+        return res.status(400).json({ error: "Invalid tier. Must be 'free', 'core', 'premium', 'pro', or 'studio'" });
       }
 
       const [user] = await db.select().from(users).where(eq(users.id, userId));
