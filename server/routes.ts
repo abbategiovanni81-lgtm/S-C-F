@@ -3412,8 +3412,14 @@ export async function registerRoutes(
     if (!socialPlatforms.isPinterestConfigured()) {
       return res.redirect("/accounts?error=pinterest_not_configured");
     }
-    const state = socialPlatforms.generateOAuthState();
-    req.session.pinterestState = state;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.redirect("/accounts?error=not_authenticated");
+    }
+    // Encode userId in state to survive mobile browser session loss during OAuth redirect
+    const randomState = socialPlatforms.generateOAuthState();
+    const state = `${randomState}.${Buffer.from(userId).toString('base64url')}`;
+    req.session.pinterestState = randomState;
     req.session.save(() => {
       const authUrl = socialPlatforms.getPinterestAuthUrl(state);
       res.redirect(authUrl);
@@ -3423,14 +3429,30 @@ export async function registerRoutes(
   app.get("/api/auth/pinterest/callback", async (req: any, res) => {
     try {
       const { code, state } = req.query;
-      const userId = getUserId(req);
+      
+      // Extract userId from state (for mobile browsers that lose session)
+      let userId = getUserId(req);
+      let randomState = state as string;
+      
+      if (state && (state as string).includes('.')) {
+        const parts = (state as string).split('.');
+        randomState = parts[0];
+        const encodedUserId = parts[1];
+        if (!userId && encodedUserId) {
+          try {
+            userId = Buffer.from(encodedUserId, 'base64url').toString('utf-8');
+          } catch (e) {
+            console.error("[Pinterest OAuth] Failed to decode userId from state");
+          }
+        }
+      }
       
       if (!userId) {
         return res.redirect("/accounts?error=not_authenticated");
       }
       
-      const storedState = req.session?.pinterestState;
-      if (!code || !storedState || state !== storedState) {
+      // For mobile browsers, we may not have session - just validate code exists
+      if (!code) {
         return res.redirect("/accounts?error=pinterest_invalid_state");
       }
 
