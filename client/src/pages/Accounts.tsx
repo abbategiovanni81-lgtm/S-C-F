@@ -29,14 +29,14 @@ interface PlatformConfig {
 
 const PLATFORMS: PlatformConfig[] = [
   { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, oauthUrl: "/api/youtube/connect", manualOption: true },
-  { name: "Twitter", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: true, oauthUrl: "/api/auth/twitter" },
-  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: true, oauthUrl: "/api/auth/linkedin" },
-  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: true, oauthUrl: "/api/auth/facebook" },
-  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: true, oauthUrl: "/api/auth/facebook" },
-  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black dark:text-white", bgLight: "bg-black/10 dark:bg-white/10", oauth: true, oauthUrl: "/api/auth/tiktok" },
-  { name: "Threads", icon: MessageCircle, color: "bg-gray-900", hoverColor: "hover:bg-gray-800", textColor: "text-gray-900 dark:text-white", bgLight: "bg-gray-900/10", oauth: true, oauthUrl: "/api/auth/threads" },
+  { name: "Twitter", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: true, oauthUrl: "/api/auth/twitter", manualOption: true },
+  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: true, oauthUrl: "/api/auth/linkedin", manualOption: true },
+  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: true, oauthUrl: "/api/auth/facebook", manualOption: true },
+  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: true, oauthUrl: "/api/auth/facebook", manualOption: true },
+  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black dark:text-white", bgLight: "bg-black/10 dark:bg-white/10", oauth: true, oauthUrl: "/api/auth/tiktok", manualOption: true },
+  { name: "Threads", icon: MessageCircle, color: "bg-gray-900", hoverColor: "hover:bg-gray-800", textColor: "text-gray-900 dark:text-white", bgLight: "bg-gray-900/10", oauth: true, oauthUrl: "/api/auth/threads", manualOption: true },
   { name: "Bluesky", icon: CloudSun, color: "bg-sky-400", hoverColor: "hover:bg-sky-500", textColor: "text-sky-400", bgLight: "bg-sky-400/10", oauth: false, authType: "password" },
-  { name: "Pinterest", icon: Pin, color: "bg-red-600", hoverColor: "hover:bg-red-700", textColor: "text-red-600", bgLight: "bg-red-600/10", oauth: true, oauthUrl: "/api/auth/pinterest" },
+  { name: "Pinterest", icon: Pin, color: "bg-red-600", hoverColor: "hover:bg-red-700", textColor: "text-red-600", bgLight: "bg-red-600/10", oauth: true, oauthUrl: "/api/auth/pinterest", manualOption: true },
 ];
 
 export default function Accounts() {
@@ -45,7 +45,7 @@ export default function Accounts() {
   const [accountName, setAccountName] = useState("");
   const [accountHandle, setAccountHandle] = useState("");
   const [blueskyPassword, setBlueskyPassword] = useState("");
-  const [showYouTubeChoice, setShowYouTubeChoice] = useState(false);
+  const [showPlatformChoice, setShowPlatformChoice] = useState<string | null>(null);
   const [showBlueskyLogin, setShowBlueskyLogin] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -108,7 +108,7 @@ export default function Accounts() {
     const platform = PLATFORMS.find(p => p.name === platformName);
     
     if (platform?.manualOption) {
-      setShowYouTubeChoice(true);
+      setShowPlatformChoice(platformName);
       return;
     }
     
@@ -125,13 +125,17 @@ export default function Accounts() {
     setSelectedPlatform(platformName);
   };
 
-  const handleYouTubeOAuth = () => {
-    window.location.href = "/api/youtube/connect";
+  const handlePlatformOAuth = () => {
+    const platform = PLATFORMS.find(p => p.name === showPlatformChoice);
+    if (platform?.oauthUrl) {
+      window.location.href = platform.oauthUrl;
+    }
   };
 
-  const handleYouTubeManual = () => {
-    setShowYouTubeChoice(false);
-    setSelectedPlatform("YouTube");
+  const handlePlatformManual = () => {
+    const platformName = showPlatformChoice;
+    setShowPlatformChoice(null);
+    setSelectedPlatform(platformName);
   };
 
   const handleBlueskyLogin = () => {
@@ -278,7 +282,7 @@ export default function Accounts() {
         setDialogOpen(open);
         if (!open) {
           setSelectedPlatform(null);
-          setShowYouTubeChoice(false);
+          setShowPlatformChoice(null);
           setShowBlueskyLogin(false);
           setAccountName("");
           setAccountHandle("");
@@ -288,15 +292,15 @@ export default function Accounts() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedPlatform ? `Add ${selectedPlatform} Channel` : showBlueskyLogin ? "Connect Bluesky" : showYouTubeChoice ? "Add YouTube Channel" : "Add Social Channel"}
+              {selectedPlatform ? `Add ${selectedPlatform} Channel` : showBlueskyLogin ? "Connect Bluesky" : showPlatformChoice ? `Add ${showPlatformChoice} Channel` : "Add Social Channel"}
             </DialogTitle>
             <DialogDescription>
               {selectedPlatform 
                 ? "Enter your account details"
                 : showBlueskyLogin
                 ? "Enter your Bluesky handle and app password"
-                : showYouTubeChoice
-                ? "Choose how to add your YouTube channel"
+                : showPlatformChoice
+                ? `Choose how to add your ${showPlatformChoice} channel`
                 : "Choose a platform to connect"
               }
             </DialogDescription>
@@ -350,38 +354,46 @@ export default function Accounts() {
                 </Button>
               </div>
             </div>
-          ) : showYouTubeChoice ? (
-            <div className="space-y-3 py-4">
-              <button
-                onClick={handleYouTubeOAuth}
-                className="w-full flex items-center gap-4 p-4 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
-                data-testid="button-youtube-oauth"
-              >
-                <Youtube className="w-6 h-6" />
-                <div className="text-left">
-                  <span className="font-medium block">Connect with Google</span>
-                  <span className="text-xs text-white/80">Auto-publish videos directly</span>
+          ) : showPlatformChoice ? (
+            (() => {
+              const platform = PLATFORMS.find(p => p.name === showPlatformChoice);
+              const IconComponent = platform?.icon;
+              const oauthLabel = showPlatformChoice === "YouTube" ? "Connect with Google" : `Connect with ${showPlatformChoice}`;
+              const oauthDesc = showPlatformChoice === "YouTube" ? "Auto-publish videos directly" : "Auto-publish content directly";
+              return (
+                <div className="space-y-3 py-4">
+                  <button
+                    onClick={handlePlatformOAuth}
+                    className={`w-full flex items-center gap-4 p-4 rounded-lg ${platform?.color} ${platform?.hoverColor} text-white transition-colors`}
+                    data-testid={`button-${showPlatformChoice?.toLowerCase()}-oauth`}
+                  >
+                    {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
+                    <div className="text-left">
+                      <span className="font-medium block">{oauthLabel}</span>
+                      <span className="text-xs text-white/80">{oauthDesc}</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={handlePlatformManual}
+                    className={`w-full flex items-center gap-4 p-4 rounded-lg border ${platform?.bgLight} ${platform?.textColor} transition-colors hover:opacity-80`}
+                    data-testid={`button-${showPlatformChoice?.toLowerCase()}-manual`}
+                  >
+                    {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
+                    <div className="text-left">
+                      <span className="font-medium block">Add Manually</span>
+                      <span className="text-xs opacity-80">Track channel for manual posting</span>
+                    </div>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setShowPlatformChoice(null)}
+                  >
+                    Back
+                  </Button>
                 </div>
-              </button>
-              <button
-                onClick={handleYouTubeManual}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 transition-colors"
-                data-testid="button-youtube-manual"
-              >
-                <Youtube className="w-6 h-6" />
-                <div className="text-left">
-                  <span className="font-medium block">Add Manually</span>
-                  <span className="text-xs text-red-600">Track channel for manual posting</span>
-                </div>
-              </button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setShowYouTubeChoice(false)}
-              >
-                Back
-              </Button>
-            </div>
+              );
+            })()
           ) : !selectedPlatform ? (
             <div className="grid grid-cols-1 gap-3 py-4 max-h-[60vh] overflow-y-auto">
               {PLATFORMS.map((platform) => (
