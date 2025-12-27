@@ -396,33 +396,42 @@ export default function Accounts() {
             })()
           ) : !selectedPlatform ? (
             <div className="grid grid-cols-1 gap-3 py-4 max-h-[60vh] overflow-y-auto">
-              {PLATFORMS.map((platform) => (
-                <button
-                  key={platform.name}
-                  onClick={() => handlePlatformSelect(platform.name)}
-                  className={`flex items-center gap-4 p-4 rounded-lg ${platform.color} ${platform.hoverColor} text-white transition-colors`}
-                  data-testid={`button-select-${platform.name.toLowerCase().replace('/', '-')}`}
-                >
-                  {platform.icon ? (
-                    <platform.icon className="w-6 h-6" />
-                  ) : (
-                    <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
-                  )}
-                  <span className="font-medium">{platform.name}</span>
-                  {platform.oauth && platform.name === "YouTube" && (
-                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
-                  )}
-                  {platform.oauth && platform.name !== "YouTube" && (
-                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect</span>
-                  )}
-                  {platform.authType === "password" && (
-                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Login</span>
-                  )}
-                  {platform.name === "Instagram" && (
-                    <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">via Facebook</span>
-                  )}
-                </button>
-              ))}
+              {PLATFORMS.map((platform) => {
+                const platformKey = platform.name.toLowerCase() as keyof typeof platformStatus;
+                const isConfigured = platformStatus?.[platformKey] ?? false;
+                const isComingSoon = platform.oauth && !isConfigured && platform.name !== "YouTube" && platform.name !== "Pinterest";
+                
+                return (
+                  <button
+                    key={platform.name}
+                    onClick={() => handlePlatformSelect(platform.name)}
+                    className={`flex items-center gap-4 p-4 rounded-lg ${platform.color} ${platform.hoverColor} text-white transition-colors`}
+                    data-testid={`button-select-${platform.name.toLowerCase().replace('/', '-')}`}
+                  >
+                    {platform.icon ? (
+                      <platform.icon className="w-6 h-6" />
+                    ) : (
+                      <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
+                    )}
+                    <span className="font-medium">{platform.name}</span>
+                    {isComingSoon && (
+                      <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+                    )}
+                    {platform.oauth && platform.name === "YouTube" && (
+                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
+                    )}
+                    {platform.oauth && platform.name !== "YouTube" && !isComingSoon && (
+                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect</span>
+                    )}
+                    {platform.authType === "password" && (
+                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Login</span>
+                    )}
+                    {platform.name === "Instagram" && !isComingSoon && (
+                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">via Facebook</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-4 py-4">
