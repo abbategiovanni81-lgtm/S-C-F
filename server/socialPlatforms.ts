@@ -3,6 +3,8 @@
  * Handles authentication and content posting for multiple social media platforms
  */
 
+import crypto from "crypto";
+
 // ============================================
 // REDIRECT URI HELPER
 // ============================================
@@ -42,7 +44,6 @@ export function getTwitterAuthUrl(state: string, codeVerifier: string): string {
   const redirectUri = getRedirectUri("twitter");
 
   // Generate code challenge from verifier (S256)
-  const crypto = require("crypto");
   const codeChallenge = crypto
     .createHash("sha256")
     .update(codeVerifier)
@@ -869,10 +870,10 @@ export function getSocialPlatformStatus() {
 
 // Helper to generate random state for OAuth
 export function generateOAuthState(): string {
-  return require("crypto").randomBytes(16).toString("hex");
+  return crypto.randomBytes(16).toString("hex");
 }
 
 // Helper to generate PKCE code verifier
 export function generateCodeVerifier(): string {
-  return require("crypto").randomBytes(32).toString("base64url");
+  return crypto.randomBytes(32).toString("base64url");
 }
