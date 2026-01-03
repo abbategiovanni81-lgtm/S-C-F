@@ -2054,22 +2054,9 @@ export default function ContentQueue() {
                         className="rounded-lg max-h-32 object-contain border"
                         data-testid={`img-preview-${content.id}`}
                       />
-                      <Button
-                        size="sm"
-                        className="w-full mt-2 gap-2"
-                        onClick={() => markReadyMutation.mutate(content.id)}
-                        disabled={markingReadyId === content.id}
-                        data-testid={`button-mark-ready-${content.id}`}
-                      >
-                        {markingReadyId === content.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <ArrowRight className="w-4 h-4" />
-                            Move to Ready to Post
-                          </>
-                        )}
-                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Go to Edit & Merge above to finalize and move to Ready to Post
+                      </p>
                     </div>
                   )}
                 </>
@@ -2181,7 +2168,7 @@ export default function ContentQueue() {
           </div>
         )}
 
-        {/* Only show Move to Ready for legacy content without proper format-specific prompts */}
+        {/* Legacy content without format prompts - direct to Edit & Merge */}
         {content.status === "approved" && 
          !(content.generationMetadata as any)?.manuallyReady &&
          !(content.generationMetadata as any)?.imagePrompts &&
@@ -2190,20 +2177,9 @@ export default function ContentQueue() {
          !(content.generationMetadata as any)?.scenePrompts &&
          !(content.generationMetadata as any)?.videoPrompts && (
           <div className="pt-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => markReadyMutation.mutate(content.id)}
-              disabled={markingReadyId === content.id}
-              data-testid={`button-move-ready-${content.id}`}
-            >
-              {markingReadyId === content.id ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <ArrowRight className="w-4 h-4 mr-2" />
-              )}
-              Move to Ready (Legacy)
-            </Button>
+            <p className="text-xs text-muted-foreground mb-2">
+              This content needs assets. Use Edit & Merge to add images or video clips before posting.
+            </p>
           </div>
         )}
       </CardContent>
