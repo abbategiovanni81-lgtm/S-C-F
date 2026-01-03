@@ -34,6 +34,7 @@ export const TIER_LIMITS = {
     soraVideos: 0,        // blocked
     socialListeningKeywords: 0,
     socialChannels: 0,    // No social channels
+    contentComparisons: 0, // No access - paid tiers only
     usesAppApis: false,
     allowedApis: ["openai", "claude", "pexels"], // Only these APIs
     steveAIVideos: 0,
@@ -51,6 +52,7 @@ export const TIER_LIMITS = {
     soraVideos: -1,       // Unlimited with own API
     socialListeningKeywords: -1,
     socialChannels: 1,    // 1 social channel
+    contentComparisons: 1, // 1 per month
     usesAppApis: false,   // Must use own APIs
     allowedApis: ["all"], // All APIs allowed
     steveAIVideos: 0,     // Own API if they get one
@@ -68,6 +70,7 @@ export const TIER_LIMITS = {
     soraVideos: 12,       // 12 Sora videos
     socialListeningKeywords: 3,
     socialChannels: 3,    // 3 social channels
+    contentComparisons: 3, // 3 per month
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
@@ -85,6 +88,7 @@ export const TIER_LIMITS = {
     soraVideos: 30,       // 30 Sora videos
     socialListeningKeywords: 6,
     socialChannels: 5,    // 5 social channels
+    contentComparisons: 5, // 5 per month
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
@@ -102,6 +106,7 @@ export const TIER_LIMITS = {
     soraVideos: 36,       // 3x Premium (12 * 3)
     socialListeningKeywords: 9,
     socialChannels: 9,    // All 9 social channels
+    contentComparisons: -1, // Unlimited
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 200,   // Half of $129 plan (400/2)
@@ -168,6 +173,7 @@ export const usagePeriods = pgTable("usage_periods", {
   dalleImagesUsed: integer("dalle_images_used").notNull().default(0),   // OpenAI DALL-E images
   soraVideosUsed: integer("sora_videos_used").notNull().default(0),     // OpenAI Sora videos
   socialListeningUsed: integer("social_listening_used").notNull().default(0),
+  contentComparisonsUsed: integer("content_comparisons_used").notNull().default(0),
   topupMultiplier: real("topup_multiplier").notNull().default(0), // Sum of all top-ups (0.4 per £10)
   // Creator Studio usage
   voiceClonesUsed: integer("voice_clones_used").notNull().default(0),

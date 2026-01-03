@@ -4602,6 +4602,30 @@ export async function registerRoutes(
   app.post("/api/content/compare", requireAuth, comparisonUpload.any(), async (req: any, res) => {
     try {
       const userId = req.userId;
+      
+      // Check quota for content comparisons (paid tiers only)
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user || user.tier === "free") {
+        return res.status(403).json({ 
+          error: "Content Comparison is available for paid subscribers only. Upgrade to Core or higher to access this feature.",
+          tierBlocked: true 
+        });
+      }
+      
+      try {
+        await assertQuota(userId, "contentComparisons", 1);
+      } catch (error) {
+        if (error instanceof QuotaExceededError) {
+          return res.status(429).json({ 
+            error: error.message, 
+            quotaExceeded: true,
+            usageType: error.usageType,
+            quota: error.quota 
+          });
+        }
+        throw error;
+      }
+      
       const files = req.files as Express.Multer.File[];
       const { yourContentId, yourUrl, competitorUrl } = req.body;
 
@@ -4724,6 +4748,9 @@ export async function registerRoutes(
         competitorContent,
         screenshotBase64s,
       });
+      
+      // Increment usage after successful comparison
+      await incrementUsage(userId, "contentComparisons", 1);
 
       res.json(result);
     } catch (error: any) {

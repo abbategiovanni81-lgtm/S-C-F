@@ -2,7 +2,7 @@ import { db } from "./db";
 import { users, usagePeriods, usageTopups, TIER_LIMITS, CREATOR_STUDIO_LIMITS, type TierType } from "@shared/models/auth";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 
-export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening" | "steveAIVideos" | "steveAIGenerative" | "steveAIImages";
+export type UsageType = "brandBriefs" | "scripts" | "voiceovers" | "a2eVideos" | "lipsync" | "avatars" | "dalleImages" | "soraVideos" | "socialListening" | "contentComparisons" | "steveAIVideos" | "steveAIGenerative" | "steveAIImages";
 
 export type CreatorStudioUsageType = "voiceClones" | "talkingPhotos" | "talkingVideos" | "faceSwaps" | "aiDubbing" | "imageToVideo" | "captionRemoval" | "videoToVideo" | "virtualTryOn" | "imageReformat";
 
@@ -16,6 +16,7 @@ const usageColumnMap = {
   dalleImages: "dalleImagesUsed",
   soraVideos: "soraVideosUsed",
   socialListening: "socialListeningUsed",
+  contentComparisons: "contentComparisonsUsed",
   steveAIVideos: "steveAIVideosUsed",
   steveAIGenerative: "steveAIGenerativeUsed",
   steveAIImages: "steveAIImagesUsed",
@@ -44,6 +45,7 @@ const limitKeyMap = {
   dalleImages: "dalleImages",
   soraVideos: "soraVideos",
   socialListening: "socialListeningKeywords",
+  contentComparisons: "contentComparisons",
   steveAIVideos: "steveAIVideos",
   steveAIGenerative: "steveAIGenerative",
   steveAIImages: "steveAIImages",
@@ -122,6 +124,7 @@ export async function getUsageStats(userId: string) {
       dalleImages: { used: period.dalleImagesUsed, limit: getLimit(limits.dalleImages) },
       soraVideos: { used: period.soraVideosUsed, limit: getLimit(limits.soraVideos) },
       socialListening: { used: period.socialListeningUsed, limit: getLimit(limits.socialListeningKeywords) },
+      contentComparisons: { used: (period as any).contentComparisonsUsed || 0, limit: getLimit((limits as any).contentComparisons || 0) },
       // Steve AI usage (Studio tier only)
       steveAIVideos: { used: (period as any).steveAIVideosUsed || 0, limit: getLimit((limits as any).steveAIVideos || 0) },
       steveAIGenerative: { used: (period as any).steveAIGenerativeUsed || 0, limit: getLimit((limits as any).steveAIGenerative || 0) },
@@ -160,11 +163,17 @@ export async function checkQuota(userId: string, usageType: UsageType, count: nu
     return { allowed: false, remaining: 0, limit: 0, used: 0, tierBlocked: true };
   }
 
-  // Core tier must use own APIs (unlimited if they have API keys)
+  // Core tier must use own APIs for most features
+  // But some features like contentComparisons have explicit quotas even for Core
   if (stats.tier === "core" && !stats.usesAppApis && usageType !== "brandBriefs") {
     // Core has -1 (unlimited) for most things when using own APIs
     if (usage.limit === -1) {
       return { allowed: true, remaining: Infinity, limit: -1, used: usage.used };
+    }
+    // Core tier can still use features with explicit finite quotas (like contentComparisons)
+    if (usage.limit > 0) {
+      const remaining = usage.limit - usage.used;
+      return { allowed: remaining >= count, remaining, limit: usage.limit, used: usage.used };
     }
   }
 
