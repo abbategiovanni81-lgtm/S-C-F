@@ -697,6 +697,109 @@ export function isDalleConfigured(): boolean {
   return !!(process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY);
 }
 
+export interface ContentComparisonRequest {
+  yourContent: {
+    script?: string;
+    caption?: string;
+    hashtags?: string[];
+    platforms?: string[];
+    scenePrompts?: any[];
+    imagePrompts?: any;
+    videoPrompts?: any;
+  };
+  competitorContent: {
+    title?: string;
+    description?: string;
+    thumbnailUrl?: string;
+    viewCount?: number;
+    likeCount?: number;
+    commentCount?: number;
+    channelTitle?: string;
+  };
+  screenshotBase64s?: string[];
+}
+
+export interface ContentComparisonResult {
+  similarityScore: number;
+  predictedViewRange: { min: number; max: number };
+  hookStrength: { score: number; feedback: string };
+  visualStyleMatch: { score: number; feedback: string };
+  structureAlignment: { score: number; feedback: string };
+  captionStrategy: { score: number; feedback: string };
+  improvements: string[];
+  strengths: string[];
+}
+
+export async function compareContentToViral(
+  request: ContentComparisonRequest
+): Promise<ContentComparisonResult> {
+  const yourContentStr = JSON.stringify(request.yourContent, null, 2);
+  const competitorStr = JSON.stringify(request.competitorContent, null, 2);
+
+  const messages: any[] = [
+    {
+      role: "system",
+      content: `You are an expert social media content analyst. Your job is to compare user content against successful/viral competitor content and provide actionable feedback.
+
+Analyze the user's content against the competitor's viral content and score them on:
+1. Hook Strength (0-100): How compelling is the opening hook?
+2. Visual Style Match (0-100): Does the visual approach match successful patterns?
+3. Structure Alignment (0-100): Is the content structure optimized like the viral example?
+4. Caption Strategy (0-100): Are the caption, hashtags, and CTA effective?
+
+Based on the competitor's view count, estimate a predicted view range for the user's content.
+
+Respond in this exact JSON format:
+{
+  "similarityScore": <0-100>,
+  "predictedViewRange": { "min": <number>, "max": <number> },
+  "hookStrength": { "score": <0-100>, "feedback": "<1-2 sentence feedback>" },
+  "visualStyleMatch": { "score": <0-100>, "feedback": "<1-2 sentence feedback>" },
+  "structureAlignment": { "score": <0-100>, "feedback": "<1-2 sentence feedback>" },
+  "captionStrategy": { "score": <0-100>, "feedback": "<1-2 sentence feedback>" },
+  "improvements": ["<improvement 1>", "<improvement 2>", "<improvement 3>"],
+  "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"]
+}`,
+    },
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `Compare my content against this viral competitor:
+
+MY CONTENT:
+${yourContentStr}
+
+COMPETITOR'S VIRAL CONTENT:
+${competitorStr}
+
+Please analyze and provide scores, predicted performance, and specific improvements.`,
+        },
+      ],
+    },
+  ];
+
+  if (request.screenshotBase64s && request.screenshotBase64s.length > 0) {
+    for (const base64 of request.screenshotBase64s) {
+      (messages[1].content as any[]).push({
+        type: "image_url",
+        image_url: { url: base64.startsWith("data:") ? base64 : `data:image/jpeg;base64,${base64}` },
+      });
+    }
+  }
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages,
+    response_format: { type: "json_object" },
+    max_tokens: 1500,
+  });
+
+  const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+  return result as ContentComparisonResult;
+}
+
 export interface ImageReformatRequest {
   imageUrl: string;
   targetAspectRatio: "landscape" | "portrait" | "square"; // landscape=16:9, portrait=9:16, square=1:1

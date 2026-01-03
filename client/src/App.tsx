@@ -22,6 +22,7 @@ import HowTo from "@/pages/HowTo";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
 import CreatorStudio from "@/pages/CreatorStudio";
+import ContentComparison from "@/pages/ContentComparison";
 
 function AuthenticatedRoutes() {
   return (
@@ -30,6 +31,7 @@ function AuthenticatedRoutes() {
       <Route path="/brand-briefs" component={BrandBriefs} />
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
+      <Route path="/content-comparison" component={ContentComparison} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/ready-to-post" component={ReadyToPost} />

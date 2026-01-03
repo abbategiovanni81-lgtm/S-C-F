@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, type ContentGenerationRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, compareContentToViral, type ContentGenerationRequest, type ContentComparisonRequest } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -4524,6 +4524,210 @@ export async function registerRoutes(
       res.json(status);
     } catch (error: any) {
       console.error("Task status check error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // YouTube metadata fetch endpoint
+  app.post("/api/youtube/fetch-metadata", async (req, res) => {
+    try {
+      const { url } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Extract video ID from YouTube URL
+      const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+      if (!videoIdMatch) {
+        return res.status(400).json({ error: "Invalid YouTube URL" });
+      }
+      const videoId = videoIdMatch[1];
+
+      // Use YouTube Data API to get video info
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      if (!apiKey) {
+        // Fallback: Try oEmbed API (doesn't require API key but limited data)
+        const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+        const oembedRes = await fetch(oembedUrl);
+        if (!oembedRes.ok) {
+          return res.status(400).json({ error: "Failed to fetch video metadata" });
+        }
+        const oembedData = await oembedRes.json();
+        return res.json({
+          title: oembedData.title,
+          description: "",
+          thumbnailUrl: oembedData.thumbnail_url,
+          viewCount: 0,
+          likeCount: 0,
+          commentCount: 0,
+          channelTitle: oembedData.author_name,
+          publishedAt: "",
+        });
+      }
+
+      // Full YouTube Data API call
+      const ytApiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`;
+      const ytRes = await fetch(ytApiUrl);
+      if (!ytRes.ok) {
+        return res.status(400).json({ error: "Failed to fetch video from YouTube API" });
+      }
+      const ytData = await ytRes.json();
+      const video = ytData.items?.[0];
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      res.json({
+        title: video.snippet.title,
+        description: video.snippet.description,
+        thumbnailUrl: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url,
+        viewCount: parseInt(video.statistics.viewCount || "0"),
+        likeCount: parseInt(video.statistics.likeCount || "0"),
+        commentCount: parseInt(video.statistics.commentCount || "0"),
+        channelTitle: video.snippet.channelTitle,
+        publishedAt: video.snippet.publishedAt,
+      });
+    } catch (error: any) {
+      console.error("YouTube metadata fetch error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Content comparison endpoint
+  const comparisonUpload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+
+  app.post("/api/content/compare", requireAuth, comparisonUpload.any(), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const files = req.files as Express.Multer.File[];
+      const { yourContentId, yourUrl, competitorUrl } = req.body;
+
+      // Gather your content
+      let yourContent: ContentComparisonRequest["yourContent"] = {};
+      
+      if (yourContentId) {
+        // Fetch from database and verify ownership
+        const content = await storage.getContent(yourContentId);
+        if (!content) {
+          return res.status(404).json({ error: "Content not found" });
+        }
+        if (content.userId !== userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        yourContent = {
+          script: content.script || undefined,
+          caption: content.caption || undefined,
+          hashtags: content.hashtags || [],
+          platforms: content.platforms || [],
+          scenePrompts: content.generationMetadata?.videoPrompts?.scenePrompts,
+          imagePrompts: content.generationMetadata?.imagePrompts,
+          videoPrompts: content.generationMetadata?.videoPrompts,
+        };
+      } else if (yourUrl) {
+        // Fetch metadata for user's posted YouTube URL
+        const videoIdMatch = yourUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+        if (videoIdMatch) {
+          const videoId = videoIdMatch[1];
+          const apiKey = process.env.YOUTUBE_API_KEY;
+          
+          if (apiKey) {
+            const ytApiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`;
+            const ytRes = await fetch(ytApiUrl);
+            if (ytRes.ok) {
+              const ytData = await ytRes.json();
+              const video = ytData.items?.[0];
+              if (video) {
+                yourContent = {
+                  script: video.snippet.description,
+                  caption: video.snippet.title,
+                  hashtags: video.snippet.tags || [],
+                  platforms: ["YouTube"],
+                };
+              }
+            }
+          } else {
+            // Fallback to oEmbed
+            const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(yourUrl)}&format=json`;
+            const oembedRes = await fetch(oembedUrl);
+            if (oembedRes.ok) {
+              const oembedData = await oembedRes.json();
+              yourContent = {
+                caption: oembedData.title,
+                platforms: ["YouTube"],
+              };
+            }
+          }
+        }
+      }
+
+      // Gather competitor content
+      let competitorContent: ContentComparisonRequest["competitorContent"] = {};
+      
+      if (competitorUrl) {
+        // Fetch YouTube metadata
+        const videoIdMatch = competitorUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+        if (videoIdMatch) {
+          const videoId = videoIdMatch[1];
+          const apiKey = process.env.YOUTUBE_API_KEY;
+          
+          if (apiKey) {
+            const ytApiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoId}&key=${apiKey}`;
+            const ytRes = await fetch(ytApiUrl);
+            if (ytRes.ok) {
+              const ytData = await ytRes.json();
+              const video = ytData.items?.[0];
+              if (video) {
+                competitorContent = {
+                  title: video.snippet.title,
+                  description: video.snippet.description,
+                  thumbnailUrl: video.snippet.thumbnails.high?.url,
+                  viewCount: parseInt(video.statistics.viewCount || "0"),
+                  likeCount: parseInt(video.statistics.likeCount || "0"),
+                  commentCount: parseInt(video.statistics.commentCount || "0"),
+                  channelTitle: video.snippet.channelTitle,
+                };
+              }
+            }
+          } else {
+            // Fallback to oEmbed
+            const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(competitorUrl)}&format=json`;
+            const oembedRes = await fetch(oembedUrl);
+            if (oembedRes.ok) {
+              const oembedData = await oembedRes.json();
+              competitorContent = {
+                title: oembedData.title,
+                thumbnailUrl: oembedData.thumbnail_url,
+                channelTitle: oembedData.author_name,
+              };
+            }
+          }
+        }
+      }
+
+      // Convert screenshots to base64
+      const screenshotBase64s: string[] = [];
+      if (files) {
+        for (const file of files) {
+          if (file.fieldname.includes("Screenshot")) {
+            const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+            screenshotBase64s.push(base64);
+          }
+        }
+      }
+
+      // Call AI comparison
+      const result = await compareContentToViral({
+        yourContent,
+        competitorContent,
+        screenshotBase64s,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Content comparison error:", error);
       res.status(500).json({ error: error.message });
     }
   });
