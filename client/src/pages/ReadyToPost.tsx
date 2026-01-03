@@ -62,6 +62,10 @@ export default function ReadyToPost() {
     queryKey: ["/api/content?status=approved"],
   });
 
+  const { data: readyStatusContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=ready"],
+  });
+
   const { data: postedContentRaw = [] } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=posted"],
   });
@@ -126,10 +130,23 @@ export default function ReadyToPost() {
     return inferContentType(content);
   };
 
-  const readyContent = approvedContent.filter((content) => {
-    const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
-    return isReadyToPost(content) && matchesBrief;
-  });
+  const readyContent = useMemo(() => {
+    const approvedReady = approvedContent.filter((content) => {
+      const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
+      return isReadyToPost(content) && matchesBrief;
+    });
+    const statusReady = readyStatusContent.filter((content) => {
+      const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
+      return matchesBrief;
+    });
+    const combined = [...approvedReady, ...statusReady];
+    const uniqueIds = new Set<string>();
+    return combined.filter(c => {
+      if (uniqueIds.has(c.id)) return false;
+      uniqueIds.add(c.id);
+      return true;
+    });
+  }, [approvedContent, readyStatusContent, filterBrief]);
 
   const postedContent = postedContentRaw.filter((content) => {
     const matchesBrief = filterBrief === "all" || content.briefId === filterBrief;
@@ -138,6 +155,7 @@ export default function ReadyToPost() {
 
   const invalidateContentQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=approved"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/content?status=ready"] });
     queryClient.invalidateQueries({ queryKey: ["/api/content?status=posted"] });
   };
 
