@@ -322,10 +322,9 @@ export default function EditMerge() {
     
     try {
       const formData = new FormData();
-      formData.append("image", file);
-      formData.append("contentId", selectedContent.id);
+      formData.append("file", file);
       
-      const res = await fetch("/api/image/upload", {
+      const res = await fetch("/api/upload/image", {
         method: "POST",
         body: formData,
       });
@@ -344,7 +343,7 @@ export default function EditMerge() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          generationMetadata: { ...existingMetadata, uploadedImageUrl: data.imageUrl },
+          generationMetadata: { ...existingMetadata, uploadedImageUrl: data.url },
         }),
       });
       
