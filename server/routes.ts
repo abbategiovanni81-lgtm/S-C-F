@@ -506,22 +506,24 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      // Upload to Fal.ai storage for hosting
-      if (falService.isConfigured()) {
-        const result = await falService.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
-        return res.json({ url: result.url, fileName: result.fileName });
+      // Upload to Replit App Storage (cloud storage)
+      try {
+        const result = await objectStorageService.uploadBuffer(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype,
+          true
+        );
+        return res.json({ url: result.objectPath, fileName: req.file.originalname });
+      } catch (storageError: any) {
+        console.error("Cloud storage upload failed:", storageError);
+        // If App Storage fails, try Fal.ai as fallback
+        if (falService.isConfigured()) {
+          const result = await falService.uploadFile(req.file.buffer, req.file.originalname, req.file.mimetype);
+          return res.json({ url: result.url, fileName: result.fileName });
+        }
+        throw storageError;
       }
-
-      // Fallback: save to local uploads directory
-      const fs = await import("fs/promises");
-      const uploadsDir = path.join(process.cwd(), "server", "uploads", "images");
-      await fs.mkdir(uploadsDir, { recursive: true });
-      
-      const fileName = `${Date.now()}-${req.file.originalname}`;
-      const filePath = path.join(uploadsDir, fileName);
-      await fs.writeFile(filePath, req.file.buffer);
-      
-      res.json({ url: `/uploads/images/${fileName}`, fileName });
     } catch (error: any) {
       console.error("Error uploading image:", error);
       res.status(500).json({ error: error.message || "Failed to upload image" });
@@ -2274,14 +2276,11 @@ export async function registerRoutes(
     }
   });
 
-  // Video clip upload endpoint - uses cloud storage via Fal.ai
+  // Video clip upload endpoint - uses cloud storage
   const clipUpload = multer({ 
     storage: multer.memoryStorage(),
     limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
   });
-  
-  // Keep local fallback for serving existing local clips
-  app.use("/uploaded-clips", express.static(path.join(process.cwd(), "public", "uploaded-clips")));
 
   app.post("/api/video/upload-clip", clipUpload.single("video"), async (req, res) => {
     try {
@@ -2292,23 +2291,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No video file provided" });
       }
       
-      let videoUrl: string;
-      
-      // Upload to Fal.ai cloud storage if configured
-      if (falService.isConfigured()) {
-        const result = await falService.uploadFile(file.buffer, file.originalname, file.mimetype);
-        videoUrl = result.url;
-      } else {
-        // Fallback to local storage
-        const uploadDir = path.join(process.cwd(), "public", "uploaded-clips");
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${path.extname(file.originalname)}`;
-        const filePath = path.join(uploadDir, uniqueName);
-        fs.writeFileSync(filePath, file.buffer);
-        videoUrl = `/uploaded-clips/${uniqueName}`;
-      }
+      // Upload to cloud storage
+      const result = await objectStorageService.uploadBuffer(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        true
+      );
+      const videoUrl = result.objectPath;
       
       // Save to content metadata if contentId provided
       if (contentId) {
@@ -2335,21 +2325,9 @@ export async function registerRoutes(
     }
   });
 
-  // Image upload
-  const uploadedImagesDir = path.join(process.cwd(), "public", "uploaded-images");
-  if (!fs.existsSync(uploadedImagesDir)) {
-    fs.mkdirSync(uploadedImagesDir, { recursive: true });
-  }
-  app.use("/uploaded-images", express.static(uploadedImagesDir));
-
+  // Image upload - uses cloud storage
   const contentImageUpload = multer({
-    storage: multer.diskStorage({
-      destination: uploadedImagesDir,
-      filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, `${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`);
-      },
-    }),
+    storage: multer.memoryStorage(),
     limits: { fileSize: 20 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
       if (file.mimetype.startsWith("image/")) {
@@ -2369,7 +2347,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "No image file provided" });
       }
       
-      const imageUrl = `/uploaded-images/${file.filename}`;
+      // Upload to cloud storage
+      const result = await objectStorageService.uploadBuffer(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        true
+      );
+      const imageUrl = result.objectPath;
       
       if (contentId) {
         const existingContent = await storage.getGeneratedContent(contentId);

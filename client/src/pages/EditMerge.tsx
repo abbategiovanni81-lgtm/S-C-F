@@ -322,9 +322,10 @@ export default function EditMerge() {
     
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("image", file);
+      formData.append("contentId", selectedContent.id);
       
-      const res = await fetch("/api/upload/image", {
+      const res = await fetch("/api/image/upload", {
         method: "POST",
         body: formData,
       });
@@ -335,17 +336,6 @@ export default function EditMerge() {
       }
       
       const data = await res.json();
-      
-      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
-      const freshContent = await freshRes.json();
-      const existingMetadata = freshContent?.generationMetadata || {};
-      await fetch(`/api/content/${selectedContent.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          generationMetadata: { ...existingMetadata, uploadedImageUrl: data.url },
-        }),
-      });
       
       invalidateContentQueries();
       toast({ title: "Image uploaded!", description: file.name });

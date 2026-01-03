@@ -52,4 +52,4 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 -   **PostgreSQL**: Primary data store.
 
 ### Cloud Storage
--   **Google Cloud Storage**: For file uploads.
+-   **Replit App Storage (Google Cloud Storage)**: All file uploads (images, video clips) are stored in cloud storage via presigned URLs. Upload endpoints in `server/routes.ts` use `objectStorageService.uploadBuffer()` to persist files. Files are served via `/objects/*` route. This ensures uploads persist in production (unlike local filesystem storage).
