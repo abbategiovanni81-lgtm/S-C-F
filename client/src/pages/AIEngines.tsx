@@ -95,9 +95,9 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     description: "Create polished, professional videos up to 3 minutes for YouTube and educational content. Studio tier only.",
     logo: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=150&q=80",
     badge: { bg: "bg-blue-600", text: "ST" },
-    keyName: "Steve AI API Key",
+    keyName: "Studio Package API Key",
     apiKeyField: "steveaiKey",
-    placeholder: "steve_..."
+    placeholder: "studio_..."
   },
   getty: {
     type: "Premium Stock Images",

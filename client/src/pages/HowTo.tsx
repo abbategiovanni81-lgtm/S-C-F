@@ -294,14 +294,14 @@ export default function HowTo() {
                     isFree
                   />
 
-                  {/* Steve AI Suite - Studio Tier Only */}
+                  {/* Studio Package - Studio Tier Only */}
                   <Card className="border-2 border-orange-500/30 bg-gradient-to-r from-orange-500/5 to-red-500/5">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg">
                           <Film className="h-6 w-6 text-white" />
                         </div>
-                        11. Steve AI Suite
+                        11. Studio Package
                         <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white">Studio Only</Badge>
                       </CardTitle>
                       <CardDescription>Professional video generation with 6 powerful features - exclusive to Studio tier (£99.99/mo)</CardDescription>
@@ -356,10 +356,6 @@ export default function HowTo() {
                           <span className="font-medium">Monthly Limits:</span>{" "}
                           <span className="text-muted-foreground">Videos: 200 min | Generative: 7.5 min | Images: 1,600</span>
                         </div>
-                        <div>
-                          <span className="font-medium">API:</span>{" "}
-                          <span className="text-muted-foreground">Steve AI Enterprise (contact team@steve.ai)</span>
-                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -370,14 +366,31 @@ export default function HowTo() {
                     description="Access premium Getty Images stock photos as B-roll for your videos."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
-                        <li>Go to Creator Studio &gt; Steve AI Suite &gt; Getty tab</li>
+                        <li>Go to Creator Studio &gt; Studio Package &gt; Getty tab</li>
                         <li>Search for images or videos by keyword</li>
                         <li>Select assets to use in your Multi-Voice scenes</li>
                         <li>Premium stock content enhances your video quality</li>
                       </ol>
                     }
-                    apiNeeded="Getty Images (via Steve AI)"
+                    apiNeeded="Getty Images (via Studio Package)"
                     pricing="Included with Studio tier (£99.99/mo)"
+                  />
+
+                  <FeatureCard
+                    icon={<Search className="h-6 w-6" />}
+                    title="13. Content Comparison"
+                    description="Compare your content against viral competitors to get AI-powered insights and improvements."
+                    howItWorks={
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Select your content from Edit & Merge OR paste a YouTube URL</li>
+                        <li>Paste a competitor's viral video URL</li>
+                        <li>Upload screenshots for visual comparison (optional)</li>
+                        <li>AI analyzes hook strength, visual style, structure, and caption strategy</li>
+                        <li>Get a similarity score, predicted view range, and specific improvements</li>
+                      </ol>
+                    }
+                    apiNeeded="OpenAI (GPT-4o Vision)"
+                    pricing="Core: 1/month | Premium: 3/month | Pro: 5/month | Studio: Unlimited"
                   />
                 </div>
               </ScrollArea>
@@ -445,7 +458,7 @@ export default function HowTo() {
                           <ul className="text-sm space-y-1 text-muted-foreground">
                             <li>All 9 social channels</li>
                             <li>Creator Studio included</li>
-                            <li>Steve AI Suite</li>
+                            <li>Studio Package</li>
                             <li>Getty Images B-roll</li>
                             <li>5 concurrent logins</li>
                           </ul>

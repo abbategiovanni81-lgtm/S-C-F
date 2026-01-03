@@ -101,11 +101,11 @@ export default function ContentQueue() {
   const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
 
-  // Video engine selection (A2E vs Fal.ai vs Steve AI)
+  // Video engine selection (A2E vs Fal.ai vs Studio Package)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal" | "steveai">("a2e");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
   const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("a2e");
-  // Steve AI specific settings
+  // Studio Package specific settings
   const [steveAIStyle, setSteveAIStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
@@ -608,7 +608,7 @@ export default function ContentQueue() {
     try {
       const aspectRatio = platforms.includes("TikTok") || platforms.includes("Instagram Reels") ? "9:16" : "16:9";
       
-      // Use A2E, Steve AI, or Fal.ai based on selected engine
+      // Use A2E, Studio Package, or Fal.ai based on selected engine
       if (videoEngine === "a2e" && aiEngines?.a2e?.configured && selectedA2EAvatar) {
         // A2E lip-sync avatar video generation
         const res = await fetch("/api/a2e/generate", {
@@ -655,7 +655,7 @@ export default function ContentQueue() {
         toast({ title: `Scene ${sceneNumber} generating with A2E...`, description: "This may take a few minutes." });
         pollA2ESceneVideoStatus(contentId, sceneNumber, data.lipSyncId);
       } else if (videoEngine === "steveai" && aiEngines?.steveai?.configured) {
-        // Steve AI video generation
+        // Studio Package video generation
         const res = await fetch("/api/steveai/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -669,7 +669,7 @@ export default function ContentQueue() {
         
         if (!res.ok) {
           const err = await res.json();
-          throw new Error(err.error || "Failed to start Steve AI video generation");
+          throw new Error(err.error || "Failed to start Studio Package video generation");
         }
         
         const data = await res.json();
@@ -698,7 +698,7 @@ export default function ContentQueue() {
           console.error("Failed to save scene request:", e);
         }
         
-        toast({ title: `Scene ${sceneNumber} generating with Steve AI...`, description: "This may take several minutes for longer videos." });
+        toast({ title: `Scene ${sceneNumber} generating with Studio Package...`, description: "This may take several minutes for longer videos." });
         pollSteveAISceneVideoStatus(contentId, sceneNumber, data.requestId);
       } else {
         // Fal.ai video generation (fallback)
@@ -813,7 +813,7 @@ export default function ContentQueue() {
     poll();
   };
 
-  // Steve AI polling function
+  // Studio Package polling function
   const pollSteveAISceneVideoStatus = async (contentId: string, sceneNumber: number, requestId: string) => {
     const poll = async () => {
       try {
@@ -852,19 +852,19 @@ export default function ContentQueue() {
               });
             }
           } catch (e) {
-            console.error("Failed to save Steve AI scene video:", e);
+            console.error("Failed to save Studio Package scene video:", e);
           }
           
-          toast({ title: `Scene ${sceneNumber} complete!`, description: "Steve AI video generated successfully." });
+          toast({ title: `Scene ${sceneNumber} complete!`, description: "Studio Package video generated successfully." });
           invalidateContentQueries();
         } else if (data.status === "failed") {
           setSceneVideos(prev => ({
             ...prev,
             [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId } }
           }));
-          toast({ title: `Scene ${sceneNumber} failed`, description: data.error || "Steve AI generation failed", variant: "destructive" });
+          toast({ title: `Scene ${sceneNumber} failed`, description: data.error || "Studio Package generation failed", variant: "destructive" });
         } else {
-          // Still processing - poll again in 10 seconds (Steve AI takes longer)
+          // Still processing - poll again in 10 seconds (Studio Package takes longer)
           setTimeout(poll, 10000);
         }
       } catch {
@@ -1533,7 +1533,7 @@ export default function ContentQueue() {
                           </SelectItem>
                           <SelectItem value="steveai" disabled={!aiEngines?.steveai?.configured}>
                             <span className="flex items-center gap-2">
-                              Steve AI {!aiEngines?.steveai?.configured && "(Not configured)"}
+                              Studio Package {!aiEngines?.steveai?.configured && "(Not configured)"}
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -1586,7 +1586,7 @@ export default function ContentQueue() {
                     {videoEngine === "a2e" 
                       ? "A2E creates realistic lip-sync avatar videos from your script text." 
                       : videoEngine === "steveai"
-                      ? "Steve AI creates polished videos in multiple styles (animation, live action, AI-generated). Up to 3 minutes."
+                      ? "Studio Package creates polished videos in multiple styles (animation, live action, AI-generated). Up to 3 minutes."
                       : "Fal.ai generates AI video clips from visual prompts."}
                   </p>
                 </div>
