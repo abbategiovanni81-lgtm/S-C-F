@@ -237,6 +237,8 @@ export default function ContentQueue() {
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
   const imageUploadRef = useRef<HTMLInputElement>(null);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const [generatingCarouselId, setGeneratingCarouselId] = useState<string | null>(null);
+  const [carouselSlideProgress, setCarouselSlideProgress] = useState<Record<string, { current: number; total: number }>>({});
   
   const markReadyMutation = useMutation({
     mutationFn: async (contentId: string) => {
@@ -310,6 +312,77 @@ export default function ContentQueue() {
       toast({ title: "Image generation failed", description: error.message, variant: "destructive" });
     } finally {
       setGeneratingImageId(null);
+    }
+  };
+
+  const handleGenerateAllCarouselSlides = async (content: GeneratedContent) => {
+    if (!checkAIAccess("AI Image Generation")) return;
+    const metadata = content.generationMetadata as any;
+    const slides = metadata?.carouselPrompts?.slides;
+    
+    if (!slides || slides.length === 0) {
+      toast({ title: "No slides found", description: "This carousel has no slides to generate.", variant: "destructive" });
+      return;
+    }
+    
+    setGeneratingCarouselId(content.id);
+    setCarouselSlideProgress(prev => ({ ...prev, [content.id]: { current: 0, total: slides.length } }));
+    
+    try {
+      const generatedSlideImages: { slideIndex: number; imageUrl: string }[] = [];
+      const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "1:1";
+      
+      for (let i = 0; i < slides.length; i++) {
+        setCarouselSlideProgress(prev => ({ ...prev, [content.id]: { current: i + 1, total: slides.length } }));
+        
+        const slide = slides[i];
+        const prompt = slide.imagePrompt || slide.textOverlay || `Carousel slide ${i + 1}`;
+        
+        const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
+          : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+          : imageEngine === "pexels" ? "/api/pexels/search-image"
+          : imageEngine === "getty" ? "/api/getty/search-image"
+          : "/api/fal/generate-image";
+        
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, aspectRatio }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(`Slide ${i + 1} failed: ${err.error || "Failed to generate image"}`);
+        }
+        
+        const data = await res.json();
+        generatedSlideImages.push({ slideIndex: i, imageUrl: data.imageUrl });
+        
+        toast({ title: `Slide ${i + 1} generated`, description: `${slides.length - i - 1} remaining...` });
+      }
+      
+      // Save all generated images to metadata
+      const freshContentRes = await fetch(`/api/content/${content.id}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      await apiRequest("PATCH", `/api/content/${content.id}`, {
+        generationMetadata: { 
+          ...existingMetadata, 
+          generatedCarouselImages: generatedSlideImages,
+        },
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "All slides generated!", description: `${slides.length} carousel images are ready.` });
+    } catch (error: any) {
+      toast({ title: "Carousel generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingCarouselId(null);
+      setCarouselSlideProgress(prev => {
+        const updated = { ...prev };
+        delete updated[content.id];
+        return updated;
+      });
     }
   };
 
@@ -1840,24 +1913,46 @@ export default function ContentQueue() {
             )}
             
             <div className="space-y-2">
-              {(content.generationMetadata as any).carouselPrompts.slides?.map((slide: any, i: number) => (
-                <div key={i} className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Slide {i + 1}</p>
-                  <p className="text-sm mb-1">{slide.imagePrompt}</p>
-                  {slide.textOverlay && (
-                    <p className="text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1 inline-block font-medium">{slide.textOverlay}</p>
-                  )}
-                </div>
-              ))}
+              {(content.generationMetadata as any).carouselPrompts.slides?.map((slide: any, i: number) => {
+                const generatedImages = (content.generationMetadata as any)?.generatedCarouselImages || [];
+                const slideImage = generatedImages.find((img: any) => img.slideIndex === i);
+                return (
+                  <div key={i} className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                    <div className="flex gap-3">
+                      {slideImage?.imageUrl && (
+                        <img src={slideImage.imageUrl} alt={`Slide ${i + 1}`} className="w-16 h-16 object-cover rounded" />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Slide {i + 1}</p>
+                        <p className="text-sm mb-1">{slide.imagePrompt}</p>
+                        {slide.textOverlay && (
+                          <p className="text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1 inline-block font-medium">{slide.textOverlay}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <Button
               size="sm"
               className="gap-2 w-full sm:w-auto"
+              onClick={() => handleGenerateAllCarouselSlides(content)}
+              disabled={generatingCarouselId === content.id}
               data-testid={`button-generate-carousel-${content.id}`}
             >
-              <LayoutGrid className="w-4 h-4" />
-              Generate All Slides
+              {generatingCarouselId === content.id ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
+                </>
+              ) : (
+                <>
+                  <LayoutGrid className="w-4 h-4" />
+                  Generate All Slides
+                </>
+              )}
             </Button>
           </div>
         )}
