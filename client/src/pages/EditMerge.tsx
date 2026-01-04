@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
@@ -268,6 +268,11 @@ export default function EditMerge() {
     const metadata = content.generationMetadata as any;
     return metadata?.generatedImageUrl || metadata?.uploadedImageUrl || null;
   };
+  
+  const getCarouselImages = (content: GeneratedContent): { slideIndex: number; imageUrl: string }[] => {
+    const metadata = content.generationMetadata as any;
+    return metadata?.generatedCarouselImages || [];
+  };
 
   const handleGenerateImage = async () => {
     if (!selectedContent) return;
@@ -381,6 +386,7 @@ export default function EditMerge() {
       metadata?.voiceoverAudioUrl ||
       metadata?.generatedImageUrl ||
       metadata?.uploadedImageUrl ||
+      metadata?.generatedCarouselImages?.length > 0 ||
       clips.some(c => c.status === "completed")
     );
   };
@@ -699,7 +705,8 @@ export default function EditMerge() {
                         </div>
                       </div>
                       
-                      {getImageUrl(selectedContent) && (
+                      {/* Single Image Display */}
+                      {getImageUrl(selectedContent) && getCarouselImages(selectedContent).length === 0 && (
                         <div className="space-y-2">
                           <img 
                             src={getImageUrl(selectedContent)!} 
@@ -709,6 +716,36 @@ export default function EditMerge() {
                           <Badge variant="default" className="gap-1">
                             <CheckCircle className="w-3 h-3" />
                             Image Ready
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {/* Carousel Images Display */}
+                      {getCarouselImages(selectedContent).length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <LayoutGrid className="w-4 h-4 text-purple-500" />
+                            <span className="text-sm">Carousel Images ({getCarouselImages(selectedContent).length} slides)</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {getCarouselImages(selectedContent)
+                              .sort((a, b) => a.slideIndex - b.slideIndex)
+                              .map((slide: { slideIndex: number; imageUrl: string }, i: number) => (
+                                <div key={i} className="relative">
+                                  <img 
+                                    src={slide.imageUrl} 
+                                    alt={`Slide ${slide.slideIndex + 1}`} 
+                                    className="w-full aspect-square object-cover rounded-lg border"
+                                  />
+                                  <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                                    {slide.slideIndex + 1}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Carousel Ready
                           </Badge>
                         </div>
                       )}

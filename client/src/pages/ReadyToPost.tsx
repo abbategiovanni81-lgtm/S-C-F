@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock } from "lucide-react";
+import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock, Image as ImageIcon, LayoutGrid } from "lucide-react";
 import { format, addMinutes, addDays, isAfter, isBefore } from "date-fns";
 import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -108,8 +108,13 @@ export default function ReadyToPost() {
     }
     
     // Image content needs a generated or uploaded image
-    if (contentType === "image" || contentType === "carousel") {
+    if (contentType === "image") {
       return metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
+    }
+    
+    // Carousel needs carousel images or single image
+    if (contentType === "carousel") {
+      return (metadata?.generatedCarouselImages?.length > 0) || metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
     }
     
     // Video content needs video or voiceover assets
@@ -307,7 +312,11 @@ export default function ReadyToPost() {
     const metadata = content.generationMetadata as any;
     const videoUrl = getVideoUrl(content);
     const audioUrl = metadata?.voiceoverAudioUrl;
+    const imageUrl = metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
+    const carouselImages = metadata?.generatedCarouselImages || [];
     const hasVideo = !!videoUrl;
+    const hasImage = !!imageUrl;
+    const hasCarouselImages = carouselImages.length > 0;
     const isMergedVideo = !!metadata?.mergedVideoUrl;
 
     return (
@@ -346,6 +355,66 @@ export default function ReadyToPost() {
               {content.hashtags.map((tag, i) => (
                 <span key={i} className="text-xs text-primary">#{tag}</span>
               ))}
+            </div>
+          )}
+
+          {/* Single Image Display */}
+          {hasImage && !hasCarouselImages && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <ImageIcon className="w-4 h-4 text-blue-500" />
+                Generated Image
+              </div>
+              <img 
+                src={imageUrl} 
+                alt="Generated content" 
+                className="w-full max-w-md rounded-lg border"
+                data-testid={`image-preview-${content.id}`}
+              />
+              <a
+                href={imageUrl}
+                download={`image-${content.id}.png`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                data-testid={`link-download-image-${content.id}`}
+              >
+                <Download className="w-4 h-4" />
+                Download Image
+              </a>
+            </div>
+          )}
+
+          {/* Carousel Images Display */}
+          {hasCarouselImages && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <LayoutGrid className="w-4 h-4 text-purple-500" />
+                Carousel Images ({carouselImages.length} slides)
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {carouselImages.sort((a: any, b: any) => a.slideIndex - b.slideIndex).map((slide: any, i: number) => (
+                  <div key={i} className="relative group">
+                    <img 
+                      src={slide.imageUrl} 
+                      alt={`Slide ${slide.slideIndex + 1}`} 
+                      className="w-full aspect-square object-cover rounded-lg border"
+                    />
+                    <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                      {slide.slideIndex + 1}
+                    </span>
+                    <a
+                      href={slide.imageUrl}
+                      download={`slide-${slide.slideIndex + 1}.png`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                    >
+                      <Download className="w-5 h-5 text-white" />
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
