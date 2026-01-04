@@ -104,7 +104,7 @@ export default function ContentQueue() {
   // Video engine selection (A2E vs Fal.ai vs Studio Package)
   const [videoEngine, setVideoEngine] = useState<"a2e" | "fal" | "steveai">("a2e");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
-  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("a2e");
+  const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("dalle");
   // Studio Package specific settings
   const [steveAIStyle, setSteveAIStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
