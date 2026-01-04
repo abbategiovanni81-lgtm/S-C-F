@@ -13,7 +13,8 @@ export interface ContentGenerationRequest {
   linksToInclude?: string | null;
   platforms: string[];
   contentType: "video_script" | "caption" | "both";
-  contentFormat?: "video" | "image" | "carousel" | "tiktok_text";
+  contentFormat?: "video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform";
+  accountType?: "brand" | "influencer" | "ugc" | "educator";
   topic?: string;
   avoidPatterns?: string[];
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
@@ -80,13 +81,40 @@ export async function generateSocialContent(
     ? `\n\nIMPORTANT - Include these links/CTAs in your captions naturally:\n${request.linksToInclude}`
     : "";
 
+  const accountTypeGuidance: Record<string, string> = {
+    brand: `ACCOUNT TYPE: BRAND
+- Tone: Professional, trust-focused, consistent brand voice
+- CTAs: Conversion-oriented (shop now, sign up, learn more)
+- Caption Style: Polished, on-brand, product-focused
+- Goal: Trust, credibility, conversions`,
+    influencer: `ACCOUNT TYPE: INFLUENCER
+- Tone: Personal, opinionated, authentic, relatable
+- CTAs: Engagement-focused (double-tap if you agree, comment below)
+- Caption Style: Hook-first, conversational, trend-aware
+- Goal: Reach, authority, audience connection`,
+    ugc: `ACCOUNT TYPE: UGC / SOCIAL CREATOR
+- Tone: Adaptive, can match any brand voice, authentic-feeling
+- CTAs: Product-focused but natural (I've been using X for...)
+- Caption Style: Testimonial-style, demo-ready, ad-friendly
+- Goal: Deliverables, reusable content, multiple versions`,
+    educator: `ACCOUNT TYPE: EDUCATOR
+- Tone: Structured, explanatory, authoritative but approachable
+- CTAs: Save-focused (save this for later, share with someone who needs this)
+- Caption Style: Framework-based, clear steps, value-packed
+- Goal: Authority, clarity, save-worthy content`
+  };
+
+  const accountTypeSection = request.accountType && accountTypeGuidance[request.accountType]
+    ? `\n\n${accountTypeGuidance[request.accountType]}`
+    : "";
+
   const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
 Target Audience: ${request.targetAudience}
 Content Goals: ${request.contentGoals}
 Platforms: ${request.platforms.join(", ")}
-Content Format: ${contentFormat.toUpperCase()}
+Content Format: ${contentFormat.toUpperCase()}${accountTypeSection}
 
 CRITICAL - HOOK VIEWERS IN THE FIRST 8 SECONDS using one of these proven techniques:
 1. TEASE THE PAYOFF - Show/mention the most exciting moment upfront to make them want to see how it unfolds

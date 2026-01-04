@@ -129,6 +129,7 @@ export default function BrandBriefs() {
     createBriefMutation.mutate({
       userId: DEMO_USER_ID,
       name: formData.get("name"),
+      accountType: formData.get("accountType") || "brand",
       brandVoice: formData.get("brandVoice"),
       targetAudience: formData.get("targetAudience"),
       contentGoals: formData.get("contentGoals"),
@@ -190,6 +191,49 @@ export default function BrandBriefs() {
               <div className="space-y-2">
                 <Label htmlFor="name">Brand Name</Label>
                 <Input id="name" name="name" placeholder="My Brand" required data-testid="input-name" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Account Type</Label>
+                <p className="text-xs text-muted-foreground mb-2">This helps AI tailor content to your style and goals</p>
+                <RadioGroup
+                  name="accountType"
+                  defaultValue="brand"
+                  className="grid grid-cols-2 gap-3"
+                >
+                  <Label
+                    htmlFor="account-brand"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="brand" id="account-brand" className="sr-only" />
+                    <span className="text-sm font-medium">Brand</span>
+                    <span className="text-xs text-muted-foreground">Professional, trust-focused, conversion CTAs</span>
+                  </Label>
+                  <Label
+                    htmlFor="account-influencer"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="influencer" id="account-influencer" className="sr-only" />
+                    <span className="text-sm font-medium">Influencer</span>
+                    <span className="text-xs text-muted-foreground">Personal, hook-first, engagement-focused</span>
+                  </Label>
+                  <Label
+                    htmlFor="account-ugc"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="ugc" id="account-ugc" className="sr-only" />
+                    <span className="text-sm font-medium">UGC / Social</span>
+                    <span className="text-xs text-muted-foreground">Adaptive, deliverable-ready, multiple versions</span>
+                  </Label>
+                  <Label
+                    htmlFor="account-educator"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="educator" id="account-educator" className="sr-only" />
+                    <span className="text-sm font-medium">Educator</span>
+                    <span className="text-xs text-muted-foreground">Structured, explanatory, save-worthy</span>
+                  </Label>
+                </RadioGroup>
               </div>
 
               <div className="space-y-2">

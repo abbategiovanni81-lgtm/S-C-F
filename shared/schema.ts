@@ -14,10 +14,14 @@ export interface ScenePrompt {
   sceneDescription: string;
 }
 
+export const ACCOUNT_TYPES = ["brand", "influencer", "ugc", "educator"] as const;
+export type AccountType = typeof ACCOUNT_TYPES[number];
+
 export const brandBriefs = pgTable("brand_briefs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
+  accountType: text("account_type").notNull().default("brand"),
   brandVoice: text("brand_voice").notNull(),
   targetAudience: text("target_audience").notNull(),
   contentGoals: text("content_goals").notNull(),

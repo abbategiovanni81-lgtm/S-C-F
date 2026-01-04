@@ -398,6 +398,7 @@ export async function registerRoutes(
         platforms: brief.platforms,
         contentType,
         contentFormat,
+        accountType: (brief as any).accountType || "brand",
         topic,
         avoidPatterns,
         topPerformingPosts,
