@@ -51,6 +51,7 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 -   Threads (Threads API)
 -   Bluesky (App Password, AT Protocol)
 -   Pinterest (Pinterest API)
+-   Reddit (OAuth2, for A2E SEO Bonus - max 5 posts/day, 620 credits per post)
 
 ### Database
 -   **PostgreSQL**: Primary data store.

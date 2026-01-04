@@ -24,6 +24,7 @@ import Terms from "@/pages/Terms";
 import CreatorStudio from "@/pages/CreatorStudio";
 import ContentComparison from "@/pages/ContentComparison";
 import Testimonials from "@/pages/Testimonials";
+import RedditManager from "@/pages/RedditManager";
 
 function AuthenticatedRoutes() {
   return (
@@ -45,6 +46,7 @@ function AuthenticatedRoutes() {
       <Route path="/how-to" component={HowTo} />
       <Route path="/creator-studio" component={CreatorStudio} />
       <Route path="/admin" component={Admin} />
+      <Route path="/reddit" component={RedditManager} />
       <Route component={NotFound} />
     </Switch>
   );

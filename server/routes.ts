@@ -5044,34 +5044,47 @@ export async function registerRoutes(
   app.get("/api/reddit/auth", isAuthenticated, async (req: any, res) => {
     const userId = getUserId(req);
     if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.redirect("/social-accounts?error=unauthorized");
     }
 
     if (!redditService.isConfigured()) {
-      return res.status(400).json({ error: "Reddit API not configured. Please add REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET." });
+      return res.redirect("/social-accounts?error=reddit_not_configured");
     }
 
     const state = `${userId}_${Date.now()}`;
     const authUrl = redditService.getAuthUrl(state);
-    res.json({ authUrl, state });
+    res.redirect(authUrl);
   });
 
-  // Reddit OAuth callback
-  app.get("/api/reddit/callback", async (req, res) => {
+  // Reddit OAuth callback - requires session to validate state
+  app.get("/api/reddit/callback", isAuthenticated, async (req: any, res) => {
     try {
-      const { code, state } = req.query;
+      const { code, state, error, error_description } = req.query;
+      
+      // Handle Reddit's error response
+      if (error) {
+        console.error("Reddit OAuth error:", error, error_description);
+        return res.redirect("/accounts?error=reddit_auth_denied");
+      }
       
       if (!code || !state) {
-        return res.redirect("/?error=reddit_auth_failed");
+        return res.redirect("/accounts?error=reddit_auth_failed");
       }
 
-      const [userId] = (state as string).split("_");
+      // Validate state matches the authenticated user (CSRF protection)
+      const sessionUserId = getUserId(req);
+      const [stateUserId] = (state as string).split("_");
+      
+      if (!sessionUserId || sessionUserId !== stateUserId) {
+        console.error("Reddit OAuth state mismatch:", { sessionUserId, stateUserId });
+        return res.redirect("/accounts?error=reddit_state_mismatch");
+      }
       
       const tokens = await redditService.exchangeCodeForTokens(code as string);
       const user = await redditService.getCurrentUser(tokens.access_token);
 
       // Create or update social account for Reddit
-      const existingAccount = await storage.getSocialAccountByPlatform(userId, "reddit");
+      const existingAccount = await storage.getSocialAccountByPlatform(sessionUserId, "reddit");
       
       const tokenExpiry = new Date();
       tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokens.expires_in);
@@ -5088,7 +5101,7 @@ export async function registerRoutes(
         });
       } else {
         await storage.createSocialAccount({
-          userId,
+          userId: sessionUserId,
           platform: "reddit",
           accountName: user.name,
           accountHandle: `u/${user.name}`,
@@ -5100,10 +5113,10 @@ export async function registerRoutes(
         });
       }
 
-      res.redirect("/social-accounts?success=reddit_connected");
+      res.redirect("/accounts?success=reddit_connected");
     } catch (error: any) {
       console.error("Reddit callback error:", error);
-      res.redirect("/?error=reddit_auth_failed");
+      res.redirect("/accounts?error=reddit_auth_failed");
     }
   });
 

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2, CloudSun, MessageCircle, Pin } from "lucide-react";
+import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2, CloudSun, MessageCircle, Pin, MessageSquare } from "lucide-react";
 import type { SocialAccount } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +37,7 @@ const PLATFORMS: PlatformConfig[] = [
   { name: "Threads", icon: MessageCircle, color: "bg-gray-900", hoverColor: "hover:bg-gray-800", textColor: "text-gray-900 dark:text-white", bgLight: "bg-gray-900/10", oauth: true, oauthUrl: "/api/auth/threads", manualOption: true },
   { name: "Bluesky", icon: CloudSun, color: "bg-sky-400", hoverColor: "hover:bg-sky-500", textColor: "text-sky-400", bgLight: "bg-sky-400/10", oauth: false, authType: "password" },
   { name: "Pinterest", icon: Pin, color: "bg-red-600", hoverColor: "hover:bg-red-700", textColor: "text-red-600", bgLight: "bg-red-600/10", oauth: true, oauthUrl: "/api/auth/pinterest", manualOption: true },
+  { name: "Reddit", icon: MessageSquare, color: "bg-orange-500", hoverColor: "hover:bg-orange-600", textColor: "text-orange-500", bgLight: "bg-orange-500/10", oauth: true, oauthUrl: "/api/reddit/auth" },
 ];
 
 export default function Accounts() {
