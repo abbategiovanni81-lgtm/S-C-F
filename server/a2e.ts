@@ -45,7 +45,7 @@ class A2EService {
     }
 
     try {
-      const response = await fetch(`${A2E_BASE_URL}/api/v1/creators/`, {
+      const response = await fetch(`${A2E_BASE_URL}/api/v1/anchor/character_list`, {
         method: "GET",
         headers: this.getHeaders(),
       });
@@ -56,7 +56,14 @@ class A2EService {
       }
 
       const data = await response.json();
-      return data.creators || data.results || [];
+      // Map A2E response to our avatar interface
+      const avatars = data.data || [];
+      return avatars.map((a: any) => ({
+        id: a._id,
+        name: a.type === "custom" ? "Custom Avatar" : `Avatar ${a._id.slice(-4)}`,
+        thumbnail: a.video_cover || a.people_img || a.base_video,
+        gender: a.type,
+      }));
     } catch (error: any) {
       console.error("A2E list avatars error:", error);
       throw error;
@@ -134,7 +141,7 @@ class A2EService {
 
   async generateImageToVideo(params: {
     imageUrl: string;
-    text?: string;
+    prompt?: string;
   }): Promise<string> {
     if (!this.isConfigured()) {
       throw new Error("A2E API key not configured");
@@ -145,8 +152,10 @@ class A2EService {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify({
+          name: `video_${Date.now()}`,
           image_url: params.imageUrl,
-          text: params.text || "",
+          prompt: params.prompt || "Smooth motion, camera slightly moving, cinematic scene, detailed, high quality",
+          negative_prompt: "blurry, low quality, worst quality, distorted, static image, no motion",
         }),
       });
 
@@ -156,7 +165,13 @@ class A2EService {
       }
 
       const data = await response.json();
-      return data.task_id || data.id;
+      console.log("A2E image-to-video response:", JSON.stringify(data, null, 2));
+      
+      if (data.code === 0 && data.data?._id) {
+        return data.data._id;
+      }
+      
+      return data.task_id || data.id || data.data?._id;
     } catch (error: any) {
       console.error("A2E image-to-video error:", error);
       throw error;
@@ -703,7 +718,7 @@ class A2EService {
     }
   }
 
-  // Text-to-Image generation
+  // Text-to-Image generation - starts task and polls until complete
   async generateImage(params: {
     prompt: string;
     width?: number;
@@ -736,20 +751,83 @@ class A2EService {
       }
 
       const data = await response.json();
+      console.log("A2E text-to-image initial response:", JSON.stringify(data, null, 2));
       
-      // A2E returns completed image immediately
-      if (data.code === 0 && data.data?.image_urls?.[0]) {
-        return {
-          imageUrl: data.data.image_urls[0],
-          taskId: data.data._id,
-        };
+      // A2E returns data as array with task info
+      if (data.code === 0 && Array.isArray(data.data) && data.data[0]) {
+        const task = data.data[0];
+        const taskId = task._id;
+        
+        // If already completed with images
+        if (task.current_status === "completed" && task.image_urls?.[0]) {
+          return {
+            imageUrl: task.image_urls[0],
+            taskId,
+          };
+        }
+        
+        // Poll for completion
+        return await this.pollImageTask(taskId);
       }
       
-      throw new Error("A2E text-to-image failed: No image returned");
+      // Check if the response has a different structure (single object)
+      if (data.code === 0 && data.data?._id) {
+        const task = data.data;
+        if (task.current_status === "completed" && task.image_urls?.[0]) {
+          return {
+            imageUrl: task.image_urls[0],
+            taskId: task._id,
+          };
+        }
+        return await this.pollImageTask(task._id);
+      }
+      
+      throw new Error(`A2E text-to-image failed: ${data.failed_message || data.message || 'Invalid response'}`);
     } catch (error: any) {
       console.error("A2E text-to-image error:", error);
       throw error;
     }
+  }
+  
+  // Poll text-to-image task until complete
+  private async pollImageTask(taskId: string, maxAttempts: number = 60): Promise<{ imageUrl: string; taskId: string }> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds between polls
+      
+      try {
+        const response = await fetch(`${A2E_BASE_URL}/api/v1/userText2image/${taskId}`, {
+          method: "GET",
+          headers: this.getHeaders(),
+        });
+        
+        if (!response.ok) {
+          console.log(`A2E image poll attempt ${attempt + 1} failed, retrying...`);
+          continue;
+        }
+        
+        const data = await response.json();
+        console.log(`A2E image poll ${attempt + 1}:`, data.data?.current_status || data.current_status);
+        
+        const task = data.data || data;
+        
+        if (task.current_status === "completed" && task.image_urls?.[0]) {
+          return {
+            imageUrl: task.image_urls[0],
+            taskId,
+          };
+        }
+        
+        if (task.current_status === "failed" || task.failed_code) {
+          throw new Error(`A2E image generation failed: ${task.failed_message || 'Unknown error'}`);
+        }
+        
+        // Continue polling for initialized/processing states
+      } catch (error: any) {
+        console.log(`A2E image poll attempt ${attempt + 1} error:`, error.message);
+      }
+    }
+    
+    throw new Error("A2E text-to-image timed out after 2 minutes");
   }
 }
 

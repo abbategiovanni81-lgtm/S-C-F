@@ -1490,7 +1490,7 @@ export async function registerRoutes(
         }
       }
 
-      const taskId = await a2eService.generateImageToVideo({ imageUrl, text });
+      const taskId = await a2eService.generateImageToVideo({ imageUrl, prompt: text });
 
       // Increment usage after successful generation
       if (userId) {
@@ -1557,7 +1557,7 @@ export async function registerRoutes(
       // Step 2: Convert image to video using A2E
       const taskId = await a2eService.generateImageToVideo({ 
         imageUrl: imageResult.imageUrl,
-        text: prompt 
+        prompt: `${prompt}, smooth motion, cinematic scene` 
       });
 
       // Increment usage after successful generation
@@ -4650,7 +4650,7 @@ export async function registerRoutes(
 
       await assertCreatorStudioQuota(userId, "imageToVideo", 1);
       
-      const taskId = await a2eService.generateImageToVideo({ imageUrl, text });
+      const taskId = await a2eService.generateImageToVideo({ imageUrl, prompt: text });
       await incrementCreatorStudioUsage(userId, "imageToVideo", 1);
 
       res.json({ taskId, message: "Image to video generation started" });
