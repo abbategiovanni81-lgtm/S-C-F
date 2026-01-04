@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Video, Image, Layout as LayoutIcon, Type } from "lucide-react";
+import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -34,7 +34,7 @@ export default function BrandBriefs() {
   const [showIdeasForBrief, setShowIdeasForBrief] = useState<string | null>(null);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [selectedBriefForGenerate, setSelectedBriefForGenerate] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text">("video");
+  const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform">("video");
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
@@ -400,7 +400,7 @@ export default function BrandBriefs() {
 
             <RadioGroup
               value={selectedFormat}
-              onValueChange={(value: "video" | "image" | "carousel" | "tiktok_text") => setSelectedFormat(value)}
+              onValueChange={(value: "video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform") => setSelectedFormat(value)}
               className="grid grid-cols-2 gap-3"
             >
               <Label
@@ -473,6 +473,50 @@ export default function BrandBriefs() {
                 <Type className="w-6 h-6" />
                 <span className="text-sm font-medium">TikTok Text</span>
                 <span className="text-xs text-muted-foreground text-center">Short promo text</span>
+              </Label>
+
+              <div className="col-span-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Creator Studio Formats (Pro/Studio)</p>
+              </div>
+
+              <Label
+                htmlFor="format-ugc-talking"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "ugc_talking" ? "border-purple-500 bg-purple-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="ugc_talking" id="format-ugc-talking" className="sr-only" />
+                <User className="w-6 h-6 text-purple-500" />
+                <span className="text-sm font-medium">UGC Talking</span>
+                <span className="text-xs text-muted-foreground text-center">Talking photo/video</span>
+              </Label>
+
+              <Label
+                htmlFor="format-ugc-lipsync"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "ugc_lipsync" ? "border-purple-500 bg-purple-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="ugc_lipsync" id="format-ugc-lipsync" className="sr-only" />
+                <Mic className="w-6 h-6 text-purple-500" />
+                <span className="text-sm font-medium">UGC Lip-sync</span>
+                <span className="text-xs text-muted-foreground text-center">Face swap lip-sync</span>
+              </Label>
+
+              <div className="col-span-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Studio Package (Studio tier)</p>
+              </div>
+
+              <Label
+                htmlFor="format-studio-longform"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors col-span-2 ${
+                  selectedFormat === "studio_longform" ? "border-orange-500 bg-orange-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="studio_longform" id="format-studio-longform" className="sr-only" />
+                <Film className="w-6 h-6 text-orange-500" />
+                <span className="text-sm font-medium">Long-Form Video</span>
+                <span className="text-xs text-muted-foreground text-center">Professional video up to 3 minutes</span>
               </Label>
             </RadioGroup>
           </div>
