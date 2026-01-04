@@ -4634,21 +4634,24 @@ export async function registerRoutes(
       
       if (yourContentId) {
         // Fetch from database and verify ownership
-        const content = await storage.getContent(yourContentId);
+        const content = await storage.getGeneratedContent(yourContentId);
         if (!content) {
           return res.status(404).json({ error: "Content not found" });
         }
-        if (content.userId !== userId) {
+        // Verify ownership through the brand brief
+        const brief = await storage.getBrandBrief(content.briefId);
+        if (!brief || brief.userId !== userId) {
           return res.status(403).json({ error: "Access denied" });
         }
+        const metadata = content.generationMetadata as any;
         yourContent = {
           script: content.script || undefined,
           caption: content.caption || undefined,
           hashtags: content.hashtags || [],
           platforms: content.platforms || [],
-          scenePrompts: content.generationMetadata?.videoPrompts?.scenePrompts,
-          imagePrompts: content.generationMetadata?.imagePrompts,
-          videoPrompts: content.generationMetadata?.videoPrompts,
+          scenePrompts: metadata?.videoPrompts?.scenePrompts,
+          imagePrompts: metadata?.imagePrompts,
+          videoPrompts: metadata?.videoPrompts,
         };
       } else if (yourUrl) {
         // Fetch metadata for user's posted YouTube URL
