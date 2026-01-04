@@ -32,6 +32,28 @@ export const brandBriefs = pgTable("brand_briefs", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const ASSET_TYPES = ["screenshot", "product", "logo", "headshot", "lifestyle", "testimonial", "other"] as const;
+export type AssetType = typeof ASSET_TYPES[number];
+
+export const brandAssets = pgTable("brand_assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  briefId: varchar("brief_id").notNull().references(() => brandBriefs.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  assetType: text("asset_type").notNull().default("other"),
+  name: text("name").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBrandAssetSchema = createInsertSchema(brandAssets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBrandAsset = z.infer<typeof insertBrandAssetSchema>;
+export type BrandAsset = typeof brandAssets.$inferSelect;
+
 export const generatedContent = pgTable("generated_content", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   briefId: varchar("brief_id").notNull().references(() => brandBriefs.id),

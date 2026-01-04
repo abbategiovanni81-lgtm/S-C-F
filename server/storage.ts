@@ -1,10 +1,12 @@
 import { db } from "./db";
-import { users, brandBriefs, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
   BrandBrief, 
   InsertBrandBrief,
+  BrandAsset,
+  InsertBrandAsset,
   GeneratedContent,
   InsertGeneratedContent,
   SocialAccount,
@@ -89,6 +91,12 @@ export interface IStorage {
   getPendingYouTubeUploads(): Promise<ScheduledPost[]>;
   updateScheduledPost(id: string, data: Partial<InsertScheduledPost>): Promise<ScheduledPost | undefined>;
   deleteScheduledPost(id: string): Promise<void>;
+
+  // Brand Assets
+  createBrandAsset(asset: InsertBrandAsset): Promise<BrandAsset>;
+  getBrandAssetsByBrief(briefId: string): Promise<BrandAsset[]>;
+  getBrandAssetsByUser(userId: string): Promise<BrandAsset[]>;
+  deleteBrandAsset(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -501,6 +509,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteScheduledPost(id: string): Promise<void> {
     await db.delete(scheduledPosts).where(eq(scheduledPosts.id, id));
+  }
+
+  // Brand Assets
+  async createBrandAsset(asset: InsertBrandAsset): Promise<BrandAsset> {
+    const result = await db.insert(brandAssets).values(asset).returning();
+    return result[0];
+  }
+
+  async getBrandAssetsByBrief(briefId: string): Promise<BrandAsset[]> {
+    return db.select().from(brandAssets).where(eq(brandAssets.briefId, briefId)).orderBy(desc(brandAssets.createdAt));
+  }
+
+  async getBrandAssetsByUser(userId: string): Promise<BrandAsset[]> {
+    return db.select().from(brandAssets).where(eq(brandAssets.userId, userId)).orderBy(desc(brandAssets.createdAt));
+  }
+
+  async deleteBrandAsset(id: string): Promise<void> {
+    await db.delete(brandAssets).where(eq(brandAssets.id, id));
   }
 }
 
