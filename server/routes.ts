@@ -1573,6 +1573,18 @@ export async function registerRoutes(
       }
 
       const status = await steveAIService.checkStatus(req.params.requestId);
+      
+      // If video is completed, save to cloud storage for persistence
+      if (status.status === "completed" && status.videoUrl) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(status.videoUrl, "video");
+          console.log(`Saved Steve AI video to cloud storage: ${savedUrl}`);
+          status.videoUrl = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save Steve AI video to cloud storage:", downloadError);
+        }
+      }
+      
       res.json(status);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1586,6 +1598,18 @@ export async function registerRoutes(
       }
 
       const result = await steveAIService.getResult(req.params.requestId);
+      
+      // If video result has URL, save to cloud storage for persistence
+      if (result.videoUrl) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(result.videoUrl, "video");
+          console.log(`Saved Steve AI result video to cloud storage: ${savedUrl}`);
+          result.videoUrl = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save Steve AI result video to cloud storage:", downloadError);
+        }
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1644,6 +1668,18 @@ export async function registerRoutes(
       }
 
       const status = await steveAIService.checkGenerativeStatus(req.params.requestId);
+      
+      // If generative video is completed, save to cloud storage for persistence
+      if (status.status === "completed" && status.videoUrl) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(status.videoUrl, "video");
+          console.log(`Saved Steve AI generative video to cloud storage: ${savedUrl}`);
+          status.videoUrl = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save Steve AI generative video to cloud storage:", downloadError);
+        }
+      }
+      
       res.json(status);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
