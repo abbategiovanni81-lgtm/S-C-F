@@ -102,7 +102,7 @@ export default function ContentQueue() {
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
 
   // Video engine selection (A2E vs Fal.ai vs Studio Package)
-  const [videoEngine, setVideoEngine] = useState<"a2e" | "fal" | "steveai">("a2e");
+  const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai">("a2e-scene");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
   const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("dalle");
   // Studio Package specific settings
@@ -118,7 +118,7 @@ export default function ContentQueue() {
 
   // Fetch A2E avatars when engine is selected
   useEffect(() => {
-    if (videoEngine === "a2e" && aiEngines?.a2e?.configured && a2eAvatars.length === 0) {
+    if (videoEngine === "a2e-avatar" && aiEngines?.a2e?.configured && a2eAvatars.length === 0) {
       setLoadingAvatars(true);
       fetch("/api/a2e/avatars")
         .then(res => res.json())
@@ -681,8 +681,8 @@ export default function ContentQueue() {
     try {
       const aspectRatio = platforms.includes("TikTok") || platforms.includes("Instagram Reels") ? "9:16" : "16:9";
       
-      // Use A2E, Studio Package, or Fal.ai based on selected engine
-      if (videoEngine === "a2e" && aiEngines?.a2e?.configured && selectedA2EAvatar) {
+      // Use A2E Avatar, A2E Scene, Studio Package, or Fal.ai based on selected engine
+      if (videoEngine === "a2e-avatar" && aiEngines?.a2e?.configured && selectedA2EAvatar) {
         // A2E lip-sync avatar video generation
         const res = await fetch("/api/a2e/generate", {
           method: "POST",
@@ -773,8 +773,8 @@ export default function ContentQueue() {
         
         toast({ title: `Scene ${sceneNumber} generating with Studio Package...`, description: "This may take several minutes for longer videos." });
         pollSteveAISceneVideoStatus(contentId, sceneNumber, data.requestId);
-      } else if (videoEngine === "a2e" && aiEngines?.a2e?.configured) {
-        // A2E scene video generation (text-to-image → image-to-video) - no avatar needed
+      } else if (videoEngine === "a2e-scene" && aiEngines?.a2e?.configured) {
+        // A2E scene video generation (text-to-image → image-to-video)
         const res = await fetch("/api/a2e/generate-scene-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1634,19 +1634,24 @@ export default function ContentQueue() {
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Video Engine:</Label>
-                      <Select value={videoEngine} onValueChange={(v: "a2e" | "fal" | "steveai") => setVideoEngine(v)}>
-                        <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-video-engine">
+                      <Select value={videoEngine} onValueChange={(v: "a2e-avatar" | "a2e-scene" | "fal" | "steveai") => setVideoEngine(v)}>
+                        <SelectTrigger className="w-44 h-8 text-xs" data-testid="select-video-engine">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="a2e" disabled={!aiEngines?.a2e?.configured}>
+                          <SelectItem value="a2e-scene" disabled={!aiEngines?.a2e?.configured}>
+                            <span className="flex items-center gap-2">
+                              A2E Scene Video {!aiEngines?.a2e?.configured && "(Not configured)"}
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="a2e-avatar" disabled={!aiEngines?.a2e?.configured}>
                             <span className="flex items-center gap-2">
                               A2E Avatar {!aiEngines?.a2e?.configured && "(Not configured)"}
                             </span>
                           </SelectItem>
                           <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
                             <span className="flex items-center gap-2">
-                              Fal.ai Video {!aiEngines?.fal?.configured && "(Not configured)"}
+                              Fal.ai (Backup) {!aiEngines?.fal?.configured && "(Not configured)"}
                             </span>
                           </SelectItem>
                           <SelectItem value="steveai" disabled={!aiEngines?.steveai?.configured}>
@@ -1658,7 +1663,7 @@ export default function ContentQueue() {
                       </Select>
                     </div>
                     
-                    {videoEngine === "a2e" && aiEngines?.a2e?.configured && (
+                    {videoEngine === "a2e-avatar" && aiEngines?.a2e?.configured && (
                       <div className="flex items-center gap-2">
                         <Label className="text-xs font-medium">Avatar:</Label>
                         {loadingAvatars ? (
@@ -1701,11 +1706,13 @@ export default function ContentQueue() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {videoEngine === "a2e" 
-                      ? "A2E creates videos: select an avatar for talking head, or leave empty for AI-generated scene videos." 
+                    {videoEngine === "a2e-avatar" 
+                      ? "A2E Avatar creates realistic talking head videos with lip-sync from your script." 
+                      : videoEngine === "a2e-scene"
+                      ? "A2E Scene generates AI images from your prompt, then animates them into video."
                       : videoEngine === "steveai"
                       ? "Studio Package creates polished videos in multiple styles (animation, live action, AI-generated). Up to 3 minutes."
-                      : "Fal.ai generates AI video clips from visual prompts (backup)."}
+                      : "Fal.ai generates AI video clips from visual prompts (backup engine)."}
                   </p>
                 </div>
                 
