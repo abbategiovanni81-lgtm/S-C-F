@@ -350,6 +350,13 @@ export function getFormatIdeas(format: keyof typeof FORMAT_SPECIFIC_IDEAS): stri
   return FORMAT_SPECIFIC_IDEAS[format] || [];
 }
 
+export interface BrandAssetReference {
+  name: string;
+  assetType: string;
+  description?: string | null;
+  imageUrl: string;
+}
+
 export interface ContentGenerationRequest {
   briefId: string;
   brandVoice: string;
@@ -365,6 +372,7 @@ export interface ContentGenerationRequest {
   avoidPatterns?: string[];
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
   sceneCount?: number; // 1-3 scenes for video content
+  brandAssets?: BrandAssetReference[]; // Brand assets to reference in image generation
 }
 
 export interface ScenePrompt {
@@ -524,6 +532,22 @@ ${CAROUSEL_STRUCTURE.designRules.map(r => `- ${r}`).join("\n")}` : "";
   // Select random relatability strategies to inject
   const shuffledRelatability = [...RELATABILITY_STRATEGIES].sort(() => 0.5 - Math.random()).slice(0, 8);
 
+  // Build brand assets section for image generation guidance
+  const brandAssetsSection = request.brandAssets && request.brandAssets.length > 0
+    ? `\n\n═══════════════════════════════════════════════════════════════════════════════
+BRAND ASSETS - REFERENCE THESE IN IMAGE PROMPTS:
+═══════════════════════════════════════════════════════════════════════════════
+The brand has uploaded these visual assets. When generating image prompts, reference and incorporate these elements to maintain brand consistency:
+${request.brandAssets.map((asset, i) => `${i + 1}. ${asset.name} (${asset.assetType})${asset.description ? `: ${asset.description}` : ""}`).join("\n")}
+
+IMPORTANT FOR IMAGE PROMPTS:
+- Incorporate the style, colors, and visual elements from these brand assets
+- For product photos: Feature the actual product as described
+- For logos: Include brand identity elements in compositions
+- For lifestyle shots: Match the aesthetic and mood
+- For screenshots: Reference UI elements and color schemes`
+    : "";
+
   const systemPrompt = `You are an expert social media content strategist and copywriter with deep knowledge of viral content patterns. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
@@ -551,7 +575,7 @@ ${convertingHooks.map(h => `• ${h}`).join("\n")}
 ═══════════════════════════════════════════════════════════════════════════════
 FORMAT-SPECIFIC CONTENT IDEAS FOR ${contentFormat.toUpperCase()}:
 ═══════════════════════════════════════════════════════════════════════════════
-${formatIdeas.slice(0, 6).map(idea => `• ${idea}`).join("\n")}${carouselGuidance}
+${formatIdeas.slice(0, 6).map(idea => `• ${idea}`).join("\n")}${carouselGuidance}${brandAssetsSection}
 
 ═══════════════════════════════════════════════════════════════════════════════
 RELATABILITY STRATEGIES - Make content feel authentic:

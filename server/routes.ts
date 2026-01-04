@@ -478,6 +478,7 @@ export async function registerRoutes(
 
       const avoidPatterns = await storage.getAvoidPatternsForBrief(briefId);
       const topPerformingPosts = await storage.getTopPerformingPatterns(brief.userId);
+      const brandAssets = await storage.getBrandAssetsByBrief(briefId);
 
       const request: ContentGenerationRequest = {
         briefId,
@@ -494,6 +495,12 @@ export async function registerRoutes(
         avoidPatterns,
         topPerformingPosts,
         sceneCount: contentFormat === "video" ? (sceneCount || 3) : undefined,
+        brandAssets: brandAssets.map(a => ({
+          name: a.name,
+          assetType: a.assetType,
+          description: a.description,
+          imageUrl: a.imageUrl,
+        })),
       };
 
       const result = await generateSocialContent(request);
