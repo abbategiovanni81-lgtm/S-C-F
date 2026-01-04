@@ -45,9 +45,9 @@ async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image"
   
   // Save to cloud storage for persistence in production
   try {
-    const cloudUrl = await objectStorageService.uploadBuffer(buffer, filename, mimeType);
-    console.log(`Saved ${type} to cloud storage: ${cloudUrl}`);
-    return cloudUrl;
+    const result = await objectStorageService.uploadBuffer(buffer, filename, mimeType, true);
+    console.log(`Saved ${type} to cloud storage: ${result.objectPath}`);
+    return result.objectPath;
   } catch (cloudError) {
     console.error("Failed to save to cloud storage, falling back to local:", cloudError);
     
