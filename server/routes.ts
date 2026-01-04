@@ -20,6 +20,7 @@ import { a2eService } from "./a2e";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
+import { redditService } from "./reddit";
 import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, revokeToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
 import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
@@ -5026,6 +5027,341 @@ export async function registerRoutes(
       res.json(result);
     } catch (error: any) {
       console.error("Content comparison error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // =====================
+  // Reddit Integration Routes
+  // =====================
+
+  // Check if Reddit is configured
+  app.get("/api/reddit/status", async (req, res) => {
+    res.json({ configured: redditService.isConfigured() });
+  });
+
+  // Start Reddit OAuth flow
+  app.get("/api/reddit/auth", isAuthenticated, async (req: any, res) => {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!redditService.isConfigured()) {
+      return res.status(400).json({ error: "Reddit API not configured. Please add REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET." });
+    }
+
+    const state = `${userId}_${Date.now()}`;
+    const authUrl = redditService.getAuthUrl(state);
+    res.json({ authUrl, state });
+  });
+
+  // Reddit OAuth callback
+  app.get("/api/reddit/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      
+      if (!code || !state) {
+        return res.redirect("/?error=reddit_auth_failed");
+      }
+
+      const [userId] = (state as string).split("_");
+      
+      const tokens = await redditService.exchangeCodeForTokens(code as string);
+      const user = await redditService.getCurrentUser(tokens.access_token);
+
+      // Create or update social account for Reddit
+      const existingAccount = await storage.getSocialAccountByPlatform(userId, "reddit");
+      
+      const tokenExpiry = new Date();
+      tokenExpiry.setSeconds(tokenExpiry.getSeconds() + tokens.expires_in);
+
+      if (existingAccount) {
+        await storage.updateSocialAccount(existingAccount.id, {
+          accountName: user.name,
+          accountHandle: `u/${user.name}`,
+          platformAccountId: user.id,
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry,
+          isConnected: "connected",
+        });
+      } else {
+        await storage.createSocialAccount({
+          userId,
+          platform: "reddit",
+          accountName: user.name,
+          accountHandle: `u/${user.name}`,
+          platformAccountId: user.id,
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tokenExpiry,
+          isConnected: "connected",
+        });
+      }
+
+      res.redirect("/social-accounts?success=reddit_connected");
+    } catch (error: any) {
+      console.error("Reddit callback error:", error);
+      res.redirect("/?error=reddit_auth_failed");
+    }
+  });
+
+  // Get user's target subreddits
+  app.get("/api/reddit/subreddits", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const subreddits = await storage.getRedditSubreddits(userId);
+      res.json(subreddits);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add a target subreddit
+  app.post("/api/reddit/subreddits", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { name, displayName, description } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Subreddit name is required" });
+      }
+
+      // Check for existing
+      const existing = await storage.getRedditSubreddits(userId);
+      if (existing.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        return res.status(400).json({ error: "Subreddit already added" });
+      }
+
+      // Try to get subreddit info if we have a connected account
+      const account = await storage.getSocialAccountByPlatform(userId, "reddit");
+      let subscribers = 0;
+      
+      if (account?.accessToken) {
+        try {
+          const info = await redditService.getSubredditInfo(account.accessToken, name);
+          subscribers = info.subscribers || 0;
+        } catch (e) {
+          // Ignore, subreddit info is optional
+        }
+      }
+
+      const subreddit = await storage.createRedditSubreddit({
+        userId,
+        name: name.replace(/^r\//, ""),
+        displayName: displayName || name,
+        description,
+        subscribers,
+        isActive: "true",
+      });
+
+      res.json(subreddit);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a subreddit
+  app.delete("/api/reddit/subreddits/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const subreddit = await storage.getRedditSubreddit(req.params.id);
+      if (!subreddit || subreddit.userId !== userId) {
+        return res.status(404).json({ error: "Subreddit not found" });
+      }
+
+      await storage.deleteRedditSubreddit(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get today's Reddit posts (for checking 5/day limit)
+  app.get("/api/reddit/posts/today", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const posts = await storage.getRedditPostsToday(userId);
+      res.json({
+        posts,
+        count: posts.length,
+        remaining: Math.max(0, 5 - posts.length),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all Reddit posts history
+  app.get("/api/reddit/posts", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const posts = await storage.getRedditPosts(userId);
+      res.json(posts);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Submit a post to Reddit (for A2E SEO Bonus)
+  app.post("/api/reddit/post", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Check daily limit (5 posts per 24 hours for A2E)
+      const todayPosts = await storage.getRedditPostsToday(userId);
+      if (todayPosts.length >= 5) {
+        return res.status(429).json({ 
+          error: "Daily limit reached. A2E allows max 5 posts per 24 hours.",
+          remaining: 0
+        });
+      }
+
+      const { subredditName, title, body, referralLink } = req.body;
+
+      if (!subredditName || !title || !body || !referralLink) {
+        return res.status(400).json({ error: "Missing required fields: subredditName, title, body, referralLink" });
+      }
+
+      // A2E rules: No URL in title
+      if (title.includes("http://") || title.includes("https://") || title.includes("video.a2e.ai")) {
+        return res.status(400).json({ error: "Post title must not contain URLs (A2E rule)" });
+      }
+
+      // Get Reddit account
+      const account = await storage.getSocialAccountByPlatform(userId, "reddit");
+      if (!account?.accessToken) {
+        return res.status(400).json({ error: "Reddit account not connected" });
+      }
+
+      // Refresh token if needed
+      let accessToken = account.accessToken;
+      if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+        try {
+          const newTokens = await redditService.refreshAccessToken(account.refreshToken!);
+          const newExpiry = new Date();
+          newExpiry.setSeconds(newExpiry.getSeconds() + newTokens.expires_in);
+          
+          await storage.updateSocialAccount(account.id, {
+            accessToken: newTokens.access_token,
+            refreshToken: newTokens.refresh_token || account.refreshToken,
+            tokenExpiry: newExpiry,
+          });
+          accessToken = newTokens.access_token;
+        } catch (e) {
+          return res.status(401).json({ error: "Reddit token expired. Please reconnect." });
+        }
+      }
+
+      // Submit the post
+      const result = await redditService.submitTextPost(
+        accessToken,
+        subredditName.replace(/^r\//, ""),
+        title,
+        body
+      );
+
+      if (!result.success) {
+        const post = await storage.createRedditPost({
+          userId,
+          subredditName,
+          title,
+          body,
+          referralLink,
+          status: "failed",
+          errorMessage: result.error,
+        });
+        return res.status(400).json({ error: result.error, post });
+      }
+
+      // Save successful post
+      const post = await storage.createRedditPost({
+        userId,
+        subredditName,
+        title,
+        body,
+        referralLink,
+        redditPostId: result.postId,
+        postUrl: result.postUrl,
+        status: "posted",
+        postedAt: new Date(),
+        creditsEarned: 200, // Initial instant credits
+      });
+
+      // Update subreddit last posted
+      const subreddits = await storage.getRedditSubreddits(userId);
+      const matchingSub = subreddits.find(s => s.name.toLowerCase() === subredditName.toLowerCase().replace(/^r\//, ""));
+      if (matchingSub) {
+        await storage.updateRedditSubreddit(matchingSub.id, { lastPostedAt: new Date() });
+      }
+
+      res.json({
+        success: true,
+        post,
+        remaining: 4 - todayPosts.length,
+      });
+    } catch (error: any) {
+      console.error("Reddit post error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk add popular subreddits for A2E promotion
+  app.post("/api/reddit/subreddits/bulk", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { subreddits } = req.body;
+      if (!subreddits || !Array.isArray(subreddits)) {
+        return res.status(400).json({ error: "subreddits array is required" });
+      }
+
+      const existing = await storage.getRedditSubreddits(userId);
+      const existingNames = new Set(existing.map(s => s.name.toLowerCase()));
+
+      const added: any[] = [];
+      for (const name of subreddits) {
+        const cleanName = name.replace(/^r\//, "").toLowerCase();
+        if (!existingNames.has(cleanName)) {
+          const sub = await storage.createRedditSubreddit({
+            userId,
+            name: cleanName,
+            displayName: `r/${cleanName}`,
+            isActive: "true",
+          });
+          added.push(sub);
+          existingNames.add(cleanName);
+        }
+      }
+
+      res.json({ added, count: added.length });
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });

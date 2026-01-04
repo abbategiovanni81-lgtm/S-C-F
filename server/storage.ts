@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
@@ -24,7 +24,11 @@ import type {
   ListeningScanRun,
   InsertListeningScanRun,
   ScheduledPost,
-  InsertScheduledPost
+  InsertScheduledPost,
+  RedditSubreddit,
+  InsertRedditSubreddit,
+  RedditPost,
+  InsertRedditPost
 } from "@shared/schema";
 import { eq, and, desc, gte, lte, between } from "drizzle-orm";
 
@@ -97,6 +101,19 @@ export interface IStorage {
   getBrandAssetsByBrief(briefId: string): Promise<BrandAsset[]>;
   getBrandAssetsByUser(userId: string): Promise<BrandAsset[]>;
   deleteBrandAsset(id: string): Promise<void>;
+
+  // Reddit Subreddits
+  createRedditSubreddit(subreddit: InsertRedditSubreddit): Promise<RedditSubreddit>;
+  getRedditSubreddits(userId: string): Promise<RedditSubreddit[]>;
+  getRedditSubreddit(id: string): Promise<RedditSubreddit | undefined>;
+  updateRedditSubreddit(id: string, data: Partial<InsertRedditSubreddit>): Promise<RedditSubreddit | undefined>;
+  deleteRedditSubreddit(id: string): Promise<void>;
+
+  // Reddit Posts
+  createRedditPost(post: InsertRedditPost): Promise<RedditPost>;
+  getRedditPosts(userId: string): Promise<RedditPost[]>;
+  getRedditPostsToday(userId: string): Promise<RedditPost[]>;
+  updateRedditPost(id: string, data: Partial<InsertRedditPost>): Promise<RedditPost | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -527,6 +544,66 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBrandAsset(id: string): Promise<void> {
     await db.delete(brandAssets).where(eq(brandAssets.id, id));
+  }
+
+  // Reddit Subreddits
+  async createRedditSubreddit(subreddit: InsertRedditSubreddit): Promise<RedditSubreddit> {
+    const result = await db.insert(redditSubreddits).values(subreddit).returning();
+    return result[0];
+  }
+
+  async getRedditSubreddits(userId: string): Promise<RedditSubreddit[]> {
+    return db.select().from(redditSubreddits)
+      .where(eq(redditSubreddits.userId, userId))
+      .orderBy(desc(redditSubreddits.createdAt));
+  }
+
+  async getRedditSubreddit(id: string): Promise<RedditSubreddit | undefined> {
+    const result = await db.select().from(redditSubreddits).where(eq(redditSubreddits.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateRedditSubreddit(id: string, data: Partial<InsertRedditSubreddit>): Promise<RedditSubreddit | undefined> {
+    const result = await db.update(redditSubreddits)
+      .set(data)
+      .where(eq(redditSubreddits.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteRedditSubreddit(id: string): Promise<void> {
+    await db.delete(redditSubreddits).where(eq(redditSubreddits.id, id));
+  }
+
+  // Reddit Posts
+  async createRedditPost(post: InsertRedditPost): Promise<RedditPost> {
+    const result = await db.insert(redditPosts).values(post).returning();
+    return result[0];
+  }
+
+  async getRedditPosts(userId: string): Promise<RedditPost[]> {
+    return db.select().from(redditPosts)
+      .where(eq(redditPosts.userId, userId))
+      .orderBy(desc(redditPosts.createdAt));
+  }
+
+  async getRedditPostsToday(userId: string): Promise<RedditPost[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return db.select().from(redditPosts)
+      .where(and(
+        eq(redditPosts.userId, userId),
+        gte(redditPosts.createdAt, today)
+      ))
+      .orderBy(desc(redditPosts.createdAt));
+  }
+
+  async updateRedditPost(id: string, data: Partial<InsertRedditPost>): Promise<RedditPost | undefined> {
+    const result = await db.update(redditPosts)
+      .set(data)
+      .where(eq(redditPosts.id, id))
+      .returning();
+    return result[0];
   }
 }
 
