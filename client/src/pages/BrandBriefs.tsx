@@ -37,6 +37,7 @@ export default function BrandBriefs() {
   const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform">("video");
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
+  const [optimizationGoal, setOptimizationGoal] = useState<"reach" | "saves" | "comments" | "clicks">("reach");
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
 
@@ -87,13 +88,14 @@ export default function BrandBriefs() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async ({ briefId, topic, contentFormat, sceneCount }: { briefId: string; topic?: string; contentFormat?: string; sceneCount?: number }) => {
+    mutationFn: async ({ briefId, topic, contentFormat, sceneCount, optimizationGoal }: { briefId: string; topic?: string; contentFormat?: string; sceneCount?: number; optimizationGoal?: string }) => {
       const res = await apiRequest("POST", "/api/generate-content", {
         briefId,
         contentType: "both",
         contentFormat: contentFormat || "video",
         topic,
         sceneCount: contentFormat === "video" ? sceneCount : undefined,
+        optimizationGoal,
       });
       return res.json();
     },
@@ -160,6 +162,7 @@ export default function BrandBriefs() {
       topic: generateTopic || undefined,
       contentFormat: selectedFormat,
       sceneCount: selectedFormat === "video" ? sceneCount : undefined,
+      optimizationGoal,
     }, {
       onSettled: () => setGeneratingForBrief(null),
     });
@@ -563,6 +566,44 @@ export default function BrandBriefs() {
                 <span className="text-xs text-muted-foreground text-center">Professional video up to 3 minutes</span>
               </Label>
             </RadioGroup>
+
+            <div className="pt-4 border-t">
+              <Label className="text-sm font-medium mb-2 block">Optimize For</Label>
+              <Select value={optimizationGoal} onValueChange={(value: "reach" | "saves" | "comments" | "clicks") => setOptimizationGoal(value)}>
+                <SelectTrigger data-testid="select-optimization-goal">
+                  <SelectValue placeholder="Choose optimization goal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="reach">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Reach</span>
+                      <span className="text-xs text-muted-foreground">Shareable, broad appeal content</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="saves">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Saves</span>
+                      <span className="text-xs text-muted-foreground">Reference-worthy, bookmark-able</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="comments">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Comments</span>
+                      <span className="text-xs text-muted-foreground">Discussion-driving, engaging</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="clicks">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Clicks</span>
+                      <span className="text-xs text-muted-foreground">Link-driving, action-oriented</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-2">
+                AI will tailor hooks, CTAs, and structure for this goal.
+              </p>
+            </div>
           </div>
 
           <DialogFooter>

@@ -360,6 +360,7 @@ export interface ContentGenerationRequest {
   contentType: "video_script" | "caption" | "both";
   contentFormat?: "video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform";
   accountType?: "brand" | "influencer" | "ugc" | "educator";
+  optimizationGoal?: "reach" | "saves" | "comments" | "clicks";
   topic?: string;
   avoidPatterns?: string[];
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
@@ -453,6 +454,42 @@ export async function generateSocialContent(
     ? `\n\n${accountTypeGuidance[request.accountType]}`
     : "";
 
+  // Optimization goal guidance - tells AI to optimize for ONE specific outcome
+  const optimizationGoalGuidance: Record<string, string> = {
+    reach: `OPTIMIZATION GOAL: MAXIMIZE REACH
+- Prioritize shareable, relatable content that spreads organically
+- Use broad appeal hooks that resonate with wide audiences
+- Create "tag a friend" or "share this" worthy moments
+- Optimize for algorithm signals: watch time, shares, saves
+- Make content feel universal, not niche
+- CTA focus: Shares and follows`,
+    saves: `OPTIMIZATION GOAL: MAXIMIZE SAVES
+- Create reference-worthy content people want to return to
+- Provide frameworks, templates, checklists, or how-to guides
+- Make it educational and actionable
+- Structure content so it's scannable and easy to revisit
+- Include specific tips, stats, or resources worth bookmarking
+- CTA focus: "Save this for later!" "Bookmark this!"`,
+    comments: `OPTIMIZATION GOAL: MAXIMIZE COMMENTS
+- Ask engaging questions that invite responses
+- Create debate or discussion with polarizing takes
+- Use "hot takes" or unpopular opinions
+- End with open-ended questions, not statements
+- Create FOMO that makes people want to join the conversation
+- CTA focus: "Drop a [emoji] if you agree!" "What would you add?"`,
+    clicks: `OPTIMIZATION GOAL: MAXIMIZE CLICKS
+- Create curiosity gaps that require clicking to resolve
+- Tease value that lives behind the link
+- Make the benefit of clicking crystal clear
+- Use urgency and scarcity when authentic
+- Balance value delivery with driving action
+- CTA focus: "Link in bio" "Tap to learn more" "DM me [word]"`,
+  };
+
+  const optimizationSection = request.optimizationGoal && optimizationGoalGuidance[request.optimizationGoal]
+    ? `\n\n${optimizationGoalGuidance[request.optimizationGoal]}`
+    : "";
+
   // Get random viral hooks for this generation
   const growthHooks = getRandomHooks("growth", 5);
   const viralHooks = getRandomHooks("viral", 5);
@@ -493,7 +530,7 @@ Brand Voice: ${request.brandVoice}
 Target Audience: ${request.targetAudience}
 Content Goals: ${request.contentGoals}
 Platforms: ${request.platforms.join(", ")}
-Content Format: ${contentFormat.toUpperCase()}${accountTypeSection}
+Content Format: ${contentFormat.toUpperCase()}${accountTypeSection}${optimizationSection}
 
 ═══════════════════════════════════════════════════════════════════════════════
 VIRAL HOOK TEMPLATES - USE THESE PROVEN PATTERNS (adapt to the topic/niche):
@@ -546,6 +583,20 @@ VIDEO INTRO RULES:
 - Get to the main content by seconds 11-20
 - Skip generic greetings like "Hey guys, welcome back"
 - Front-load the value proposition
+
+═══════════════════════════════════════════════════════════════════════════════
+MID-CONTENT ATTENTION RESET (CRITICAL FOR RETENTION):
+═══════════════════════════════════════════════════════════════════════════════
+At the 40-60% mark of the content, add a SECOND HOOK to re-engage viewers who might drop off:
+- "But here's what nobody tells you..."
+- "Wait, it gets better..."
+- "Now here's where it gets interesting..."
+- "But that's not even the best part..."
+- Introduce an unexpected twist, reveal, or escalation
+- Shift the emotional tone (humor → serious, or serious → surprising)
+- Add a pattern interrupt (change visual style, pace, or delivery)
+
+This mid-content reset is crucial for retention. Don't let the energy plateau.
 
 Your content should:
 - Match the brand voice perfectly

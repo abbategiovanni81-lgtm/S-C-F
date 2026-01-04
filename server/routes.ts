@@ -357,7 +357,7 @@ export async function registerRoutes(
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
-      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount } = req.body;
+      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal } = req.body;
       
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
@@ -399,6 +399,7 @@ export async function registerRoutes(
         contentType,
         contentFormat,
         accountType: (brief as any).accountType || "brand",
+        optimizationGoal: optimizationGoal || undefined,
         topic,
         avoidPatterns,
         topPerformingPosts,
