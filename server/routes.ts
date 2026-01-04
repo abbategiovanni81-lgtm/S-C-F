@@ -1438,6 +1438,19 @@ export async function registerRoutes(
       }
 
       const status = await a2eService.checkLipSyncStatus(req.params.id);
+      
+      // If video is done, download and save to cloud storage for persistence
+      if (status.status === "done" && status.output) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(status.output, "video");
+          console.log(`Saved A2E video to cloud storage: ${savedUrl}`);
+          status.output = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save A2E video to cloud storage:", downloadError);
+          // Keep original URL if download fails
+        }
+      }
+      
       res.json(status);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4627,6 +4640,19 @@ export async function registerRoutes(
     try {
       const { taskType, taskId } = req.params;
       const status = await a2eService.checkTaskStatus(taskId, taskType);
+      
+      // If task is done and has output URL, save to cloud storage for persistence
+      if (status.status === "done" && status.output) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(status.output, "video");
+          console.log(`Saved Creator Studio video to cloud storage: ${savedUrl}`);
+          status.output = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save Creator Studio video to cloud storage:", downloadError);
+          // Keep original URL if download fails
+        }
+      }
+      
       res.json(status);
     } catch (error: any) {
       console.error("Task status check error:", error);

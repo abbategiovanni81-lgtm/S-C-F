@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { ObjectStorageService } from "./objectStorage";
 
 export interface ElevenLabsConfig {
   apiKey: string;
@@ -32,9 +33,11 @@ export interface VideoResult {
 export class ElevenLabsService {
   private apiKey: string | undefined;
   private baseUrl = "https://api.elevenlabs.io/v1";
+  private objectStorageService: ObjectStorageService;
 
   constructor() {
     this.apiKey = process.env.ELEVENLABS_API_KEY;
+    this.objectStorageService = new ObjectStorageService();
   }
 
   isConfigured(): boolean {
@@ -72,21 +75,33 @@ export class ElevenLabsService {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    
-    // Save audio to file instead of returning base64
-    const mediaDir = path.join(process.cwd(), "public", "generated-media");
-    if (!fs.existsSync(mediaDir)) {
-      fs.mkdirSync(mediaDir, { recursive: true });
-    }
-    
+    const buffer = Buffer.from(audioBuffer);
     const filename = `audio-${randomUUID()}.mp3`;
-    const filePath = path.join(mediaDir, filename);
-    fs.writeFileSync(filePath, Buffer.from(audioBuffer));
     
-    return {
-      audioUrl: `/generated-media/${filename}`,
-      duration: 0,
-    };
+    // Save audio to cloud storage for persistence in production
+    try {
+      const result = await this.objectStorageService.uploadBuffer(buffer, filename, "audio/mpeg", true);
+      console.log(`Saved ElevenLabs audio to cloud storage: ${result.objectPath}`);
+      return {
+        audioUrl: result.objectPath,
+        duration: 0,
+      };
+    } catch (cloudError) {
+      console.error("Failed to save audio to cloud storage, falling back to local:", cloudError);
+      
+      // Fallback to local storage (for dev only)
+      const mediaDir = path.join(process.cwd(), "public", "generated-media");
+      if (!fs.existsSync(mediaDir)) {
+        fs.mkdirSync(mediaDir, { recursive: true });
+      }
+      const filePath = path.join(mediaDir, filename);
+      fs.writeFileSync(filePath, buffer);
+      
+      return {
+        audioUrl: `/generated-media/${filename}`,
+        duration: 0,
+      };
+    }
   }
 
   async getVoices(): Promise<Array<{ id: string; name: string; category: string }>> {
