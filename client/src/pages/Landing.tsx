@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare } from "lucide-react";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -154,6 +155,15 @@ export default function Landing() {
               <p className="text-white text-xs font-medium">Edit & Merge</p>
             </div>
           </div>
+        </div>
+
+        <div className="text-center mb-8">
+          <Link href="/testimonials">
+            <span className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">
+              <MessageSquare className="h-5 w-5" />
+              <span className="font-medium">See What Our Users Say</span>
+            </span>
+          </Link>
         </div>
 
         <div className="max-w-md mx-auto">

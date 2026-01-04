@@ -23,6 +23,7 @@ import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
 import CreatorStudio from "@/pages/CreatorStudio";
 import ContentComparison from "@/pages/ContentComparison";
+import Testimonials from "@/pages/Testimonials";
 
 function AuthenticatedRoutes() {
   return (
@@ -55,6 +56,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/terms" component={Terms} />
+      <Route path="/testimonials" component={Testimonials} />
       <Route>
         {() => {
           if (isLoading) {
