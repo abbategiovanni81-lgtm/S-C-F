@@ -40,6 +40,9 @@ export default function BrandBriefs() {
   const [optimizationGoal, setOptimizationGoal] = useState<"reach" | "saves" | "comments" | "clicks">("reach");
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingBrief, setEditingBrief] = useState<BrandBrief | null>(null);
+  const [editPlatforms, setEditPlatforms] = useState<string[]>([]);
 
   // Fetch user's own API keys status
   const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
@@ -78,6 +81,22 @@ export default function BrandBriefs() {
     },
     onError: (error) => {
       toast({ title: "Failed to create brand brief", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateBriefMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/brand-briefs/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`] });
+      setEditDialogOpen(false);
+      setEditingBrief(null);
+      toast({ title: "Brand brief updated successfully!" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to update brand brief", description: error.message, variant: "destructive" });
     },
   });
 
@@ -171,6 +190,38 @@ export default function BrandBriefs() {
   const handleGenerateIdeas = (briefId: string) => {
     if (!checkAIAccess("AI Content Ideas")) return;
     generateIdeasMutation.mutate(briefId);
+  };
+
+  const handleEditBrief = (brief: BrandBrief) => {
+    setEditingBrief(brief);
+    setEditPlatforms(brief.platforms);
+    setEditDialogOpen(true);
+  };
+
+  const toggleEditPlatform = (platform: string) => {
+    setEditPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
+    );
+  };
+
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingBrief) return;
+    const formData = new FormData(e.currentTarget);
+    
+    updateBriefMutation.mutate({
+      id: editingBrief.id,
+      data: {
+        name: formData.get("editName"),
+        accountType: formData.get("editAccountType") || editingBrief.accountType,
+        brandVoice: formData.get("editBrandVoice"),
+        targetAudience: formData.get("editTargetAudience"),
+        contentGoals: formData.get("editContentGoals"),
+        linksToInclude: formData.get("editLinksToInclude") || null,
+        postingFrequency: formData.get("editPostingFrequency"),
+        platforms: editPlatforms,
+      },
+    });
   };
 
   return (
@@ -402,6 +453,14 @@ export default function BrandBriefs() {
                       <Lightbulb className="w-4 h-4" />
                     )}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditBrief(brief)}
+                    data-testid={`button-edit-${brief.id}`}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
                 </div>
 
                 {showIdeasForBrief === brief.id && generatedIdeas.length > 0 && (
@@ -628,6 +687,158 @@ export default function BrandBriefs() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Brand Brief</DialogTitle>
+          </DialogHeader>
+          {editingBrief && (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editName">Brand Name</Label>
+                <Input 
+                  id="editName" 
+                  name="editName" 
+                  defaultValue={editingBrief.name} 
+                  required 
+                  data-testid="input-edit-name" 
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Account Type</Label>
+                <RadioGroup
+                  name="editAccountType"
+                  defaultValue={editingBrief.accountType || "brand"}
+                  className="grid grid-cols-2 gap-3"
+                >
+                  <Label
+                    htmlFor="edit-account-brand"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="brand" id="edit-account-brand" className="sr-only" />
+                    <span className="text-sm font-medium">Brand</span>
+                    <span className="text-xs text-muted-foreground">Professional, trust-focused</span>
+                  </Label>
+                  <Label
+                    htmlFor="edit-account-influencer"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="influencer" id="edit-account-influencer" className="sr-only" />
+                    <span className="text-sm font-medium">Influencer</span>
+                    <span className="text-xs text-muted-foreground">Personal, engagement-focused</span>
+                  </Label>
+                  <Label
+                    htmlFor="edit-account-ugc"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="ugc" id="edit-account-ugc" className="sr-only" />
+                    <span className="text-sm font-medium">UGC Creator</span>
+                    <span className="text-xs text-muted-foreground">Authentic, product-focused</span>
+                  </Label>
+                  <Label
+                    htmlFor="edit-account-educator"
+                    className="flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors hover:border-primary/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value="educator" id="edit-account-educator" className="sr-only" />
+                    <span className="text-sm font-medium">Educator</span>
+                    <span className="text-xs text-muted-foreground">Value-first, authority-building</span>
+                  </Label>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editBrandVoice">Brand Voice / Tone</Label>
+                <Textarea
+                  id="editBrandVoice"
+                  name="editBrandVoice"
+                  defaultValue={editingBrief.brandVoice}
+                  placeholder="Describe your brand's voice..."
+                  required
+                  data-testid="input-edit-brand-voice"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editTargetAudience">Target Audience</Label>
+                <Textarea
+                  id="editTargetAudience"
+                  name="editTargetAudience"
+                  defaultValue={editingBrief.targetAudience}
+                  placeholder="Who is your target audience?"
+                  required
+                  data-testid="input-edit-target-audience"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editContentGoals">Content Goals</Label>
+                <Textarea
+                  id="editContentGoals"
+                  name="editContentGoals"
+                  defaultValue={editingBrief.contentGoals}
+                  placeholder="What do you want to achieve?"
+                  required
+                  data-testid="input-edit-content-goals"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editLinksToInclude">Links to Include (optional)</Label>
+                <Input
+                  id="editLinksToInclude"
+                  name="editLinksToInclude"
+                  defaultValue={editingBrief.linksToInclude || ""}
+                  placeholder="e.g., https://mysite.com"
+                  data-testid="input-edit-links"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Platforms</Label>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.map((platform) => (
+                    <Badge
+                      key={platform}
+                      variant={editPlatforms.includes(platform) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleEditPlatform(platform)}
+                      data-testid={`badge-edit-platform-${platform}`}
+                    >
+                      {platform}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editPostingFrequency">Posting Frequency</Label>
+                <Select name="editPostingFrequency" defaultValue={editingBrief.postingFrequency}>
+                  <SelectTrigger data-testid="select-edit-frequency">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCIES.map((freq) => (
+                      <SelectItem key={freq} value={freq}>{freq}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateBriefMutation.isPending || editPlatforms.length === 0} data-testid="button-save-edit">
+                  {updateBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
