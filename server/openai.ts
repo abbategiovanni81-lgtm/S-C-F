@@ -5,6 +5,351 @@ export const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
+// ============================================================================
+// VIRAL CONTENT KNOWLEDGE BASE
+// Curated from top-performing social media content patterns
+// ============================================================================
+
+export const VIRAL_HOOKS = {
+  growth: [
+    '"Unpopular opinion:..."',
+    '"Here\'s the secret no one tells you about..."',
+    '"Why does nobody talk about..."',
+    '"This is going to be controversial..."',
+    '"How to [result] without [common method]"',
+    '"Stop doing [common thing]. Here\'s why..."',
+    '"I spent [time/money] so you don\'t have to"',
+    '"I\'ve been wrong about [topic] for years"',
+    '"What nobody tells you about [topic]..."',
+    '"Think [X]? Think again."',
+    '"The real reason [common frustration]..."',
+    '"This [industry term] changed everything for me"',
+    '"Can we talk about [problem]?"',
+    '"What if [surprising claim]?"',
+    '"The [industry] doesn\'t want you to know this"',
+    '"I tried [trend] for [time]. Here\'s what happened"',
+    '"I analyzed [number] [things]. Here\'s what works"',
+    '"Forget everything you know about [topic]"',
+    '"Controversial take:..."',
+    '"I wish someone told me this before [milestone]"',
+    '"[Number] things you\'re doing wrong with [topic]"',
+    '"The biggest mistake I see [audience] make is..."',
+    '"Here\'s what [success metric] really looks like"',
+    '"This one change [impressive result]"',
+  ],
+  viral: [
+    '"This is why you\'re [problem]"',
+    '"The truth about [topic]"',
+    '"This single [thing] changed my life"',
+    '"Stop doing [action]"',
+    '"Here\'s why [thing] isn\'t working for you"',
+    '"You\'ve been [action] wrong this whole time"',
+    '"My unpopular opinion about [topic]"',
+    '"I can\'t believe I [action/mistake]"',
+    '"The [thing] that [result]"',
+    '"Am I the only one who [relatable thing]?"',
+    '"My [expert/role] told me..."',
+    '"Here\'s why [common belief] is wrong"',
+    '"The [thing] nobody talks about"',
+    '"What I wish I knew before [milestone]"',
+    '"[Famous person/expert] was right about..."',
+    '"How I [achievement] in [short time]"',
+    '"This might make you [emotion]"',
+    '"Why [common approach] doesn\'t work"',
+    '"The real reason [outcome]"',
+    '"Watch until the end to see [teaser]"',
+    '"If you [problem], you NEED to know this"',
+    '"I was today years old when I learned..."',
+    '"Most people have no idea that..."',
+    '"[Category] I swear by as a [role]"',
+    '"Day [number] of [challenge/journey]"',
+    '"Here\'s what [result] actually looks like"',
+    '"I asked [person/AI] to [task]..."',
+  ],
+  negative: [
+    '"Most people fail at [goal] because of this one thing."',
+    '"You\'ve been lied to about [strategy or trend]."',
+    '"The dark side of [popular platform or tool] no one talks about."',
+    '"[Thing everyone\'s doing] isn\'t working anymore."',
+    '"Why [niche or industry] experts don\'t want you to know this."',
+    '"You\'re following [common path] straight into burnout."',
+    '"You\'re building the wrong audience with [specific tactic]."',
+    '"Think you\'re doing everything right? Think again."',
+    '"[Goal] isn\'t your problem—[habit] is."',
+    '"You\'re overcomplicating [simple but essential task]."',
+    '"Your [platform] strategy is working... against you."',
+    '"[Trusted source] was wrong about this."',
+    '"If you keep doing [mistake], you\'ll stay stuck forever."',
+    '"You\'re doing too much of [action] and not enough of [better action]."',
+    '"The truth about [easy tactic everyone promotes]."',
+    '"The harsh truth about [why people unfollow or ignore]."',
+    '"[Thing you thought was a strength] is actually a weakness."',
+    '"[Common framework] is outdated—and here\'s what works instead."',
+    '"People scroll past because of [mistake] you didn\'t notice."',
+    '"Your audience doesn\'t trust you because of [invisible mistake]."',
+  ],
+  converting: [
+    '"You\'ll never believe..."',
+    '"The secret to [result]"',
+    '"Here\'s what nobody tells you about..."',
+    '"I spent [time] testing [thing]—here\'s what I learned"',
+    '"Why [common approach] is sabotaging your [goal]"',
+    '"[Number] things I wish I knew about [topic]"',
+    '"The one thing [experts] always get wrong about..."',
+    '"How to [achievement] without [sacrifice]"',
+    '"This changed everything I thought about [topic]"',
+    '"Most [audience] don\'t realize..."',
+    '"I finally figured out [problem]"',
+    '"The biggest lie about [industry/topic]"',
+    '"Here\'s a [topic] hack most people miss"',
+    '"Why [thing] is harder than it looks"',
+    '"[Number] mistakes that are killing your [goal]"',
+    '"The truth about [topic] (that nobody talks about)"',
+    '"How I went from [before] to [after]"',
+    '"You\'re doing [action] wrong—here\'s why"',
+    '"I tested [thing] for [time]. Here\'s what happened"',
+    '"What [experts/successful people] actually do"',
+  ],
+};
+
+export const FORMAT_SPECIFIC_IDEAS = {
+  reel: [
+    "Tutorials (step-by-step how-to)",
+    "Before & After transformations",
+    "Mini Vlogs (day snippets)",
+    "Problem-Solution format",
+    "Trending audio/challenges",
+    "Talking Head (direct to camera)",
+    "Dance or Lip-Sync Challenges",
+    "Behind the Scenes moments",
+    "Collaborations with others",
+    "Day in a Life of...",
+    "Q&A Response format",
+    "Product Review",
+    "Transformation Journey",
+    "Challenge Participation",
+  ],
+  carousel: [
+    "Step-by-Step Guides",
+    "Client Testimonials",
+    "Event Highlights",
+    "Product Collection",
+    "Visual Storytelling",
+    "Infographics",
+    "Travel Diaries",
+    "Recipes (each step on a slide)",
+    "Case Studies",
+    "Photography Series",
+  ],
+  single_post: [
+    "Inspirational Quote",
+    "Aesthetic Photo",
+    "Announcements",
+    "User-Generated Content",
+    "Milestone Celebration (follower count)",
+    "Behind the Scenes Image",
+    "Brand Collab",
+    "Promotional Offer",
+    "Sneak Peek of an Upcoming Event",
+  ],
+  story: [
+    "Poll or Quiz",
+    "Countdown Timer",
+    "This or That Challenge",
+    "Repost of Someone Else's Content",
+    "Quick Tip of the Day",
+    "Flash Sale Announcement",
+    "New Post Alert",
+    "Unboxing Video",
+    "Location Tagging (what's at an event)",
+    "Direct Link to a Product or Article",
+  ],
+  ugc_talking: [
+    "Product unboxing with genuine reactions",
+    "First impressions and honest review",
+    "Get Ready With Me featuring product",
+    "Morning/night routine with product integration",
+    "Storytime while using product",
+    "POV: discovering this product for the first time",
+    "Answering FAQs about the product",
+    "Day in my life with product woven in",
+    "Testimonial-style recommendation",
+    "Demo while explaining benefits naturally",
+  ],
+  ugc_lipsync: [
+    "Trending sound with product showcase",
+    "Relatable moment + product solution",
+    "POV scenarios with lip-sync audio",
+    "Before/after transformation with trending audio",
+    "Reaction videos with viral sounds",
+    "Comedy skit with product integration",
+    "Duet-style content with brand audio",
+    "Aesthetic reveal with trending music",
+  ],
+  studio_longform: [
+    "In-depth tutorial (5-15 min)",
+    "Documentary-style brand story",
+    "Expert interview or panel discussion",
+    "Behind the scenes: how it's made",
+    "Customer success story deep-dive",
+    "Educational series episode",
+    "Product comparison and analysis",
+    "Live event or webinar recording",
+    "Q&A session with detailed answers",
+    "Course or training content",
+  ],
+  video: [
+    "Tutorials (step-by-step how-to)",
+    "Before & After transformations",
+    "Problem-Solution format",
+    "Talking Head (direct to camera)",
+    "Behind the Scenes moments",
+    "Q&A Response format",
+    "Product Review",
+    "Transformation Journey",
+  ],
+  image: [
+    "Inspirational Quote",
+    "Aesthetic Photo",
+    "Announcements",
+    "User-Generated Content",
+    "Milestone Celebration",
+    "Behind the Scenes Image",
+    "Brand Collab",
+    "Promotional Offer",
+  ],
+  tiktok_text: [
+    "Bold promotional announcement",
+    "Sale or discount reveal",
+    "New feature announcement",
+    "Limited time offer",
+    "Countdown to launch",
+    "Quote or testimonial highlight",
+  ],
+};
+
+export const CAROUSEL_STRUCTURE = {
+  slide1: "HOOK - Must stop scrollers. Bold text, intriguing question, or shocking stat.",
+  slide2: "EMPATHY - Build trust. 'I get it because I've been there too.'",
+  slides3to9: "BODY - Deliver the value. Each slide = one key point. Keep it scannable.",
+  finalSlide: "CTA - What action should they take? Save, share, comment, follow, or click link.",
+  designRules: [
+    "Consistent visual theme across all slides",
+    "Large, readable fonts (readable on mobile)",
+    "Limit text per slide (5-7 words max for headlines)",
+    "Use brand colors for cohesion",
+    "Include progress indicators if possible",
+  ],
+};
+
+export const RELATABILITY_STRATEGIES = [
+  "Share a personal mistake or failure",
+  "Tell a story about your failures",
+  "Use casual, everyday language",
+  "Share mini 'behind-the-scenes' moments",
+  "Talk about common fears + doubts",
+  "Show your beginner phase",
+  "Tell stories in real time",
+  "Use a 5th grade reading level",
+  "Use humor",
+  "Show vulnerability",
+  "Talk about unpopular opinions",
+  "Share small, everyday wins",
+  "Let people see your quirks",
+  "Express genuine gratitude",
+  "Tell stories that show real emotions, not just highlight reels",
+  "Write like you're texting a friend",
+  "Use memes, gifs, or pop culture references",
+  "Ask open-ended questions",
+  "Start captions with 'real talk...'",
+  "Avoid buzzwords",
+  "Avoid heavy industry jargon",
+  "Keep sentences short and punchy",
+  "Add playful or casual phrasing",
+  "Share experiences",
+  "Talk about the 'messy stuff'",
+  "Share things no one talks about",
+  "Use captions as a second 'hook'",
+  "Talk about well known experiences",
+  "Use 'you' language instead of just 'I'",
+  "Most relatable subjects: money, relationships, food",
+];
+
+export const SERVICE_PROVIDER_CONTENT_IDEAS = [
+  "Create a reel sharing how you started your biz",
+  "Share your first website layout vs now",
+  "Share your working from home set up",
+  "Reveal your new offer/service",
+  "Share your to-do list",
+  "Show a 'day in the life' from start to finish",
+  "Share your brand values and what motivates your biz",
+  "Share 3 apps/tools you couldn't live without",
+  "Educate your followers with shock statistics in your niche",
+  "Bust a myth in your industry",
+  "Sell your offer—why is it so good? What about it is so different?",
+  "Show your client transformations and social proof",
+  "Share BTS teasers of what went into creating your offer",
+  "Showcase your expertise—create a step by step client journey",
+  "Answer a frequently asked question regarding your niche or services",
+  "What is the biggest lesson you've learned?",
+  "What is something you're most proud of?",
+  "What would you go back and tell your younger self if you could?",
+  "What is your biggest goal for next year?",
+  "What do you want to be left in the past?",
+  "How did you recently overcome a challenge?",
+  "Show how you like to relax—how do you deal with burnout?",
+  "What is your favourite way to self care?",
+  "What's one thing you're 'supposed' to like but actually hate?",
+  "What's a problem your audience have but might not always realize?",
+  "What is one tip you would give them to overcome that problem?",
+  "What industry trend should they get ahead of?",
+  "Share a client case study—what was their problem and how did you help?",
+  "Share a 'steal my strategy for'—something people struggle with",
+  "Share a mini training or tutorial",
+  "Share a throwback with how far you've come",
+  "Expectation vs reality—what did you think would be different in your biz journey?",
+  "Your experience with imposter syndrome—how did you overcome?",
+];
+
+export const CTA_EXAMPLES = {
+  comments: [
+    "Drop a [emoji] if you agree!",
+    "Comment [word] if you need this!",
+    "Which one is your favorite? 1, 2, or 3?",
+    "Tell me in the comments: ...",
+    "Tag someone who needs to see this!",
+    "What would you add to this list?",
+  ],
+  saves: [
+    "Save this for later when you need it!",
+    "Bookmark this for reference!",
+    "Save this before it gets buried in your feed!",
+    "Pin this for when you need inspiration!",
+  ],
+  shares: [
+    "Share this with someone who needs to hear it!",
+    "Send this to a friend who's struggling with...",
+    "Know someone who would love this? Share it!",
+  ],
+  follows: [
+    "Follow for more [topic] tips!",
+    "Follow if you want to see part 2!",
+    "Turn on notifications so you don't miss...",
+  ],
+};
+
+// Helper to get random hooks for prompts
+export function getRandomHooks(category: keyof typeof VIRAL_HOOKS, count: number = 5): string[] {
+  const hooks = VIRAL_HOOKS[category];
+  const shuffled = [...hooks].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
+}
+
+// Helper to get format-specific ideas
+export function getFormatIdeas(format: keyof typeof FORMAT_SPECIFIC_IDEAS): string[] {
+  return FORMAT_SPECIFIC_IDEAS[format] || [];
+}
+
 export interface ContentGenerationRequest {
   briefId: string;
   brandVoice: string;
@@ -108,7 +453,41 @@ export async function generateSocialContent(
     ? `\n\n${accountTypeGuidance[request.accountType]}`
     : "";
 
-  const systemPrompt = `You are an expert social media content strategist and copywriter. You create engaging, platform-optimized content that resonates with target audiences.
+  // Get random viral hooks for this generation
+  const growthHooks = getRandomHooks("growth", 5);
+  const viralHooks = getRandomHooks("viral", 5);
+  const negativeHooks = getRandomHooks("negative", 3);
+  const convertingHooks = getRandomHooks("converting", 3);
+
+  // Get format-specific ideas based on content format
+  const formatKeyMap: Record<string, keyof typeof FORMAT_SPECIFIC_IDEAS> = {
+    video: "video",
+    image: "image",
+    carousel: "carousel",
+    tiktok_text: "tiktok_text",
+    ugc_talking: "ugc_talking",
+    ugc_lipsync: "ugc_lipsync",
+    studio_longform: "studio_longform",
+  };
+  const formatKey = formatKeyMap[contentFormat] || "reel";
+  const formatIdeas = FORMAT_SPECIFIC_IDEAS[formatKey] || FORMAT_SPECIFIC_IDEAS.reel;
+
+  // Build carousel structure guidance if needed
+  const carouselGuidance = contentFormat === "carousel" ? `
+
+CAROUSEL STRUCTURE (FOLLOW THIS EXACTLY):
+- Slide 1: ${CAROUSEL_STRUCTURE.slide1}
+- Slide 2: ${CAROUSEL_STRUCTURE.slide2}
+- Slides 3-9: ${CAROUSEL_STRUCTURE.slides3to9}
+- Final Slide: ${CAROUSEL_STRUCTURE.finalSlide}
+
+CAROUSEL DESIGN RULES:
+${CAROUSEL_STRUCTURE.designRules.map(r => `- ${r}`).join("\n")}` : "";
+
+  // Select random relatability strategies to inject
+  const shuffledRelatability = [...RELATABILITY_STRATEGIES].sort(() => 0.5 - Math.random()).slice(0, 8);
+
+  const systemPrompt = `You are an expert social media content strategist and copywriter with deep knowledge of viral content patterns. You create engaging, platform-optimized content that resonates with target audiences.
 
 Brand Voice: ${request.brandVoice}
 Target Audience: ${request.targetAudience}
@@ -116,11 +495,46 @@ Content Goals: ${request.contentGoals}
 Platforms: ${request.platforms.join(", ")}
 Content Format: ${contentFormat.toUpperCase()}${accountTypeSection}
 
-CRITICAL - HOOK VIEWERS IN THE FIRST 8 SECONDS using one of these proven techniques:
-1. TEASE THE PAYOFF - Show/mention the most exciting moment upfront to make them want to see how it unfolds
-2. SOLVE A PROBLEM - Address a pain point directly: "Tired of X? Here's how to fix it"
-3. ASK A RELATABLE QUESTION - Make viewers stop and think: "Have you ever wondered why...?"
-4. SHARE A SHOCKING FACT - Mind-blowing stats grab attention instantly
+═══════════════════════════════════════════════════════════════════════════════
+VIRAL HOOK TEMPLATES - USE THESE PROVEN PATTERNS (adapt to the topic/niche):
+═══════════════════════════════════════════════════════════════════════════════
+
+GROWTH HOOKS:
+${growthHooks.map(h => `• ${h}`).join("\n")}
+
+VIRAL HOOKS:
+${viralHooks.map(h => `• ${h}`).join("\n")}
+
+NEGATIVE HOOKS (create urgency/FOMO):
+${negativeHooks.map(h => `• ${h}`).join("\n")}
+
+CONVERTING HOOKS:
+${convertingHooks.map(h => `• ${h}`).join("\n")}
+
+═══════════════════════════════════════════════════════════════════════════════
+FORMAT-SPECIFIC CONTENT IDEAS FOR ${contentFormat.toUpperCase()}:
+═══════════════════════════════════════════════════════════════════════════════
+${formatIdeas.slice(0, 6).map(idea => `• ${idea}`).join("\n")}${carouselGuidance}
+
+═══════════════════════════════════════════════════════════════════════════════
+RELATABILITY STRATEGIES - Make content feel authentic:
+═══════════════════════════════════════════════════════════════════════════════
+${shuffledRelatability.map(s => `• ${s}`).join("\n")}
+
+═══════════════════════════════════════════════════════════════════════════════
+CTA EXAMPLES - End with engagement drivers:
+═══════════════════════════════════════════════════════════════════════════════
+For Comments: ${CTA_EXAMPLES.comments.slice(0, 3).join(" | ")}
+For Saves: ${CTA_EXAMPLES.saves.slice(0, 2).join(" | ")}
+For Shares: ${CTA_EXAMPLES.shares.slice(0, 2).join(" | ")}
+
+═══════════════════════════════════════════════════════════════════════════════
+CRITICAL - HOOK VIEWERS IN THE FIRST 8 SECONDS:
+═══════════════════════════════════════════════════════════════════════════════
+1. TEASE THE PAYOFF - Show/mention the most exciting moment upfront
+2. SOLVE A PROBLEM - Address a pain point: "Tired of X? Here's how to fix it"
+3. ASK A RELATABLE QUESTION - "Have you ever wondered why...?"
+4. SHARE A SHOCKING FACT - Mind-blowing stats grab attention
 5. USE POP CULTURE - Reference trending memes, sounds, or viral moments
 6. INSPIRATIONAL QUOTE - For motivational content, open with a powerful quote
 7. TELL A JOKE - Disarm viewers with unexpected humor
@@ -138,28 +552,29 @@ Your content should:
 - Appeal directly to the target audience
 - Support the content goals
 - Be optimized for the specified platforms
-- Use trending formats and hooks
+- Use the viral hook templates above (adapted to the topic)
 - Create curiosity and urgency to keep watching
+- Feel authentic and relatable
 
 CAPTION FRAMEWORK - Follow this structured approach:
-1. CONTEXT: Lead with a clear, searchable phrase (not vague openers like "This is it" or "So...")
+1. CONTEXT: Lead with a clear, searchable phrase (not vague openers)
 2. BELIEF BREAK: Challenge an assumption or introduce a surprising perspective
 3. PAYOFF: Deliver the value or insight promised
 4. CTA: End with a question to drive comments (questions > statements)
 
 CAPTION RULES:
 - SEARCH-FIRST: Write for Instagram/TikTok SEO - lead with searchable keywords
-- KEYWORD REPETITION: Use main keywords 2-3 times naturally instead of relying on hashtags
+- KEYWORD REPETITION: Use main keywords 2-3 times naturally
 - STANDALONE: Assume videos watched without sound - caption must make sense alone
-- NO "as you can see" LANGUAGE: Restate what's happening visually, don't reference it
-- CONVERSATION STARTERS: Write to spark engagement, not to explain or push links
-- PLATFORM-SPECIFIC: Tailor length and style for each platform (TikTok: shorter, Instagram: medium, YouTube: longer)
-- PRIORITIZE ENGAGEMENT: Optimize for comments, saves, and replies over outbound clicks
-- STRUCTURED OUTPUT: Use the framework above, not freeform writing
+- NO "as you can see" LANGUAGE: Restate what's happening visually
+- CONVERSATION STARTERS: Write to spark engagement
+- PLATFORM-SPECIFIC: Tailor length and style for each platform
+- PRIORITIZE ENGAGEMENT: Optimize for comments, saves, and replies
+- USE RELATABILITY: Apply the strategies above to connect with audience
 
 CAPTION DON'TS:
 - No generic hooks like "Stop scrolling!" or "Wait for it!"
-- No vague openers like "This changed everything" without immediate context
+- No vague openers like "This changed everything" without context
 - No link-pushing as the main focus
 - No hashtag-stuffing - max 3-5 targeted hashtags
 - No explaining what viewers can already see${linksSection}${avoidSection}${learningSection}`;
@@ -288,19 +703,32 @@ export async function generateContentIdeas(
   contentGoals: string,
   count: number = 5
 ): Promise<string[]> {
+  // Get random hooks and ideas to inspire generation
+  const sampleHooks = [...getRandomHooks("growth", 3), ...getRandomHooks("viral", 3)];
+  const sampleIdeas = [...SERVICE_PROVIDER_CONTENT_IDEAS].sort(() => 0.5 - Math.random()).slice(0, 5);
+  
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
         role: "system",
-        content: `You are a social media strategist. Generate content ideas that align with the brand.
+        content: `You are a social media strategist with deep knowledge of viral content patterns. Generate content ideas that align with the brand and have high viral potential.
+
 Brand Voice: ${brandVoice}
 Target Audience: ${targetAudience}
-Content Goals: ${contentGoals}`,
+Content Goals: ${contentGoals}
+
+VIRAL HOOK PATTERNS TO USE:
+${sampleHooks.map(h => `• ${h}`).join("\n")}
+
+PROVEN CONTENT FORMATS TO INSPIRE:
+${sampleIdeas.map(i => `• ${i}`).join("\n")}
+
+Generate ideas that combine viral hook patterns with content formats that match the brand voice.`,
       },
       {
         role: "user",
-        content: `Generate ${count} unique, engaging content ideas. Respond in JSON: { "ideas": ["idea1", "idea2", ...] }`,
+        content: `Generate ${count} unique, engaging content ideas using the viral patterns above. Each idea should be a specific, actionable post concept. Respond in JSON: { "ideas": ["idea1", "idea2", ...] }`,
       },
     ],
     response_format: { type: "json_object" },
