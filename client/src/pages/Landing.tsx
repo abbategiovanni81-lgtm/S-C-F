@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function Landing() {
@@ -39,6 +39,19 @@ export default function Landing() {
           <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-2">
             Your all-in-one AI content creation tool. Generate scripts, voiceovers, avatar videos, and images—then schedule directly to your social platforms.
           </p>
+        </div>
+
+        <div className="text-center mb-6">
+          <a 
+            href="https://youtu.be/35iy5J8OgOk?si=Iie-RUeY-0LtOn9d" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
+            data-testid="link-how-it-works-video"
+          >
+            <Play className="h-5 w-5" />
+            Watch How It Works
+          </a>
         </div>
 
         <div id="how-it-works" className="max-w-6xl mx-auto mb-12 md:mb-16 pt-8">
