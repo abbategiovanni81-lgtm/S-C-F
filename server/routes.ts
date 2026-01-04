@@ -31,28 +31,35 @@ import { randomUUID } from "crypto";
 
 const objectStorageService = new ObjectStorageService();
 
-// Helper to download external URLs and save locally
+// Helper to download external URLs and save to cloud storage for persistence
 async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image" | "audio"): Promise<string> {
   const response = await fetch(externalUrl);
   if (!response.ok) {
     throw new Error(`Failed to download media: ${response.status}`);
   }
   
-  const buffer = await response.arrayBuffer();
+  const buffer = Buffer.from(await response.arrayBuffer());
   const ext = type === "video" ? ".mp4" : type === "audio" ? ".mp3" : ".png";
-  const filename = `${type}-${randomUUID()}${ext}`;
+  const mimeType = type === "video" ? "video/mp4" : type === "audio" ? "audio/mpeg" : "image/png";
+  const filename = `generated-${type}-${randomUUID()}${ext}`;
   
-  // Save to public directory for serving
-  const mediaDir = path.join(process.cwd(), "public", "generated-media");
-  if (!fs.existsSync(mediaDir)) {
-    fs.mkdirSync(mediaDir, { recursive: true });
+  // Save to cloud storage for persistence in production
+  try {
+    const cloudUrl = await objectStorageService.uploadBuffer(buffer, filename, mimeType);
+    console.log(`Saved ${type} to cloud storage: ${cloudUrl}`);
+    return cloudUrl;
+  } catch (cloudError) {
+    console.error("Failed to save to cloud storage, falling back to local:", cloudError);
+    
+    // Fallback to local storage (for dev only)
+    const mediaDir = path.join(process.cwd(), "public", "generated-media");
+    if (!fs.existsSync(mediaDir)) {
+      fs.mkdirSync(mediaDir, { recursive: true });
+    }
+    const filePath = path.join(mediaDir, filename);
+    fs.writeFileSync(filePath, buffer);
+    return `/generated-media/${filename}`;
   }
-  
-  const filePath = path.join(mediaDir, filename);
-  fs.writeFileSync(filePath, Buffer.from(buffer));
-  
-  // Return the local URL
-  return `/generated-media/${filename}`;
 }
 
 export async function registerRoutes(
