@@ -429,7 +429,7 @@ export default function BrandBriefs() {
       )}
 
       <Dialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Choose Content Format</DialogTitle>
             <DialogDescription>
