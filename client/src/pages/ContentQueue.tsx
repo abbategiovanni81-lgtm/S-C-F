@@ -1919,8 +1919,13 @@ export default function ContentQueue() {
                 return (
                   <div key={i} className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                     <div className="flex gap-3">
-                      {slideImage?.imageUrl && (
+                      {slideImage?.imageUrl ? (
                         <img src={slideImage.imageUrl} alt={`Slide ${i + 1}`} className="w-16 h-16 object-cover rounded" />
+                      ) : (
+                        <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/50 rounded flex flex-col items-center justify-center text-purple-500">
+                          <ImageIcon className="w-5 h-5 mb-0.5" />
+                          <span className="text-[8px] font-medium">Generate</span>
+                        </div>
                       )}
                       <div className="flex-1">
                         <p className="text-xs font-medium text-muted-foreground mb-1">Slide {i + 1}</p>
@@ -1935,31 +1940,51 @@ export default function ContentQueue() {
               })}
             </div>
 
-            {/* Larger preview of all generated carousel images */}
-            {((content.generationMetadata as any)?.generatedCarouselImages?.length > 0) && (
-              <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-3 h-3" />
-                  Generated Images Ready ({(content.generationMetadata as any).generatedCarouselImages.length} slides)
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {(content.generationMetadata as any).generatedCarouselImages
-                    .sort((a: any, b: any) => a.slideIndex - b.slideIndex)
-                    .map((img: { slideIndex: number; imageUrl: string }, i: number) => (
-                      <div key={i} className="relative group">
+            {/* Larger preview of all carousel slides with generated or placeholder images */}
+            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-2">
+                {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? (
+                  <>
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    Generated Images Ready ({(content.generationMetadata as any).generatedCarouselImages.length}/{(content.generationMetadata as any).carouselPrompts.slides?.length || 0} slides)
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="w-3 h-3" />
+                    Slide Preview (click Generate All Slides below)
+                  </>
+                )}
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {(content.generationMetadata as any).carouselPrompts.slides?.map((slide: any, i: number) => {
+                  const generatedImages = (content.generationMetadata as any)?.generatedCarouselImages || [];
+                  const slideImage = generatedImages.find((img: any) => img.slideIndex === i);
+                  return (
+                    <div key={i} className="relative group">
+                      {slideImage?.imageUrl ? (
                         <img 
-                          src={img.imageUrl} 
-                          alt={`Slide ${img.slideIndex + 1}`} 
+                          src={slideImage.imageUrl} 
+                          alt={`Slide ${i + 1}`} 
                           className="w-full aspect-square object-cover rounded-lg border"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                          }}
                         />
-                        <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                          {img.slideIndex + 1}
-                        </span>
+                      ) : null}
+                      <div className={`w-full aspect-square bg-purple-100 dark:bg-purple-900/50 rounded-lg border flex flex-col items-center justify-center text-purple-500 ${slideImage?.imageUrl ? 'hidden' : ''}`}>
+                        <ImageIcon className="w-6 h-6 mb-1" />
+                        <span className="text-[9px] font-medium">Slide {i + 1}</span>
+                        <span className="text-[8px] text-purple-400">Not generated</span>
                       </div>
-                    ))}
-                </div>
+                      <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                        {i + 1}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             <Button
               size="sm"
