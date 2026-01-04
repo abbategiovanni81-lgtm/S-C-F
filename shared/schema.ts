@@ -360,3 +360,51 @@ export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema
 export type GeneratedContent = typeof generatedContent.$inferSelect;
 export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
 export type SocialAccount = typeof socialAccounts.$inferSelect;
+
+// Reddit Subreddits for auto-posting
+export const redditSubreddits = pgTable("reddit_subreddits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(), // subreddit name without r/
+  displayName: text("display_name"),
+  description: text("description"),
+  subscribers: integer("subscribers"),
+  isActive: text("is_active").notNull().default("true"), // Whether to include in auto-posting
+  postFrequency: text("post_frequency").default("daily"), // "daily", "weekly", "custom"
+  lastPostedAt: timestamp("last_posted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertRedditSubredditSchema = createInsertSchema(redditSubreddits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRedditSubreddit = z.infer<typeof insertRedditSubredditSchema>;
+export type RedditSubreddit = typeof redditSubreddits.$inferSelect;
+
+// Reddit Posts tracking for A2E SEO Bonus
+export const redditPosts = pgTable("reddit_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  subredditId: varchar("subreddit_id").references(() => redditSubreddits.id),
+  subredditName: text("subreddit_name").notNull(),
+  redditPostId: text("reddit_post_id"), // Reddit's post ID after submission
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  referralLink: text("referral_link").notNull(), // A2E referral link
+  postUrl: text("post_url"), // Full URL to the post
+  status: text("status").notNull().default("pending"), // "pending", "posted", "failed", "deleted"
+  errorMessage: text("error_message"),
+  creditsEarned: integer("credits_earned").default(0), // Tracking A2E credits
+  postedAt: timestamp("posted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertRedditPostSchema = createInsertSchema(redditPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertRedditPost = z.infer<typeof insertRedditPostSchema>;
+export type RedditPost = typeof redditPosts.$inferSelect;
