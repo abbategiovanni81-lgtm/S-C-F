@@ -327,7 +327,7 @@ export default function AIEngines() {
       )}
 
       <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure {selectedEngine && ENGINE_INFO[selectedEngine]?.badge.text}</DialogTitle>
             <DialogDescription>
@@ -435,7 +435,7 @@ export default function AIEngines() {
       </Dialog>
 
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New AI Engine</DialogTitle>
             <DialogDescription>

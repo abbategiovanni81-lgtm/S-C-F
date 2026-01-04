@@ -2847,7 +2847,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Content</DialogTitle>
             <DialogDescription>
@@ -2893,7 +2893,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={editSceneDialogOpen} onOpenChange={setEditSceneDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-indigo-600" />
@@ -2945,7 +2945,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={editVoiceoverDialogOpen} onOpenChange={setEditVoiceoverDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mic className="w-5 h-5 text-blue-600" />
@@ -2996,7 +2996,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={editThumbnailDialogOpen} onOpenChange={setEditThumbnailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-green-600" />
@@ -3037,7 +3037,7 @@ export default function ContentQueue() {
       </Dialog>
 
       <Dialog open={editImageDialogOpen} onOpenChange={setEditImageDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ImageIcon className="w-5 h-5 text-purple-600" />

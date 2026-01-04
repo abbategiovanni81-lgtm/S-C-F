@@ -289,7 +289,7 @@ export default function Accounts() {
           setBlueskyPassword("");
         }
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedPlatform ? `Add ${selectedPlatform} Channel` : showBlueskyLogin ? "Connect Bluesky" : showPlatformChoice ? `Add ${showPlatformChoice} Channel` : "Add Social Channel"}

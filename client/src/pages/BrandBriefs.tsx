@@ -186,7 +186,7 @@ export default function BrandBriefs() {
               New Brand Brief
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Brand Brief</DialogTitle>
             </DialogHeader>
@@ -429,7 +429,7 @@ export default function BrandBriefs() {
       )}
 
       <Dialog open={formatDialogOpen} onOpenChange={setFormatDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Choose Content Format</DialogTitle>
             <DialogDescription>

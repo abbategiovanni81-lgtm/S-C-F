@@ -207,7 +207,7 @@ export default function SocialListening() {
                   Scan Now
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Scan Social Media</DialogTitle>
                   <DialogDescription>
@@ -294,7 +294,7 @@ export default function SocialListening() {
                   Add Post
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add Post to Monitor</DialogTitle>
                   <DialogDescription>Paste a comment or post you want to analyze and potentially respond to.</DialogDescription>
