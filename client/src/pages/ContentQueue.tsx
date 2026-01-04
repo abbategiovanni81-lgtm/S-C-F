@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2 } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -1935,6 +1935,32 @@ export default function ContentQueue() {
               })}
             </div>
 
+            {/* Larger preview of all generated carousel images */}
+            {((content.generationMetadata as any)?.generatedCarouselImages?.length > 0) && (
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3" />
+                  Generated Images Ready ({(content.generationMetadata as any).generatedCarouselImages.length} slides)
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(content.generationMetadata as any).generatedCarouselImages
+                    .sort((a: any, b: any) => a.slideIndex - b.slideIndex)
+                    .map((img: { slideIndex: number; imageUrl: string }, i: number) => (
+                      <div key={i} className="relative group">
+                        <img 
+                          src={img.imageUrl} 
+                          alt={`Slide ${img.slideIndex + 1}`} 
+                          className="w-full aspect-square object-cover rounded-lg border"
+                        />
+                        <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                          {img.slideIndex + 1}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
             <Button
               size="sm"
               className="gap-2 w-full sm:w-auto"
@@ -1950,7 +1976,7 @@ export default function ContentQueue() {
               ) : (
                 <>
                   <LayoutGrid className="w-4 h-4" />
-                  Generate All Slides
+                  {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
                 </>
               )}
             </Button>
