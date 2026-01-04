@@ -34,8 +34,172 @@ import {
   Clock,
   RefreshCw,
   Maximize2,
-  Film
+  Film,
+  FileText,
+  Save
 } from "lucide-react";
+import type { GeneratedContent, BrandBrief } from "@shared/schema";
+
+type ContentFilter = "script" | "image" | "video" | "voiceover" | "any";
+
+function ContentSelector({ 
+  filter, 
+  onSelect, 
+  selectedId,
+  label = "Use content from queue"
+}: { 
+  filter: ContentFilter;
+  onSelect: (content: GeneratedContent | null, script?: string, imageUrl?: string, videoUrl?: string) => void;
+  selectedId?: string;
+  label?: string;
+}) {
+  const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=approved"],
+  });
+  const { data: readyContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=ready"],
+  });
+  const { data: briefs = [] } = useQuery<BrandBrief[]>({
+    queryKey: ["/api/brand-briefs"],
+  });
+
+  const allContent = [...approvedContent, ...readyContent];
+  
+  const filteredContent = allContent.filter(content => {
+    const metadata = content.generationMetadata as any;
+    switch (filter) {
+      case "script":
+        return content.script || content.caption || metadata?.videoPrompts?.voiceoverText;
+      case "image":
+        return metadata?.generatedImageUrl || metadata?.uploadedImageUrl || metadata?.imagePrompts;
+      case "video":
+        return metadata?.generatedVideoUrl || metadata?.mergedVideoUrl || metadata?.uploadedClips?.length > 0;
+      case "voiceover":
+        return metadata?.voiceoverAudioUrl;
+      case "any":
+      default:
+        return true;
+    }
+  });
+
+  const getBriefName = (briefId: string) => {
+    const brief = briefs.find(b => b.id === briefId);
+    return brief?.name || "Unknown";
+  };
+
+  const getContentLabel = (content: GeneratedContent) => {
+    const preview = content.caption?.substring(0, 50) || content.script?.substring(0, 50) || "Untitled";
+    return `${getBriefName(content.briefId)}: ${preview}${preview.length >= 50 ? "..." : ""}`;
+  };
+
+  const handleSelect = (contentId: string) => {
+    if (contentId === "none") {
+      onSelect(null);
+      return;
+    }
+    const content = allContent.find(c => c.id === contentId);
+    if (!content) return;
+    
+    const metadata = content.generationMetadata as any;
+    const script = content.script || metadata?.videoPrompts?.voiceoverText || content.caption || "";
+    const imageUrl = metadata?.generatedImageUrl || metadata?.uploadedImageUrl || "";
+    const videoUrl = metadata?.mergedVideoUrl || metadata?.generatedVideoUrl || "";
+    
+    onSelect(content, script, imageUrl, videoUrl);
+  };
+
+  return (
+    <div className="space-y-2 p-3 rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
+      <div className="flex items-center gap-2">
+        <FileText className="h-4 w-4 text-blue-500" />
+        <Label className="text-sm font-medium">{label}</Label>
+      </div>
+      <Select value={selectedId || "none"} onValueChange={handleSelect}>
+        <SelectTrigger className="w-full" data-testid="select-content-source">
+          <SelectValue placeholder="Select content from your queue..." />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">-- Enter manually --</SelectItem>
+          {filteredContent.map(content => (
+            <SelectItem key={content.id} value={content.id}>
+              {getContentLabel(content)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {filteredContent.length === 0 && (
+        <p className="text-xs text-muted-foreground">No compatible content found. Generate content first in Content Queue.</p>
+      )}
+    </div>
+  );
+}
+
+function SaveToContentButton({ 
+  contentId, 
+  assetUrl, 
+  assetType,
+  disabled 
+}: { 
+  contentId?: string;
+  assetUrl?: string;
+  assetType: "video" | "image" | "audio";
+  disabled?: boolean;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!contentId || !assetUrl) throw new Error("No content or asset to save");
+      
+      const getRes = await fetch(`/api/content/${contentId}`, {
+        credentials: "include",
+      });
+      if (!getRes.ok) throw new Error("Failed to fetch content");
+      const existingContent = await getRes.json();
+      const existingMetadata = (existingContent.generationMetadata || {}) as Record<string, unknown>;
+      
+      const mergedMetadata = {
+        ...existingMetadata,
+        [`creatorStudio${assetType.charAt(0).toUpperCase() + assetType.slice(1)}Url`]: assetUrl,
+      };
+      
+      const res = await fetch(`/api/content/${contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          generationMetadata: mergedMetadata,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save asset");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Saved!", description: "Asset attached to your content." });
+      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  if (!contentId) return null;
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => saveMutation.mutate()}
+      disabled={disabled || !assetUrl || saveMutation.isPending}
+      className="gap-2"
+      data-testid="button-save-to-content"
+    >
+      {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+      Save to Content
+    </Button>
+  );
+}
 
 type CreatorStudioUsage = {
   voiceClones: { used: number; limit: number };
@@ -397,6 +561,18 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState("");
   const [text, setText] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, script?: string, imageUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (script) setText(script);
+      if (imageUrlFromContent) setImageUrl(imageUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -412,11 +588,10 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Talking photo started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setImageUrl("");
-      setText("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -438,6 +613,12 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="script"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use script & image from your content"
+        />
         <MediaUpload
           value={imageUrl}
           onChange={setImageUrl}
@@ -457,15 +638,23 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
             data-testid="input-speak-text"
           />
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !imageUrl || !text}
-          className="gap-2"
-          data-testid="button-talking-photo"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Generate Talking Photo
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !imageUrl || !text}
+            className="gap-2"
+            data-testid="button-talking-photo"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            Generate Talking Photo
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -476,6 +665,18 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState("");
   const [text, setText] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, script?: string, _imageUrl?: string, videoUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (script) setText(script);
+      if (videoUrlFromContent) setVideoUrl(videoUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -491,11 +692,10 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Talking video started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setVideoUrl("");
-      setText("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -517,6 +717,12 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="video"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use script & video from your content"
+        />
         <MediaUpload
           value={videoUrl}
           onChange={setVideoUrl}
@@ -536,15 +742,23 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
             data-testid="input-new-text"
           />
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !videoUrl || !text}
-          className="gap-2"
-          data-testid="button-talking-video"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Generate Talking Video
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !videoUrl || !text}
+            className="gap-2"
+            data-testid="button-talking-video"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            Generate Talking Video
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -555,6 +769,18 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
   const queryClient = useQueryClient();
   const [sourceImageUrl, setSourceImageUrl] = useState("");
   const [targetVideoUrl, setTargetVideoUrl] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, imageUrl?: string, videoUrl?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (imageUrl) setSourceImageUrl(imageUrl);
+      if (videoUrl) setTargetVideoUrl(videoUrl);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -570,11 +796,10 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Face swap started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setSourceImageUrl("");
-      setTargetVideoUrl("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -596,6 +821,12 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="video"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use image & video from your content"
+        />
         <MediaUpload
           value={sourceImageUrl}
           onChange={setSourceImageUrl}
@@ -614,15 +845,23 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
           description="Video where the face will be swapped"
           testId="face-swap-target"
         />
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !sourceImageUrl || !targetVideoUrl}
-          className="gap-2"
-          data-testid="button-face-swap"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Swap Face
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !sourceImageUrl || !targetVideoUrl}
+            className="gap-2"
+            data-testid="button-face-swap"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Swap Face
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -633,6 +872,17 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState("");
   const [targetLanguage, setTargetLanguage] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, _imageUrl?: string, videoUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (videoUrlFromContent) setVideoUrl(videoUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const languages = [
     { value: "en", label: "English" },
@@ -662,11 +912,10 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Dubbing started!", description: "This may take several minutes." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setVideoUrl("");
-      setTargetLanguage("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -688,6 +937,12 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="video"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use video from your content"
+        />
         <MediaUpload
           value={videoUrl}
           onChange={setVideoUrl}
@@ -710,15 +965,23 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !videoUrl || !targetLanguage}
-          className="gap-2"
-          data-testid="button-dub-video"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-          Dub Video
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !videoUrl || !targetLanguage}
+            className="gap-2"
+            data-testid="button-dub-video"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+            Dub Video
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -729,6 +992,17 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState("");
   const [text, setText] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, imageUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (imageUrlFromContent) setImageUrl(imageUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -744,11 +1018,10 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Image to video started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setImageUrl("");
-      setText("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -770,6 +1043,12 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="image"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use image from your content"
+        />
         <MediaUpload
           value={imageUrl}
           onChange={setImageUrl}
@@ -789,15 +1068,23 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
             data-testid="input-motion-description"
           />
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !imageUrl}
-          className="gap-2"
-          data-testid="button-img-to-video"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-          Animate Image
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !imageUrl}
+            className="gap-2"
+            data-testid="button-img-to-video"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            Animate Image
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -807,6 +1094,17 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, _imageUrl?: string, videoUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (videoUrlFromContent) setVideoUrl(videoUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -822,10 +1120,10 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Caption removal started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setVideoUrl("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -847,6 +1145,12 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="video"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use video from your content"
+        />
         <MediaUpload
           value={videoUrl}
           onChange={setVideoUrl}
@@ -856,15 +1160,23 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
           description="Works best with clear, simple caption styles"
           testId="caption-removal"
         />
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !videoUrl}
-          className="gap-2"
-          data-testid="button-remove-captions"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
-          Remove Captions
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !videoUrl}
+            className="gap-2"
+            data-testid="button-remove-captions"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
+            Remove Captions
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -875,6 +1187,17 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
   const queryClient = useQueryClient();
   const [videoUrl, setVideoUrl] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, _imageUrl?: string, videoUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (videoUrlFromContent) setVideoUrl(videoUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -890,11 +1213,10 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Style transfer started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setVideoUrl("");
-      setPrompt("");
+      if (data.videoUrl) setGeneratedVideoUrl(data.videoUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -916,6 +1238,12 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="video"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use video from your content"
+        />
         <MediaUpload
           value={videoUrl}
           onChange={setVideoUrl}
@@ -935,15 +1263,23 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
             data-testid="input-style-prompt"
           />
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !videoUrl || !prompt}
-          className="gap-2"
-          data-testid="button-style-transfer"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
-          Apply Style
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !videoUrl || !prompt}
+            className="gap-2"
+            data-testid="button-style-transfer"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
+            Apply Style
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedVideoUrl}
+            assetType="video"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -954,6 +1290,17 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
   const queryClient = useQueryClient();
   const [personImageUrl, setPersonImageUrl] = useState("");
   const [clothingImageUrl, setClothingImageUrl] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, imageUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (imageUrlFromContent) setClothingImageUrl(imageUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -969,11 +1316,10 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({ title: "Virtual try-on started!", description: "Processing your request." });
       queryClient.invalidateQueries({ queryKey: ["/api/creator-studio/status"] });
-      setPersonImageUrl("");
-      setClothingImageUrl("");
+      if (data.imageUrl) setGeneratedImageUrl(data.imageUrl);
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -995,6 +1341,12 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="image"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use product image from your content"
+        />
         <MediaUpload
           value={personImageUrl}
           onChange={setPersonImageUrl}
@@ -1013,15 +1365,23 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
           description="Product photo of the clothing item"
           testId="virtual-tryon-clothing"
         />
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !personImageUrl || !clothingImageUrl}
-          className="gap-2"
-          data-testid="button-virtual-tryon"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
-          Try On
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !personImageUrl || !clothingImageUrl}
+            className="gap-2"
+            data-testid="button-virtual-tryon"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
+            Try On
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={generatedImageUrl}
+            assetType="image"
+            disabled={mutation.isPending}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -1033,6 +1393,16 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
   const [imageUrl, setImageUrl] = useState("");
   const [targetAspectRatio, setTargetAspectRatio] = useState<"landscape" | "portrait" | "square">("landscape");
   const [resultUrl, setResultUrl] = useState("");
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, _script?: string, imageUrlFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (imageUrlFromContent) setImageUrl(imageUrlFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -1073,6 +1443,12 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="image"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use image from your content"
+        />
         <MediaUpload
           value={imageUrl}
           onChange={setImageUrl}
@@ -1095,15 +1471,23 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !imageUrl}
-          className="gap-2"
-          data-testid="button-image-reformat"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
-          Reformat Image
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !imageUrl}
+            className="gap-2"
+            data-testid="button-image-reformat"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
+            Reformat Image
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={resultUrl}
+            assetType="image"
+            disabled={mutation.isPending}
+          />
+        </div>
         {resultUrl && (
           <div className="mt-4 border rounded-lg p-4">
             <p className="text-sm text-muted-foreground mb-2">Result:</p>
@@ -1227,6 +1611,16 @@ function SteveAIVideosTab() {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [generationComplete, setGenerationComplete] = useState(false);
+  const [selectedContentId, setSelectedContentId] = useState<string | undefined>();
+
+  const handleContentSelect = (content: GeneratedContent | null, scriptFromContent?: string) => {
+    if (content) {
+      setSelectedContentId(content.id);
+      if (scriptFromContent) setScript(scriptFromContent);
+    } else {
+      setSelectedContentId(undefined);
+    }
+  };
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -1296,6 +1690,12 @@ function SteveAIVideosTab() {
         <CardDescription>Create polished videos up to 3 minutes with AI-generated visuals, voiceover, and music</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <ContentSelector
+          filter="script"
+          onSelect={handleContentSelect}
+          selectedId={selectedContentId}
+          label="Use script from your content"
+        />
         <div className="space-y-2">
           <Label>Video Script</Label>
           <Textarea
@@ -1353,15 +1753,23 @@ function SteveAIVideosTab() {
           />
         </div>
 
-        <Button 
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || !script.trim() || (!!requestId && !generationComplete)}
-          className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-          data-testid="button-generate-steve"
-        >
-          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-          {generationComplete ? "Generate Another" : "Generate Video"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={() => generateMutation.mutate()}
+            disabled={generateMutation.isPending || !script.trim() || (!!requestId && !generationComplete)}
+            className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+            data-testid="button-generate-steve"
+          >
+            {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+            {generationComplete ? "Generate Another" : "Generate Video"}
+          </Button>
+          <SaveToContentButton
+            contentId={selectedContentId}
+            assetUrl={videoUrl || undefined}
+            assetType="video"
+            disabled={generateMutation.isPending}
+          />
+        </div>
 
         {requestId && (
           <div className="mt-4 p-4 border rounded-lg bg-muted/50">
