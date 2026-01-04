@@ -1,0 +1,218 @@
+The 4 Creator / Account Types (WHO)
+
+These define tone, approval flow, and intent.
+
+⸻
+
+1️⃣ Brand
+
+(Companies, apps, SaaS, ecommerce, services)
+
+Primary goal: Trust, consistency, conversion
+Voice: Neutral, professional, on-brand
+Approval: Required
+
+Typical content
+	•	Product announcements
+	•	Feature updates
+	•	Promotions
+	•	Testimonials
+	•	Campaign posts
+
+Formats they use
+	•	Image posts
+	•	Short promo videos
+	•	Carousels
+	•	Stories
+	•	Reels / Shorts
+
+App implications
+	•	Approval mandatory
+	•	Brand tone presets
+	•	Asset attachment (logos, UI, product shots)
+	•	Campaign grouping
+
+⸻
+
+2️⃣ Influencer
+
+(Face-led creators, lifestyle, finance, travel, fitness)
+
+Primary goal: Reach, authority, monetisation
+Voice: Personal, opinionated
+Approval: Not required
+
+Typical content
+	•	Reels / TikToks
+	•	Personal takes
+	•	Trend reactions
+	•	Sponsored posts
+	•	Story updates
+
+Formats they use
+	•	Reels
+	•	TikToks
+	•	Shorts
+	•	Stories
+	•	Carousel highlights
+
+App implications
+	•	Hook-first captions
+	•	Trend-aware prompts
+	•	Fast publish flow
+	•	Minimal friction
+
+⸻
+
+3️⃣ UGC / Social
+
+(Creators making content for brands, often faceless)
+
+Primary goal: Deliverables, reuse, speed
+Voice: Adaptive to brand
+Approval: Usually required
+
+Typical content
+	•	Product demos
+	•	Testimonials
+	•	Before/after
+	•	Ad-style clips
+	•	Raw phone footage
+
+Formats they use
+	•	Vertical video (9:16)
+	•	Raw clips
+	•	Image + text posts
+	•	Ad-ready videos
+
+App implications
+	•	Multiple versions of same content
+	•	Status tracking per asset
+	•	Download-ready outputs
+	•	No posting required (handoff)
+
+⸻
+
+4️⃣ Educator
+
+(Coaches, experts, founders teaching a topic)
+
+Primary goal: Authority, clarity, trust
+Voice: Structured, explanatory
+Approval: Not required
+
+Typical content
+	•	How-to posts
+	•	Step-by-step guides
+	•	Explainers
+	•	Myth-busting
+	•	Frameworks
+
+Formats they use
+	•	Reels / Shorts
+	•	Carousels
+	•	Text posts
+	•	Image explainers
+	•	Video lessons
+
+App implications
+	•	Long-form caption support
+	•	Carousel logic
+	•	Save-worthy formatting
+	•	Cross-platform text rewrites
+
+⸻
+
+The 5 Core Content Formats (WHAT)
+
+These are the actual objects Social Command Flow manages.
+
+⸻
+
+1️⃣ Reels / Shorts (Video)
+	•	TikTok
+	•	Instagram Reels
+	•	YouTube Shorts
+
+Needs:
+	•	Script
+	•	Hook
+	•	Caption
+	•	Hashtags
+	•	Voiceover (optional)
+	•	Video attachment
+
+⸻
+
+2️⃣ UGC Video
+	•	Ad-style
+	•	Testimonial
+	•	Demo
+
+Needs:
+	•	Multiple versions
+	•	Brand-specific captions
+	•	Download/export
+	•	Approval state
+
+⸻
+
+3️⃣ Image Post
+	•	Quote
+	•	Promo
+	•	Announcement
+
+Needs:
+	•	Caption
+	•	Hashtags
+	•	Image attachment
+	•	Platform sizing
+
+⸻
+
+4️⃣ Carousel
+	•	Education
+	•	Comparison
+	•	Storytelling
+
+Needs:
+	•	Slide-by-slide copy
+	•	Caption summary
+	•	Reuse logic
+
+⸻
+
+5️⃣ Text-First Post
+	•	X / Threads
+	•	LinkedIn
+	•	TikTok text posts
+
+Needs:
+	•	Platform tone rewrites
+	•	Line breaks
+	•	Emoji control
+
+⸻
+
+How This Should Exist in the App (CRITICAL)
+
+Step 1 – User selects:
+
+Account Type: Brand / Influencer / UGC / Educator
+
+This sets:
+	•	Default tone
+	•	Approval flow
+	•	Caption length
+	•	CTA style
+
+⸻
+
+Step 2 – User selects:
+
+Content Format: Reel / UGC Video / Image / Carousel / Text
+
+This sets:
+	•	Required fields
+	•	Media expectations
+	•	Workflow stages
