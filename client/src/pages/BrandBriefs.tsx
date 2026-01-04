@@ -8,18 +8,27 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic } from "lucide-react";
+import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Sparkles, Edit2, Loader2, Lightbulb } from "lucide-react";
-import type { BrandBrief } from "@shared/schema";
+import type { BrandBrief, BrandAsset, AssetType, ASSET_TYPES } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 const PLATFORMS = ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn", "Facebook"];
 const FREQUENCIES = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+const ASSET_TYPE_OPTIONS = [
+  { value: "screenshot", label: "Screenshot" },
+  { value: "product", label: "Product Photo" },
+  { value: "logo", label: "Logo" },
+  { value: "headshot", label: "Headshot" },
+  { value: "lifestyle", label: "Lifestyle" },
+  { value: "testimonial", label: "Testimonial" },
+  { value: "other", label: "Other" },
+];
 
 const DEMO_USER_ID = "demo-user";
 
@@ -43,6 +52,13 @@ export default function BrandBriefs() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingBrief, setEditingBrief] = useState<BrandBrief | null>(null);
   const [editPlatforms, setEditPlatforms] = useState<string[]>([]);
+  const [assetsDialogOpen, setAssetsDialogOpen] = useState(false);
+  const [assetsBriefId, setAssetsBriefId] = useState<string | null>(null);
+  const [assetName, setAssetName] = useState("");
+  const [assetType, setAssetType] = useState("other");
+  const [assetDescription, setAssetDescription] = useState("");
+  const [assetFile, setAssetFile] = useState<File | null>(null);
+  const [uploadingAsset, setUploadingAsset] = useState(false);
 
   // Fetch user's own API keys status
   const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
@@ -191,6 +207,68 @@ export default function BrandBriefs() {
     if (!checkAIAccess("AI Content Ideas")) return;
     generateIdeasMutation.mutate(briefId);
   };
+
+  // Brand Assets
+  const { data: assets = [], refetch: refetchAssets } = useQuery<BrandAsset[]>({
+    queryKey: [`/api/brand-assets/${assetsBriefId}`],
+    enabled: !!assetsBriefId && assetsDialogOpen,
+  });
+
+  const handleOpenAssets = (briefId: string) => {
+    setAssetsBriefId(briefId);
+    setAssetsDialogOpen(true);
+    setAssetName("");
+    setAssetType("other");
+    setAssetDescription("");
+    setAssetFile(null);
+  };
+
+  const handleUploadAsset = async () => {
+    if (!assetsBriefId || !assetFile || !assetName) return;
+    
+    setUploadingAsset(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", assetFile);
+      formData.append("briefId", assetsBriefId);
+      formData.append("name", assetName);
+      formData.append("assetType", assetType);
+      if (assetDescription) formData.append("description", assetDescription);
+      
+      const res = await fetch("/api/brand-assets", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!res.ok) throw new Error("Upload failed");
+      
+      toast({ title: "Asset uploaded successfully!" });
+      setAssetName("");
+      setAssetType("other");
+      setAssetDescription("");
+      setAssetFile(null);
+      refetchAssets();
+    } catch (error: any) {
+      toast({ title: "Failed to upload asset", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingAsset(false);
+    }
+  };
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: async (assetId: string) => {
+      const res = await apiRequest("DELETE", `/api/brand-assets/${assetId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchAssets();
+      toast({ title: "Asset deleted" });
+    },
+    onError: (error) => {
+      toast({ title: "Failed to delete asset", description: error.message, variant: "destructive" });
+    },
+  });
 
   const handleEditBrief = (brief: BrandBrief) => {
     setEditingBrief(brief);
@@ -460,6 +538,14 @@ export default function BrandBriefs() {
                     data-testid={`button-edit-${brief.id}`}
                   >
                     <Edit2 className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenAssets(brief.id)}
+                    data-testid={`button-assets-${brief.id}`}
+                  >
+                    <ImagePlus className="w-4 h-4" />
                   </Button>
                 </div>
 
@@ -839,6 +925,147 @@ export default function BrandBriefs() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assetsDialogOpen} onOpenChange={setAssetsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Brand Assets</DialogTitle>
+            <DialogDescription>
+              Upload screenshots, product photos, logos, and other brand materials to reference in AI-generated images.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            <div className="p-4 border rounded-lg space-y-4">
+              <h4 className="font-medium text-sm">Upload New Asset</h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="assetName">Asset Name</Label>
+                <Input
+                  id="assetName"
+                  value={assetName}
+                  onChange={(e) => setAssetName(e.target.value)}
+                  placeholder="e.g., Product Hero Shot"
+                  data-testid="input-asset-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Asset Type</Label>
+                <Select value={assetType} onValueChange={setAssetType}>
+                  <SelectTrigger data-testid="select-asset-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSET_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="assetDescription">Description (optional)</Label>
+                <Input
+                  id="assetDescription"
+                  value={assetDescription}
+                  onChange={(e) => setAssetDescription(e.target.value)}
+                  placeholder="Brief description of the asset"
+                  data-testid="input-asset-description"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Image File</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setAssetFile(e.target.files?.[0] || null)}
+                    className="flex-1"
+                    data-testid="input-asset-file"
+                  />
+                </div>
+                {assetFile && (
+                  <p className="text-xs text-muted-foreground">Selected: {assetFile.name}</p>
+                )}
+              </div>
+
+              <Button
+                onClick={handleUploadAsset}
+                disabled={!assetFile || !assetName || uploadingAsset}
+                className="w-full"
+                data-testid="button-upload-asset"
+              >
+                {uploadingAsset ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Asset
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Uploaded Assets ({assets.length})</h4>
+              
+              {assets.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No assets uploaded yet. Upload your first asset above.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {assets.map((asset) => (
+                    <div key={asset.id} className="border rounded-lg p-3 space-y-2" data-testid={`card-asset-${asset.id}`}>
+                      <div className="aspect-video bg-muted rounded overflow-hidden">
+                        <img
+                          src={asset.imageUrl.startsWith("/") ? asset.imageUrl : `/objects/${asset.imageUrl}`}
+                          alt={asset.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder-image.svg";
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{asset.name}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {ASSET_TYPE_OPTIONS.find(o => o.value === asset.assetType)?.label || asset.assetType}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => deleteAssetMutation.mutate(asset.id)}
+                          data-testid={`button-delete-asset-${asset.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      {asset.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{asset.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssetsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
