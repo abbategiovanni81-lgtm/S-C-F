@@ -1506,6 +1506,106 @@ export async function registerRoutes(
     }
   });
 
+  // A2E Scene Video Generation (text-to-image → image-to-video combined)
+  app.post("/api/a2e/generate-scene-video", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+
+      const { prompt, aspectRatio } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      // Check quota for videos
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "a2eVideos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      // Step 1: Generate image from text using A2E
+      const imageWidth = aspectRatio === "9:16" ? 720 : 1280;
+      const imageHeight = aspectRatio === "9:16" ? 1280 : 720;
+      
+      const imageResult = await a2eService.generateImage({
+        prompt,
+        width: imageWidth,
+        height: imageHeight,
+      });
+
+      if (!imageResult.imageUrl) {
+        return res.status(500).json({ error: "Failed to generate image from prompt" });
+      }
+
+      // Step 2: Convert image to video using A2E
+      const taskId = await a2eService.generateImageToVideo({ 
+        imageUrl: imageResult.imageUrl,
+        text: prompt 
+      });
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "a2eVideos", 1);
+        }
+      }
+
+      res.json({ 
+        taskId, 
+        status: "processing",
+        imageUrl: imageResult.imageUrl,
+        engine: "a2e-scene"
+      });
+    } catch (error: any) {
+      console.error("A2E scene video generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // A2E Scene Video Status Check
+  app.get("/api/a2e/scene-video-status/:taskId", async (req, res) => {
+    try {
+      if (!a2eService.isConfigured()) {
+        return res.status(400).json({ error: "A2E API not configured" });
+      }
+
+      const status = await a2eService.checkImageToVideoStatus(req.params.taskId);
+      
+      // If video is done, download and save to cloud storage for persistence
+      if (status.status === "done" && status.output) {
+        try {
+          const savedUrl = await downloadAndSaveMedia(status.output, "video");
+          console.log(`Saved A2E scene video to cloud storage: ${savedUrl}`);
+          status.output = savedUrl;
+        } catch (downloadError) {
+          console.error("Failed to save A2E scene video to cloud storage:", downloadError);
+        }
+      }
+      
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Steve AI API routes
   app.get("/api/steveai/status", async (req, res) => {
     res.json({ configured: steveAIService.isConfigured() });

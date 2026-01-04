@@ -726,7 +726,7 @@ export default function ContentQueue() {
         }
         
         toast({ title: `Scene ${sceneNumber} generating with A2E...`, description: "This may take a few minutes." });
-        pollA2ESceneVideoStatus(contentId, sceneNumber, data.lipSyncId);
+        pollA2ESceneVideoStatus(contentId, sceneNumber, data.lipSyncId, false);
       } else if (videoEngine === "steveai" && aiEngines?.steveai?.configured) {
         // Studio Package video generation
         const res = await fetch("/api/steveai/generate", {
@@ -773,8 +773,49 @@ export default function ContentQueue() {
         
         toast({ title: `Scene ${sceneNumber} generating with Studio Package...`, description: "This may take several minutes for longer videos." });
         pollSteveAISceneVideoStatus(contentId, sceneNumber, data.requestId);
+      } else if (videoEngine === "a2e" && aiEngines?.a2e?.configured) {
+        // A2E scene video generation (text-to-image → image-to-video) - no avatar needed
+        const res = await fetch("/api/a2e/generate-scene-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, aspectRatio }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to start A2E scene video generation");
+        }
+        
+        const data = await res.json();
+        setSceneVideos(prev => ({
+          ...prev,
+          [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.taskId } }
+        }));
+        
+        // Save request ID to database for polling resume
+        try {
+          const contentRes = await fetch(`/api/content/${contentId}`);
+          if (contentRes.ok) {
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            const sceneRequests = existingMetadata.sceneRequests || {};
+            sceneRequests[sceneNumber] = { requestId: data.taskId, status: "processing", engine: "a2e-scene" };
+            await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { ...existingMetadata, sceneRequests }
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save scene request:", e);
+        }
+        
+        toast({ title: `Scene ${sceneNumber} generating with A2E...`, description: "Creating scene image and animating it." });
+        pollA2ESceneVideoStatus(contentId, sceneNumber, data.taskId, true);
       } else {
-        // Fal.ai video generation (fallback)
+        // Fal.ai video generation (fallback only if A2E unavailable)
         const res = await fetch("/api/fal/generate-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -826,18 +867,22 @@ export default function ContentQueue() {
     }
   };
 
-  // A2E polling function
-  const pollA2ESceneVideoStatus = async (contentId: string, sceneNumber: number, lipSyncId: string) => {
+  // A2E polling function - handles both lip-sync and scene videos
+  const pollA2ESceneVideoStatus = async (contentId: string, sceneNumber: number, taskId: string, isSceneVideo: boolean = false) => {
     const poll = async () => {
       try {
-        const res = await fetch(`/api/a2e/status/${lipSyncId}`);
+        // Use different endpoints for lip-sync vs scene video
+        const statusUrl = isSceneVideo 
+          ? `/api/a2e/scene-video-status/${taskId}`
+          : `/api/a2e/status/${taskId}`;
+        const res = await fetch(statusUrl);
         if (!res.ok) return;
         
         const data = await res.json();
         if (data.status === "done" && data.output) {
           setSceneVideos(prev => ({
             ...prev,
-            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.output, requestId: lipSyncId } }
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.output, requestId: taskId } }
           }));
           
           // Save to database
@@ -848,7 +893,7 @@ export default function ContentQueue() {
               const existingMetadata = content?.generationMetadata || {};
               const existingClips = existingMetadata.generatedClips || [];
               const updatedClips = existingClips.filter((c: any) => c.sceneNumber !== sceneNumber);
-              updatedClips.push({ sceneNumber, videoUrl: data.output, requestId: lipSyncId, engine: "a2e" });
+              updatedClips.push({ sceneNumber, videoUrl: data.output, requestId: taskId, engine: isSceneVideo ? "a2e-scene" : "a2e" });
               updatedClips.sort((a: any, b: any) => a.sceneNumber - b.sceneNumber);
               
               const sceneRequests = existingMetadata.sceneRequests || {};
@@ -873,7 +918,7 @@ export default function ContentQueue() {
         } else if (data.status === "error") {
           setSceneVideos(prev => ({
             ...prev,
-            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId: lipSyncId } }
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId: taskId } }
           }));
           toast({ title: `Scene ${sceneNumber} failed`, description: data.error_message || "A2E generation failed", variant: "destructive" });
         } else {
@@ -1657,10 +1702,10 @@ export default function ContentQueue() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {videoEngine === "a2e" 
-                      ? "A2E creates realistic lip-sync avatar videos from your script text." 
+                      ? "A2E creates videos: select an avatar for talking head, or leave empty for AI-generated scene videos." 
                       : videoEngine === "steveai"
                       ? "Studio Package creates polished videos in multiple styles (animation, live action, AI-generated). Up to 3 minutes."
-                      : "Fal.ai generates AI video clips from visual prompts."}
+                      : "Fal.ai generates AI video clips from visual prompts (backup)."}
                   </p>
                 </div>
                 

@@ -33,8 +33,8 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 ### AI Services
 -   **OpenAI**: Content generation (scripts, captions, hashtags, ideas) and DALL-E 3 image generation.
 -   **ElevenLabs**: Voice synthesis.
--   **A2E**: Default engine for avatar lip-sync video generation.
--   **Fal.ai**: Backup engine for AI video/image generation.
+-   **A2E**: Default engine for ALL video generation. Supports: (1) Lip-sync avatar videos when avatar is selected, (2) Scene videos via text-to-image + image-to-video pipeline when no avatar selected.
+-   **Fal.ai**: Backup engine for AI video/image generation (only used if A2E unavailable).
 -   **Steve AI**: Enterprise-level video creation for Studio tier.
 
 ### Social Media Platforms
