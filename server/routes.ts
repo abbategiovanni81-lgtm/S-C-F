@@ -202,6 +202,96 @@ export async function registerRoutes(
     }
   });
 
+  // Brand Assets endpoints
+  const assetUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+  app.get("/api/brand-assets/:briefId", requireAuth, async (req: any, res) => {
+    try {
+      // Check if user owns the brief
+      const brief = await storage.getBrandBrief(req.params.briefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const assets = await storage.getBrandAssetsByBrief(req.params.briefId);
+      res.json(assets);
+    } catch (error) {
+      console.error("Error fetching brand assets:", error);
+      res.status(500).json({ error: "Failed to fetch brand assets" });
+    }
+  });
+
+  app.post("/api/brand-assets", requireAuth, assetUpload.single("file"), async (req: any, res) => {
+    try {
+      const { briefId, assetType, name, description } = req.body;
+      
+      if (!briefId || !name) {
+        return res.status(400).json({ error: "briefId and name are required" });
+      }
+      
+      // Check if user owns the brief
+      const brief = await storage.getBrandBrief(briefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      let imageUrl = req.body.imageUrl;
+      
+      // If a file was uploaded, upload to cloud storage
+      if (req.file) {
+        const result = await objectStorageService.uploadBuffer(
+          req.file.buffer,
+          req.file.originalname,
+          req.file.mimetype,
+          true
+        );
+        imageUrl = result.objectPath;
+      }
+      
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Either file or imageUrl is required" });
+      }
+      
+      const asset = await storage.createBrandAsset({
+        briefId,
+        userId: req.userId,
+        assetType: assetType || "other",
+        name,
+        description: description || null,
+        imageUrl,
+      });
+      
+      res.status(201).json(asset);
+    } catch (error) {
+      console.error("Error creating brand asset:", error);
+      res.status(500).json({ error: "Failed to create brand asset" });
+    }
+  });
+
+  app.delete("/api/brand-assets/:id", requireAuth, async (req: any, res) => {
+    try {
+      // Get asset to check ownership
+      const assets = await storage.getBrandAssetsByUser(req.userId);
+      const asset = assets.find(a => a.id === req.params.id);
+      
+      if (!asset) {
+        return res.status(404).json({ error: "Asset not found" });
+      }
+      
+      await storage.deleteBrandAsset(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting brand asset:", error);
+      res.status(500).json({ error: "Failed to delete brand asset" });
+    }
+  });
+
   // Helper to check content ownership via brand brief
   const checkContentOwnership = async (contentId: string, userId: string): Promise<boolean> => {
     const content = await storage.getGeneratedContent(contentId);
