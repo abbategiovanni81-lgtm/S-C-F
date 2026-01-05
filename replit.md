@@ -58,3 +58,22 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 
 ### Cloud Storage
 -   **Replit App Storage (Google Cloud Storage)**: All file uploads (images, video clips) are stored in cloud storage via presigned URLs. Upload endpoints in `server/routes.ts` use `objectStorageService.uploadBuffer()` to persist files. Files are served via `/objects/*` route. This ensures uploads persist in production (unlike local filesystem storage).
+
+## AI Content Generation Rules
+
+### Carousel Optimization (Instagram/Social)
+1. **Prefer vertical carousels**: Use 4:5 or 3:4 ratios to maximize screen space and feed visibility
+2. **Slide 1 = Hook**: 6-8 words max, speak audience's language, signal value/tension/curiosity
+3. **Slide 2 is critical for reach**: Instagram may resurface posts using slide 2. Reinforce hook, add context, push curiosity
+4. **One idea per carousel**: Maintain clear narrative: hook → explanation → insight → CTA
+5. **Flow > volume**: Each slide should naturally lead to the next
+6. **End with clear CTA**: Prompt comments, keywords, or actions. "Link in bio" is fine
+7. **Visuals increase discoverability**: Screenshots, typography, illustrations, relevant photos
+8. **Platform signals**: Add music (instrumental) for Reels distribution. Use location tags for local reach
+
+### AI Generation Behavior
+- Optimize for swipe depth, not just slide 1
+- Generate hooks first, then build content around them
+- Enforce structural discipline (one idea, clear flow)
+- Auto-suggest CTAs aligned to post intent
+- Recommend visuals and music as part of post readiness, not optional extras

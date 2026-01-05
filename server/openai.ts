@@ -229,16 +229,24 @@ export const FORMAT_SPECIFIC_IDEAS = {
 };
 
 export const CAROUSEL_STRUCTURE = {
-  slide1: "HOOK - Must stop scrollers. Bold text, intriguing question, or shocking stat.",
-  slide2: "EMPATHY - Build trust. 'I get it because I've been there too.'",
-  slides3to9: "BODY - Deliver the value. Each slide = one key point. Keep it scannable.",
-  finalSlide: "CTA - What action should they take? Save, share, comment, follow, or click link.",
+  slide1: "HOOK - 6-8 words max. Speak audience's language. Signal value, tension, or curiosity. Must stop scrollers.",
+  slide2: "CRITICAL FOR REACH - Instagram may resurface posts using slide 2. Reinforce the hook, add context, push curiosity to keep swiping.",
+  slides3to9: "BODY - One key point per slide. Build a clear narrative flow. Each slide should naturally lead to the next. Encourage continued swiping.",
+  finalSlide: "CTA - Clear call to action. Prompt comments, keywords, or next actions. CTA style should match carousel tone. 'Link in bio' is fine.",
   designRules: [
-    "Consistent visual theme across all slides",
+    "Prefer 4:5 or 3:4 vertical ratios to maximize screen space and feed visibility",
+    "ONE idea per carousel - maintain clear narrative: hook → explanation → insight → CTA",
+    "Flow matters more than volume - each slide should lead naturally to the next",
     "Large, readable fonts (readable on mobile)",
-    "Limit text per slide (5-7 words max for headlines)",
+    "Limit text per slide (6-8 words max for hook, 5-7 for body)",
+    "Consistent visual theme across all slides",
     "Use brand colors for cohesion",
-    "Include progress indicators if possible",
+    "Use visuals that support the message: screenshots, typography, illustrations, or relevant photos",
+    "Carousels can surface in Reels tab - visual quality matters",
+  ],
+  platformBoosts: [
+    "Add music (preferably instrumental) to qualify for Reels distribution",
+    "Use location tags when relevant, especially for local reach",
   ],
 };
 
@@ -520,14 +528,27 @@ export async function generateSocialContent(
   // Build carousel structure guidance if needed
   const carouselGuidance = contentFormat === "carousel" ? `
 
-CAROUSEL STRUCTURE (FOLLOW THIS EXACTLY):
+CAROUSEL OPTIMIZATION RULES (FOLLOW EXACTLY):
+═══════════════════════════════════════════════════════════════════════════════
+
+SLIDE STRUCTURE:
 - Slide 1: ${CAROUSEL_STRUCTURE.slide1}
 - Slide 2: ${CAROUSEL_STRUCTURE.slide2}
 - Slides 3-9: ${CAROUSEL_STRUCTURE.slides3to9}
 - Final Slide: ${CAROUSEL_STRUCTURE.finalSlide}
 
 CAROUSEL DESIGN RULES:
-${CAROUSEL_STRUCTURE.designRules.map(r => `- ${r}`).join("\n")}` : "";
+${CAROUSEL_STRUCTURE.designRules.map(r => `- ${r}`).join("\n")}
+
+PLATFORM REACH BOOSTERS:
+${CAROUSEL_STRUCTURE.platformBoosts.map(r => `- ${r}`).join("\n")}
+
+AI CONTENT GENERATION RULES:
+- Optimize for SWIPE DEPTH, not just slide 1
+- Generate hooks FIRST, then build content around them
+- Enforce structural discipline (one idea, clear flow)
+- Auto-suggest CTAs aligned to post intent
+- Recommend visuals and music as part of post readiness, not optional extras` : "";
 
   // Select random relatability strategies to inject
   const shuffledRelatability = [...RELATABILITY_STRATEGIES].sort(() => 0.5 - Math.random()).slice(0, 8);
