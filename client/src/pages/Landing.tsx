@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare, Star, Check } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -37,8 +37,11 @@ export default function Landing() {
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-3 md:mb-4">
             Social<span className="text-purple-400">Command</span><span className="text-blue-400">Flow</span>
           </h1>
-          <p className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto px-2">
-            Your all-in-one AI content creation tool. Generate scripts, voiceovers, avatar videos, and images—then schedule directly to your social platforms.
+          <p className="text-xl md:text-2xl font-semibold text-white mb-2">
+            Turn AI Into Viral Content That Posts Itself
+          </p>
+          <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto px-2">
+            Generate scripts, voiceovers, avatar videos, and images—then auto-post to 10 social platforms. All from one dashboard.
           </p>
         </div>
 
@@ -62,8 +65,8 @@ export default function Landing() {
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
               <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">1</div>
               <Zap className="h-5 w-5 text-purple-400 mx-auto mb-1" />
-              <h3 className="text-white font-semibold mb-1 text-xs">Connect APIs</h3>
-              <p className="text-gray-400 text-[10px]">Add your AI keys</p>
+              <h3 className="text-white font-semibold mb-1 text-xs">Power Up</h3>
+              <p className="text-gray-400 text-[10px]">Connect your accounts</p>
             </div>
             
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
@@ -157,13 +160,67 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="text-center mb-8">
-          <Link href="/testimonials">
-            <span className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">
-              <MessageSquare className="h-5 w-5" />
-              <span className="font-medium">See What Our Users Say</span>
-            </span>
-          </Link>
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="bg-white/5 border border-purple-500/30 rounded-xl p-4 md:p-6 text-center">
+            <div className="flex justify-center gap-1 mb-2">
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+            </div>
+            <p className="text-gray-200 italic text-sm md:text-base mb-2">
+              "This platform saved me 20+ hours a week. I went from struggling to post daily to having a full content calendar with AI-generated videos ready to go."
+            </p>
+            <p className="text-purple-400 font-medium text-sm">— Social Media Manager</p>
+          </div>
+          <div className="text-center mt-4">
+            <Link href="/testimonials">
+              <span className="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">
+                <MessageSquare className="h-5 w-5" />
+                <span className="font-medium">See More Success Stories</span>
+              </span>
+            </Link>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-6">Simple Pricing</h2>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
+              <h3 className="text-lg font-bold text-white mb-1">Free</h3>
+              <p className="text-3xl font-bold text-white mb-1">$0</p>
+              <p className="text-gray-400 text-xs mb-4">Forever free</p>
+              <ul className="text-left text-sm text-gray-300 space-y-2">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 3 social channels</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 10 AI generations/mo</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Basic scheduling</li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500 rounded-xl p-5 text-center relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-3 py-1 rounded-full font-medium">Most Popular</div>
+              <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
+              <p className="text-3xl font-bold text-white mb-1">$49<span className="text-lg text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-xs mb-4">For growing creators</p>
+              <ul className="text-left text-sm text-gray-300 space-y-2">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 10 social channels</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 500 AI generations/mo</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Avatar videos + voice</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Social listening</li>
+              </ul>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
+              <h3 className="text-lg font-bold text-white mb-1">Studio</h3>
+              <p className="text-3xl font-bold text-white mb-1">$149<span className="text-lg text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-xs mb-4">For agencies & teams</p>
+              <ul className="text-left text-sm text-gray-300 space-y-2">
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Unlimited channels</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 2000 AI generations/mo</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Steve AI longform</li>
+                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Priority support</li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div className="max-w-md mx-auto">
