@@ -77,3 +77,12 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 - Enforce structural discipline (one idea, clear flow)
 - Auto-suggest CTAs aligned to post intent
 - Recommend visuals and music as part of post readiness, not optional extras
+
+### Instagram Post Optimization (Single Images & Stories)
+1. **Ask, don't tell**: Questions, polls, and choices drive engagement - interaction is the goal
+2. **Low-friction prompts**: Binary choices ("this or that"), simple opinion asks, one-word reply triggers
+3. **Audience validation**: Ask about struggles/preferences - make users feel seen, let them talk about themselves
+4. **Conversation framing > expertise framing**: Casual language, write like a DM not a broadcast
+5. **Soft CTAs for stories**: Reply-based CTAs outperform "click now" - frame offers as optional help
+6. **Social proof prompts**: "Drop your IG below", "Anyone else watching...?" for community engagement
+7. **Research value**: Use posts to surface audience pain points for future content

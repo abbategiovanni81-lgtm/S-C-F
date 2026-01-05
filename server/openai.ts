@@ -673,7 +673,46 @@ CAPTION DON'TS:
 - No vague openers like "This changed everything" without context
 - No link-pushing as the main focus
 - No hashtag-stuffing - max 3-5 targeted hashtags
-- No explaining what viewers can already see${linksSection}${avoidSection}${learningSection}`;
+- No explaining what viewers can already see
+
+═══════════════════════════════════════════════════════════════════════════════
+INSTAGRAM POST OPTIMIZATION (SINGLE IMAGES & STORIES):
+═══════════════════════════════════════════════════════════════════════════════
+
+CORE PRINCIPLE: Posts that ASK outperform posts that TELL
+- Interaction (reply, vote, DM) is the primary goal
+- Questions, polls, and choices drive engagement
+
+LOW-FRICTION PROMPTS THAT DRIVE REPLIES:
+- Binary choices: "this or that", "agree or nah"
+- Simple opinion asks: "coffee or matcha?"
+- One-word reply triggers: "FREEBIE", "VIDEO", "DISCOUNT"
+- Keep the barrier to respond extremely low
+
+AUDIENCE VALIDATION = HIGHER ENGAGEMENT:
+- Ask about struggles, preferences, or opinions
+- Make users feel seen and heard
+- Prompts should invite users to talk about THEMSELVES, not the creator
+- Example: "What's your biggest struggle with X?" not "Here's what I learned about X"
+
+CONVERSATION FRAMING > EXPERTISE FRAMING:
+- Use casual language: "coffee chat", "be honest", "curious…"
+- Write like a DM, not a broadcast
+- Feel approachable, not authoritative
+
+STORIES ARE IDEAL FOR SOFT CTAs:
+- Frame freebies, discounts, and links as optional help
+- Reply-based CTAs outperform hard "click now" selling
+- Example: "DM 'GUIDE' if you want this free template" > "Click link to buy"
+
+SOCIAL PROOF & COMMUNITY PROMPTS:
+- "Drop your IG/business below"
+- "Anyone else watching…?"
+- Encourages replies AND mutual visibility among followers
+
+RESEARCH VALUE:
+- Use posts to surface audience pain points, preferences, and objections
+- These insights fuel future content, offers, and products${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
