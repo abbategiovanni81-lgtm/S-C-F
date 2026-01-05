@@ -235,11 +235,12 @@ export default function Landing() {
               <ul className="text-left text-xs text-gray-300 space-y-1">
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 9 social channels</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 48 videos, 450 images</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Steve AI + Creator Studio</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package included</li>
               </ul>
             </div>
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">All paid plans include: AI scripts, voiceovers, avatar videos, scheduling & analytics</p>
+          <p className="text-center text-purple-400 text-xs mt-2">+ Creator Studio add-on: £20/mo (available for Premium, Pro & Studio tiers)</p>
         </div>
 
         <div className="max-w-md mx-auto">
