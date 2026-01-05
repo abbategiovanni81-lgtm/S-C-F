@@ -4862,10 +4862,10 @@ export async function registerRoutes(
     }
   });
 
-  // Content comparison endpoint
+  // Content comparison endpoint - allow up to 50MB total for multiple screenshots
   const comparisonUpload = multer({ 
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 50 * 1024 * 1024, files: 20 },
   });
 
   app.post("/api/content/compare", requireAuth, comparisonUpload.any(), async (req: any, res) => {
