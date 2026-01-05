@@ -130,16 +130,31 @@ export const FORMAT_SPECIFIC_IDEAS = {
     "Challenge Participation",
   ],
   carousel: [
-    "Step-by-Step Guides",
-    "Client Testimonials",
-    "Event Highlights",
-    "Product Collection",
-    "Visual Storytelling",
-    "Infographics",
-    "Travel Diaries",
-    "Recipes (each step on a slide)",
-    "Case Studies",
-    "Photography Series",
+    // EDUCATIONAL (trust + saves + long-term growth)
+    "Step-by-step tutorials with clear takeaway",
+    "Quick checklists ('swipe to save')",
+    "Top tools I use",
+    "Beginner mistakes to avoid",
+    "Myth-busting carousels",
+    // RELATABLE (engagement + resonance)
+    "Before vs after (mindset, life, results)",
+    "'If you know, you know' struggles",
+    "Things I wish I knew earlier",
+    "Unpopular opinions",
+    // STORYTELLING (depth + loyalty)
+    "Mistakes that almost made me quit",
+    "From struggle → success journey",
+    "What no one tells you about [topic]",
+    "Behind-the-scenes process",
+    // CREDIBLE (conversion + authority)
+    "Case studies (result in X time)",
+    "What I'd do if I started over",
+    "Lessons from investing time/money",
+    // SAVEABLE (algorithm signals)
+    "Infographics & breakdowns",
+    "Do's & Don'ts",
+    "Cheat sheets (hooks, captions, ideas)",
+    "Niche-specific 'Top 5' resources",
   ],
   single_post: [
     "Inspirational Quote",
@@ -548,7 +563,30 @@ AI CONTENT GENERATION RULES:
 - Generate hooks FIRST, then build content around them
 - Enforce structural discipline (one idea, clear flow)
 - Auto-suggest CTAs aligned to post intent
-- Recommend visuals and music as part of post readiness, not optional extras` : "";
+- Recommend visuals and music as part of post readiness, not optional extras
+
+CAROUSEL FORMAT STRATEGY (match format to goal):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EDUCATIONAL (goal: trust, saves, long-term growth)
+→ Step-by-step tutorials, checklists, top tools, beginner mistakes, myth-busting
+
+RELATABLE (goal: engagement, resonance, comments)
+→ Before vs after, "if you know you know", things I wish I knew, unpopular opinions
+
+STORYTELLING (goal: depth, loyalty, audience bonding)
+→ Mistakes that almost made me quit, struggle→success, behind-the-scenes, "the day everything changed"
+
+CREDIBLE (goal: conversion, authority, offers)
+→ Case studies, real result screenshots, what I'd do if I started over, testimonials
+
+SAVEABLE (goal: algorithm signals, shares)
+→ Infographics, do's & don'ts, cheat sheets, niche-specific top resources
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTENT STRATEGY:
+- Rotate educational + relatable + credible formats weekly
+- Ensure clear messaging on every slide
+- Optimise for saves, shares, and clarity - NOT volume` : "";
 
   // Select random relatability strategies to inject
   const shuffledRelatability = [...RELATABILITY_STRATEGIES].sort(() => 0.5 - Math.random()).slice(0, 8);

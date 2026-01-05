@@ -95,3 +95,14 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 5. **Curiosity creates commitment**: "Stay close", "What's next" - hint at future value
 6. **Subtle exclusion increases conversion**: "Maybe that's why you're here" filters audience
 7. **Tone matters**: Calm, assured, conversational - NO urgency spam or algorithm begging
+
+### Carousel Format Strategy (Match Format to Goal)
+| Format | Goal | Examples |
+|--------|------|----------|
+| **Educational** | Trust, saves, long-term growth | Tutorials, checklists, top tools, beginner mistakes, myth-busting |
+| **Relatable** | Engagement, resonance, comments | Before vs after, "if you know you know", unpopular opinions |
+| **Storytelling** | Depth, loyalty, bonding | Struggle→success, behind-the-scenes, "the day everything changed" |
+| **Credible** | Conversion, authority, offers | Case studies, real results, what I'd do starting over, testimonials |
+| **Saveable** | Algorithm signals, shares | Infographics, do's & don'ts, cheat sheets, top resources |
+
+**Strategy**: Rotate educational + relatable + credible weekly. Optimize for saves/shares/clarity, not volume.
