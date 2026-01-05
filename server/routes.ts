@@ -29,6 +29,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -5003,20 +5004,31 @@ export async function registerRoutes(
         }
       }
 
-      // Convert screenshots to base64 - limit to 4 max to avoid OpenAI 413 errors
+      // Convert screenshots to base64 - compress large images automatically
       const screenshotBase64s: string[] = [];
       if (files) {
         const screenshotFiles = files.filter(f => f.fieldname.includes("Screenshot"));
-        // Take only first 4 screenshots to reduce payload size
-        const limitedFiles = screenshotFiles.slice(0, 4);
+        // Take up to 6 screenshots for comparison
+        const limitedFiles = screenshotFiles.slice(0, 6);
         for (const file of limitedFiles) {
-          // Skip files larger than 5MB each to avoid API limits
-          if (file.buffer.length > 5 * 1024 * 1024) {
-            console.log(`Skipping large screenshot: ${file.originalname} (${(file.buffer.length / 1024 / 1024).toFixed(1)}MB)`);
-            continue;
+          try {
+            // Compress large images using sharp (resizes to max 1200px and converts to JPEG)
+            let imageBuffer = file.buffer;
+            const originalSize = file.buffer.length;
+            
+            if (originalSize > 1 * 1024 * 1024) { // If over 1MB, compress
+              imageBuffer = await sharp(file.buffer)
+                .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality: 80 })
+                .toBuffer();
+              console.log(`Compressed screenshot: ${file.originalname} from ${(originalSize / 1024 / 1024).toFixed(1)}MB to ${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+            }
+            
+            const base64 = `data:image/jpeg;base64,${imageBuffer.toString("base64")}`;
+            screenshotBase64s.push(base64);
+          } catch (err) {
+            console.error(`Failed to process screenshot ${file.originalname}:`, err);
           }
-          const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-          screenshotBase64s.push(base64);
         }
       }
 
