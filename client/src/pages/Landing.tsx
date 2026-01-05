@@ -245,9 +245,9 @@ export default function Landing() {
             <div className="bg-purple-900/30 border border-purple-500/30 rounded-xl p-4">
               <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
                 <Wand2 className="h-4 w-4 text-purple-400" />
-                Creator Studio Add-on <span className="text-purple-400 font-normal">£20/mo</span>
+                Creator Studio <span className="text-purple-400 font-normal">£20/mo add-on</span>
               </h3>
-              <p className="text-gray-400 text-xs mb-3">Advanced AI tools for Premium, Pro & Studio tiers</p>
+              <p className="text-gray-400 text-xs mb-3">Add-on for Premium & Pro • <span className="text-green-400">Included free with Studio</span></p>
               <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-300">
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Voice Clone</span>
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Talking Photo</span>
@@ -263,9 +263,9 @@ export default function Landing() {
             <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
               <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
                 <Film className="h-4 w-4 text-yellow-400" />
-                Studio Package <span className="text-yellow-400 font-normal">Included in Studio</span>
+                Studio Package <span className="text-yellow-400 font-normal">Studio tier only</span>
               </h3>
-              <p className="text-gray-400 text-xs mb-3">Professional video generation tools</p>
+              <p className="text-gray-400 text-xs mb-3">Professional long-form video tools • <span className="text-green-400">Included with Studio</span></p>
               <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-300">
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Long-Form Video</span>
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Blog/URL to Video</span>
