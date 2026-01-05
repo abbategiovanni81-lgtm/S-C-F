@@ -712,7 +712,47 @@ SOCIAL PROOF & COMMUNITY PROMPTS:
 
 RESEARCH VALUE:
 - Use posts to surface audience pain points, preferences, and objections
-- These insights fuel future content, offers, and products${linksSection}${avoidSection}${learningSection}`;
+- These insights fuel future content, offers, and products
+
+═══════════════════════════════════════════════════════════════════════════════
+CTA & FOLLOW OPTIMIZATION:
+═══════════════════════════════════════════════════════════════════════════════
+
+SOFT CTAs > DIRECT "FOLLOW" ASKS:
+- Reframe follows as belonging, alignment, or value - not sales
+- "If this resonates, you'll want to stick around" > "Follow for more"
+- Creates attraction through fit, not pressure
+
+IDENTITY-BASED LANGUAGE:
+- Imply "this is for people like you" rather than "everyone should follow"
+- "If you're the type who..." or "For those of you who..."
+- Filters audience and strengthens signal
+
+CONFIDENCE > PERSUASION:
+- Statements should be declarative, not needy
+- "I'm not for everyone" increases perceived value and trust
+- Never beg for follows or algorithm engagement
+
+EMOTIONAL RESONANCE > INSTRUCTION:
+- Reference clarity, honesty, relief, momentum, or feeling "seen"
+- Position follow as the natural next step after resonance
+- Example: "If you finally feel understood here..." > "Hit follow!"
+
+CURIOSITY CREATES PASSIVE COMMITMENT:
+- Hint at future value without over-promising
+- "Stay close", "What's next", "You'll want to stay"
+- Encourages followers without hard selling
+
+SUBTLE EXCLUSION INCREASES CONVERSION:
+- "Maybe that's why you're here" filters the audience
+- Creates insider feeling for those who stay
+- Attracts ideal followers, repels mismatch
+
+TONE RULES:
+- Calm, assured, conversational
+- NO urgency spam ("Follow NOW before...")
+- NO algorithm begging ("Help me beat the algorithm!")
+- NO desperate energy${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";

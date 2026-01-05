@@ -86,3 +86,12 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 5. **Soft CTAs for stories**: Reply-based CTAs outperform "click now" - frame offers as optional help
 6. **Social proof prompts**: "Drop your IG below", "Anyone else watching...?" for community engagement
 7. **Research value**: Use posts to surface audience pain points for future content
+
+### CTA & Follow Optimization
+1. **Soft CTAs > direct asks**: Reframe follows as belonging/alignment, not sales
+2. **Identity-based language**: "This is for people like you" > "Everyone follow me"
+3. **Confidence > persuasion**: Declarative statements, "I'm not for everyone" increases value
+4. **Emotional resonance > instruction**: Reference clarity, relief, feeling "seen" - follow becomes natural
+5. **Curiosity creates commitment**: "Stay close", "What's next" - hint at future value
+6. **Subtle exclusion increases conversion**: "Maybe that's why you're here" filters audience
+7. **Tone matters**: Calm, assured, conversational - NO urgency spam or algorithm begging
