@@ -1,0 +1,109 @@
+PLATFORM-SPECIFIC ALGORITHMIC RULES
+
+Instagram (Feed / Reels / Stories)
+	•	Early saves > early likes
+	•	Replays > completion rate
+	•	Comment depth > comment count
+	•	Profile taps as quality signal
+	•	Carousel dwell time weighting
+
+TikTok
+	•	Watch time > everything
+	•	Rewatch loops as primary boost
+	•	Shares > likes for scale
+	•	Comment velocity in first 30–60 mins
+	•	Sound + format relevance scoring
+
+YouTube (Shorts & Long-form)
+	•	First 5 seconds retention cliff
+	•	Average View Duration (AVD) priority
+	•	Session continuation signal
+	•	Suggested feed dependency
+	•	Title–thumbnail alignment penalty
+
+Facebook
+	•	Meaningful interactions over reactions
+	•	Shares to groups > personal shares
+	•	Comment replies (thread depth)
+	•	Native content preference
+	•	External link suppression logic
+
+⸻
+
+12. PLATFORM-SPECIFIC HOOK STYLES
+
+TikTok Hook Styles
+	•	POV hooks
+	•	“Watch till the end” disguised hooks
+	•	Pattern-break openers
+	•	Whisper hooks
+	•	Visual chaos hooks
+
+YouTube Hook Styles
+	•	Curiosity gap headlines
+	•	Outcome-first framing
+	•	Time-bound promises
+	•	Authority-anchored hooks
+	•	Comparison hooks (“X vs Y”)
+
+Facebook Hook Styles
+	•	Nostalgia hooks
+	•	Opinionated long-sentence hooks
+	•	Community-based hooks
+	•	Question-led story hooks
+	•	Authority positioning hooks
+
+⸻
+
+13. TITLE & THUMBNAIL SYSTEM (YouTube)
+	•	Title curiosity gap rules
+	•	Thumbnail emotional triggers
+	•	Face vs object decision logic
+	•	Text-on-thumbnail limits
+	•	Title–thumbnail contradiction strategy
+
+⸻
+
+14. CONTENT LENGTH OPTIMIZATION
+
+TikTok
+	•	7–12s micro-viral
+	•	20–35s explainers
+	•	45–60s authority plays
+
+YouTube Shorts
+	•	15–25s discovery
+	•	30–45s retention
+	•	50–59s monetisation
+
+Facebook
+	•	Sub-30s autoplay bias
+	•	45–90s story formats
+	•	Long captions, short videos pairing
+
+⸻
+
+15. POSTING FREQUENCY & FATIGUE RULES
+	•	Overposting penalty thresholds
+	•	Niche saturation signals
+	•	Content repetition decay
+	•	Format fatigue detection
+	•	Audience burnout indicators
+
+⸻
+
+16. COMMENT & COMMUNITY ENGINEERING
+	•	Comment bait vs comment value
+	•	Pinned comment strategy
+	•	Reply-to-comment content loops
+	•	Question chaining tactics
+	•	Community language mirroring
+
+⸻
+
+17. SHARES & SAVE ENGINEERING
+	•	Save-first content design
+	•	Share-to-DM triggers
+	•	Group-share hooks (Facebook)
+	•	“You’ll need this later” framing
+	•	Utility > entertainment rule

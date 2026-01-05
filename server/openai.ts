@@ -790,7 +790,110 @@ TONE RULES:
 - Calm, assured, conversational
 - NO urgency spam ("Follow NOW before...")
 - NO algorithm begging ("Help me beat the algorithm!")
-- NO desperate energy${linksSection}${avoidSection}${learningSection}`;
+- NO desperate energy
+
+═══════════════════════════════════════════════════════════════════════════════
+PLATFORM-SPECIFIC ALGORITHM RULES:
+═══════════════════════════════════════════════════════════════════════════════
+
+INSTAGRAM (Feed / Reels / Stories):
+- Early saves > early likes (prioritize save-worthy content)
+- Replays > completion rate (design for rewatching)
+- Comment depth > comment count (spark conversations, not just reactions)
+- Profile taps = quality signal (make people curious about you)
+- Carousel dwell time weighting (keep people swiping longer)
+
+TIKTOK:
+- Watch time > everything (retention is king)
+- Rewatch loops = primary boost (design loops into content)
+- Shares > likes for scale (make it shareable)
+- Comment velocity in first 30-60 mins (engage immediately)
+- Sound + format relevance scoring (use trending sounds)
+
+YOUTUBE (Shorts & Long-form):
+- First 5 seconds = retention cliff (hook immediately)
+- Average View Duration (AVD) priority (keep viewers watching)
+- Session continuation signal (encourage watching more videos)
+- Suggested feed dependency (optimize for suggested, not just search)
+- Title–thumbnail alignment penalty (don't bait-and-switch)
+
+FACEBOOK:
+- Meaningful interactions > reactions (comments and shares beat likes)
+- Shares to groups > personal shares (group shares amplify reach)
+- Comment replies (thread depth) = engagement signal
+- Native content preference (uploaded > linked videos)
+- External link suppression logic (minimize link-outs)
+
+═══════════════════════════════════════════════════════════════════════════════
+PLATFORM-SPECIFIC HOOK STYLES:
+═══════════════════════════════════════════════════════════════════════════════
+
+TIKTOK HOOKS:
+- POV hooks ("POV: you just discovered...")
+- "Watch till the end" disguised hooks
+- Pattern-break openers (unexpected visuals/sounds)
+- Whisper hooks (intimate, draw viewer in)
+- Visual chaos hooks (sensory overload grabs attention)
+
+YOUTUBE HOOKS:
+- Curiosity gap headlines ("I tested X for 30 days...")
+- Outcome-first framing ("Here's the result...")
+- Time-bound promises ("In 5 minutes you'll know...")
+- Authority-anchored hooks ("As a [expert] I...")
+- Comparison hooks ("X vs Y - which wins?")
+
+FACEBOOK HOOKS:
+- Nostalgia hooks ("Remember when...")
+- Opinionated long-sentence hooks (take a stance)
+- Community-based hooks ("Who else has...")
+- Question-led story hooks ("Have you ever wondered...")
+- Authority positioning hooks ("After 10 years of...")
+
+═══════════════════════════════════════════════════════════════════════════════
+CONTENT LENGTH OPTIMIZATION:
+═══════════════════════════════════════════════════════════════════════════════
+
+TIKTOK:
+- 7-12s = micro-viral (quick hits)
+- 20-35s = explainers (teach something fast)
+- 45-60s = authority plays (establish expertise)
+
+YOUTUBE SHORTS:
+- 15-25s = discovery (reach new audiences)
+- 30-45s = retention (build deeper connection)
+- 50-59s = monetisation (maximize ad revenue)
+
+FACEBOOK:
+- Sub-30s = autoplay bias (grabs scrollers)
+- 45-90s = story formats (narrative content)
+- Long captions + short videos = winning combo
+
+═══════════════════════════════════════════════════════════════════════════════
+YOUTUBE TITLE & THUMBNAIL SYSTEM:
+═══════════════════════════════════════════════════════════════════════════════
+- Title curiosity gap rules (leave something unsaid)
+- Thumbnail emotional triggers (faces with emotion perform best)
+- Face vs object decision logic (faces for personality, objects for tutorials)
+- Text-on-thumbnail limits (3-4 words max)
+- Title–thumbnail contradiction strategy (complement, don't repeat)
+
+═══════════════════════════════════════════════════════════════════════════════
+COMMENT & COMMUNITY ENGINEERING:
+═══════════════════════════════════════════════════════════════════════════════
+- Comment bait vs comment VALUE (ask meaningful questions)
+- Pinned comment strategy (continue the conversation)
+- Reply-to-comment content loops (make content from comments)
+- Question chaining tactics (one question leads to another)
+- Community language mirroring (speak like your audience)
+
+═══════════════════════════════════════════════════════════════════════════════
+SAVES & SHARE ENGINEERING:
+═══════════════════════════════════════════════════════════════════════════════
+- Save-first content design (utility content gets saved)
+- Share-to-DM triggers ("Send this to someone who...")
+- Group-share hooks for Facebook (community-relevant content)
+- "You'll need this later" framing (bookmark psychology)
+- Utility > entertainment rule (useful content outlasts funny content)${linksSection}${avoidSection}${learningSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";

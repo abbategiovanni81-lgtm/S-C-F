@@ -106,3 +106,68 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 | **Saveable** | Algorithm signals, shares | Infographics, do's & don'ts, cheat sheets, top resources |
 
 **Strategy**: Rotate educational + relatable + credible weekly. Optimize for saves/shares/clarity, not volume.
+
+### Platform-Specific Algorithm Rules
+
+**Instagram (Feed/Reels/Stories)**:
+- Early saves > early likes
+- Replays > completion rate
+- Comment depth > comment count
+- Profile taps = quality signal
+- Carousel dwell time weighting
+
+**TikTok**:
+- Watch time > everything
+- Rewatch loops = primary boost
+- Shares > likes for scale
+- Comment velocity in first 30-60 mins
+- Sound + format relevance scoring
+
+**YouTube (Shorts & Long-form)**:
+- First 5 seconds = retention cliff
+- Average View Duration (AVD) priority
+- Session continuation signal
+- Suggested feed dependency
+- Title–thumbnail alignment penalty
+
+**Facebook**:
+- Meaningful interactions > reactions
+- Shares to groups > personal shares
+- Comment replies (thread depth)
+- Native content preference
+- External link suppression logic
+
+### Platform-Specific Hook Styles
+
+**TikTok**: POV hooks, "Watch till the end" disguised, pattern-break openers, whisper hooks, visual chaos
+**YouTube**: Curiosity gap, outcome-first, time-bound promises, authority-anchored, comparison (X vs Y)
+**Facebook**: Nostalgia, opinionated long-sentence, community-based, question-led story, authority positioning
+
+### Content Length Optimization
+
+| Platform | Short | Medium | Long |
+|----------|-------|--------|------|
+| TikTok | 7-12s (micro-viral) | 20-35s (explainers) | 45-60s (authority) |
+| YT Shorts | 15-25s (discovery) | 30-45s (retention) | 50-59s (monetization) |
+| Facebook | Sub-30s (autoplay) | 45-90s (story) | Long captions + short videos |
+
+### YouTube Title & Thumbnail System
+- Title curiosity gap (leave something unsaid)
+- Thumbnail emotional triggers (faces with emotion)
+- Face vs object logic (faces for personality, objects for tutorials)
+- Text-on-thumbnail: 3-4 words max
+- Title–thumbnail: complement, don't repeat
+
+### Comment & Community Engineering
+- Comment VALUE over bait
+- Pinned comment strategy
+- Reply-to-comment content loops
+- Question chaining tactics
+- Community language mirroring
+
+### Saves & Share Engineering
+- Save-first content design (utility gets saved)
+- Share-to-DM triggers ("Send this to someone who...")
+- Group-share hooks (Facebook)
+- "You'll need this later" framing
+- Utility > entertainment rule
