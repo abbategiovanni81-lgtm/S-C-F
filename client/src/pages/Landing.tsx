@@ -235,8 +235,17 @@ export default function Landing() {
               <ul className="text-left text-xs text-gray-300 space-y-1">
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 9 social channels</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 48 videos, 450 images</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package included</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Package included</li>
               </ul>
+              <div className="mt-3 pt-3 border-t border-yellow-500/20">
+                <p className="text-[10px] text-yellow-400 mb-2">Studio Package Tools:</p>
+                <div className="flex flex-wrap gap-1 justify-center text-[9px] text-gray-300">
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Long-Form</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Blog to Video</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Multi-Voice</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Getty Stock</span>
+                </div>
+              </div>
             </div>
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">All paid plans include: AI scripts, voiceovers, avatar videos, scheduling & analytics</p>
@@ -258,21 +267,6 @@ export default function Landing() {
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Caption Removal</span>
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Video Style</span>
                 <span className="bg-white/5 rounded px-2 py-1 text-center">Virtual Try-On</span>
-              </div>
-            </div>
-            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-4">
-              <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
-                <Film className="h-4 w-4 text-yellow-400" />
-                Studio Package <span className="text-yellow-400 font-normal">Studio tier only</span>
-              </h3>
-              <p className="text-gray-400 text-xs mb-3">Professional long-form video tools • <span className="text-green-400">Included with Studio</span></p>
-              <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-300">
-                <span className="bg-white/5 rounded px-2 py-1 text-center">Long-Form Video</span>
-                <span className="bg-white/5 rounded px-2 py-1 text-center">Blog/URL to Video</span>
-                <span className="bg-white/5 rounded px-2 py-1 text-center">Multi-Voice</span>
-                <span className="bg-white/5 rounded px-2 py-1 text-center">Scene Props</span>
-                <span className="bg-white/5 rounded px-2 py-1 text-center">Getty Stock</span>
-                <span className="bg-white/5 rounded px-2 py-1 text-center">3 min videos</span>
               </div>
             </div>
           </div>
