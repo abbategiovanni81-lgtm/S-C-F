@@ -1266,19 +1266,32 @@ export async function compareContentToViral(
 ): Promise<ContentComparisonResult> {
   const yourContentStr = JSON.stringify(request.yourContent, null, 2);
   const competitorStr = JSON.stringify(request.competitorContent, null, 2);
+  
+  const hasScreenshots = request.screenshotBase64s && request.screenshotBase64s.length > 0;
+  const hasYourData = request.yourContent && Object.keys(request.yourContent).length > 0;
+  const hasCompetitorData = request.competitorContent && Object.keys(request.competitorContent).length > 0;
 
   const messages: any[] = [
     {
       role: "system",
-      content: `You are an expert social media content analyst. Your job is to compare user content against successful/viral competitor content and provide actionable feedback.
+      content: `You are an expert social media content analyst specializing in Instagram, TikTok, and YouTube content. Your job is to compare user content against successful/viral competitor content and provide actionable feedback.
+
+${hasScreenshots ? `IMPORTANT: You will receive screenshot images of social media posts. Analyze these images carefully to understand:
+- The visual style, colors, typography, and design elements
+- The hook/headline text visible in the images
+- The overall content structure and layout
+- Any engagement metrics visible (likes, comments, views)
+- The carousel flow if multiple slides are shown
+
+First describe what you see in the images, then provide your analysis.` : ''}
 
 Analyze the user's content against the competitor's viral content and score them on:
-1. Hook Strength (0-100): How compelling is the opening hook?
+1. Hook Strength (0-100): How compelling is the opening hook/headline?
 2. Visual Style Match (0-100): Does the visual approach match successful patterns?
 3. Structure Alignment (0-100): Is the content structure optimized like the viral example?
 4. Caption Strategy (0-100): Are the caption, hashtags, and CTA effective?
 
-Based on the competitor's view count, estimate a predicted view range for the user's content.
+Based on the competitor's engagement (if visible in screenshots), estimate a predicted view range for the user's content.
 
 Respond in this exact JSON format:
 {
@@ -1297,7 +1310,15 @@ Respond in this exact JSON format:
       content: [
         {
           type: "text",
-          text: `Compare my content against this viral competitor:
+          text: hasScreenshots 
+            ? `Compare my content against this viral competitor using the screenshots provided.
+
+${hasYourData ? `MY CONTENT METADATA:\n${yourContentStr}\n` : 'MY CONTENT: See the first set of screenshots showing my posts.'}
+
+${hasCompetitorData ? `COMPETITOR'S VIRAL CONTENT METADATA:\n${competitorStr}\n` : 'COMPETITOR CONTENT: See the second set of screenshots showing their viral posts.'}
+
+The screenshots show both my content and the competitor's viral content. Please analyze the visual style, hooks, structure, and engagement to provide specific scores and actionable improvements.`
+            : `Compare my content against this viral competitor:
 
 MY CONTENT:
 ${yourContentStr}
@@ -1311,11 +1332,14 @@ Please analyze and provide scores, predicted performance, and specific improveme
     },
   ];
 
-  if (request.screenshotBase64s && request.screenshotBase64s.length > 0) {
-    for (const base64 of request.screenshotBase64s) {
+  if (hasScreenshots) {
+    for (const base64 of request.screenshotBase64s!) {
       (messages[1].content as any[]).push({
         type: "image_url",
-        image_url: { url: base64.startsWith("data:") ? base64 : `data:image/jpeg;base64,${base64}` },
+        image_url: { 
+          url: base64.startsWith("data:") ? base64 : `data:image/jpeg;base64,${base64}`,
+          detail: "high"
+        },
       });
     }
   }
