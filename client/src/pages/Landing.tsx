@@ -235,34 +235,44 @@ export default function Landing() {
               <ul className="text-left text-xs text-gray-300 space-y-1">
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 9 social channels</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 48 videos, 450 images</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Studio Package included</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Studio included</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package included</li>
               </ul>
               <div className="mt-3 pt-3 border-t border-yellow-500/20">
-                <p className="text-[10px] text-purple-400 mb-2">Creator Studio Tools:</p>
-                <div className="flex flex-wrap gap-1 justify-center text-[9px] text-gray-300 mb-2">
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Voice Clone</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Talking Photo</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Talking Video</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Face Swap</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">AI Dubbing</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Image to Video</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Caption Removal</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Video Style</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Virtual Try-On</span>
-                </div>
                 <p className="text-[10px] text-yellow-400 mb-2">Studio Package Tools:</p>
                 <div className="flex flex-wrap gap-1 justify-center text-[9px] text-gray-300">
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Long-Form</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Blog to Video</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Long-Form Video</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Blog/URL to Video</span>
                   <span className="bg-white/10 rounded px-1.5 py-0.5">Multi-Voice</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">Scene Props</span>
                   <span className="bg-white/10 rounded px-1.5 py-0.5">Getty Stock</span>
+                  <span className="bg-white/10 rounded px-1.5 py-0.5">3 min videos</span>
                 </div>
               </div>
             </div>
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">All paid plans include: AI scripts, voiceovers, avatar videos, scheduling & analytics</p>
           
-          <p className="text-center text-purple-400 text-xs mt-2">+ Creator Studio add-on: £20/mo (available for Premium & Pro tiers)</p>
+          <div className="max-w-md mx-auto mt-6">
+            <div className="bg-purple-900/30 border border-purple-500/30 rounded-xl p-4">
+              <h3 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                <Wand2 className="h-4 w-4 text-purple-400" />
+                Creator Studio <span className="text-purple-400 font-normal">£20/mo add-on</span>
+              </h3>
+              <p className="text-gray-400 text-xs mb-3">Add-on for Premium & Pro • <span className="text-green-400">Included free with Studio</span></p>
+              <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-300">
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Voice Clone</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Talking Photo</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Talking Video</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Face Swap</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">AI Dubbing</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Image to Video</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Caption Removal</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Video Style</span>
+                <span className="bg-white/5 rounded px-2 py-1 text-center">Virtual Try-On</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="max-w-md mx-auto">
