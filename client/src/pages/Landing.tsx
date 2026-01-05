@@ -184,43 +184,62 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto mb-10">
+        <div className="max-w-6xl mx-auto mb-10">
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-6">Simple Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-              <h3 className="text-lg font-bold text-white mb-1">Free</h3>
-              <p className="text-3xl font-bold text-white mb-1">$0</p>
-              <p className="text-gray-400 text-xs mb-4">Forever free</p>
-              <ul className="text-left text-sm text-gray-300 space-y-2">
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 3 social channels</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 10 AI generations/mo</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Basic scheduling</li>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+              <h3 className="text-sm font-bold text-white mb-1">Free</h3>
+              <p className="text-2xl font-bold text-white mb-1">£0</p>
+              <p className="text-gray-400 text-[10px] mb-3">Try it out</p>
+              <ul className="text-left text-xs text-gray-300 space-y-1">
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Scripts (own API)</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> DALL-E images (own API)</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-gray-500 flex-shrink-0" /> No social posting</li>
               </ul>
             </div>
-            <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500 rounded-xl p-5 text-center relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-3 py-1 rounded-full font-medium">Most Popular</div>
-              <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
-              <p className="text-3xl font-bold text-white mb-1">$49<span className="text-lg text-gray-400">/mo</span></p>
-              <p className="text-gray-400 text-xs mb-4">For growing creators</p>
-              <ul className="text-left text-sm text-gray-300 space-y-2">
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 10 social channels</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 500 AI generations/mo</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Avatar videos + voice</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Social listening</li>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+              <h3 className="text-sm font-bold text-white mb-1">Core</h3>
+              <p className="text-2xl font-bold text-white mb-1">£9.99<span className="text-xs text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-[10px] mb-3">Bring your own APIs</p>
+              <ul className="text-left text-xs text-gray-300 space-y-1">
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 1 social channel</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Unlimited (own APIs)</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 1 comparison/mo</li>
               </ul>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-              <h3 className="text-lg font-bold text-white mb-1">Studio</h3>
-              <p className="text-3xl font-bold text-white mb-1">$149<span className="text-lg text-gray-400">/mo</span></p>
-              <p className="text-gray-400 text-xs mb-4">For agencies & teams</p>
-              <ul className="text-left text-sm text-gray-300 space-y-2">
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Unlimited channels</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> 2000 AI generations/mo</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Steve AI longform</li>
-                <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400" /> Priority support</li>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+              <h3 className="text-sm font-bold text-white mb-1">Premium</h3>
+              <p className="text-2xl font-bold text-white mb-1">£29.99<span className="text-xs text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-[10px] mb-3">For creators</p>
+              <ul className="text-left text-xs text-gray-300 space-y-1">
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 3 social channels</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 16 videos, 150 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 25 min voiceover</li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500 rounded-xl p-4 text-center relative">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">Popular</div>
+              <h3 className="text-sm font-bold text-white mb-1">Pro</h3>
+              <p className="text-2xl font-bold text-white mb-1">£49.99<span className="text-xs text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-[10px] mb-3">For growing brands</p>
+              <ul className="text-left text-xs text-gray-300 space-y-1">
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 5 social channels</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 32 videos, 400 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 60 min voiceover</li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 border border-yellow-500/30 rounded-xl p-4 text-center col-span-2 md:col-span-1">
+              <h3 className="text-sm font-bold text-white mb-1">Studio</h3>
+              <p className="text-2xl font-bold text-white mb-1">£99.99<span className="text-xs text-gray-400">/mo</span></p>
+              <p className="text-gray-400 text-[10px] mb-3">For agencies</p>
+              <ul className="text-left text-xs text-gray-300 space-y-1">
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 9 social channels</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 48 videos, 450 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Steve AI + Creator Studio</li>
               </ul>
             </div>
           </div>
+          <p className="text-center text-gray-400 text-xs mt-4">All paid plans include: AI scripts, voiceovers, avatar videos, scheduling & analytics</p>
         </div>
 
         <div className="max-w-md mx-auto">
