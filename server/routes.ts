@@ -5003,14 +5003,20 @@ export async function registerRoutes(
         }
       }
 
-      // Convert screenshots to base64
+      // Convert screenshots to base64 - limit to 4 max to avoid OpenAI 413 errors
       const screenshotBase64s: string[] = [];
       if (files) {
-        for (const file of files) {
-          if (file.fieldname.includes("Screenshot")) {
-            const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-            screenshotBase64s.push(base64);
+        const screenshotFiles = files.filter(f => f.fieldname.includes("Screenshot"));
+        // Take only first 4 screenshots to reduce payload size
+        const limitedFiles = screenshotFiles.slice(0, 4);
+        for (const file of limitedFiles) {
+          // Skip files larger than 5MB each to avoid API limits
+          if (file.buffer.length > 5 * 1024 * 1024) {
+            console.log(`Skipping large screenshot: ${file.originalname} (${(file.buffer.length / 1024 / 1024).toFixed(1)}MB)`);
+            continue;
           }
+          const base64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
+          screenshotBase64s.push(base64);
         }
       }
 
