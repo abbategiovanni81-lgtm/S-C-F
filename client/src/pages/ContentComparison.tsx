@@ -88,6 +88,11 @@ export default function ContentComparison() {
     },
   });
 
+  // Helper to check if URL looks like a valid YouTube URL
+  const isValidYouTubeUrl = (url: string) => {
+    return url && /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.test(url);
+  };
+
   const compareMutation = useMutation({
     mutationFn: async () => {
       const formData = new FormData();
@@ -95,13 +100,15 @@ export default function ContentComparison() {
       if (yourContentSource === "editmerge" && selectedContentId) {
         formData.append("yourContentId", selectedContentId);
       } else if (yourContentSource === "url") {
-        if (yourUrl) formData.append("yourUrl", yourUrl);
+        // Only send URL if it's a valid YouTube URL
+        if (isValidYouTubeUrl(yourUrl)) formData.append("yourUrl", yourUrl);
         yourScreenshots.forEach((file, i) => {
           formData.append(`yourScreenshot${i}`, file);
         });
       }
       
-      if (competitorUrl) formData.append("competitorUrl", competitorUrl);
+      // Only send competitor URL if it's a valid YouTube URL
+      if (isValidYouTubeUrl(competitorUrl)) formData.append("competitorUrl", competitorUrl);
       competitorScreenshots.forEach((file, i) => {
         formData.append(`competitorScreenshot${i}`, file);
       });
