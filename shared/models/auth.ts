@@ -120,19 +120,20 @@ export const TIER_LIMITS = {
 export type TierType = "free" | "core" | "premium" | "pro" | "studio";
 
 // Creator Studio Add-on (£20/month) - requires Premium or Pro subscription
-// Uses separate A2E account pool (~1,300 credits per user per month)
+// Uses separate A2E account pool (3,000 credits per user per month)
+// A2E pricing: £0.005/credit (20,000 credits = £100)
 export const CREATOR_STUDIO_LIMITS = {
-  voiceClones: 2,       // ~50 credits each = 100
-  talkingPhotos: 10,    // ~30 credits each = 300
-  talkingVideos: 5,     // ~30 credits each = 150
-  faceSwaps: 8,         // ~20 credits each = 160
-  aiDubbing: 3,         // ~50 credits each = 150
-  imageToVideo: 5,      // ~30 credits each = 150
-  captionRemoval: 10,   // ~10 credits each = 100
-  videoToVideo: 3,      // ~30 credits each = 90
-  virtualTryOn: 5,      // ~20 credits each = 100
+  voiceClones: 2,       // 200 credits each = 400
+  talkingPhotos: 4,     // 180 credits each (6/sec × 30s) = 720
+  talkingVideos: 2,     // 180 credits each (6/sec × 30s) = 360
+  faceSwaps: 5,         // 30 credits each (1/sec × 30s) = 150
+  aiDubbing: 2,         // 150 credits each = 300
+  imageToVideo: 5,      // 60 credits each (10s video) = 300
+  captionRemoval: 6,    // 30 credits each (1/sec × 30s) = 180
+  videoToVideo: 3,      // 180 credits each (6/sec × 30s) = 540
+  virtualTryOn: 5,      // 10 credits each = 50
   imageReformat: 10,    // Uses DALL-E to change image aspect ratio
-  // Total: ~1,300 credits per user per month
+  // Total: 3,000 A2E credits per user per month (£15 cost)
 } as const;
 
 // User storage table.
