@@ -30,7 +30,7 @@ import type {
   RedditPost,
   InsertRedditPost
 } from "@shared/schema";
-import { eq, and, desc, gte, lte, between } from "drizzle-orm";
+import { eq, and, desc, gte, lte, between, sql, isNull, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -45,8 +45,12 @@ export interface IStorage {
   getGeneratedContent(id: string): Promise<GeneratedContent | undefined>;
   getContentByBrief(briefId: string): Promise<GeneratedContent[]>;
   getContentByStatus(status: string): Promise<GeneratedContent[]>;
+  getArchivedContent(briefId?: string): Promise<GeneratedContent[]>;
   createGeneratedContent(content: InsertGeneratedContent): Promise<GeneratedContent>;
   updateGeneratedContent(id: string, content: Partial<InsertGeneratedContent>): Promise<GeneratedContent | undefined>;
+  archiveContent(id: string): Promise<GeneratedContent | undefined>;
+  unarchiveContent(id: string): Promise<GeneratedContent | undefined>;
+  deleteContent(id: string): Promise<void>;
 
   getSocialAccount(id: string): Promise<SocialAccount | undefined>;
   getSocialAccountsByUser(userId: string): Promise<SocialAccount[]>;
@@ -193,6 +197,38 @@ export class DatabaseStorage implements IStorage {
       .where(eq(generatedContent.id, id))
       .returning();
     return result[0];
+  }
+
+  async getArchivedContent(briefId?: string): Promise<GeneratedContent[]> {
+    if (briefId) {
+      return await db.select().from(generatedContent)
+        .where(and(eq(generatedContent.briefId, briefId), eq(generatedContent.archivedAt, sql`IS NOT NULL`)))
+        .orderBy(desc(generatedContent.archivedAt));
+    }
+    const result = await db.execute(sql`SELECT * FROM generated_content WHERE archived_at IS NOT NULL AND deleted_at IS NULL ORDER BY archived_at DESC`);
+    return result.rows as GeneratedContent[];
+  }
+
+  async archiveContent(id: string): Promise<GeneratedContent | undefined> {
+    const result = await db.update(generatedContent)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(generatedContent.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async unarchiveContent(id: string): Promise<GeneratedContent | undefined> {
+    const result = await db.update(generatedContent)
+      .set({ archivedAt: null, updatedAt: new Date() })
+      .where(eq(generatedContent.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteContent(id: string): Promise<void> {
+    await db.update(generatedContent)
+      .set({ deletedAt: new Date(), updatedAt: new Date() })
+      .where(eq(generatedContent.id, id));
   }
 
   async getSocialAccount(id: string): Promise<SocialAccount | undefined> {

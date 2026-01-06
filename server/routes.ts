@@ -486,6 +486,65 @@ export async function registerRoutes(
     }
   });
 
+  // Archive content
+  app.patch("/api/content/:id/archive", requireAuth, async (req: any, res) => {
+    try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const content = await storage.archiveContent(req.params.id);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      console.error("Error archiving content:", error);
+      res.status(500).json({ error: "Failed to archive content" });
+    }
+  });
+
+  // Restore archived content
+  app.patch("/api/content/:id/restore", requireAuth, async (req: any, res) => {
+    try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const content = await storage.unarchiveContent(req.params.id);
+      if (!content) {
+        return res.status(404).json({ error: "Content not found" });
+      }
+      res.json(content);
+    } catch (error) {
+      console.error("Error restoring content:", error);
+      res.status(500).json({ error: "Failed to restore content" });
+    }
+  });
+
+  // Delete content (soft delete)
+  app.delete("/api/content/:id", requireAuth, async (req: any, res) => {
+    try {
+      if (!await checkContentOwnership(req.params.id, req.userId)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      await storage.deleteContent(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting content:", error);
+      res.status(500).json({ error: "Failed to delete content" });
+    }
+  });
+
+  // Get archived content
+  app.get("/api/content/archived", requireAuth, async (req: any, res) => {
+    try {
+      const archived = await storage.getArchivedContent();
+      res.json(archived);
+    } catch (error) {
+      console.error("Error getting archived content:", error);
+      res.status(500).json({ error: "Failed to get archived content" });
+    }
+  });
+
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
