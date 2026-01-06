@@ -428,7 +428,9 @@ export default function HowTo() {
                             <li>All tools unlocked</li>
                             <li>Use your own API keys</li>
                             <li>1 social channel</li>
-                            <li>3 brand briefs</li>
+                            <li>1 brand brief</li>
+                            <li>1 content comparison</li>
+                            <li>Unlimited with own APIs</li>
                           </ul>
                         </div>
                         <div className="p-4 border rounded-lg border-purple-500/50 bg-purple-500/5">
@@ -439,16 +441,21 @@ export default function HowTo() {
                             <li>3 social channels</li>
                             <li>5 brand briefs</li>
                             <li>25 min voiceovers</li>
+                            <li>16 A2E videos, 150 images</li>
+                            <li>120 lipsync, 4 avatars</li>
+                            <li>3 content comparisons</li>
                           </ul>
                         </div>
                         <div className="p-4 border rounded-lg border-yellow-500/50 bg-yellow-500/5">
                           <div className="font-bold text-lg text-yellow-600">Pro</div>
                           <div className="text-2xl font-bold mb-2">£49.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
                           <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>2x Premium quotas</li>
                             <li>5 social channels</li>
                             <li>10 brand briefs</li>
                             <li>60 min voiceovers</li>
+                            <li>32 A2E videos, 400 images</li>
+                            <li>300 lipsync, 8 avatars</li>
+                            <li>5 content comparisons</li>
                           </ul>
                         </div>
                         <div className="p-4 border-2 rounded-lg border-pink-500 bg-gradient-to-br from-pink-500/10 to-red-500/10">
@@ -457,9 +464,13 @@ export default function HowTo() {
                           <Badge className="mb-2 bg-pink-500 text-white text-xs">Early Adopter</Badge>
                           <ul className="text-sm space-y-1 text-muted-foreground">
                             <li>All 9 social channels</li>
+                            <li>10 brand briefs</li>
+                            <li>75 min voiceovers</li>
+                            <li>48 A2E videos, 450 images</li>
+                            <li>360 lipsync, 12 avatars</li>
+                            <li>Unlimited comparisons</li>
                             <li>Creator Studio included</li>
-                            <li>Studio Package</li>
-                            <li>Getty Images B-roll</li>
+                            <li>Studio Package + Getty</li>
                             <li>5 concurrent logins</li>
                           </ul>
                         </div>
@@ -526,12 +537,12 @@ export default function HowTo() {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         <div className="p-3 bg-muted rounded-lg text-sm"><strong>Voice Cloning</strong> - 2/month</div>
-                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Photos</strong> - 10/month</div>
-                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Videos</strong> - 5/month</div>
-                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Face Swap</strong> - 8/month</div>
-                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>AI Dubbing</strong> - 3/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Photos</strong> - 4/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Talking Videos</strong> - 2/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Face Swap</strong> - 5/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>AI Dubbing</strong> - 2/month</div>
                         <div className="p-3 bg-muted rounded-lg text-sm"><strong>Image to Video</strong> - 5/month</div>
-                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Caption Removal</strong> - 10/month</div>
+                        <div className="p-3 bg-muted rounded-lg text-sm"><strong>Caption Removal</strong> - 6/month</div>
                         <div className="p-3 bg-muted rounded-lg text-sm"><strong>Video Style Transfer</strong> - 3/month</div>
                         <div className="p-3 bg-muted rounded-lg text-sm"><strong>Virtual Try-On</strong> - 5/month</div>
                       </div>

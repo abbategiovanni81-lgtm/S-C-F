@@ -213,8 +213,10 @@ export default function Landing() {
               <p className="text-gray-400 text-[10px] mb-3">For creators</p>
               <ul className="text-left text-xs text-gray-300 space-y-1">
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 3 social channels</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 16 videos, 150 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 5 brand briefs</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 25 min voiceover</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 16 videos, 150 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 120 lipsync, 4 avatars</li>
               </ul>
             </div>
             <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 border-2 border-purple-500 rounded-xl p-4 text-center relative">
@@ -224,31 +226,28 @@ export default function Landing() {
               <p className="text-gray-400 text-[10px] mb-3">For growing brands</p>
               <ul className="text-left text-xs text-gray-300 space-y-1">
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 5 social channels</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 32 videos, 400 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 10 brand briefs</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 60 min voiceover</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 32 videos, 400 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 300 lipsync, 8 avatars</li>
               </ul>
             </div>
             <div className="bg-gradient-to-br from-yellow-600/20 to-orange-600/20 border border-yellow-500/30 rounded-xl p-4 text-center col-span-2 md:col-span-1">
-              <h3 className="text-sm font-bold text-white mb-1">Studio</h3>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <h3 className="text-sm font-bold text-white">Studio</h3>
+                <span className="bg-yellow-500 text-black text-[8px] px-1.5 py-0.5 rounded font-bold">EARLY ADOPTER</span>
+              </div>
               <p className="text-2xl font-bold text-white mb-1">£99.99<span className="text-xs text-gray-400">/mo</span></p>
               <p className="text-gray-400 text-[10px] mb-3">For agencies</p>
               <ul className="text-left text-xs text-gray-300 space-y-1">
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 9 social channels</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> All 9 social channels</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 75 min voiceover</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 48 videos, 450 images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 360 lipsync, 12 avatars</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Studio included</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package included</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package + Getty</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 5 concurrent logins</li>
               </ul>
-              <div className="mt-3 pt-3 border-t border-yellow-500/20">
-                <p className="text-[10px] text-yellow-400 mb-2">Studio Package Tools:</p>
-                <div className="flex flex-wrap gap-1 justify-center text-[9px] text-gray-300">
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Long-Form Video</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Blog/URL to Video</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Multi-Voice</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Scene Props</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">Getty Stock</span>
-                  <span className="bg-white/10 rounded px-1.5 py-0.5">3 min videos</span>
-                </div>
-              </div>
             </div>
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">All paid plans include: AI scripts, voiceovers, avatar videos, scheduling & analytics</p>
