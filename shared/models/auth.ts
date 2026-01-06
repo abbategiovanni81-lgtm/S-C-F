@@ -109,9 +109,9 @@ export const TIER_LIMITS = {
     contentComparisons: -1, // Unlimited
     usesAppApis: true,
     allowedApis: ["all"],
-    steveAIVideos: 200,   // Half of $129 plan (400/2)
-    steveAIGenerative: 7.5, // Half of 15 min
-    steveAIImages: 1600,  // Half of 3200
+    steveAIVideos: 100,   // Quarter of $129 plan (400/4)
+    steveAIGenerative: 4, // Quarter of 15 min (rounded up)
+    steveAIImages: 800,   // Quarter of 3200
     includesCreatorStudio: true, // Built-in
     maxSessions: 5,       // Multi-login support
   },
