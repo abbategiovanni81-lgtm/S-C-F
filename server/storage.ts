@@ -100,6 +100,7 @@ export interface IStorage {
   createBrandAsset(asset: InsertBrandAsset): Promise<BrandAsset>;
   getBrandAssetsByBrief(briefId: string): Promise<BrandAsset[]>;
   getBrandAssetsByUser(userId: string): Promise<BrandAsset[]>;
+  getBrandAssetBySlug(briefId: string, referenceSlug: string): Promise<BrandAsset | undefined>;
   deleteBrandAsset(id: string): Promise<void>;
 
   // Reddit Subreddits
@@ -540,6 +541,13 @@ export class DatabaseStorage implements IStorage {
 
   async getBrandAssetsByUser(userId: string): Promise<BrandAsset[]> {
     return db.select().from(brandAssets).where(eq(brandAssets.userId, userId)).orderBy(desc(brandAssets.createdAt));
+  }
+
+  async getBrandAssetBySlug(briefId: string, referenceSlug: string): Promise<BrandAsset | undefined> {
+    const result = await db.select().from(brandAssets)
+      .where(and(eq(brandAssets.briefId, briefId), eq(brandAssets.referenceSlug, referenceSlug)))
+      .limit(1);
+    return result[0];
   }
 
   async deleteBrandAsset(id: string): Promise<void> {

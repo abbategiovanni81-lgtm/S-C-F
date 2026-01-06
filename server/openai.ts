@@ -1900,3 +1900,15 @@ Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "
     revisedPrompt: responseData?.revised_prompt,
   };
 }
+
+// Parse [asset:slug] tokens from image prompts
+export function parseAssetTokens(prompt: string): string[] {
+  const assetTokenRegex = /\[asset:([a-z0-9-]+)\]/gi;
+  const matches = [...prompt.matchAll(assetTokenRegex)];
+  return matches.map(match => match[1]);
+}
+
+// Remove [asset:slug] tokens from prompt for clean image generation
+export function removeAssetTokens(prompt: string): string {
+  return prompt.replace(/\[asset:[a-z0-9-]+\]/gi, "").replace(/\s+/g, " ").trim();
+}
