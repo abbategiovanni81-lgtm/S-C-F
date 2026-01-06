@@ -21,6 +21,7 @@ import Settings from "@/pages/Settings";
 import HowTo from "@/pages/HowTo";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
 import CreatorStudio from "@/pages/CreatorStudio";
 import ContentComparison from "@/pages/ContentComparison";
 import Testimonials from "@/pages/Testimonials";
@@ -58,6 +59,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/testimonials" component={Testimonials} />
       <Route>
         {() => {
