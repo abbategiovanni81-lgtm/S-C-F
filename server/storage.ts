@@ -179,11 +179,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getContentByBrief(briefId: string): Promise<GeneratedContent[]> {
-    return await db.select().from(generatedContent).where(eq(generatedContent.briefId, briefId));
+    return await db.select().from(generatedContent)
+      .where(and(eq(generatedContent.briefId, briefId), isNull(generatedContent.archivedAt), isNull(generatedContent.deletedAt)));
   }
 
   async getContentByStatus(status: string): Promise<GeneratedContent[]> {
-    return await db.select().from(generatedContent).where(eq(generatedContent.status, status));
+    return await db.select().from(generatedContent)
+      .where(and(eq(generatedContent.status, status), isNull(generatedContent.archivedAt), isNull(generatedContent.deletedAt)));
   }
 
   async createGeneratedContent(content: InsertGeneratedContent): Promise<GeneratedContent> {
@@ -202,11 +204,12 @@ export class DatabaseStorage implements IStorage {
   async getArchivedContent(briefId?: string): Promise<GeneratedContent[]> {
     if (briefId) {
       return await db.select().from(generatedContent)
-        .where(and(eq(generatedContent.briefId, briefId), eq(generatedContent.archivedAt, sql`IS NOT NULL`)))
+        .where(and(eq(generatedContent.briefId, briefId), isNotNull(generatedContent.archivedAt), isNull(generatedContent.deletedAt)))
         .orderBy(desc(generatedContent.archivedAt));
     }
-    const result = await db.execute(sql`SELECT * FROM generated_content WHERE archived_at IS NOT NULL AND deleted_at IS NULL ORDER BY archived_at DESC`);
-    return result.rows as GeneratedContent[];
+    return await db.select().from(generatedContent)
+      .where(and(isNotNull(generatedContent.archivedAt), isNull(generatedContent.deletedAt)))
+      .orderBy(desc(generatedContent.archivedAt));
   }
 
   async archiveContent(id: string): Promise<GeneratedContent | undefined> {

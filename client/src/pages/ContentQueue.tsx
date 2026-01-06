@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -153,6 +153,10 @@ export default function ContentQueue() {
     queryKey: ["/api/content?status=rejected"],
   });
 
+  const { data: archivedContent = [], isLoading: loadingArchived } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content/archived"],
+  });
+
   const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
     queryKey: ["/api/social-accounts?userId=demo-user"],
   });
@@ -237,6 +241,39 @@ export default function ContentQueue() {
       await apiRequest("PATCH", `/api/content/${id}/reject`);
     },
     onSuccess: invalidateContentQueries,
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/content/${id}/archive`);
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/content/archived"] });
+      toast({ title: "Content archived", description: "You can restore it from the Archived tab." });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("PATCH", `/api/content/${id}/restore`);
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/content/archived"] });
+      toast({ title: "Content restored", description: "Content has been moved back to pending." });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/content/${id}`);
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/content/archived"] });
+      toast({ title: "Content deleted", description: "Content has been permanently removed." });
+    },
   });
 
   const [markingReadyId, setMarkingReadyId] = useState<string | null>(null);
@@ -2231,6 +2268,31 @@ export default function ContentQueue() {
                 </>
               )}
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => archiveMutation.mutate(content.id)}
+              disabled={archiveMutation.isPending}
+              data-testid={`button-archive-${content.id}`}
+              title="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                  deleteMutation.mutate(content.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              data-testid={`button-delete-${content.id}`}
+              title="Delete"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         )}
 
@@ -2532,6 +2594,9 @@ export default function ContentQueue() {
           <TabsTrigger value="rejected" data-testid="tab-rejected">
             Rejected ({rejectedContent.length})
           </TabsTrigger>
+          <TabsTrigger value="archived" data-testid="tab-archived">
+            Archived ({archivedContent.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4">
@@ -2577,6 +2642,73 @@ export default function ContentQueue() {
             <div className="grid gap-4 md:grid-cols-2">
               {rejectedContent.map((content) => (
                 <ContentCard key={content.id} content={content} showActions={false} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="archived" className="space-y-4">
+          {loadingArchived ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : archivedContent.length === 0 ? (
+            <EmptyState message="No archived content. Archived items will appear here." />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {archivedContent.map((content) => (
+                <Card key={content.id} className="border-l-4 border-l-muted" data-testid={`card-archived-${content.id}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">Archived</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date((content as any).archivedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <CardTitle className="text-base mt-2">
+                      {(content.generationMetadata as any)?.contentFormat || content.contentType} Content
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {content.caption && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">{content.caption}</p>
+                    )}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => restoreMutation.mutate(content.id)}
+                        disabled={restoreMutation.isPending}
+                        data-testid={`button-restore-${content.id}`}
+                      >
+                        {restoreMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <RotateCcw className="w-4 h-4 mr-2" />
+                            Restore
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to permanently delete this content?")) {
+                            deleteMutation.mutate(content.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-archived-${content.id}`}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
