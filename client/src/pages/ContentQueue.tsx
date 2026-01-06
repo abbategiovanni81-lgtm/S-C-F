@@ -100,6 +100,13 @@ export default function ContentQueue() {
   // Image prompt editing state
   const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
+  
+  // Carousel slide editing state
+  const [editCarouselSlideDialogOpen, setEditCarouselSlideDialogOpen] = useState(false);
+  const [editingCarouselSlide, setEditingCarouselSlide] = useState<{ contentId: string; slideIndex: number; textOverlay: string; imagePrompt: string; purpose?: string } | null>(null);
+  
+  // Image style for DALL-E (vivid vs natural)
+  const [imageStyle, setImageStyle] = useState<"photorealistic" | "illustrated" | "minimalist">("photorealistic");
 
   // Video engine selection (A2E vs Fal.ai vs Studio Package)
   const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai">("a2e-scene");
@@ -284,10 +291,18 @@ export default function ContentQueue() {
         : imageEngine === "pexels" ? "/api/pexels/search-image"
         : imageEngine === "getty" ? "/api/getty/search-image"
         : "/api/fal/generate-image";
+      
+      // Map imageStyle to DALL-E style parameter
+      const dalleStyle = imageStyle === "illustrated" ? "vivid" : "natural";
+      const stylePrefix = imageStyle === "photorealistic" ? "Photorealistic, lifelike, " 
+        : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
+        : "";
+      const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+      
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, aspectRatio }),
+        body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
       });
       
       if (!res.ok) {
@@ -344,10 +359,17 @@ export default function ContentQueue() {
           : imageEngine === "getty" ? "/api/getty/search-image"
           : "/api/fal/generate-image";
         
+        // Apply style to carousel slides like single images
+        const dalleStyle = imageStyle === "illustrated" ? "vivid" : "natural";
+        const stylePrefix = imageStyle === "photorealistic" ? "Photorealistic, lifelike, " 
+          : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
+          : "";
+        const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+        
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, aspectRatio }),
+          body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
         });
         
         if (!res.ok) {
@@ -1302,6 +1324,56 @@ export default function ContentQueue() {
     }
   };
 
+  // Carousel slide edit handlers
+  const openEditCarouselSlide = (contentId: string, slideIndex: number, slide: any) => {
+    setEditingCarouselSlide({
+      contentId,
+      slideIndex,
+      textOverlay: slide.textOverlay || "",
+      imagePrompt: slide.imagePrompt || "",
+      purpose: slide.purpose || ""
+    });
+    setEditCarouselSlideDialogOpen(true);
+  };
+
+  const handleSaveCarouselSlide = async () => {
+    if (!editingCarouselSlide) return;
+    
+    try {
+      const contentRes = await fetch(`/api/content/${editingCarouselSlide.contentId}`);
+      if (!contentRes.ok) throw new Error("Failed to fetch content");
+      
+      const content = await contentRes.json();
+      const metadata = content.generationMetadata || {};
+      const carouselPrompts = metadata.carouselPrompts || {};
+      const slides = carouselPrompts.slides || [];
+      
+      const updatedSlides = slides.map((slide: any, i: number) =>
+        i === editingCarouselSlide.slideIndex
+          ? { ...slide, textOverlay: editingCarouselSlide.textOverlay, imagePrompt: editingCarouselSlide.imagePrompt }
+          : slide
+      );
+      
+      await fetch(`/api/content/${editingCarouselSlide.contentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { 
+            ...metadata, 
+            carouselPrompts: { ...carouselPrompts, slides: updatedSlides }
+          }
+        }),
+      });
+      
+      toast({ title: `Slide ${editingCarouselSlide.slideIndex + 1} updated` });
+      invalidateContentQueries();
+      setEditCarouselSlideDialogOpen(false);
+      setEditingCarouselSlide(null);
+    } catch (error) {
+      toast({ title: "Failed to update slide", variant: "destructive" });
+    }
+  };
+
   const openRejectDialog = (content: GeneratedContent) => {
     setRejectingContent(content);
     setRejectionReason("");
@@ -1980,7 +2052,20 @@ export default function ContentQueue() {
                         </div>
                       )}
                       <div className="flex-1">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">Slide {i + 1}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Slide {i + 1} {slide.purpose && <span className="text-purple-500">({slide.purpose})</span>}
+                          </p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => openEditCarouselSlide(content.id, i, slide)}
+                            data-testid={`button-edit-slide-${content.id}-${i}`}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        </div>
                         <p className="text-sm mb-1">{slide.imagePrompt}</p>
                         {slide.textOverlay && (
                           <p className="text-xs bg-white/50 dark:bg-black/20 rounded px-2 py-1 inline-block font-medium">{slide.textOverlay}</p>
@@ -2176,11 +2261,26 @@ export default function ContentQueue() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {imageEngine === "dalle" && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Label className="text-xs font-medium">Style:</Label>
+                        <Select value={imageStyle} onValueChange={(v: "photorealistic" | "illustrated" | "minimalist") => setImageStyle(v)}>
+                          <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-image-style">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                            <SelectItem value="illustrated">Illustrated</SelectItem>
+                            <SelectItem value="minimalist">Minimalist</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {imageEngine === "a2e" 
                         ? "A2E generates high-quality images with general or manga styles." 
                         : imageEngine === "dalle"
-                        ? "DALL-E 3 generates high-quality images with excellent text rendering."
+                        ? `DALL-E 3 generates ${imageStyle === "photorealistic" ? "lifelike, realistic" : imageStyle === "illustrated" ? "artistic, illustrated" : "clean, minimalist"} images.`
                         : imageEngine === "pexels"
                         ? "Pexels searches free stock photos matching your content."
                         : imageEngine === "getty"
@@ -3176,6 +3276,60 @@ export default function ContentQueue() {
               Cancel
             </Button>
             <Button onClick={handleSaveImage} data-testid="button-save-image">
+              <Check className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editCarouselSlideDialogOpen} onOpenChange={setEditCarouselSlideDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LayoutGrid className="w-5 h-5 text-purple-600" />
+              Edit Slide {editingCarouselSlide ? editingCarouselSlide.slideIndex + 1 : ""}
+              {editingCarouselSlide?.purpose && (
+                <Badge variant="secondary" className="ml-2">{editingCarouselSlide.purpose}</Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Update the text overlay and image prompt for this carousel slide.
+            </DialogDescription>
+          </DialogHeader>
+          {editingCarouselSlide && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="slide-text-overlay">Text Overlay</Label>
+                <p className="text-xs text-muted-foreground">This text will be displayed on the image. Keep it short and punchy.</p>
+                <Textarea
+                  id="slide-text-overlay"
+                  value={editingCarouselSlide.textOverlay}
+                  onChange={(e) => setEditingCarouselSlide({ ...editingCarouselSlide, textOverlay: e.target.value })}
+                  placeholder="Enter the text to display on this slide..."
+                  className="min-h-[80px]"
+                  data-testid="input-slide-text-overlay"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slide-image-prompt">Image Generation Prompt</Label>
+                <p className="text-xs text-muted-foreground">Detailed description for AI image generation.</p>
+                <Textarea
+                  id="slide-image-prompt"
+                  value={editingCarouselSlide.imagePrompt}
+                  onChange={(e) => setEditingCarouselSlide({ ...editingCarouselSlide, imagePrompt: e.target.value })}
+                  placeholder="Describe the visual style, composition, colors..."
+                  className="min-h-[120px]"
+                  data-testid="input-slide-image-prompt"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditCarouselSlideDialogOpen(false); setEditingCarouselSlide(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCarouselSlide} data-testid="button-save-slide">
               <Check className="w-4 h-4 mr-2" />
               Save Changes
             </Button>
