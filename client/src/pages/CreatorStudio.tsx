@@ -1538,9 +1538,9 @@ function SteveAISection() {
             <br /><br />
             <strong>Monthly Limits:</strong>
             <ul className="list-disc list-inside mt-2 space-y-1">
-              <li><strong>Videos:</strong> 200 minutes of long-form video generation</li>
-              <li><strong>Generative AI:</strong> 7.5 minutes of AI-generated footage</li>
-              <li><strong>Images:</strong> 1,600 AI-generated images</li>
+              <li><strong>Videos:</strong> 100 minutes of long-form video generation</li>
+              <li><strong>Generative AI:</strong> 4 minutes of AI-generated footage</li>
+              <li><strong>Images:</strong> 800 AI-generated images</li>
             </ul>
           </AlertDescription>
         </Alert>

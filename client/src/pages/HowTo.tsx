@@ -313,7 +313,7 @@ export default function HowTo() {
                             <Film className="h-4 w-4 text-orange-500" />
                             Long-Form Videos
                           </div>
-                          <div className="text-sm text-muted-foreground">Create videos up to 3 minutes with 5 style options (animation, live action, generative, talking head, documentary). 200 min/month.</div>
+                          <div className="text-sm text-muted-foreground">Create videos up to 3 minutes with 5 style options (animation, live action, generative, talking head, documentary). 100 min/month.</div>
                         </div>
                         <div className="p-3 bg-muted rounded-lg">
                           <div className="font-medium flex items-center gap-2">
@@ -354,7 +354,7 @@ export default function HowTo() {
                       <div className="flex flex-wrap gap-4 text-sm pt-2">
                         <div>
                           <span className="font-medium">Monthly Limits:</span>{" "}
-                          <span className="text-muted-foreground">Videos: 200 min | Generative: 7.5 min | Images: 1,600</span>
+                          <span className="text-muted-foreground">Videos: 100 min | Generative: 4 min | Images: 800</span>
                         </div>
                       </div>
                     </CardContent>
