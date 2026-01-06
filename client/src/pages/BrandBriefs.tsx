@@ -47,6 +47,10 @@ export default function BrandBriefs() {
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
   const [optimizationGoal, setOptimizationGoal] = useState<"reach" | "saves" | "comments" | "clicks">("reach");
+  const [carouselMode, setCarouselMode] = useState<"from_scratch" | "match_style">("from_scratch");
+  const [referenceImage, setReferenceImage] = useState<File | null>(null);
+  const [referenceImagePreview, setReferenceImagePreview] = useState<string | null>(null);
+  const [analyzingStyle, setAnalyzingStyle] = useState(false);
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -142,7 +146,16 @@ export default function BrandBriefs() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async ({ briefId, topic, contentFormat, sceneCount, optimizationGoal }: { briefId: string; topic?: string; contentFormat?: string; sceneCount?: number; optimizationGoal?: string }) => {
+    mutationFn: async ({ briefId, topic, contentFormat, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl }: { 
+      briefId: string; 
+      topic?: string; 
+      contentFormat?: string; 
+      sceneCount?: number; 
+      optimizationGoal?: string;
+      carouselMode?: "from_scratch" | "match_style";
+      extractedStyle?: string;
+      referenceImageUrl?: string;
+    }) => {
       const res = await apiRequest("POST", "/api/generate-content", {
         briefId,
         contentType: "both",
@@ -150,6 +163,9 @@ export default function BrandBriefs() {
         topic,
         sceneCount: contentFormat === "video" ? sceneCount : undefined,
         optimizationGoal,
+        carouselMode,
+        extractedStyle,
+        referenceImageUrl,
       });
       return res.json();
     },
@@ -208,12 +224,57 @@ export default function BrandBriefs() {
   const handleGenerateContent = (briefId: string, topic?: string) => {
     setSelectedBriefForGenerate(briefId);
     setGenerateTopic(topic || "");
+    setCarouselMode("from_scratch");
+    setReferenceImage(null);
+    setReferenceImagePreview(null);
     setFormatDialogOpen(true);
   };
 
-  const executeGenerate = () => {
+  const handleReferenceImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReferenceImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReferenceImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const executeGenerate = async () => {
     if (!checkAIAccess("AI Content Generation")) return;
     if (!selectedBriefForGenerate) return;
+    
+    // For match_style mode, first upload the reference image and analyze style
+    let styleData: { extractedStyle?: string; referenceImageUrl?: string } = {};
+    
+    if (selectedFormat === "carousel" && carouselMode === "match_style" && referenceImage) {
+      setAnalyzingStyle(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", referenceImage);
+        
+        const uploadRes = await fetch("/api/carousel/analyze-style", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+        
+        if (!uploadRes.ok) {
+          const error = await uploadRes.json();
+          throw new Error(error.error || "Failed to analyze style");
+        }
+        
+        styleData = await uploadRes.json();
+      } catch (error: any) {
+        toast({ title: "Failed to analyze style", description: error.message, variant: "destructive" });
+        setAnalyzingStyle(false);
+        return;
+      }
+      setAnalyzingStyle(false);
+    }
+    
     setGeneratingForBrief(selectedBriefForGenerate);
     generateContentMutation.mutate({ 
       briefId: selectedBriefForGenerate, 
@@ -221,6 +282,9 @@ export default function BrandBriefs() {
       contentFormat: selectedFormat,
       sceneCount: selectedFormat === "video" ? sceneCount : undefined,
       optimizationGoal,
+      carouselMode: selectedFormat === "carousel" ? carouselMode : undefined,
+      extractedStyle: styleData.extractedStyle,
+      referenceImageUrl: styleData.referenceImageUrl,
     }, {
       onSettled: () => setGeneratingForBrief(null),
     });
@@ -789,6 +853,77 @@ export default function BrandBriefs() {
                 <span className="text-xs text-muted-foreground text-center">Multi-slide post</span>
               </Label>
 
+            {selectedFormat === "carousel" && (
+              <div className="col-span-2 p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-3">
+                <Label className="text-sm font-medium block">How would you like to create?</Label>
+                <RadioGroup
+                  value={carouselMode}
+                  onValueChange={(value: "from_scratch" | "match_style") => {
+                    setCarouselMode(value);
+                    if (value === "from_scratch") {
+                      setReferenceImage(null);
+                      setReferenceImagePreview(null);
+                    }
+                  }}
+                  className="space-y-2"
+                >
+                  <Label
+                    htmlFor="carousel-from-scratch"
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      carouselMode === "from_scratch" ? "border-primary bg-background" : "border-muted hover:border-muted-foreground/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="from_scratch" id="carousel-from-scratch" className="mt-0.5" />
+                    <div>
+                      <span className="text-sm font-medium">Generate from scratch</span>
+                      <p className="text-xs text-muted-foreground">AI creates everything based on your brand brief</p>
+                    </div>
+                  </Label>
+                  <Label
+                    htmlFor="carousel-match-style"
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      carouselMode === "match_style" ? "border-primary bg-background" : "border-muted hover:border-muted-foreground/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="match_style" id="carousel-match-style" className="mt-0.5" />
+                    <div>
+                      <span className="text-sm font-medium">Match my style</span>
+                      <p className="text-xs text-muted-foreground">Upload a reference slide and AI will create 6 more matching it</p>
+                    </div>
+                  </Label>
+                </RadioGroup>
+
+                {carouselMode === "match_style" && (
+                  <div className="mt-3 space-y-2">
+                    <Label className="text-sm font-medium block">Upload Reference Slide</Label>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleReferenceImageChange}
+                          className="cursor-pointer"
+                          data-testid="input-reference-image"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Upload one slide image. AI will analyze colors, fonts, and layout.
+                        </p>
+                      </div>
+                      {referenceImagePreview && (
+                        <div className="w-16 h-16 rounded border overflow-hidden flex-shrink-0">
+                          <img 
+                            src={referenceImagePreview} 
+                            alt="Reference preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
               <Label
                 htmlFor="format-tiktok"
                 className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
@@ -891,10 +1026,15 @@ export default function BrandBriefs() {
             </Button>
             <Button
               onClick={executeGenerate}
-              disabled={generateContentMutation.isPending}
+              disabled={generateContentMutation.isPending || analyzingStyle || (selectedFormat === "carousel" && carouselMode === "match_style" && !referenceImage)}
               data-testid="button-confirm-generate"
             >
-              {generateContentMutation.isPending ? (
+              {analyzingStyle ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Analyzing Style...
+                </>
+              ) : generateContentMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Generating...

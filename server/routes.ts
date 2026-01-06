@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, parseAssetTokens, removeAssetTokens, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -553,7 +553,7 @@ export async function registerRoutes(
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
-      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal } = req.body;
+      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl } = req.body;
       
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
@@ -626,6 +626,9 @@ export async function registerRoutes(
           imagePrompts: result.imagePrompts,
           carouselPrompts: result.carouselPrompts,
           tiktokTextPost: result.tiktokTextPost,
+          carouselMode: carouselMode || "from_scratch",
+          extractedStyle: extractedStyle || null,
+          referenceImageUrl: referenceImageUrl || null,
         },
       });
 
@@ -1395,6 +1398,49 @@ export async function registerRoutes(
     }
   });
 
+  // Carousel Style Analysis - analyze uploaded image to extract visual style
+  const carouselStyleUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+  
+  app.post("/api/carousel/analyze-style", carouselStyleUpload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      // Convert image buffer to base64
+      const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+      
+      // Analyze the style using GPT-4 Vision
+      const styleAnalysis = await analyzeCarouselStyle(base64Image);
+      
+      // Upload the reference image to cloud storage for later use
+      let referenceImageUrl: string | undefined;
+      try {
+        const filename = `carousel-reference-${Date.now()}.${req.file.originalname.split('.').pop() || 'png'}`;
+        const result = await objectStorageService.uploadBuffer(req.file.buffer, filename, req.file.mimetype, true);
+        referenceImageUrl = result.publicUrl || `/objects/${result.objectPath}`;
+      } catch (uploadError) {
+        console.error("Failed to upload reference image:", uploadError);
+        // Continue without saving - the style analysis is the main value
+      }
+
+      res.json({
+        extractedStyle: styleAnalysis.stylePrompt,
+        styleDetails: {
+          colorPalette: styleAnalysis.colorPalette,
+          typography: styleAnalysis.typography,
+          layout: styleAnalysis.layout,
+          mood: styleAnalysis.mood,
+          visualElements: styleAnalysis.visualElements,
+        },
+        referenceImageUrl,
+      });
+    } catch (error: any) {
+      console.error("Carousel style analysis error:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze image style" });
+    }
+  });
+
   // DALL-E Image Generation
   app.post("/api/dalle/generate-image", async (req, res) => {
     try {
@@ -1462,7 +1508,7 @@ export async function registerRoutes(
   // Carousel Image Generation (with brand assets support)
   app.post("/api/dalle/generate-carousel-image", async (req, res) => {
     try {
-      const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, brandAssetUrl, aspectRatio } = req.body;
+      const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, brandAssetUrl, aspectRatio, extractedStyle, referenceImageUrl } = req.body;
       
       if (!textOverlay || !brandName) {
         return res.status(400).json({ error: "textOverlay and brandName are required" });
@@ -1495,8 +1541,8 @@ export async function registerRoutes(
         textOverlay,
         brandName,
         colorScheme,
-        style,
-        brandAssetUrl,
+        style: extractedStyle || style, // Use extracted style from reference image if available
+        brandAssetUrl: referenceImageUrl || brandAssetUrl,
         aspectRatio: aspectRatio || "square",
       });
       

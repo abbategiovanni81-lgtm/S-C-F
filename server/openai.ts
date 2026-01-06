@@ -1866,8 +1866,26 @@ Make it look like a polished Instagram carousel slide with:
     }
   }
 
+  // Check if we have a detailed extracted style (from "match my style" mode)
+  const isDetailedExtractedStyle = request.style && request.style.length > 100;
+  
   // Generate fresh image with DALL-E 3 including text overlay
-  const generatePrompt = `Create a professional social media carousel slide image.
+  const generatePrompt = isDetailedExtractedStyle 
+    ? `Create a professional social media carousel slide image that EXACTLY matches this visual style:
+
+${request.style}
+
+${slideContext}
+
+IMPORTANT - Include this exact text overlay prominently on the image:
+"${request.textOverlay}"
+
+The text must be large, bold, and easily readable with proper contrast.
+Brand: ${request.brandName}
+Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}
+
+CRITICAL: Maintain the EXACT same color palette, typography style, layout approach, and visual mood as described above.`
+    : `Create a professional social media carousel slide image.
 ${slideContext}
 
 IMPORTANT - Include this exact text overlay prominently on the image:
@@ -1920,4 +1938,75 @@ export function parseAssetTokens(prompt: string): string[] {
 // Remove [asset:slug] tokens from prompt for clean image generation
 export function removeAssetTokens(prompt: string): string {
   return prompt.replace(/\[asset:[a-z0-9-]+\]/gi, "").replace(/\s+/g, " ").trim();
+}
+
+// Analyze carousel image style using GPT-4 Vision
+export interface CarouselStyleAnalysis {
+  colorPalette: string;
+  typography: string;
+  layout: string;
+  mood: string;
+  visualElements: string;
+  stylePrompt: string; // Combined prompt for DALL-E to recreate this style
+}
+
+export async function analyzeCarouselStyle(imageBase64: string): Promise<CarouselStyleAnalysis> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      {
+        role: "system",
+        content: `You are an expert visual designer. Analyze social media carousel slides to extract their visual style DNA. 
+Be extremely specific and detailed about colors (include hex codes if identifiable), typography style, layout patterns, and mood.
+Your analysis will be used to generate matching slides, so be precise.`
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Analyze this carousel slide image and extract its visual style. Provide:
+
+1. COLOR PALETTE: List the exact colors used (background, text, accents). Be specific (e.g., "deep navy blue #1a2b4c, white text, coral accent #ff6b6b")
+
+2. TYPOGRAPHY: Describe the font style (sans-serif/serif, weight, size hierarchy, any effects like shadows or outlines)
+
+3. LAYOUT: How is the content arranged? (text position, spacing, alignment, any grid/structure)
+
+4. MOOD: What's the overall feeling? (professional, playful, minimalist, bold, tech-forward, etc.)
+
+5. VISUAL ELEMENTS: Any recurring elements? (icons, shapes, gradients, images, mockups, patterns)
+
+6. STYLE PROMPT: Write a single detailed DALL-E prompt that would recreate this exact visual style for a new slide. This should be a complete, self-contained prompt describing the style.
+
+Respond in JSON format:
+{
+  "colorPalette": "detailed color description",
+  "typography": "typography description", 
+  "layout": "layout description",
+  "mood": "mood description",
+  "visualElements": "visual elements description",
+  "stylePrompt": "complete DALL-E style prompt"
+}`
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: imageBase64.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`,
+            }
+          }
+        ]
+      }
+    ],
+    max_tokens: 1000,
+    response_format: { type: "json_object" },
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("Failed to analyze image style");
+  }
+
+  const result = JSON.parse(content) as CarouselStyleAnalysis;
+  return result;
 }
