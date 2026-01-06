@@ -67,9 +67,8 @@ export default function BrandBriefs() {
   
   const handleAssetNameChange = (name: string) => {
     setAssetName(name);
-    if (assetType === "screenshot") {
-      setAssetReferenceSlug(generateSlug(name));
-    }
+    // Auto-generate slug for ALL asset types
+    setAssetReferenceSlug(generateSlug(name));
   };
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [analyzingWebsite, setAnalyzingWebsite] = useState(false);
@@ -258,7 +257,8 @@ export default function BrandBriefs() {
       formData.append("name", assetName);
       formData.append("assetType", assetType);
       if (assetDescription) formData.append("description", assetDescription);
-      if (assetType === "screenshot" && assetReferenceSlug) {
+      // Include referenceSlug for ALL asset types
+      if (assetReferenceSlug) {
         formData.append("referenceSlug", assetReferenceSlug);
       }
       
@@ -1090,7 +1090,8 @@ export default function BrandBriefs() {
                 <Label>Asset Type</Label>
                 <Select value={assetType} onValueChange={(v) => { 
                   setAssetType(v); 
-                  if (v === "screenshot" && assetName) {
+                  // Generate slug for all types when type changes
+                  if (assetName) {
                     setAssetReferenceSlug(generateSlug(assetName));
                   }
                 }}>
@@ -1105,21 +1106,19 @@ export default function BrandBriefs() {
                 </Select>
               </div>
 
-              {assetType === "screenshot" && (
-                <div className="space-y-2">
-                  <Label htmlFor="assetReferenceSlug">Reference ID (for AI prompts)</Label>
-                  <Input
-                    id="assetReferenceSlug"
-                    value={assetReferenceSlug}
-                    onChange={(e) => setAssetReferenceSlug(generateSlug(e.target.value))}
-                    placeholder="e.g., creator-studio"
-                    data-testid="input-asset-reference-slug"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    AI will use this ID to reference your screenshot in prompts, e.g., "mobile phone shows {assetReferenceSlug || 'your-app'}"
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="assetReferenceSlug">Reference ID (for AI prompts)</Label>
+                <Input
+                  id="assetReferenceSlug"
+                  value={assetReferenceSlug}
+                  onChange={(e) => setAssetReferenceSlug(generateSlug(e.target.value))}
+                  placeholder="e.g., main-logo, product-hero"
+                  data-testid="input-asset-reference-slug"
+                />
+                <p className="text-xs text-muted-foreground">
+                  AI will use [asset:{assetReferenceSlug || 'your-id'}] to reference this image in generated content
+                </p>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="assetDescription">Description (optional)</Label>
