@@ -443,14 +443,165 @@ Additional 15-25% savings possible on top of Phase 2.
 
 ---
 
+### Trending Topics Enhancement (Google Trends + Reddit)
+
+**Status:** Not implemented
+**Cost:** Free (no API keys required for Google, Reddit free tier)
+**Effort:** ~8 hours total
+
+#### 1. Google Trends Integration
+
+**Package:** `google-trends-api` (npm install)
+
+**Implementation:**
+```typescript
+// server/googleTrends.ts
+import googleTrends from 'google-trends-api';
+
+export async function getTrendingSearches(geo: string = 'GB') {
+  const results = await googleTrends.dailyTrends({ geo });
+  return JSON.parse(results);
+}
+
+export async function getRelatedQueries(keyword: string) {
+  const results = await googleTrends.relatedQueries({ keyword });
+  return JSON.parse(results);
+}
+
+export async function getInterestOverTime(keywords: string[]) {
+  const results = await googleTrends.interestOverTime({ keyword: keywords });
+  return JSON.parse(results);
+}
+```
+
+**Features to add:**
+- [ ] Daily trending searches by country
+- [ ] Related queries for brand keywords
+- [ ] Interest over time charts
+- [ ] "Rising" trends detection
+- [ ] Compare brand vs competitors
+
+**API Endpoints:**
+- `GET /api/trends/daily?geo=GB` - Today's trending searches
+- `GET /api/trends/related?keyword=fitness` - Related queries
+- `GET /api/trends/interest?keywords=yoga,pilates` - Interest comparison
+
+---
+
+#### 2. Reddit Hot Posts Integration
+
+**Requirements:** `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` (free tier)
+
+**Implementation:**
+```typescript
+// server/redditTrends.ts
+const REDDIT_BASE = 'https://oauth.reddit.com';
+
+export async function getHotPosts(subreddit: string, limit: number = 25) {
+  const token = await getRedditToken();
+  const response = await fetch(
+    `${REDDIT_BASE}/r/${subreddit}/hot?limit=${limit}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.json();
+}
+
+export async function getRisingPosts(subreddit: string) {
+  const token = await getRedditToken();
+  const response = await fetch(
+    `${REDDIT_BASE}/r/${subreddit}/rising`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.json();
+}
+
+export async function searchSubreddits(query: string) {
+  const token = await getRedditToken();
+  const response = await fetch(
+    `${REDDIT_BASE}/subreddits/search?q=${query}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.json();
+}
+```
+
+**Features to add:**
+- [ ] Configure subreddits per brand brief
+- [ ] Hot posts from relevant subreddits
+- [ ] Rising posts (early trend detection)
+- [ ] Comment velocity tracking
+- [ ] AI summary of trending discussions
+
+**API Endpoints:**
+- `GET /api/trends/reddit/hot?subreddit=socialmedia` - Hot posts
+- `GET /api/trends/reddit/rising?subreddit=marketing` - Rising posts
+- `POST /api/brand-briefs/:id/subreddits` - Save relevant subreddits
+
+---
+
+#### 3. Database Schema Addition
+
+```sql
+CREATE TABLE trending_topics (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR REFERENCES users(id),
+  brief_id VARCHAR REFERENCES brand_briefs(id),
+  source VARCHAR(50) NOT NULL, -- 'google', 'reddit', 'tiktok'
+  topic TEXT NOT NULL,
+  description TEXT,
+  volume INTEGER, -- search volume or upvotes
+  trend_direction VARCHAR(20), -- 'rising', 'stable', 'falling'
+  related_keywords TEXT[],
+  source_url TEXT,
+  discovered_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE brand_subreddits (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  brief_id VARCHAR REFERENCES brand_briefs(id),
+  subreddit_name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+---
+
+#### 4. Trends Dashboard UI
+
+**Location:** `client/src/pages/Trends.tsx`
+
+**Components:**
+- [ ] Daily trending searches (Google)
+- [ ] Hot posts from configured subreddits
+- [ ] Interest over time chart (Recharts)
+- [ ] "Suggested content ideas" based on trends
+- [ ] One-click "Generate content about this trend"
+
+---
+
+#### Implementation Checklist
+
+- [ ] Install `google-trends-api` package
+- [ ] Create `server/googleTrends.ts` service
+- [ ] Create `server/redditTrends.ts` service
+- [ ] Add `trending_topics` and `brand_subreddits` tables
+- [ ] Add storage interface methods
+- [ ] Create API routes in `server/routes.ts`
+- [ ] Build Trends Dashboard page
+- [ ] Add subreddit configuration to Brand Brief settings
+- [ ] Add "Generate content from trend" button
+- [ ] Schedule daily trend refresh (optional cron)
+
+---
+
 ### Optional Enhancements
 
-- [ ] Trending topics - more data sources beyond Apify
 - [ ] Anthropic/Claude as alternative to OpenAI (requires `ANTHROPIC_API_KEY`)
 - [ ] Real-time notifications for mentions
 - [ ] Webhook integrations for external tools
 - [ ] White-label option for agencies
 - [ ] API access for developers
+- [ ] TikTok Creative Center scraping (uses existing Apify)
 
 ---
 
