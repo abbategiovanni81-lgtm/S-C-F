@@ -267,7 +267,7 @@ export async function registerRoutes(
 
   app.post("/api/brand-assets", requireAuth, assetUpload.single("file"), async (req: any, res) => {
     try {
-      const { briefId, assetType, name, description } = req.body;
+      const { briefId, assetType, name, description, referenceSlug } = req.body;
       
       if (!briefId || !name) {
         return res.status(400).json({ error: "briefId and name are required" });
@@ -304,6 +304,7 @@ export async function registerRoutes(
         userId: req.userId,
         assetType: assetType || "other",
         name,
+        referenceSlug: referenceSlug || null,
         description: description || null,
         imageUrl,
       });

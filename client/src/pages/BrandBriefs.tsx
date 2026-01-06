@@ -57,8 +57,20 @@ export default function BrandBriefs() {
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState("other");
   const [assetDescription, setAssetDescription] = useState("");
+  const [assetReferenceSlug, setAssetReferenceSlug] = useState("");
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [uploadingAsset, setUploadingAsset] = useState(false);
+  
+  const generateSlug = (name: string) => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  };
+  
+  const handleAssetNameChange = (name: string) => {
+    setAssetName(name);
+    if (assetType === "screenshot") {
+      setAssetReferenceSlug(generateSlug(name));
+    }
+  };
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [analyzingWebsite, setAnalyzingWebsite] = useState(false);
   const [formName, setFormName] = useState("");
@@ -246,6 +258,9 @@ export default function BrandBriefs() {
       formData.append("name", assetName);
       formData.append("assetType", assetType);
       if (assetDescription) formData.append("description", assetDescription);
+      if (assetType === "screenshot" && assetReferenceSlug) {
+        formData.append("referenceSlug", assetReferenceSlug);
+      }
       
       const res = await fetch("/api/brand-assets", {
         method: "POST",
@@ -259,6 +274,7 @@ export default function BrandBriefs() {
       setAssetName("");
       setAssetType("other");
       setAssetDescription("");
+      setAssetReferenceSlug("");
       setAssetFile(null);
       refetchAssets();
     } catch (error: any) {
@@ -1064,15 +1080,20 @@ export default function BrandBriefs() {
                 <Input
                   id="assetName"
                   value={assetName}
-                  onChange={(e) => setAssetName(e.target.value)}
-                  placeholder="e.g., Product Hero Shot"
+                  onChange={(e) => handleAssetNameChange(e.target.value)}
+                  placeholder="e.g., Creator Studio"
                   data-testid="input-asset-name"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Asset Type</Label>
-                <Select value={assetType} onValueChange={setAssetType}>
+                <Select value={assetType} onValueChange={(v) => { 
+                  setAssetType(v); 
+                  if (v === "screenshot" && assetName) {
+                    setAssetReferenceSlug(generateSlug(assetName));
+                  }
+                }}>
                   <SelectTrigger data-testid="select-asset-type">
                     <SelectValue />
                   </SelectTrigger>
@@ -1083,6 +1104,22 @@ export default function BrandBriefs() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {assetType === "screenshot" && (
+                <div className="space-y-2">
+                  <Label htmlFor="assetReferenceSlug">Reference ID (for AI prompts)</Label>
+                  <Input
+                    id="assetReferenceSlug"
+                    value={assetReferenceSlug}
+                    onChange={(e) => setAssetReferenceSlug(generateSlug(e.target.value))}
+                    placeholder="e.g., creator-studio"
+                    data-testid="input-asset-reference-slug"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    AI will use this ID to reference your screenshot in prompts, e.g., "mobile phone shows {assetReferenceSlug || 'your-app'}"
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="assetDescription">Description (optional)</Label>
@@ -1155,9 +1192,16 @@ export default function BrandBriefs() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{asset.name}</p>
-                          <Badge variant="outline" className="text-xs">
-                            {ASSET_TYPE_OPTIONS.find(o => o.value === asset.assetType)?.label || asset.assetType}
-                          </Badge>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="outline" className="text-xs">
+                              {ASSET_TYPE_OPTIONS.find(o => o.value === asset.assetType)?.label || asset.assetType}
+                            </Badge>
+                            {(asset as any).referenceSlug && (
+                              <Badge variant="secondary" className="text-xs font-mono">
+                                [{(asset as any).referenceSlug}]
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <Button
                           size="icon"
