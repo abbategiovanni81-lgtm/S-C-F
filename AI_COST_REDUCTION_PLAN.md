@@ -350,3 +350,123 @@ Additional 15-25% savings possible on top of Phase 2.
 - Phase 3 becomes relevant at 100+ paying users
 - Monitor quality closely after caching implementation
 - Consider A/B testing cached vs fresh content engagement
+
+---
+
+## Outstanding Work (PENDING - When Credits Available)
+
+### Social Platform API Keys Needed
+
+| Platform | Secrets Required | Status |
+|----------|------------------|--------|
+| Twitter/X | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET` | ❌ Not configured |
+| LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | ❌ Not configured |
+| Facebook | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` | ❌ Not configured |
+| Instagram | Uses Facebook credentials above | ❌ Not configured |
+| Threads | Uses Facebook credentials above | ❌ Not configured |
+| Reddit | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` | ❌ Not configured |
+
+**Note:** OAuth flows and posting code are 100% implemented for all platforms. Just need API keys.
+
+---
+
+### TikTok App Verification
+
+**Status:** OAuth keys configured, but TikTok app may need verification
+
+**Action Required:**
+- Check TikTok Developer Console for app status
+- May need to create new app or complete verification
+- Current keys: `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` are set
+
+---
+
+### Background Job Runner for Auto-Scheduling
+
+**Status:** Not implemented
+
+**Current State:**
+- YouTube auto-publishing works (via YouTube API scheduling)
+- Other platforms are manual tracking only
+- Users see scheduled posts but must post manually
+
+**Implementation Required:**
+- Add cron job or background worker (node-cron, BullMQ, or similar)
+- Query `scheduled_posts` table for posts due within next 5 minutes
+- Call platform posting functions with stored credentials
+- Update post status after publishing
+
+**Platforms needing auto-publish:**
+- TikTok
+- Instagram
+- Facebook
+- Twitter/X
+- LinkedIn
+- Threads
+- Bluesky
+- Pinterest
+- Reddit
+
+---
+
+### Platform Analytics APIs
+
+**Status:** Manual (screenshot-based) except YouTube
+
+| Platform | Current Method | Ideal Method |
+|----------|---------------|--------------|
+| YouTube | ✅ Direct API | Already working |
+| TikTok | Screenshot upload | TikTok Analytics API |
+| Instagram | Screenshot upload | Instagram Insights API |
+| Facebook | Screenshot upload | Graph API Insights |
+| Twitter/X | Screenshot upload | Twitter Analytics API |
+| LinkedIn | Screenshot upload | LinkedIn Analytics API |
+
+**Note:** Screenshot OCR works well as interim solution. Direct API integrations can be added later for real-time data.
+
+---
+
+### Studio Package API Keys
+
+| Service | Secret Required | Purpose |
+|---------|-----------------|---------|
+| Steve AI | `STEVEAI_API_KEY` | Long-form video, URL-to-video, voice-to-video |
+| Getty Images | `GETTY_API_KEY` | Premium stock footage (optional) |
+
+---
+
+### LSP Errors to Fix
+
+**File:** `server/openai.ts` has 10 diagnostics
+
+**Action:** Fix TypeScript errors when next working on this file
+
+---
+
+### Optional Enhancements
+
+- [ ] Trending topics - more data sources beyond Apify
+- [ ] Anthropic/Claude as alternative to OpenAI (requires `ANTHROPIC_API_KEY`)
+- [ ] Real-time notifications for mentions
+- [ ] Webhook integrations for external tools
+- [ ] White-label option for agencies
+- [ ] API access for developers
+
+---
+
+## Quick Reference: What Works Now
+
+| Category | Working | Needs Setup |
+|----------|---------|-------------|
+| Authentication | Email + Google OAuth | - |
+| Payments | Stripe (all 5 tiers) | - |
+| AI Text | GPT-4o-mini (scripts, captions, etc.) | - |
+| AI Images | DALL-E 3 | - |
+| AI Voice | ElevenLabs Turbo v2.5 | - |
+| AI Video | A2E (avatars, lipsync, scenes) | Steve AI (Studio) |
+| Social Posting | YouTube, Pinterest, Bluesky | 6 platforms need keys |
+| Scheduling | YouTube auto-publish | Other platforms need cron |
+| Analytics | YouTube direct API | Others via screenshot |
+| Social Listening | Apify (Reddit, Instagram, TikTok, YouTube) | - |
+| Brand Management | Briefs, assets, website analysis | - |
+| Content Queue | Full approve/reject/edit flow | - |
