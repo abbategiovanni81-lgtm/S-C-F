@@ -380,6 +380,11 @@ export default function ContentQueue() {
     setGeneratingCarouselId(content.id);
     setCarouselSlideProgress(prev => ({ ...prev, [content.id]: { current: 0, total: slides.length } }));
     
+    // Get extracted style from "match my style" mode if available
+    const extractedStyle = metadata?.extractedStyle;
+    const referenceImageUrl = metadata?.referenceImageUrl;
+    const carouselMode = metadata?.carouselMode;
+    
     try {
       const generatedSlideImages: { slideIndex: number; imageUrl: string }[] = [];
       const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "1:1";
@@ -417,10 +422,29 @@ export default function ContentQueue() {
               textOverlay,
               brandName: "Brand",
               colorScheme,
-              style: theme || "Modern, professional social media design",
+              style: extractedStyle || theme || "Modern, professional social media design",
               aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
               imagePrompt: styledPrompt,
               briefId: content.briefId,
+              extractedStyle,
+              referenceImageUrl,
+            }),
+          });
+        } else if (imageEngine === "dalle" && carouselMode === "match_style" && extractedStyle) {
+          // Use carousel-specific endpoint when we have matched style
+          res = await fetch("/api/dalle/generate-carousel-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slideNumber: i + 1,
+              totalSlides: slides.length,
+              textOverlay,
+              brandName: "Brand",
+              colorScheme,
+              style: dalleStyle,
+              aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+              extractedStyle,
+              referenceImageUrl,
             }),
           });
         } else {

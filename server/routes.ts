@@ -1573,7 +1573,7 @@ export async function registerRoutes(
   // Enhanced carousel image generation with asset token resolution
   app.post("/api/dalle/generate-carousel-image-with-assets", async (req, res) => {
     try {
-      const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, aspectRatio, imagePrompt, briefId } = req.body;
+      const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, aspectRatio, imagePrompt, briefId, extractedStyle, referenceImageUrl } = req.body;
       
       if (!textOverlay || !brandName) {
         return res.status(400).json({ error: "textOverlay and brandName are required" });
