@@ -430,8 +430,8 @@ export default function ContentQueue() {
               referenceImageUrl,
             }),
           });
-        } else if (imageEngine === "dalle" && carouselMode === "match_style" && extractedStyle) {
-          // Use carousel-specific endpoint when we have matched style
+        } else if (imageEngine === "dalle" && extractedStyle) {
+          // DALL-E with extracted style from "match my style" mode
           res = await fetch("/api/dalle/generate-carousel-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
