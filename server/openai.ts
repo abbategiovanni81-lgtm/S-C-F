@@ -375,6 +375,7 @@ export function getFormatIdeas(format: keyof typeof FORMAT_SPECIFIC_IDEAS): stri
 
 export interface BrandAssetReference {
   name: string;
+  referenceSlug?: string | null;
   assetType: string;
   description?: string | null;
   imageUrl: string;
@@ -592,19 +593,26 @@ CONTENT STRATEGY:
   const shuffledRelatability = [...RELATABILITY_STRATEGIES].sort(() => 0.5 - Math.random()).slice(0, 8);
 
   // Build brand assets section for image generation guidance
+  const screenshotAssets = (request.brandAssets || []).filter(a => a.assetType === "screenshot" && a.referenceSlug);
   const brandAssetsSection = request.brandAssets && request.brandAssets.length > 0
     ? `\n\n═══════════════════════════════════════════════════════════════════════════════
 BRAND ASSETS - REFERENCE THESE IN IMAGE PROMPTS:
 ═══════════════════════════════════════════════════════════════════════════════
 The brand has uploaded these visual assets. When generating image prompts, reference and incorporate these elements to maintain brand consistency:
-${request.brandAssets.map((asset, i) => `${i + 1}. ${asset.name} (${asset.assetType})${asset.description ? `: ${asset.description}` : ""}`).join("\n")}
+${request.brandAssets.map((asset, i) => `${i + 1}. ${asset.name} (${asset.assetType})${asset.referenceSlug ? ` [${asset.referenceSlug}]` : ""}${asset.description ? `: ${asset.description}` : ""}`).join("\n")}
 
 IMPORTANT FOR IMAGE PROMPTS:
 - Incorporate the style, colors, and visual elements from these brand assets
 - For product photos: Feature the actual product as described
 - For logos: Include brand identity elements in compositions
 - For lifestyle shots: Match the aesthetic and mood
-- For screenshots: Reference UI elements and color schemes`
+- For screenshots: Reference UI elements and color schemes
+${screenshotAssets.length > 0 ? `
+SCREENSHOT ASSET TOKENS - Use these to reference saved screenshots in image prompts:
+${screenshotAssets.map(a => `- [asset:${a.referenceSlug}] → "${a.name}"`).join("\n")}
+
+When an image prompt should include a screenshot, write: "mobile phone displaying [asset:${screenshotAssets[0]?.referenceSlug || 'your-app'}]"
+The image generation system will automatically use the stored screenshot image.` : ""}`
     : "";
 
   const systemPrompt = `You are an expert social media content strategist and copywriter with deep knowledge of viral content patterns. You create engaging, platform-optimized content that resonates with target audiences.
@@ -967,10 +975,17 @@ CRITICAL CAROUSEL RULES:
 - Final slide (CTA): Clear call-to-action. Prompt comments/saves. Can use "Link in bio".
 - Use 4:5 vertical aspect ratio for maximum feed visibility.
 - Text overlays must be short, punchy, and readable on mobile.`;
+    // Build asset reference examples if available
+    const firstScreenshotSlug = screenshotAssets[0]?.referenceSlug || '';
+    const assetExample = firstScreenshotSlug 
+      ? `mobile phone showing [asset:${firstScreenshotSlug}]` 
+      : "mobile phone showing your app interface";
+    const assetSlugField = firstScreenshotSlug ? `, "assetSlug": "${firstScreenshotSlug}"` : '';
+    
     formatSpecificJson = `"carouselPrompts": {
     "slides": [
       { "slideNumber": 1, "purpose": "HOOK", "textOverlay": "6-8 words MAX - attention-grabbing hook that creates curiosity or tension", "imagePrompt": "Detailed image prompt - professional social media carousel slide with the text overlay prominently displayed. Modern, bold design with readable typography.", "useBrandAsset": false },
-      { "slideNumber": 2, "purpose": "REINFORCE", "textOverlay": "Reinforce the hook, add context, push curiosity to keep swiping", "imagePrompt": "Detailed image prompt - consider using brand screenshot/product image if available. Text overlay with context.", "useBrandAsset": true },
+      { "slideNumber": 2, "purpose": "REINFORCE", "textOverlay": "Reinforce the hook, add context, push curiosity to keep swiping", "imagePrompt": "Detailed image prompt WITH screenshot reference: ${assetExample} with text overlay showing context. Use [asset:slug] syntax to reference saved screenshots.", "useBrandAsset": true${assetSlugField} },
       { "slideNumber": 3, "purpose": "BODY", "textOverlay": "Key point 1 - valuable insight or tip", "imagePrompt": "Detailed image prompt - supporting visual with clear text overlay", "useBrandAsset": false },
       { "slideNumber": 4, "purpose": "BODY", "textOverlay": "Key point 2 - continue building value", "imagePrompt": "Detailed image prompt - visual that supports the narrative", "useBrandAsset": false },
       { "slideNumber": 5, "purpose": "BODY", "textOverlay": "Key point 3 - deeper insight or proof", "imagePrompt": "Detailed image prompt - credibility-building visual", "useBrandAsset": false },
