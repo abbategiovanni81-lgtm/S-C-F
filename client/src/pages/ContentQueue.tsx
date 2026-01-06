@@ -351,26 +351,54 @@ export default function ContentQueue() {
         setCarouselSlideProgress(prev => ({ ...prev, [content.id]: { current: i + 1, total: slides.length } }));
         
         const slide = slides[i];
-        const prompt = slide.imagePrompt || slide.textOverlay || `Carousel slide ${i + 1}`;
+        const imagePrompt = slide.imagePrompt || slide.textOverlay || `Carousel slide ${i + 1}`;
+        const textOverlay = slide.textOverlay || "";
         
-        const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
-          : imageEngine === "dalle" ? "/api/dalle/generate-image" 
-          : imageEngine === "pexels" ? "/api/pexels/search-image"
-          : imageEngine === "getty" ? "/api/getty/search-image"
-          : "/api/fal/generate-image";
+        // Check if prompt contains [asset:slug] tokens - if so, use enhanced endpoint
+        const hasAssetToken = /\[asset:[a-z0-9-]+\]/i.test(imagePrompt);
+        const colorScheme = metadata?.carouselPrompts?.colorScheme;
+        const theme = metadata?.carouselPrompts?.theme;
         
         // Apply style to carousel slides like single images
         const dalleStyle = imageStyle === "illustrated" ? "vivid" : "natural";
         const stylePrefix = imageStyle === "photorealistic" ? "Photorealistic, lifelike, " 
           : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
           : "";
-        const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+        const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${imagePrompt}` : imagePrompt;
         
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
-        });
+        let res: Response;
+        
+        if (imageEngine === "dalle" && hasAssetToken) {
+          // Use enhanced endpoint with asset token resolution
+          // Note: style must be "vivid" or "natural" for OpenAI, theme is passed separately for prompt context
+          res = await fetch("/api/dalle/generate-carousel-image-with-assets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              slideNumber: i + 1,
+              totalSlides: slides.length,
+              textOverlay,
+              brandName: "Brand",
+              colorScheme,
+              style: theme || "Modern, professional social media design",
+              aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+              imagePrompt: styledPrompt,
+              briefId: content.briefId,
+            }),
+          });
+        } else {
+          const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
+            : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+            : imageEngine === "pexels" ? "/api/pexels/search-image"
+            : imageEngine === "getty" ? "/api/getty/search-image"
+            : "/api/fal/generate-image";
+          
+          res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+          });
+        }
         
         if (!res.ok) {
           const err = await res.json();
