@@ -50,7 +50,7 @@ export class ElevenLabsService {
     }
 
     const voiceId = request.voiceId || "21m00Tcm4TlvDq8ikWAM"; // Default: Rachel voice
-    const modelId = request.modelId || "eleven_monolingual_v1";
+    const modelId = request.modelId || "eleven_turbo_v2_5"; // Turbo v2.5 is 50% cheaper with same quality
 
     const response = await fetch(`${this.baseUrl}/text-to-speech/${voiceId}`, {
       method: "POST",

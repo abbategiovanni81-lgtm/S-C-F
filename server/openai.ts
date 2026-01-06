@@ -1033,7 +1033,7 @@ Respond in JSON format:
 }`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini", // Using mini for routine content generation (scripts/captions/hooks/CTAs)
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -1061,7 +1061,7 @@ export async function generateContentIdeas(
   const sampleIdeas = [...SERVICE_PROVIDER_CONTENT_IDEAS].sort(() => 0.5 - Math.random()).slice(0, 5);
   
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini", // Using mini for content idea generation
     messages: [
       {
         role: "system",
@@ -1387,7 +1387,7 @@ Respond in JSON format:
 }`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini", // Using mini for reply generation
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -1442,7 +1442,7 @@ Respond in JSON:
 }`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini", // Using mini for simple sentiment/trend analysis
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
@@ -1744,7 +1744,7 @@ Page Content (first 8000 chars):
 ${data.text.slice(0, 8000)}`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "gpt-4o-mini", // Using mini for brand analysis
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
