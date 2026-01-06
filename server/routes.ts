@@ -1620,8 +1620,8 @@ export async function registerRoutes(
         textOverlay,
         brandName,
         colorScheme,
-        style,
-        brandAssetUrl,
+        style: extractedStyle || style, // Use extracted style from "match my style" mode if available
+        brandAssetUrl: referenceImageUrl || brandAssetUrl,
         aspectRatio: aspectRatio || "portrait",
       });
       
