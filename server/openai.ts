@@ -1660,3 +1660,81 @@ export async function reformatImage(request: ImageReformatRequest): Promise<Imag
     revisedPrompt: (response.data[0] as any)?.revised_prompt,
   };
 }
+
+export interface BrandAnalysisRequest {
+  url: string;
+  title: string;
+  description: string;
+  text: string;
+  headings: string[];
+  keywords: string[];
+}
+
+export interface BrandAnalysisResult {
+  name: string;
+  accountType: "brand" | "influencer" | "ugc" | "educator";
+  brandVoice: string;
+  targetAudience: string;
+  contentGoals: string;
+  suggestedPlatforms: string[];
+  postingFrequency: string;
+}
+
+export async function analyzeBrandFromWebsite(data: BrandAnalysisRequest): Promise<BrandAnalysisResult> {
+  const systemPrompt = `You are a brand strategist analyzing a website to create a social media brand brief.
+Analyze the provided website content and extract key brand information.
+
+Return a JSON object with:
+- name: The brand/company name (extract from title or content)
+- accountType: One of "brand", "influencer", "ugc", or "educator" based on the website type
+- brandVoice: A 2-3 sentence description of the brand's tone, personality, and communication style
+- targetAudience: A 2-3 sentence description of who this brand is targeting
+- contentGoals: A 2-3 sentence description of what the brand likely wants to achieve with social media
+- suggestedPlatforms: An array of recommended platforms (Instagram, TikTok, YouTube, Twitter, LinkedIn, Facebook)
+- postingFrequency: One of "Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"
+
+Be specific and insightful. Base your analysis on the actual content, not generic descriptions.`;
+
+  const userPrompt = `Analyze this website and create a brand brief:
+
+URL: ${data.url}
+Title: ${data.title}
+Meta Description: ${data.description}
+Keywords: ${data.keywords.join(", ")}
+Page Headings: ${data.headings.join(" | ")}
+
+Page Content (first 8000 chars):
+${data.text.slice(0, 8000)}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 1000,
+  });
+
+  const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+  
+  // Normalize accountType to ensure it matches schema enum
+  const validAccountTypes = ["brand", "influencer", "ugc", "educator"];
+  const rawAccountType = (result.accountType || "brand").toLowerCase().trim();
+  const normalizedAccountType = validAccountTypes.includes(rawAccountType) ? rawAccountType : "brand";
+  
+  // Normalize postingFrequency to match schema
+  const validFrequencies = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+  const rawFrequency = result.postingFrequency || "3x per week";
+  const normalizedFrequency = validFrequencies.find(f => f.toLowerCase() === rawFrequency.toLowerCase()) || "3x per week";
+  
+  return {
+    name: result.name || "My Brand",
+    accountType: normalizedAccountType as "brand" | "influencer" | "ugc" | "educator",
+    brandVoice: result.brandVoice || "",
+    targetAudience: result.targetAudience || "",
+    contentGoals: result.contentGoals || "",
+    suggestedPlatforms: result.suggestedPlatforms || ["Instagram", "TikTok"],
+    postingFrequency: normalizedFrequency,
+  };
+}

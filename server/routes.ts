@@ -12,8 +12,8 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, compareContentToViral, type ContentGenerationRequest, type ContentComparisonRequest } from "./openai";
-import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief } from "./apify";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, type ContentGenerationRequest, type ContentComparisonRequest } from "./openai";
+import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { a2eService } from "./a2e";
@@ -184,6 +184,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error creating brand brief:", error);
       res.status(500).json({ error: "Failed to create brand brief" });
+    }
+  });
+
+  app.post("/api/brand-briefs/generate-from-url", requireAuth, async (req: any, res) => {
+    try {
+      const { url } = req.body;
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      // Step 1: Scrape website content using Apify
+      console.log(`Scraping website: ${url}`);
+      const scrapedData = await scrapeWebsiteForBrandAnalysis(url);
+
+      // Step 2: Analyze content with OpenAI
+      console.log("Analyzing brand from website content...");
+      const brandAnalysis = await analyzeBrandFromWebsite(scrapedData);
+
+      res.json({
+        success: true,
+        data: brandAnalysis,
+      });
+    } catch (error: any) {
+      console.error("Error generating brand brief from URL:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze website" });
     }
   });
 

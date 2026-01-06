@@ -318,4 +318,64 @@ export function extractKeywordsFromBrief(brief: {
   return Array.from(new Set(words)).slice(0, 15);
 }
 
+export interface WebsiteScrapedData {
+  url: string;
+  title: string;
+  description: string;
+  text: string;
+  headings: string[];
+  keywords: string[];
+}
+
+export async function scrapeWebsiteForBrandAnalysis(url: string): Promise<WebsiteScrapedData> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) {
+    throw new Error("Apify API token not configured");
+  }
+
+  const actorId = "apify/website-content-crawler";
+  
+  const response = await fetch(
+    `${APIFY_API_BASE}/acts/${encodeURIComponent(actorId)}/run-sync-get-dataset-items?token=${apiToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startUrls: [{ url }],
+        maxCrawlPages: 3,
+        maxCrawlDepth: 1,
+        crawlerType: "cheerio",
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Website scrape failed: ${response.status} - ${text}`);
+  }
+
+  const items = await response.json();
+  
+  if (!items || items.length === 0) {
+    throw new Error("No content scraped from website");
+  }
+
+  const mainPage = items[0];
+  const allText = items.map((item: any) => item.text || "").join("\n\n").slice(0, 15000);
+  const allHeadings = items.flatMap((item: any) => {
+    const headings: string[] = [];
+    if (item.metadata?.title) headings.push(item.metadata.title);
+    return headings;
+  });
+
+  return {
+    url,
+    title: mainPage.metadata?.title || "",
+    description: mainPage.metadata?.description || "",
+    text: allText,
+    headings: allHeadings.slice(0, 20),
+    keywords: (mainPage.metadata?.keywords || "").split(",").map((k: string) => k.trim()).filter(Boolean),
+  };
+}
+
 export const apifyService = new ApifyService();

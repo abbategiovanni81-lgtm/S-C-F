@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload } from "lucide-react";
+import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload, Globe } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,6 +59,14 @@ export default function BrandBriefs() {
   const [assetDescription, setAssetDescription] = useState("");
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [uploadingAsset, setUploadingAsset] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [analyzingWebsite, setAnalyzingWebsite] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formAccountType, setFormAccountType] = useState("brand");
+  const [formBrandVoice, setFormBrandVoice] = useState("");
+  const [formTargetAudience, setFormTargetAudience] = useState("");
+  const [formContentGoals, setFormContentGoals] = useState("");
+  const [formPostingFrequency, setFormPostingFrequency] = useState("");
 
   // Fetch user's own API keys status
   const { data: userApiKeys } = useQuery<{ hasOpenai: boolean; hasElevenlabs: boolean; hasA2e: boolean; hasFal: boolean; hasPexels: boolean }>({
@@ -165,14 +173,18 @@ export default function BrandBriefs() {
     
     createBriefMutation.mutate({
       userId: DEMO_USER_ID,
-      name: formData.get("name"),
-      accountType: formData.get("accountType") || "brand",
-      brandVoice: formData.get("brandVoice"),
-      targetAudience: formData.get("targetAudience"),
-      contentGoals: formData.get("contentGoals"),
+      name: formName || formData.get("name"),
+      accountType: formAccountType || formData.get("accountType") || "brand",
+      brandVoice: formBrandVoice || formData.get("brandVoice"),
+      targetAudience: formTargetAudience || formData.get("targetAudience"),
+      contentGoals: formContentGoals || formData.get("contentGoals"),
       linksToInclude: formData.get("linksToInclude") || null,
-      postingFrequency: formData.get("postingFrequency"),
+      postingFrequency: formPostingFrequency || formData.get("postingFrequency"),
       platforms: selectedPlatforms,
+    }, {
+      onSuccess: () => {
+        resetFormFields();
+      }
     });
   };
 
@@ -282,6 +294,63 @@ export default function BrandBriefs() {
     );
   };
 
+  const handleAnalyzeWebsite = async () => {
+    if (!websiteUrl.trim()) return;
+    
+    setAnalyzingWebsite(true);
+    try {
+      const res = await fetch("/api/brand-briefs/generate-from-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ url: websiteUrl }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to analyze website");
+      }
+      
+      const { data } = await res.json();
+      
+      // Normalize accountType to ensure valid value
+      const validAccountTypes = ["brand", "influencer", "ugc", "educator"];
+      const normalizedAccountType = validAccountTypes.includes(data.accountType?.toLowerCase()) 
+        ? data.accountType.toLowerCase() 
+        : "brand";
+      
+      // Normalize postingFrequency to ensure valid value
+      const validFrequencies = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+      const normalizedFrequency = validFrequencies.find(f => f.toLowerCase() === data.postingFrequency?.toLowerCase()) || "3x per week";
+      
+      // Populate form fields
+      setFormName(data.name || "");
+      setFormAccountType(normalizedAccountType);
+      setFormBrandVoice(data.brandVoice || "");
+      setFormTargetAudience(data.targetAudience || "");
+      setFormContentGoals(data.contentGoals || "");
+      setFormPostingFrequency(normalizedFrequency);
+      setSelectedPlatforms(data.suggestedPlatforms || []);
+      
+      toast({ title: "Website analyzed! Review and adjust the fields below." });
+    } catch (error: any) {
+      toast({ title: "Failed to analyze website", description: error.message, variant: "destructive" });
+    } finally {
+      setAnalyzingWebsite(false);
+    }
+  };
+
+  const resetFormFields = () => {
+    setWebsiteUrl("");
+    setFormName("");
+    setFormAccountType("brand");
+    setFormBrandVoice("");
+    setFormTargetAudience("");
+    setFormContentGoals("");
+    setFormPostingFrequency("");
+    setSelectedPlatforms([]);
+  };
+
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editingBrief) return;
@@ -308,7 +377,7 @@ export default function BrandBriefs() {
         <p className="text-muted-foreground">
           Create brand profiles to generate consistent, on-brand content across all platforms.
         </p>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetFormFields(); }}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-brief">
               <Plus className="w-4 h-4 mr-2" />
@@ -319,10 +388,52 @@ export default function BrandBriefs() {
             <DialogHeader>
               <DialogTitle>Create Brand Brief</DialogTitle>
             </DialogHeader>
+            
+            <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-4 mb-4">
+              <Label className="flex items-center gap-2 mb-2">
+                <Globe className="w-4 h-4 text-purple-500" />
+                Quick Start: Analyze Your Website
+              </Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Paste your website URL and we'll auto-fill your brand brief using AI
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://your-website.com"
+                  value={websiteUrl}
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  className="flex-1"
+                  data-testid="input-website-url"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAnalyzeWebsite}
+                  disabled={analyzingWebsite || !websiteUrl.trim()}
+                  data-testid="button-analyze-website"
+                >
+                  {analyzingWebsite ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  {analyzingWebsite ? "Analyzing..." : "Analyze"}
+                </Button>
+              </div>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Brand Name</Label>
-                <Input id="name" name="name" placeholder="My Brand" required data-testid="input-name" />
+                <Input 
+                  id="name" 
+                  name="name" 
+                  placeholder="My Brand" 
+                  required 
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  data-testid="input-name" 
+                />
               </div>
 
               <div className="space-y-2">
@@ -330,7 +441,8 @@ export default function BrandBriefs() {
                 <p className="text-xs text-muted-foreground mb-2">This helps AI tailor content to your style and goals</p>
                 <RadioGroup
                   name="accountType"
-                  defaultValue="brand"
+                  value={formAccountType}
+                  onValueChange={setFormAccountType}
                   className="grid grid-cols-2 gap-3"
                 >
                   <Label
@@ -375,6 +487,8 @@ export default function BrandBriefs() {
                   name="brandVoice"
                   placeholder="Describe your brand's tone and personality (e.g., Professional yet approachable, witty, educational...)"
                   required
+                  value={formBrandVoice}
+                  onChange={(e) => setFormBrandVoice(e.target.value)}
                   data-testid="input-brand-voice"
                 />
               </div>
@@ -386,6 +500,8 @@ export default function BrandBriefs() {
                   name="targetAudience"
                   placeholder="Describe your ideal audience (e.g., Tech-savvy millennials interested in productivity...)"
                   required
+                  value={formTargetAudience}
+                  onChange={(e) => setFormTargetAudience(e.target.value)}
                   data-testid="input-target-audience"
                 />
               </div>
@@ -397,6 +513,8 @@ export default function BrandBriefs() {
                   name="contentGoals"
                   placeholder="What do you want to achieve? (e.g., Increase brand awareness, drive website traffic, generate leads...)"
                   required
+                  value={formContentGoals}
+                  onChange={(e) => setFormContentGoals(e.target.value)}
                   data-testid="input-content-goals"
                 />
               </div>
@@ -430,7 +548,7 @@ export default function BrandBriefs() {
 
               <div className="space-y-2">
                 <Label htmlFor="postingFrequency">Posting Frequency</Label>
-                <Select name="postingFrequency" required>
+                <Select name="postingFrequency" value={formPostingFrequency} onValueChange={setFormPostingFrequency} required>
                   <SelectTrigger data-testid="select-frequency">
                     <SelectValue placeholder="Select frequency" />
                   </SelectTrigger>
