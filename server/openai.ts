@@ -958,7 +958,7 @@ Focus on concrete actions, subjects, and dynamic camera movements.`;
     "aspectRatio": "Best aspect ratio for the platform: '1:1' for Instagram feed, '9:16' for Stories/Reels, '16:9' for YouTube"
   }`;
   } else if (contentFormat === "carousel") {
-    formatSpecificPrompt = `Generate a carousel/slideshow post with 4-5 slides following Instagram carousel best practices.
+    formatSpecificPrompt = `Generate a carousel/slideshow post with 7 slides following Instagram carousel best practices.
 
 CRITICAL CAROUSEL RULES:
 - Slide 1 (HOOK): 6-8 words MAX. Stop scrollers. Create tension, curiosity, or signal value.
@@ -971,8 +971,11 @@ CRITICAL CAROUSEL RULES:
     "slides": [
       { "slideNumber": 1, "purpose": "HOOK", "textOverlay": "6-8 words MAX - attention-grabbing hook that creates curiosity or tension", "imagePrompt": "Detailed image prompt - professional social media carousel slide with the text overlay prominently displayed. Modern, bold design with readable typography.", "useBrandAsset": false },
       { "slideNumber": 2, "purpose": "REINFORCE", "textOverlay": "Reinforce the hook, add context, push curiosity to keep swiping", "imagePrompt": "Detailed image prompt - consider using brand screenshot/product image if available. Text overlay with context.", "useBrandAsset": true },
-      { "slideNumber": 3, "purpose": "BODY", "textOverlay": "One key point - continue the narrative", "imagePrompt": "Detailed image prompt - supporting visual with clear text overlay", "useBrandAsset": false },
-      { "slideNumber": 4, "purpose": "CTA", "textOverlay": "Clear call-to-action (save this, follow for more, link in bio, etc.)", "imagePrompt": "Detailed image prompt - final slide with brand name and CTA prominently displayed", "useBrandAsset": false }
+      { "slideNumber": 3, "purpose": "BODY", "textOverlay": "Key point 1 - valuable insight or tip", "imagePrompt": "Detailed image prompt - supporting visual with clear text overlay", "useBrandAsset": false },
+      { "slideNumber": 4, "purpose": "BODY", "textOverlay": "Key point 2 - continue building value", "imagePrompt": "Detailed image prompt - visual that supports the narrative", "useBrandAsset": false },
+      { "slideNumber": 5, "purpose": "BODY", "textOverlay": "Key point 3 - deeper insight or proof", "imagePrompt": "Detailed image prompt - credibility-building visual", "useBrandAsset": false },
+      { "slideNumber": 6, "purpose": "BODY", "textOverlay": "Key point 4 - final value point before CTA", "imagePrompt": "Detailed image prompt - transition visual leading to conclusion", "useBrandAsset": false },
+      { "slideNumber": 7, "purpose": "CTA", "textOverlay": "Clear call-to-action (save this, follow for more, link in bio, etc.)", "imagePrompt": "Detailed image prompt - final slide with brand name and CTA prominently displayed", "useBrandAsset": false }
     ],
     "theme": "Overall visual theme (e.g., dark with neon accents, clean white minimalist, bold colors)",
     "colorScheme": "Primary colors to use across all slides (from brand if available)",
