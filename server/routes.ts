@@ -71,6 +71,11 @@ export async function registerRoutes(
   
   // Setup authentication (must be before other routes)
   await setupAuth(app);
+
+  // TikTok domain verification file
+  app.get("/tiktokflGMKAz0e5DhGPBYtGheu6I4jtpHnLHs.txt", (req, res) => {
+    res.type("text/plain").send("tiktok-developers-site-verification=flGMKAz0e5DhGPBYtGheu6I4jtpHnLHs");
+  });
   
   // Serve merged videos from public directory
   const mergedVideosDir = path.join(process.cwd(), "public", "merged-videos");
