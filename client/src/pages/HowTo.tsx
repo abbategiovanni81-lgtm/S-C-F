@@ -390,7 +390,7 @@ export default function HowTo() {
                       </ol>
                     }
                     apiNeeded="OpenAI (GPT-4o Vision)"
-                    pricing="Core: 1/month | Premium: 3/month | Pro: 5/month | Studio: Unlimited"
+                    pricing="Core: 1/month | Premium+: Unlimited"
                   />
                 </div>
               </ScrollArea>
@@ -438,24 +438,25 @@ export default function HowTo() {
                           <div className="text-2xl font-bold mb-2">£29.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
                           <ul className="text-sm space-y-1 text-muted-foreground">
                             <li>Platform APIs included</li>
-                            <li>3 social channels</li>
+                            <li>6 social channels</li>
                             <li>5 brand briefs</li>
-                            <li>25 min voiceovers</li>
-                            <li>16 A2E videos, 150 images</li>
-                            <li>120 lipsync, 4 avatars</li>
-                            <li>3 content comparisons</li>
+                            <li>30 min voiceovers</li>
+                            <li>20 A2E videos, 180 images</li>
+                            <li>150 lipsync, 5 avatars</li>
+                            <li>Unlimited comparisons</li>
                           </ul>
                         </div>
                         <div className="p-4 border rounded-lg border-yellow-500/50 bg-yellow-500/5">
                           <div className="font-bold text-lg text-yellow-600">Pro</div>
                           <div className="text-2xl font-bold mb-2">£49.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
                           <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>5 social channels</li>
+                            <li>8 social channels</li>
                             <li>10 brand briefs</li>
-                            <li>60 min voiceovers</li>
-                            <li>32 A2E videos, 400 images</li>
-                            <li>300 lipsync, 8 avatars</li>
-                            <li>5 content comparisons</li>
+                            <li>75 min voiceovers</li>
+                            <li>45 A2E videos, 500 images</li>
+                            <li>400 lipsync, 10 avatars</li>
+                            <li>Unlimited comparisons</li>
+                            <li>4 team logins</li>
                           </ul>
                         </div>
                         <div className="p-4 border-2 rounded-lg border-pink-500 bg-gradient-to-br from-pink-500/10 to-red-500/10">
@@ -463,15 +464,15 @@ export default function HowTo() {
                           <div className="text-2xl font-bold mb-2">£99.99<span className="text-sm font-normal text-muted-foreground">/mo</span></div>
                           <Badge className="mb-2 bg-pink-500 text-white text-xs">Early Adopter</Badge>
                           <ul className="text-sm space-y-1 text-muted-foreground">
-                            <li>All 9 social channels</li>
-                            <li>10 brand briefs</li>
-                            <li>75 min voiceovers</li>
-                            <li>48 A2E videos, 450 images</li>
-                            <li>360 lipsync, 12 avatars</li>
+                            <li>All 10 social channels</li>
+                            <li>15 brand briefs</li>
+                            <li>90 min voiceovers</li>
+                            <li>60 A2E videos, 500 images</li>
+                            <li>450 lipsync, 15 avatars</li>
                             <li>Unlimited comparisons</li>
                             <li>Creator Studio included</li>
                             <li>Studio Package + Getty</li>
-                            <li>5 concurrent logins</li>
+                            <li>6 team logins</li>
                           </ul>
                         </div>
                       </div>
@@ -502,15 +503,16 @@ export default function HowTo() {
                             </tr>
                           </thead>
                           <tbody>
-                            <tr className="border-b"><td className="p-3">YouTube</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">Twitter/X</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">LinkedIn</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">Facebook</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">Instagram</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">TikTok</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">Threads</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr className="border-b"><td className="p-3">Bluesky</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
-                            <tr><td className="p-3">Pinterest</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">3</td><td className="text-center p-3">5</td><td className="text-center p-3 text-green-600">9</td></tr>
+                            <tr className="border-b"><td className="p-3">YouTube</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Twitter/X</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">LinkedIn</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Facebook</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Instagram</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">TikTok</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Threads</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Bluesky</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr className="border-b"><td className="p-3">Pinterest</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
+                            <tr><td className="p-3">Reddit</td><td className="text-center p-3">-</td><td className="text-center p-3">1</td><td className="text-center p-3">6</td><td className="text-center p-3">8</td><td className="text-center p-3 text-green-600">10</td></tr>
                           </tbody>
                         </table>
                       </div>

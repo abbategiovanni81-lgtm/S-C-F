@@ -6,6 +6,56 @@ This document outlines strategies to reduce AI service costs while maintaining q
 
 ---
 
+## Quota Increases (COMPLETED)
+
+Thanks to cost savings from model optimization, we've increased quotas to drive signups:
+
+### Premium (£29.99/mo)
+
+| Feature | Old | New | Change |
+|---------|-----|-----|--------|
+| Social channels | 3 | **6** | +100% |
+| Voiceovers | 25 min | **30 min** | +20% |
+| A2E videos | 16 | **20** | +25% |
+| DALL-E images | 150 | **180** | +20% |
+| Lipsync | 120 | **150** | +25% |
+| Avatars | 4 | **5** | +25% |
+| Content comparisons | 3 | **Unlimited** | Unlimited |
+
+### Pro (£49.99/mo)
+
+| Feature | Old | New | Change |
+|---------|-----|-----|--------|
+| Social channels | 5 | **8** | +60% |
+| Voiceovers | 60 min | **75 min** | +25% |
+| A2E videos | 32 | **45** | +40% |
+| DALL-E images | 400 | **500** | +25% |
+| Lipsync | 300 | **400** | +33% |
+| Avatars | 8 | **10** | +25% |
+| Content comparisons | 5 | **Unlimited** | Unlimited |
+| Team logins | 1 | **4** | +300% |
+
+### Studio (£99.99/mo)
+
+| Feature | Old | New | Change |
+|---------|-----|-----|--------|
+| Social channels | 9 | **10** | +11% |
+| Voiceovers | 75 min | **90 min** | +20% |
+| A2E videos | 48 | **60** | +25% |
+| DALL-E images | 450 | **500** | +11% |
+| Lipsync | 360 | **450** | +25% |
+| Avatars | 12 | **15** | +25% |
+| Brand briefs | 10 | **15** | +50% |
+| Steve AI video | 100 min | **120 min** | +20% |
+| Steve AI images | 800 | **1000** | +25% |
+| Team logins | 5 | **6** | +20% |
+
+**Estimated extra cost per user:** Premium +£2.00 | Pro +£3.50 | Studio +£8.00
+
+**Margins remain healthy:** Premium 53% | Pro 44% | Studio 31%
+
+---
+
 ## Phase 1: Model Optimization (COMPLETED)
 
 ### 1.1 OpenAI GPT-4o-mini for Text Generation

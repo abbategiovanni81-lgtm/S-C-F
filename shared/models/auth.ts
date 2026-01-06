@@ -62,15 +62,15 @@ export const TIER_LIMITS = {
   premium: {
     brandBriefs: 5,
     scripts: -1,          // Unlimited
-    voiceovers: 25,       // 25 min voiceover
-    a2eVideos: 16,        // 16 A2E video clips
-    lipsync: 120,         // 120 lipsync
-    avatars: 4,           // 4 avatars
-    dalleImages: 150,     // 150 DALL-E images
-    soraVideos: 12,       // 12 Sora videos
-    socialListeningKeywords: 3,
-    socialChannels: 3,    // 3 social channels
-    contentComparisons: 3, // 3 per month
+    voiceovers: 30,       // 30 min voiceover (+20%)
+    a2eVideos: 20,        // 20 A2E video clips (+25%)
+    lipsync: 150,         // 150 lipsync (+25%)
+    avatars: 5,           // 5 avatars
+    dalleImages: 180,     // 180 DALL-E images (+20%)
+    soraVideos: 15,       // 15 Sora videos (+25%)
+    socialListeningKeywords: 4,
+    socialChannels: 6,    // 6 social channels (major platforms covered)
+    contentComparisons: -1, // Unlimited - drives engagement
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
@@ -80,40 +80,41 @@ export const TIER_LIMITS = {
   pro: {
     brandBriefs: 10,
     scripts: -1,          // Unlimited
-    voiceovers: 60,       // 60 min voiceover
-    a2eVideos: 32,        // 32 A2E video clips
-    lipsync: 300,         // 300 lipsync
-    avatars: 8,           // 8 avatars
-    dalleImages: 400,     // 400 DALL-E images
-    soraVideos: 30,       // 30 Sora videos
-    socialListeningKeywords: 6,
-    socialChannels: 5,    // 5 social channels
-    contentComparisons: 5, // 5 per month
+    voiceovers: 75,       // 75 min voiceover (+25%)
+    a2eVideos: 45,        // 45 A2E video clips (+40%)
+    lipsync: 400,         // 400 lipsync (+33%)
+    avatars: 10,          // 10 avatars (+25%)
+    dalleImages: 500,     // 500 DALL-E images (+25%)
+    soraVideos: 40,       // 40 Sora videos (+33%)
+    socialListeningKeywords: 8,
+    socialChannels: 8,    // 8 social channels (every platform covered)
+    contentComparisons: -1, // Unlimited - drives engagement
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
     steveAIGenerative: 0,
     steveAIImages: 0,
+    maxSessions: 4,       // Small team ready
   },
   studio: {
-    brandBriefs: 10,
+    brandBriefs: 15,
     scripts: -1,          // Unlimited
-    voiceovers: 75,       // 3x Premium (25 * 3)
-    a2eVideos: 48,        // 3x Premium (16 * 3)
-    lipsync: 360,         // 3x Premium (120 * 3)
-    avatars: 12,          // 3x Premium (4 * 3)
-    dalleImages: 450,     // 3x Premium (150 * 3)
-    soraVideos: 36,       // 3x Premium (12 * 3)
-    socialListeningKeywords: 9,
-    socialChannels: 9,    // All 9 social channels
+    voiceovers: 90,       // 90 min voiceover (+20%)
+    a2eVideos: 60,        // 60 A2E video clips (+25%)
+    lipsync: 450,         // 450 lipsync (+25%)
+    avatars: 15,          // 15 avatars (+25%)
+    dalleImages: 500,     // 500 DALL-E images (+11%)
+    soraVideos: 45,       // 45 Sora videos (+25%)
+    socialListeningKeywords: 12,
+    socialChannels: 10,   // All 10 social channels
     contentComparisons: -1, // Unlimited
     usesAppApis: true,
     allowedApis: ["all"],
-    steveAIVideos: 100,   // Quarter of $129 plan (400/4)
-    steveAIGenerative: 4, // Quarter of 15 min (rounded up)
-    steveAIImages: 800,   // Quarter of 3200
+    steveAIVideos: 120,   // 120 min long-form video (+20%)
+    steveAIGenerative: 5, // 5 min generative AI (+25%)
+    steveAIImages: 1000,  // 1000 images (+25%)
     includesCreatorStudio: true, // Built-in
-    maxSessions: 5,       // Multi-login support
+    maxSessions: 6,       // Full team access (+1)
   },
 } as const;
 
