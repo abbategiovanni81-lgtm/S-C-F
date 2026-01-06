@@ -41,6 +41,7 @@ export const brandAssets = pgTable("brand_assets", {
   userId: varchar("user_id").notNull().references(() => users.id),
   assetType: text("asset_type").notNull().default("other"),
   name: text("name").notNull(),
+  referenceSlug: text("reference_slug"),
   description: text("description"),
   imageUrl: text("image_url").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
