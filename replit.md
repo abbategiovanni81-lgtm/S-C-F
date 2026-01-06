@@ -61,14 +61,24 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 
 ## AI Content Generation Rules
 
-### Carousel Optimization (Instagram/Social)
+### Carousel Optimization (Instagram 2025/2026)
+**Content Strategy (NEW vs OLD):**
+| OLD (Avoid) | NEW (Use) |
+|-------------|-----------|
+| Generic tips | Specific, personal tips you can't find on Google |
+| How To's | How I's - Share personal experiences |
+| Clean & professional Canva designs | Handwritten fonts, scrapbook elements, "cosy design" |
+| Static carousels | Videos or animated elements in some slides |
+| Didn't reach non-followers | Great for reaching non-followers now |
+
+**Structure Rules:**
 1. **Prefer vertical carousels**: Use 4:5 or 3:4 ratios to maximize screen space and feed visibility
 2. **Slide 1 = Hook**: 6-8 words max, speak audience's language, signal value/tension/curiosity
 3. **Slide 2 is critical for reach**: Instagram may resurface posts using slide 2. Reinforce hook, add context, push curiosity
 4. **One idea per carousel**: Maintain clear narrative: hook → explanation → insight → CTA
 5. **Flow > volume**: Each slide should naturally lead to the next
 6. **End with clear CTA**: Prompt comments, keywords, or actions. "Link in bio" is fine
-7. **Visuals increase discoverability**: Screenshots, typography, illustrations, relevant photos
+7. **Add motion**: Include video or animated elements in at least some slides
 8. **Platform signals**: Add music (instrumental) for Reels distribution. Use location tags for local reach
 
 ### AI Generation Behavior
@@ -77,6 +87,57 @@ The project is organized into `client/` (React frontend), `server/` (Express bac
 - Enforce structural discipline (one idea, clear flow)
 - Auto-suggest CTAs aligned to post intent
 - Recommend visuals and music as part of post readiness, not optional extras
+
+### Instagram Reels Optimization (2025/2026)
+**Content Strategy (NEW vs OLD):**
+| OLD (Avoid) | NEW (Use) |
+|-------------|-----------|
+| B-roll with low-effort, vague advice | B-roll with step-by-step tips on top |
+| Lip syncs, dancing, quotes | Talk-to-camera reels & storytelling |
+| Over-reliance on trending content | Evergreen content with timeless value |
+| Focus on saves and shares | Focus on shares, likes, and watch time |
+| Written hook only | Written hook + sound hook + visual hook |
+
+**Key Rules:**
+1. **Multi-sensory hooks**: Combine written text, sound/voice hook, and visual hook together
+2. **Talk-to-camera wins**: Authentic storytelling outperforms trend-chasing
+3. **Evergreen > trending**: Timeless value content has longer shelf life
+4. **Step-by-step overlays**: Add actionable tips on top of B-roll footage
+5. **Watch time priority**: Algorithm now weights shares + likes + watch time equally
+
+### Instagram Stories Optimization (2025/2026)
+**Content Strategy (NEW vs OLD):**
+| OLD (Avoid) | NEW (Use) |
+|-------------|-----------|
+| 10+ stories daily | 1-3 stories mostly (quality over quantity) |
+| Post stories throughout the day | Post them all at once |
+| Focus on polls and stickers to boost views | Focus on story replies |
+| Share your posts on your story | Turn the main points of the post into their own story |
+| Manual story posting every day | Batch + schedule some stories in advance |
+
+**Key Rules:**
+1. **Less is more**: 1-3 quality stories beats 10+ low-effort ones
+2. **Batch posting**: Post all stories at once rather than throughout the day
+3. **Replies > stickers**: Story replies are the key engagement metric now
+4. **Expand posts, don't just share**: Turn post points into standalone story content
+5. **Schedule ahead**: Batch create and schedule stories in advance
+
+### Instagram Overall Strategy (2025/2026)
+**Content Strategy (NEW vs OLD):**
+| OLD (Avoid) | NEW (Use) |
+|-------------|-----------|
+| 30 hashtags | 3 hashtags maximum |
+| Hashtags helped your reach | Hashtags help SEO |
+| Posts have short shelf life | Posts have longer shelf life & appear in search results |
+| Repost button for your own content | Repost for others' content, Remix for your own |
+| Perfect brand aesthetic | Relatable and real > polished perfection |
+
+**Key Rules:**
+1. **3 hashtags max**: Quality over quantity, hashtags now serve SEO not reach
+2. **SEO matters**: Posts can appear in Google/search engine results now
+3. **Longer content lifespan**: Posts stay discoverable longer than before
+4. **Be relatable**: People prefer businesses that feel real over perfectly polished
+5. **Remix your content**: Use Remix button to reshare your own content, not Repost
 
 ### Instagram Post Optimization (Single Images & Stories)
 1. **Ask, don't tell**: Questions, polls, and choices drive engagement - interaction is the goal
