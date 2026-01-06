@@ -70,6 +70,8 @@ export const generatedContent = pgTable("generated_content", {
   videoRequestId: text("video_request_id"), // Fal.ai request ID for resuming polling
   videoRequestStatus: text("video_request_status"), // "processing", "completed", "failed"
   scheduledFor: timestamp("scheduled_for"),
+  archivedAt: timestamp("archived_at"), // Null = not archived, timestamp = archived
+  deletedAt: timestamp("deleted_at"), // Null = not deleted, timestamp = soft deleted
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
