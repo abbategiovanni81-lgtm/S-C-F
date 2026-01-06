@@ -958,15 +958,25 @@ Focus on concrete actions, subjects, and dynamic camera movements.`;
     "aspectRatio": "Best aspect ratio for the platform: '1:1' for Instagram feed, '9:16' for Stories/Reels, '16:9' for YouTube"
   }`;
   } else if (contentFormat === "carousel") {
-    formatSpecificPrompt = `Generate a carousel/slideshow post with 3-5 slides, each with its own image prompt.`;
+    formatSpecificPrompt = `Generate a carousel/slideshow post with 4-5 slides following Instagram carousel best practices.
+
+CRITICAL CAROUSEL RULES:
+- Slide 1 (HOOK): 6-8 words MAX. Stop scrollers. Create tension, curiosity, or signal value.
+- Slide 2 (CRITICAL FOR REACH): Instagram resurfaces posts using slide 2. Reinforce hook, add context, push curiosity.
+- Middle slides: ONE key point per slide. Build narrative flow. Each slide leads to the next.
+- Final slide (CTA): Clear call-to-action. Prompt comments/saves. Can use "Link in bio".
+- Use 4:5 vertical aspect ratio for maximum feed visibility.
+- Text overlays must be short, punchy, and readable on mobile.`;
     formatSpecificJson = `"carouselPrompts": {
     "slides": [
-      { "imagePrompt": "AI image prompt for slide 1 - hook/attention grabber", "textOverlay": "Slide 1 text" },
-      { "imagePrompt": "AI image prompt for slide 2 - main content", "textOverlay": "Slide 2 text" },
-      { "imagePrompt": "AI image prompt for slide 3 - supporting point", "textOverlay": "Slide 3 text" },
-      { "imagePrompt": "AI image prompt for slide 4 - CTA/conclusion", "textOverlay": "Slide 4 text" }
+      { "slideNumber": 1, "purpose": "HOOK", "textOverlay": "6-8 words MAX - attention-grabbing hook that creates curiosity or tension", "imagePrompt": "Detailed image prompt - professional social media carousel slide with the text overlay prominently displayed. Modern, bold design with readable typography.", "useBrandAsset": false },
+      { "slideNumber": 2, "purpose": "REINFORCE", "textOverlay": "Reinforce the hook, add context, push curiosity to keep swiping", "imagePrompt": "Detailed image prompt - consider using brand screenshot/product image if available. Text overlay with context.", "useBrandAsset": true },
+      { "slideNumber": 3, "purpose": "BODY", "textOverlay": "One key point - continue the narrative", "imagePrompt": "Detailed image prompt - supporting visual with clear text overlay", "useBrandAsset": false },
+      { "slideNumber": 4, "purpose": "CTA", "textOverlay": "Clear call-to-action (save this, follow for more, link in bio, etc.)", "imagePrompt": "Detailed image prompt - final slide with brand name and CTA prominently displayed", "useBrandAsset": false }
     ],
-    "theme": "Overall visual theme tying the carousel together"
+    "theme": "Overall visual theme (e.g., dark with neon accents, clean white minimalist, bold colors)",
+    "colorScheme": "Primary colors to use across all slides (from brand if available)",
+    "aspectRatio": "4:5"
   }`;
   } else if (contentFormat === "tiktok_text") {
     formatSpecificPrompt = `Generate a TikTok-style text post - this is a simple graphic with bold text overlay, typically 1-2 punchy lines promoting something. Like a promotional announcement or offer.`;
@@ -1736,5 +1746,139 @@ ${data.text.slice(0, 8000)}`;
     contentGoals: result.contentGoals || "",
     suggestedPlatforms: result.suggestedPlatforms || ["Instagram", "TikTok"],
     postingFrequency: normalizedFrequency,
+  };
+}
+
+// Carousel Image Generation with Brand Assets
+export interface CarouselImageRequest {
+  slideNumber: number;
+  totalSlides: number;
+  textOverlay: string;
+  brandName: string;
+  colorScheme?: string;
+  style?: string;
+  brandAssetUrl?: string; // Optional: use stored brand image as reference
+  aspectRatio?: "square" | "portrait"; // 1:1 or 4:5
+}
+
+export interface CarouselImageResult {
+  imageUrl: string;
+  revisedPrompt?: string;
+}
+
+export async function generateCarouselImage(request: CarouselImageRequest): Promise<CarouselImageResult> {
+  if (!isDalleConfigured()) {
+    throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
+  }
+
+  const aspectSize = request.aspectRatio === "portrait" ? "1024x1792" : "1024x1024";
+  
+  // Determine slide purpose based on position
+  let slideContext = "";
+  if (request.slideNumber === 1) {
+    slideContext = "This is the HOOK slide - make it attention-grabbing with bold, clear text that creates curiosity or tension.";
+  } else if (request.slideNumber === 2) {
+    slideContext = "This is the second slide - reinforce the hook and add context. This slide is critical for Instagram reach.";
+  } else if (request.slideNumber === request.totalSlides) {
+    slideContext = "This is the FINAL CTA slide - include a clear call-to-action and the brand name prominently.";
+  } else {
+    slideContext = `This is slide ${request.slideNumber} of ${request.totalSlides} - continue the narrative flow with valuable content.`;
+  }
+
+  // If brand asset is provided, use the edit endpoint to create a stylized version
+  if (request.brandAssetUrl) {
+    try {
+      const imageResponse = await fetch(request.brandAssetUrl);
+      if (!imageResponse.ok) {
+        throw new Error("Failed to fetch brand asset");
+      }
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      const imageFile = new File([imageBuffer], "brand-asset.png", { type: "image/png" });
+
+      const editPrompt = `Transform this product/brand image into a professional social media carousel slide. 
+${slideContext}
+
+Add the following text overlay at the top of the image in bold, modern typography:
+"${request.textOverlay}"
+
+Style: ${request.style || "Modern, clean, professional marketing design"}
+Color scheme: ${request.colorScheme || "Use complementary colors from the image"}
+Brand: ${request.brandName}
+
+Make it look like a polished Instagram carousel slide with:
+- Text clearly readable with contrast/shadow
+- Professional graphic design elements (subtle glows, gradients, or frames)
+- Device mockups if showing app/website screenshots
+- Clean, modern aesthetic suitable for social media`;
+
+      const response = await dalleClient.images.edit({
+        model: "gpt-image-1",
+        image: imageFile,
+        prompt: editPrompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      const responseData = response.data?.[0];
+      const newImageUrl = responseData?.url || responseData?.b64_json;
+      if (!newImageUrl || !responseData) {
+        throw new Error("Failed to generate carousel image from brand asset");
+      }
+
+      const finalUrl = responseData.url 
+        ? responseData.url 
+        : `data:image/png;base64,${responseData.b64_json}`;
+
+      return {
+        imageUrl: finalUrl,
+        revisedPrompt: (response.data[0] as any)?.revised_prompt,
+      };
+    } catch (error) {
+      console.error("Failed to use brand asset, falling back to generation:", error);
+      // Fall through to DALL-E 3 generation
+    }
+  }
+
+  // Generate fresh image with DALL-E 3 including text overlay
+  const generatePrompt = `Create a professional social media carousel slide image.
+${slideContext}
+
+IMPORTANT - Include this exact text overlay prominently on the image:
+"${request.textOverlay}"
+
+The text should be:
+- Large, bold, and easily readable
+- Positioned in the upper portion of the image
+- With proper contrast (use shadows, backgrounds, or contrasting colors)
+- In a modern, clean sans-serif font style
+
+Visual composition:
+- Style: ${request.style || "Modern, professional, social media marketing aesthetic"}
+- Color scheme: ${request.colorScheme || "Bold, vibrant colors with good contrast"}
+- Brand: ${request.brandName}
+- Include relevant visual elements that support the text message
+- Leave some visual breathing room around the text
+- Make it look like a polished Instagram/TikTok carousel slide
+
+Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}`;
+
+  const response = await dalleClient.images.generate({
+    model: "dall-e-3",
+    prompt: generatePrompt,
+    n: 1,
+    size: aspectSize as "1024x1024" | "1024x1792",
+    quality: "standard",
+    style: "vivid",
+  });
+
+  const responseData = response.data?.[0];
+  const imageUrl = responseData?.url;
+  if (!imageUrl) {
+    throw new Error("Failed to generate carousel image");
+  }
+
+  return {
+    imageUrl,
+    revisedPrompt: responseData?.revised_prompt,
   };
 }

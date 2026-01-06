@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, type ContentGenerationRequest, type ContentComparisonRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -1390,6 +1390,71 @@ export async function registerRoutes(
       
       res.json({ imageUrl: localImageUrl, revisedPrompt: result.revisedPrompt });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Carousel Image Generation (with brand assets support)
+  app.post("/api/dalle/generate-carousel-image", async (req, res) => {
+    try {
+      const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, brandAssetUrl, aspectRatio } = req.body;
+      
+      if (!textOverlay || !brandName) {
+        return res.status(400).json({ error: "textOverlay and brandName are required" });
+      }
+
+      // Check quota for images (for premium/pro users)
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "dalleImages", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await generateCarouselImage({
+        slideNumber: slideNumber || 1,
+        totalSlides: totalSlides || 4,
+        textOverlay,
+        brandName,
+        colorScheme,
+        style,
+        brandAssetUrl,
+        aspectRatio: aspectRatio || "square",
+      });
+      
+      // Save to cloud storage for persistence
+      let localImageUrl = result.imageUrl;
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded carousel image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download carousel image:", downloadError);
+      }
+
+      // Increment usage after successful generation
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "dalleImages", 1);
+        }
+      }
+      
+      res.json({ imageUrl: localImageUrl, revisedPrompt: result.revisedPrompt });
+    } catch (error: any) {
+      console.error("Carousel image generation error:", error);
       res.status(500).json({ error: error.message });
     }
   });
