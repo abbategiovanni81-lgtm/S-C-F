@@ -3042,12 +3042,20 @@ export async function registerRoutes(
             const slideIdx = parseInt(slideIndex, 10);
             const carouselImages = existingMetadata.generatedCarouselImages || [];
             
-            // Find if this slide already exists and replace, or add new
-            const existingSlideIndex = carouselImages.findIndex((s: any) => s.slideIndex === slideIdx);
-            if (existingSlideIndex >= 0) {
-              carouselImages[existingSlideIndex] = { slideIndex: slideIdx, imageUrl };
+            if (slideIdx === -1) {
+              // Add as new slide at the end
+              const maxIndex = carouselImages.length > 0 
+                ? Math.max(...carouselImages.map((s: any) => s.slideIndex)) 
+                : -1;
+              carouselImages.push({ slideIndex: maxIndex + 1, imageUrl });
             } else {
-              carouselImages.push({ slideIndex: slideIdx, imageUrl });
+              // Find if this slide already exists and replace, or add new at specific index
+              const existingSlideIndex = carouselImages.findIndex((s: any) => s.slideIndex === slideIdx);
+              if (existingSlideIndex >= 0) {
+                carouselImages[existingSlideIndex] = { slideIndex: slideIdx, imageUrl };
+              } else {
+                carouselImages.push({ slideIndex: slideIdx, imageUrl });
+              }
             }
             
             // Sort by slideIndex

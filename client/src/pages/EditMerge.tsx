@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 
 const DEMO_USER_ID = "demo-user";
@@ -321,7 +321,7 @@ export default function EditMerge() {
     }
   };
 
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>, addNew: boolean = false) => {
     if (!selectedContent || !e.target.files?.length) return;
     const file = e.target.files[0];
     setUploadingImage(true);
@@ -331,10 +331,20 @@ export default function EditMerge() {
       formData.append("image", file);
       formData.append("contentId", selectedContent.id);
       
-      // If it's a carousel and a slide is selected, pass the slideIndex
       const carouselImages = getCarouselImages(selectedContent);
-      if (carouselImages.length > 0 && selectedSlideIndex !== null) {
-        formData.append("slideIndex", selectedSlideIndex.toString());
+      const isCarousel = carouselImages.length > 0 || (selectedContent.generationMetadata as any)?.contentFormat === "carousel";
+      
+      if (isCarousel) {
+        if (addNew) {
+          // Add as new slide at the end
+          formData.append("slideIndex", "-1");
+        } else if (selectedSlideIndex !== null) {
+          // Replace selected slide
+          formData.append("slideIndex", selectedSlideIndex.toString());
+        } else {
+          // No slide selected - add as new
+          formData.append("slideIndex", "-1");
+        }
       }
       
       const res = await fetch("/api/image/upload", {
@@ -350,9 +360,12 @@ export default function EditMerge() {
       const data = await res.json();
       
       invalidateContentQueries();
-      const successMsg = carouselImages.length > 0 && selectedSlideIndex !== null
-        ? `Slide ${selectedSlideIndex + 1} updated!`
-        : file.name;
+      let successMsg = file.name;
+      if (isCarousel) {
+        successMsg = selectedSlideIndex !== null && !addNew
+          ? `Slide ${selectedSlideIndex + 1} replaced!`
+          : "New slide added!";
+      }
       toast({ title: "Image uploaded!", description: successMsg });
       setSelectedSlideIndex(null);
     } catch (error: any) {
@@ -360,6 +373,82 @@ export default function EditMerge() {
     } finally {
       setUploadingImage(false);
       if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
+
+  const handleReorderCarouselSlide = async (slideIndex: number, direction: "up" | "down") => {
+    if (!selectedContent) return;
+    const carouselImages = getCarouselImages(selectedContent);
+    const currentPos = carouselImages.findIndex(s => s.slideIndex === slideIndex);
+    const newPos = direction === "up" ? currentPos - 1 : currentPos + 1;
+    
+    if (newPos < 0 || newPos >= carouselImages.length) return;
+    
+    // Swap positions
+    const newOrder = [...carouselImages];
+    const temp = newOrder[currentPos];
+    newOrder[currentPos] = newOrder[newPos];
+    newOrder[newPos] = temp;
+    
+    // Reassign slideIndex values
+    const reordered = newOrder.map((slide, i) => ({ ...slide, slideIndex: i }));
+    
+    try {
+      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
+      if (!freshRes.ok) throw new Error("Failed to fetch content");
+      const freshContent = await freshRes.json();
+      const existingMetadata = freshContent?.generationMetadata || {};
+      
+      const patchRes = await fetch(`/api/content/${selectedContent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...existingMetadata, generatedCarouselImages: reordered },
+        }),
+      });
+      if (!patchRes.ok) {
+        const err = await patchRes.json();
+        throw new Error(err.error || "Failed to update");
+      }
+      
+      invalidateContentQueries();
+      toast({ title: "Slide reordered!" });
+    } catch (error: any) {
+      toast({ title: "Reorder failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteCarouselSlide = async (slideIndex: number) => {
+    if (!selectedContent) return;
+    const carouselImages = getCarouselImages(selectedContent);
+    
+    // Remove the slide and reindex
+    const filtered = carouselImages.filter(s => s.slideIndex !== slideIndex);
+    const reordered = filtered.map((slide, i) => ({ ...slide, slideIndex: i }));
+    
+    try {
+      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
+      if (!freshRes.ok) throw new Error("Failed to fetch content");
+      const freshContent = await freshRes.json();
+      const existingMetadata = freshContent?.generationMetadata || {};
+      
+      const patchRes = await fetch(`/api/content/${selectedContent.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          generationMetadata: { ...existingMetadata, generatedCarouselImages: reordered },
+        }),
+      });
+      if (!patchRes.ok) {
+        const err = await patchRes.json();
+        throw new Error(err.error || "Failed to delete");
+      }
+      
+      invalidateContentQueries();
+      setSelectedSlideIndex(null);
+      toast({ title: "Slide deleted!" });
+    } catch (error: any) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     }
   };
 
@@ -741,18 +830,18 @@ export default function EditMerge() {
                             </div>
                             {selectedSlideIndex !== null && (
                               <Badge variant="secondary" className="text-xs">
-                                Replacing Slide {selectedSlideIndex + 1}
+                                Slide {selectedSlideIndex + 1} selected
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">Click a slide to select it for replacement, then upload a new image</p>
+                          <p className="text-xs text-muted-foreground">Click a slide to select it, use arrows to reorder</p>
                           <div className="grid grid-cols-3 gap-2">
                             {getCarouselImages(selectedContent)
                               .sort((a, b) => a.slideIndex - b.slideIndex)
-                              .map((slide: { slideIndex: number; imageUrl: string }, i: number) => (
+                              .map((slide: { slideIndex: number; imageUrl: string }, i: number, arr: { slideIndex: number; imageUrl: string }[]) => (
                                 <div 
                                   key={i} 
-                                  className={`relative cursor-pointer transition-all ${selectedSlideIndex === slide.slideIndex ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 hover:ring-muted-foreground/50'}`}
+                                  className={`group relative cursor-pointer transition-all ${selectedSlideIndex === slide.slideIndex ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 hover:ring-muted-foreground/50'}`}
                                   onClick={() => setSelectedSlideIndex(selectedSlideIndex === slide.slideIndex ? null : slide.slideIndex)}
                                 >
                                   <img 
@@ -763,10 +852,33 @@ export default function EditMerge() {
                                   <span className={`absolute top-1 left-1 text-white text-xs px-1.5 py-0.5 rounded ${selectedSlideIndex === slide.slideIndex ? 'bg-primary' : 'bg-black/60'}`}>
                                     {slide.slideIndex + 1}
                                   </span>
+                                  {/* Reorder and delete controls */}
+                                  <div className={`absolute top-1 right-1 flex flex-col gap-0.5 transition-opacity ${selectedSlideIndex === slide.slideIndex ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                    {i > 0 && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleReorderCarouselSlide(slide.slideIndex, "up"); }}
+                                        className="bg-black/60 hover:bg-black/80 text-white p-0.5 rounded"
+                                      >
+                                        <ArrowUp className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                    {i < arr.length - 1 && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleReorderCarouselSlide(slide.slideIndex, "down"); }}
+                                        className="bg-black/60 hover:bg-black/80 text-white p-0.5 rounded"
+                                      >
+                                        <ArrowDown className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleDeleteCarouselSlide(slide.slideIndex); }}
+                                      className="bg-red-500/80 hover:bg-red-500 text-white p-0.5 rounded"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
                                   {selectedSlideIndex === slide.slideIndex && (
-                                    <div className="absolute inset-0 bg-primary/20 rounded-lg flex items-center justify-center">
-                                      <span className="text-xs font-medium text-primary-foreground bg-primary px-2 py-1 rounded">Selected</span>
-                                    </div>
+                                    <div className="absolute inset-0 bg-primary/10 rounded-lg pointer-events-none" />
                                   )}
                                 </div>
                               ))}
@@ -778,60 +890,123 @@ export default function EditMerge() {
                         </div>
                       )}
                       
-                      <div className="flex gap-2">
-                        <Button
-                          variant={getImageUrl(selectedContent) ? "outline" : "default"}
-                          size="sm"
-                          onClick={handleGenerateImage}
-                          disabled={generatingImage}
-                          className="flex-1"
-                          data-testid="button-generate-image"
-                        >
-                          {generatingImage ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Wand2 className="w-4 h-4 mr-2" />
-                              {getImageUrl(selectedContent) ? "Regenerate" : "Generate"} Image
-                            </>
-                          )}
-                        </Button>
+                      {(() => {
+                        const carouselImages = getCarouselImages(selectedContent);
+                        const isCarousel = carouselImages.length > 0 || (selectedContent.generationMetadata as any)?.contentFormat === "carousel";
                         
-                        <input
-                          ref={imageInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleUploadImage}
-                          className="hidden"
-                          data-testid="input-upload-image"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => imageInputRef.current?.click()}
-                          disabled={uploadingImage}
-                          className="flex-1"
-                          data-testid="button-upload-image"
-                        >
-                          {uploadingImage ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 mr-2" />
-                              Upload Image
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Add a thumbnail or featured image for this post
-                      </p>
+                        return (
+                          <>
+                            <div className="flex gap-2">
+                              <Button
+                                variant={getImageUrl(selectedContent) ? "outline" : "default"}
+                                size="sm"
+                                onClick={handleGenerateImage}
+                                disabled={generatingImage}
+                                className="flex-1"
+                                data-testid="button-generate-image"
+                              >
+                                {generatingImage ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Generating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Wand2 className="w-4 h-4 mr-2" />
+                                    {getImageUrl(selectedContent) ? "Regenerate" : "Generate"} Image
+                                  </>
+                                )}
+                              </Button>
+                              
+                              <input
+                                ref={imageInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleUploadImage(e, false)}
+                                className="hidden"
+                                data-testid="input-upload-image"
+                              />
+                              
+                              {isCarousel ? (
+                                <>
+                                  {selectedSlideIndex !== null ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => imageInputRef.current?.click()}
+                                      disabled={uploadingImage}
+                                      className="flex-1"
+                                      data-testid="button-replace-slide"
+                                    >
+                                      {uploadingImage ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                          Uploading...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="w-4 h-4 mr-2" />
+                                          Replace Slide {selectedSlideIndex + 1}
+                                        </>
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => imageInputRef.current?.click()}
+                                      disabled={uploadingImage}
+                                      className="flex-1"
+                                      data-testid="button-add-slide"
+                                    >
+                                      {uploadingImage ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                          Uploading...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Plus className="w-4 h-4 mr-2" />
+                                          Add New Slide
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => imageInputRef.current?.click()}
+                                  disabled={uploadingImage}
+                                  className="flex-1"
+                                  data-testid="button-upload-image"
+                                >
+                                  {uploadingImage ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="w-4 h-4 mr-2" />
+                                      Upload Image
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {isCarousel 
+                                ? (selectedSlideIndex !== null 
+                                    ? "Upload to replace the selected slide" 
+                                    : "Add a new slide to your carousel")
+                                : "Add a thumbnail or featured image for this post"
+                              }
+                            </p>
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
 
