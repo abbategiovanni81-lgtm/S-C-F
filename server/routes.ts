@@ -4800,7 +4800,10 @@ export async function registerRoutes(
           let input: Record<string, any>;
           if (platform === "reddit") {
             input = {
-              [actorConfig.searchField]: keywords.slice(0, 5).map((kw: string) => ({ term: kw, sort: "relevance" })),
+              [actorConfig.searchField]: keywords.slice(0, 5),
+              type: "link",
+              sort: "relevance",
+              time: "week",
               maxItems: 30,
             };
           } else if (platform === "youtube") {

@@ -37,7 +37,7 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
   reddit: {
     actorId: "backhoe/reddit-search-scraper",
     platform: "reddit",
-    searchField: "searchTerms",
+    searchField: "searches",
   },
   youtube: {
     actorId: "scraper_one/youtube-search-scraper",
