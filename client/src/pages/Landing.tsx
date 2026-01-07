@@ -47,7 +47,7 @@ export default function Landing() {
 
         <div className="text-center mb-6">
           <a 
-            href="https://youtu.be/35iy5J8OgOk?si=Iie-RUeY-0LtOn9d" 
+            href="https://youtu.be/Eso4YpMxlQ8?si=74cbRS0fsxISBj2d" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-medium transition-colors"
