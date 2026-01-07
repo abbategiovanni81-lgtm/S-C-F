@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause, Link2, Info } from "lucide-react";
+import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause, Link2, Info, Edit, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ClipSuggestion {
@@ -26,6 +27,9 @@ interface GeneratedClip {
   transcript: string;
   videoUrl?: string;
   thumbnailUrl?: string;
+  hook?: string;
+  caption?: string;
+  hashtags?: string[];
 }
 
 const defaultSuggestions: ClipSuggestion[] = [
@@ -53,6 +57,91 @@ export default function VideoToClips() {
   const [isUrlProcessing, setIsUrlProcessing] = useState(false);
 
   const [sourceVideoPath, setSourceVideoPath] = useState<string | null>(null);
+  const [editingClip, setEditingClip] = useState<GeneratedClip | null>(null);
+  const [editHook, setEditHook] = useState("");
+  const [editCaption, setEditCaption] = useState("");
+  const [editHashtags, setEditHashtags] = useState("");
+  const queryClient = useQueryClient();
+
+  const handleDownload = async (clip: GeneratedClip) => {
+    if (!clip.videoUrl) {
+      toast({ title: "No video", description: "Video not available for download", variant: "destructive" });
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = clip.videoUrl;
+    link.download = `${clip.title.replace(/[^a-z0-9]/gi, "_")}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Downloading", description: "Your clip is being downloaded" });
+  };
+
+  const openEditModal = (clip: GeneratedClip) => {
+    setEditingClip(clip);
+    setEditHook(clip.hook || "");
+    setEditCaption(clip.caption || clip.transcript || "");
+    setEditHashtags(clip.hashtags?.join(" ") || "");
+  };
+
+  const generateCaptionMutation = useMutation({
+    mutationFn: async (transcript: string) => {
+      const res = await fetch("/api/generate/clip-caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript }),
+      });
+      if (!res.ok) throw new Error("Failed to generate caption");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setEditHook(data.hook || "");
+      setEditCaption(data.caption || "");
+      setEditHashtags(data.hashtags?.join(" ") || "");
+      toast({ title: "AI Generated!", description: "Hook, caption and hashtags ready" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to generate content", variant: "destructive" });
+    },
+  });
+
+  const addToQueueMutation = useMutation({
+    mutationFn: async (params: { clip: GeneratedClip; hook: string; caption: string; hashtags: string }) => {
+      const res = await fetch("/api/content-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: params.clip.title,
+          mediaUrl: params.clip.videoUrl,
+          mediaType: "video",
+          caption: params.caption,
+          hook: params.hook,
+          hashtags: params.hashtags.split(/[\s,]+/).filter(Boolean),
+          status: "draft",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add to queue");
+      return res.json();
+    },
+    onSuccess: () => {
+      setEditingClip(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/content-queue"] });
+      toast({ title: "Added to Queue!", description: "Your clip is now in the content queue" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add to queue", variant: "destructive" });
+    },
+  });
+
+  const handleAddToQueue = () => {
+    if (!editingClip) return;
+    addToQueueMutation.mutate({
+      clip: editingClip,
+      hook: editHook,
+      caption: editCaption,
+      hashtags: editHashtags,
+    });
+  };
 
   const processMutation = useMutation({
     mutationFn: async (params: { file: File; suggestions: string[]; customPrompt: string }) => {
@@ -304,13 +393,25 @@ export default function VideoToClips() {
                     <h4 className="font-medium text-white mb-2 line-clamp-2">{clip.title}</h4>
                     <p className="text-sm text-slate-400 line-clamp-2 mb-3">{clip.transcript}</p>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" data-testid={`button-download-${clip.id}`}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => handleDownload(clip)}
+                        disabled={!clip.videoUrl}
+                        data-testid={`button-download-${clip.id}`}
+                      >
                         <Download className="w-4 h-4 mr-1" />
                         Download
                       </Button>
-                      <Button size="sm" className="flex-1 bg-purple-600 hover:bg-purple-700" data-testid={`button-queue-${clip.id}`}>
-                        <Send className="w-4 h-4 mr-1" />
-                        To Queue
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-purple-600 hover:bg-purple-700" 
+                        onClick={() => openEditModal(clip)}
+                        data-testid={`button-queue-${clip.id}`}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit & Queue
                       </Button>
                     </div>
                   </CardContent>
@@ -392,6 +493,97 @@ export default function VideoToClips() {
                 {processMutation.isPending ? "Generating clips..." : "Generate new clips"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editingClip} onOpenChange={(open) => !open && setEditingClip(null)}>
+          <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl">Edit Clip Before Queueing</DialogTitle>
+            </DialogHeader>
+            {editingClip && (
+              <div className="py-4 space-y-4">
+                <div className="aspect-video bg-slate-800 rounded-lg overflow-hidden">
+                  {editingClip.videoUrl && (
+                    <video
+                      src={editingClip.videoUrl}
+                      className="w-full h-full object-contain"
+                      controls
+                      playsInline
+                    />
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => generateCaptionMutation.mutate(editingClip.transcript)}
+                    disabled={generateCaptionMutation.isPending}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500"
+                  >
+                    {generateCaptionMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-2" />Generate Hook & Caption</>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-slate-300">Hook (opening line)</Label>
+                    <Input
+                      value={editHook}
+                      onChange={(e) => setEditHook(e.target.value)}
+                      placeholder="Attention-grabbing opening..."
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Caption</Label>
+                    <Textarea
+                      value={editCaption}
+                      onChange={(e) => setEditCaption(e.target.value)}
+                      placeholder="Your caption here..."
+                      className="bg-slate-800 border-slate-700 text-white mt-1 min-h-[100px]"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-slate-300">Hashtags (space or comma separated)</Label>
+                    <Input
+                      value={editHashtags}
+                      onChange={(e) => setEditHashtags(e.target.value)}
+                      placeholder="#viral #fyp #trending"
+                      className="bg-slate-800 border-slate-700 text-white mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDownload(editingClip)}
+                    disabled={!editingClip.videoUrl}
+                    className="flex-1"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button
+                    onClick={handleAddToQueue}
+                    disabled={addToQueueMutation.isPending}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                  >
+                    {addToQueueMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</>
+                    ) : (
+                      <><Send className="w-4 h-4 mr-2" />Add to Queue</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

@@ -5945,5 +5945,52 @@ export async function registerRoutes(
     }
   });
 
+  // Generate hook, caption, and hashtags for a video clip
+  app.post("/api/generate/clip-caption", isAuthenticated, async (req: any, res) => {
+    try {
+      const { transcript } = req.body;
+      if (!transcript) {
+        return res.status(400).json({ error: "Transcript is required" });
+      }
+
+      const { openai } = await import("./openai");
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are a social media expert. Generate engaging content for a short video clip.
+            
+Return a JSON object with:
+- hook: A 5-10 word attention-grabbing opening line
+- caption: A compelling 2-3 sentence caption that drives engagement
+- hashtags: Array of 5-8 relevant hashtags (without # symbol)
+
+Focus on virality, relatability, and calls to action.`
+          },
+          {
+            role: "user",
+            content: `Generate hook, caption, and hashtags for this video clip transcript:\n\n${transcript}`
+          }
+        ],
+        temperature: 0.8,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content || "{}";
+      const result = JSON.parse(content);
+      
+      res.json({
+        hook: result.hook || "",
+        caption: result.caption || "",
+        hashtags: (result.hashtags || []).map((h: string) => h.startsWith("#") ? h : `#${h}`),
+      });
+    } catch (error: any) {
+      console.error("Caption generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
