@@ -707,6 +707,191 @@ CREATE INDEX idx_clips_category ON video_clip_library(category);
 
 ---
 
+### OpenAI Batch API Integration (50% Cost Savings)
+
+**Status:** Not implemented
+**Cost:** Free (uses existing OpenAI API key)
+**Effort:** ~3-4 hours
+**Savings:** 50% on all batch-eligible GPT calls
+
+#### Overview
+
+OpenAI Batch API offers 50% discount for non-urgent processing (results within 24 hours). We can use this for any AI task that doesn't need instant results.
+
+#### Batch-Eligible Tasks
+
+| Task | Current Method | Batch Method | User Experience |
+|------|----------------|--------------|-----------------|
+| Content ideas (30 per brief) | On-demand | Queue when brief created | Ideas ready next login |
+| Hashtag libraries (100 per niche) | On-demand | Weekly batch refresh | Instant suggestions from cache |
+| Hook variations (10 per post) | On-demand | Queue after content saved | "Alternative hooks" ready next session |
+| Caption rewrites (per platform) | On-demand | Queue after approval | Platform versions ready by morning |
+| Trend analysis | On-demand | Nightly batch | "Today's trending ideas" pre-loaded |
+
+#### Implementation
+
+**1. Batch Queue System**
+```typescript
+// server/batchQueue.ts
+interface BatchJob {
+  id: string;
+  userId: string;
+  jobType: 'content_ideas' | 'hashtags' | 'hooks' | 'captions' | 'trends';
+  input: any;
+  status: 'pending' | 'submitted' | 'completed' | 'failed';
+  result?: any;
+  createdAt: Date;
+  completedAt?: Date;
+}
+
+export async function queueBatchJob(job: Omit<BatchJob, 'id' | 'status' | 'createdAt'>) {
+  // Save to database
+  // Submit to OpenAI Batch API
+  // Poll for completion
+  // Store results
+}
+```
+
+**2. Database Schema**
+```sql
+CREATE TABLE batch_jobs (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR REFERENCES users(id),
+  job_type VARCHAR(50) NOT NULL,
+  input JSONB NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending',
+  result JSONB,
+  openai_batch_id VARCHAR,
+  created_at TIMESTAMP DEFAULT NOW(),
+  completed_at TIMESTAMP
+);
+
+CREATE TABLE cached_content (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR REFERENCES users(id),
+  brief_id VARCHAR REFERENCES brand_briefs(id),
+  content_type VARCHAR(50), -- ideas, hashtags, hooks, captions
+  content JSONB NOT NULL,
+  generated_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP
+);
+```
+
+**3. Background Worker**
+- Cron job runs every hour
+- Submits pending batch jobs to OpenAI
+- Polls for completed batches
+- Stores results in cached_content table
+
+**4. API Flow Changes**
+```
+Before: User clicks "Generate Ideas" → Wait 3s → Show results
+After:  User creates brief → Batch queued → Next login → Ideas pre-loaded (instant)
+```
+
+#### Cost Savings Example
+
+| Monthly Volume | Normal Cost | With Batch (50%) | Savings |
+|----------------|-------------|------------------|---------|
+| 10,000 GPT calls | £100 | £50 | £50 |
+| 50,000 GPT calls | £500 | £250 | £250 |
+| 100,000 GPT calls | £1,000 | £500 | £500 |
+
+#### Implementation Checklist
+
+- [ ] Create `batch_jobs` and `cached_content` tables
+- [ ] Build batch queue service (`server/batchQueue.ts`)
+- [ ] Integrate OpenAI Batch API submission
+- [ ] Add polling/webhook for batch completion
+- [ ] Modify content ideas to check cache first
+- [ ] Modify hashtag generation to use cached library
+- [ ] Add background worker (node-cron)
+- [ ] Add "pre-generate" trigger when brand brief is created/updated
+- [ ] Add cache expiry and refresh logic
+
+---
+
+### Pre-Made Reels Template Library
+
+**Status:** Not implemented
+**Cost:** £0 per use (templates created in advance)
+**Effort:** User prep time + ~2 hours dev work
+
+#### Overview
+
+Pre-create template reels for top 20 niches using Canva. Users get instant reels by selecting templates - only text overlay customization needed (free FFmpeg processing).
+
+#### Niche Coverage (20 niches × 10 hooks × 4 variations = 800 templates)
+
+| Niche | Example Hooks |
+|-------|---------------|
+| Fitness | "3 mistakes", "morning routine", "what I eat" |
+| Beauty | "skincare secrets", "makeup hacks", "glow up" |
+| Wealth/Finance | "money mistakes", "passive income", "investing tips" |
+| Real Estate | "staging secrets", "buyer mistakes", "market update" |
+| Travel | "packing hacks", "hidden gems", "budget tips" |
+| Food/Restaurant | "recipe reveal", "kitchen hacks", "taste test" |
+| Fashion | "outfit ideas", "style tips", "capsule wardrobe" |
+| Tech | "app review", "productivity hack", "gadget unboxing" |
+| Coaching | "mindset shift", "client wins", "tough love" |
+| E-commerce | "product reveal", "behind the scenes", "packing orders" |
+| Health/Wellness | "self-care routine", "mental health tip", "daily habits" |
+| Parenting | "mom hack", "toddler tip", "real talk" |
+| Pets | "training tip", "day in the life", "product review" |
+| Education | "study hack", "learn this", "quick lesson" |
+| Music | "practice routine", "gear review", "cover song" |
+| Art/Design | "process video", "tool review", "before after" |
+| Photography | "editing tip", "gear talk", "location scout" |
+| Gaming | "game tip", "setup tour", "hot take" |
+| Spirituality | "daily practice", "sign meaning", "meditation" |
+| Home/DIY | "room makeover", "budget hack", "tool tip" |
+
+#### File Naming Convention
+
+```
+{niche}-{hook-type}-v{1-4}.mp4
+
+Examples:
+wealth-money-mistakes-v1.mp4  (dark/moody)
+wealth-money-mistakes-v2.mp4  (bright/clean)
+wealth-money-mistakes-v3.mp4  (luxury gold)
+wealth-money-mistakes-v4.mp4  (minimalist)
+```
+
+#### How It Works
+
+1. User selects "Reels" format
+2. AI detects brand niche from brief
+3. Shows matching template variations
+4. User picks one
+5. FFmpeg overlays custom text (user's hook/CTA)
+6. Done - no AI video generation credits used
+
+#### Cost Comparison
+
+| Method | Cost per Reel |
+|--------|---------------|
+| A2E video generation | ~£0.30-0.50 |
+| Pre-made template + text overlay | **£0.00** |
+
+#### User Prep (You)
+
+- [ ] Create template reels in Canva for 20 niches
+- [ ] 10 hook types per niche
+- [ ] 4 style variations each
+- [ ] Save to Google Drive with naming convention
+- [ ] Mark folder as "Templates" vs "B-roll"
+
+#### Dev Implementation
+
+- [ ] Add "template" flag to video_clip_library table
+- [ ] Filter template clips by user's brand niche
+- [ ] Show variation picker in UI
+- [ ] Apply text overlay with FFmpeg
+- [ ] Track which templates used to avoid repetition
+
+---
+
 ### Optional Enhancements
 
 - [ ] Anthropic/Claude as alternative to OpenAI (requires `ANTHROPIC_API_KEY`)
