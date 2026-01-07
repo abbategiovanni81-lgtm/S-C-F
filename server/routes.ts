@@ -5832,8 +5832,8 @@ export async function registerRoutes(
       try {
         const { spawnSync } = await import("child_process");
         const result = spawnSync("yt-dlp", [
-          "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
-          "--merge-output-format", "mp4",
+          "--extractor-args", "youtube:player_client=android",
+          "-f", "best[height<=720]",
           "-o", tempVideoPath,
           parsedUrl.href
         ], { timeout: 300000, maxBuffer: 50 * 1024 * 1024 });
