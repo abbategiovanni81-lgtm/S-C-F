@@ -252,7 +252,7 @@ Studio tier (£99.99/month) unlocks premium AI tools for professional content cr
 
 ### "What extra tools do I get with Studio?"
 
-**Steve AI - Professional Video Creation**
+**Studio Package - Professional Video Creation**
 Enterprise-grade video generation that creates polished, broadcast-quality videos with AI-generated scenes, characters, and animations.
 
 **Getty Images Access**
@@ -267,11 +267,11 @@ Your video generations and AI tasks are processed first, with faster turnaround 
 **White Label Export**
 Download videos without SocialCommand branding for client work.
 
-### "How do I use Steve AI?"
-Steve AI creates professional long-form videos with AI-generated visuals, perfect for YouTube, ads, and presentations.
+### "How do I use Studio Package?"
+Studio Package creates professional long-form videos with AI-generated visuals, perfect for YouTube, ads, and presentations.
 
 Step-by-step:
-1. Go to Creator Studio then Steve AI (Studio tier only)
+1. Go to Creator Studio then Studio Package (Studio tier only)
 2. Enter your video topic or paste a script
 3. Choose video style:
    - Live Action - realistic stock footage style
@@ -286,7 +286,7 @@ Step-by-step:
 
 Best for: YouTube explainer videos, product demos, educational content, client videos, ads and commercials
 
-### "How is Steve AI different from regular video generation?"
+### "How is Studio Package different from regular video generation?"
 - Creates longer videos (up to 10 minutes vs 60 seconds)
 - More polished, professional look
 - Better for talking head + B-roll style content
@@ -580,7 +580,7 @@ Screenshot Analytics (for platforms without direct API access):
 | Voiceovers | 5 min | 30 min | 60 min | 120 min | Unlimited |
 | Video Creation | - | 10 min | 30 min | 60 min | Unlimited |
 | Social Listening | 10 scans | 50 scans | 150 scans | 300 scans | Unlimited |
-| Creator Studio | Basic | Full | Full | Full | Full + Steve AI |
+| Creator Studio | Basic | Full | Full | Full | Full + Studio Package |
 
 ### "How do I check my usage?"
 1. Go to Settings then Subscription
