@@ -411,3 +411,58 @@ export const insertRedditPostSchema = createInsertSchema(redditPosts).omit({
 
 export type InsertRedditPost = z.infer<typeof insertRedditPostSchema>;
 export type RedditPost = typeof redditPosts.$inferSelect;
+
+// Video to Clips - Processing Jobs
+export const VIDEO_JOB_STATUS = ["pending", "downloading", "transcribing", "analyzing", "extracting", "completed", "failed"] as const;
+export type VideoJobStatus = typeof VIDEO_JOB_STATUS[number];
+
+export const videoJobs = pgTable("video_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  sourceType: text("source_type").notNull(), // "upload" or "url"
+  sourceUrl: text("source_url"), // Original URL if from URL source
+  videoPath: text("video_path"), // Cloud storage path to uploaded/downloaded video
+  status: text("status").notNull().default("pending"),
+  progress: integer("progress").default(0), // 0-100
+  errorMessage: text("error_message"),
+  transcript: text("transcript"), // Full transcript from Whisper
+  transcriptSegments: jsonb("transcript_segments"), // Timestamped segments
+  suggestions: text("suggestions").array(), // User-selected suggestion IDs
+  customPrompt: text("custom_prompt"), // User's custom prompt
+  duration: integer("duration"), // Video duration in seconds
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertVideoJobSchema = createInsertSchema(videoJobs).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertVideoJob = z.infer<typeof insertVideoJobSchema>;
+export type VideoJob = typeof videoJobs.$inferSelect;
+
+// Video to Clips - Generated Clips
+export const videoClips = pgTable("video_clips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => videoJobs.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  transcript: text("transcript").notNull(),
+  startTime: integer("start_time").notNull(), // Start time in seconds
+  endTime: integer("end_time").notNull(), // End time in seconds
+  score: integer("score").default(0), // AI confidence score 0-100
+  clipPath: text("clip_path"), // Cloud storage path to extracted clip
+  thumbnailPath: text("thumbnail_path"), // Thumbnail image path
+  status: text("status").notNull().default("pending"), // "pending", "extracting", "ready", "failed"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertVideoClipSchema = createInsertSchema(videoClips).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVideoClip = z.infer<typeof insertVideoClipSchema>;
+export type VideoClip = typeof videoClips.$inferSelect;
