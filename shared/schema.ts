@@ -226,6 +226,11 @@ export const listeningHits = pgTable("listening_hits", {
   replyStatus: text("reply_status").default("pending"), // "pending", "drafted", "replied", "ignored"
   postedAt: timestamp("posted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  sourceUrl: text("source_url"), // Original viral post URL this comment came from
+  sourceTitle: text("source_title"), // Title of the source video/post
+  sourceChannel: text("source_channel"), // Channel/account name of source
+  opportunityScore: integer("opportunity_score"), // AI-calculated engagement opportunity (0-100)
+  scanType: text("scan_type").default("keyword"), // "keyword", "viral_url", "manual"
 });
 
 export const insertListeningHitSchema = createInsertSchema(listeningHits).omit({

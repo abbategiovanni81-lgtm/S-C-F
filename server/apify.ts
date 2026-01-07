@@ -19,6 +19,11 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     platform: "instagram",
     searchField: "urls",
   },
+  instagramComments: {
+    actorId: "apify/instagram-comment-scraper",
+    platform: "instagram",
+    searchField: "directUrls",
+  },
   tiktokComments: {
     actorId: "clockworks/tiktok-comments-scraper",
     platform: "tiktok",
@@ -38,6 +43,11 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     actorId: "bernardo/youtube-scraper",
     platform: "youtube",
     searchField: "searchKeywords",
+  },
+  youtubeComments: {
+    actorId: "alexey/youtube-comment-scraper",
+    platform: "youtube",
+    searchField: "startUrls",
   },
 };
 
