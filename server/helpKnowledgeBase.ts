@@ -246,6 +246,78 @@ Best for: Bringing product photos to life, creating B-roll from still images, ma
 
 ---
 
+## STUDIO TIER EXCLUSIVE TOOLS
+
+Studio tier (£99.99/month) unlocks premium AI tools for professional content creators and agencies.
+
+### "What extra tools do I get with Studio?"
+
+**Steve AI - Professional Video Creation**
+Enterprise-grade video generation that creates polished, broadcast-quality videos with AI-generated scenes, characters, and animations.
+
+**Getty Images Access**
+Premium stock imagery from Getty Images library - the same photos used by major brands and publications.
+
+**Unlimited Everything**
+No caps on AI generations, voiceovers, video minutes, or social listening scans.
+
+**Priority Processing**
+Your video generations and AI tasks are processed first, with faster turnaround times.
+
+**White Label Export**
+Download videos without SocialCommand branding for client work.
+
+### "How do I use Steve AI?"
+Steve AI creates professional long-form videos with AI-generated visuals, perfect for YouTube, ads, and presentations.
+
+Step-by-step:
+1. Go to Creator Studio then Steve AI (Studio tier only)
+2. Enter your video topic or paste a script
+3. Choose video style:
+   - Live Action - realistic stock footage style
+   - Animation - cartoon/animated characters
+   - Explainer - professional corporate style
+4. Select video length (1-10 minutes)
+5. AI generates a full storyboard with scenes
+6. Review and edit each scene if needed
+7. Generate the full video
+8. Add voiceover (AI or your cloned voice)
+9. Download in HD quality
+
+Best for: YouTube explainer videos, product demos, educational content, client videos, ads and commercials
+
+### "How is Steve AI different from regular video generation?"
+- Creates longer videos (up to 10 minutes vs 60 seconds)
+- More polished, professional look
+- Better for talking head + B-roll style content
+- Includes music and transitions
+- Higher resolution output
+- More control over each scene
+
+### "How do I access Getty Images?"
+1. When generating images, select "Getty Images" as the source
+2. Search for what you need
+3. Browse premium results
+4. Select and use in your content
+5. Full commercial license included with Studio tier
+
+Best for: Professional campaigns, client work, high-end brand content
+
+### "What does Priority Processing mean?"
+When you generate videos or use AI tools:
+- Your requests go to the front of the queue
+- Typical wait times reduced by 50-70%
+- Better during peak usage times
+- Great for tight deadlines
+
+### "How do I use White Label Export?"
+1. When exporting any video, check "Remove branding"
+2. Download clean video with no SocialCommand watermark
+3. Perfect for agency work and client deliverables
+4. Add your own branding in Edit & Merge
+
+---
+
 ## VIDEO TO CLIPS - Repurpose Long Content
 
 ### "What is Video to Clips?"
