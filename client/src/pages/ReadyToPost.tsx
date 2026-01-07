@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock, Image as ImageIcon, LayoutGrid } from "lucide-react";
+import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock, Image as ImageIcon, LayoutGrid, Archive, Trash2 } from "lucide-react";
 import { format, addMinutes, addDays, isAfter, isBefore } from "date-fns";
 import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -205,6 +205,37 @@ export default function ReadyToPost() {
         description: error.message,
         variant: "destructive"
       });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (contentId: string) => {
+      const res = await fetch(`/api/content/${contentId}/archive`, { method: "PATCH" });
+      if (!res.ok) throw new Error("Failed to archive content");
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      queryClient.invalidateQueries({ queryKey: ["/api/content/archived"] });
+      toast({ title: "Content archived", description: "Content has been moved to archive." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Archive failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (contentId: string) => {
+      const res = await fetch(`/api/content/${contentId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete content");
+      return res.json();
+    },
+    onSuccess: () => {
+      invalidateContentQueries();
+      toast({ title: "Content deleted", description: "Content has been permanently deleted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -533,6 +564,46 @@ export default function ReadyToPost() {
               </Button>
             </div>
           )}
+
+          {/* Archive and Delete buttons */}
+          <div className="flex gap-2 mt-3 pt-3 border-t">
+            {content.status === "posted" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => archiveMutation.mutate(content.id)}
+                disabled={archiveMutation.isPending}
+                data-testid={`button-archive-${content.id}`}
+              >
+                {archiveMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Archive className="w-4 h-4" />
+                )}
+                Archive
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className={`${content.status === "posted" ? "flex-1" : "w-full"} gap-2 text-destructive hover:text-destructive`}
+              onClick={() => {
+                if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                  deleteMutation.mutate(content.id);
+                }
+              }}
+              disabled={deleteMutation.isPending}
+              data-testid={`button-delete-${content.id}`}
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Delete
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
