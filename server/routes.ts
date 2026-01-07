@@ -5856,6 +5856,146 @@ export async function registerRoutes(
     }
   });
 
+  // Process video from URL using yt-dlp
+  app.post("/api/video-to-clips/url", isAuthenticated, async (req: any, res) => {
+    const { execSync, spawn } = await import("child_process");
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { url, suggestions = [], customPrompt = "" } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: "No URL provided" });
+      }
+
+      // Validate URL to prevent command injection
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(url);
+        if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+          return res.status(400).json({ error: "Invalid URL protocol" });
+        }
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      console.log(`Processing URL for user ${userId}: ${parsedUrl.href}`);
+
+      // Create temp directory
+      const tempDir = path.join(os.tmpdir(), `video-url-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      const tempVideoPath = path.join(tempDir, "downloaded.mp4");
+
+      // Download video using yt-dlp with spawn to avoid shell injection
+      console.log("Downloading video with yt-dlp...");
+      try {
+        const { spawnSync } = await import("child_process");
+        const result = spawnSync("yt-dlp", [
+          "-f", "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
+          "--merge-output-format", "mp4",
+          "-o", tempVideoPath,
+          parsedUrl.href
+        ], { timeout: 300000, maxBuffer: 50 * 1024 * 1024 });
+        
+        if (result.status !== 0) {
+          throw new Error(result.stderr?.toString() || "Download failed");
+        }
+      } catch (dlError: any) {
+        console.error("yt-dlp error:", dlError.message);
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        return res.status(400).json({ error: "Failed to download video. Please check the URL." });
+      }
+
+      // Check if file exists and read it
+      if (!fs.existsSync(tempVideoPath)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        return res.status(400).json({ error: "Download failed - no video file created" });
+      }
+
+      const videoBuffer = fs.readFileSync(tempVideoPath);
+      const fileSize = videoBuffer.length;
+      console.log(`Downloaded video size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+
+      // Limit to 500MB
+      if (fileSize > 500 * 1024 * 1024) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+        return res.status(400).json({ error: "Video too large. Maximum size is 500MB." });
+      }
+
+      // Process with AI to get clip suggestions
+      const result = await processVideoForClips(
+        videoBuffer,
+        userId,
+        suggestions,
+        customPrompt
+      );
+
+      // Extract actual video clips using FFmpeg
+      const extractedClips = [];
+      for (let i = 0; i < result.clips.length; i++) {
+        const clip = result.clips[i];
+        try {
+          const clipFileName = `clip_${i}_${Date.now()}.mp4`;
+          const clipPath = path.join(tempDir, clipFileName);
+
+          // Use FFmpeg to extract clip
+          execSync(
+            `ffmpeg -y -i "${tempVideoPath}" -ss ${clip.startTime} -to ${clip.endTime} -c:v libx264 -c:a aac -preset fast "${clipPath}"`,
+            { timeout: 120000 }
+          );
+
+          if (fs.existsSync(clipPath)) {
+            const clipBuffer = fs.readFileSync(clipPath);
+            const storagePath = `uploads/clips/${userId}/${clipFileName}`;
+            await uploadToStorage(storagePath, clipBuffer);
+            const clipUrl = `/objects/${storagePath}`;
+
+            extractedClips.push({
+              id: randomUUID(),
+              title: clip.title,
+              videoUrl: clipUrl,
+              startTime: clip.startTime,
+              endTime: clip.endTime,
+              transcript: clip.transcript,
+              score: clip.score,
+              reason: clip.reason,
+            });
+          }
+        } catch (clipError) {
+          console.error(`Failed to extract clip ${i}:`, clipError);
+          extractedClips.push({
+            id: randomUUID(),
+            title: clip.title,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            transcript: clip.transcript,
+            score: clip.score,
+            reason: clip.reason,
+          });
+        }
+      }
+
+      // Cleanup temp files
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch (e) {
+        console.error("Cleanup error:", e);
+      }
+
+      res.json({
+        clips: extractedClips,
+        totalDuration: result.duration,
+        transcript: result.transcript,
+        message: "Video processed from URL successfully",
+      });
+    } catch (error: any) {
+      console.error("URL processing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Upload, analyze, and extract clips in one step
   app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
     try {

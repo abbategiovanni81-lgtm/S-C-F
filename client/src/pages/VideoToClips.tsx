@@ -188,13 +188,12 @@ export default function VideoToClips() {
       return res.json();
     },
     onSuccess: (data) => {
-      setVideoUrl(data.videoUrl);
-      setIsUrlProcessing(false);
-      setShowSuggestionsModal(true);
-      toast({ title: "Video ready!", description: "Video accepted for processing" });
+      setGeneratedClips(data.clips);
+      setShowAnalyzingModal(false);
+      toast({ title: "Clips generated!", description: `Found ${data.clips.length} potential clips from URL` });
     },
     onError: (error: Error) => {
-      setIsUrlProcessing(false);
+      setShowAnalyzingModal(false);
       toast({ title: "URL failed", description: error.message, variant: "destructive" });
     },
   });
@@ -204,8 +203,32 @@ export default function VideoToClips() {
       toast({ title: "Enter a URL", description: "Please paste a video URL", variant: "destructive" });
       return;
     }
-    setIsUrlProcessing(true);
-    urlMutation.mutate(urlInput.trim());
+    setShowAnalyzingModal(true);
+    setAnalysisProgress(0);
+    setAnalysisStep("Downloading video from URL...");
+    
+    const steps = [
+      "Downloading video from URL...", 
+      "Extracting audio...", 
+      "Transcribing with Whisper AI...", 
+      "Analyzing for best clips...",
+      "Extracting clips...",
+      "Finalizing results..."
+    ];
+    let stepIndex = 0;
+    
+    const interval = setInterval(() => {
+      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+      setAnalysisStep(steps[stepIndex]);
+      setAnalysisProgress(prev => Math.min(prev + 12, 90));
+    }, 5000);
+    
+    urlMutation.mutate(urlInput.trim(), {
+      onSettled: () => {
+        clearInterval(interval);
+        setAnalysisProgress(100);
+      },
+    });
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -325,18 +348,39 @@ export default function VideoToClips() {
 
                   <TabsContent value="url">
                     <div className="border-2 border-dashed border-slate-600 rounded-xl p-12 text-center">
-                      <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Clock className="w-10 h-10 text-amber-400" />
+                      <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Link2 className="w-10 h-10 text-purple-400" />
                       </div>
-                      <h3 className="text-xl font-semibold text-white mb-2">Coming Soon</h3>
-                      <p className="text-slate-400 mb-6">URL processing for longer videos is being finalized</p>
+                      <h3 className="text-xl font-semibold text-white mb-2">Paste Video URL</h3>
+                      <p className="text-slate-400 mb-6">YouTube, Vimeo, Twitter/X, TikTok, and more</p>
                       
-                      <div className="bg-slate-800/50 rounded-lg p-4 max-w-md mx-auto">
-                        <p className="text-sm text-slate-300 mb-3">
-                          For now, please use <strong>Upload File</strong> for videos under 5 minutes.
-                        </p>
+                      <div className="max-w-lg mx-auto space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            type="url"
+                            placeholder="https://youtube.com/watch?v=..."
+                            value={urlInput}
+                            onChange={(e) => setUrlInput(e.target.value)}
+                            className="bg-slate-800 border-slate-700 text-white flex-1"
+                            disabled={urlMutation.isPending}
+                            data-testid="input-video-url"
+                          />
+                          <Button
+                            onClick={handleUrlSubmit}
+                            disabled={urlMutation.isPending || !urlInput.trim()}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                            data-testid="button-process-url"
+                          >
+                            {urlMutation.isPending ? (
+                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Downloading...</>
+                            ) : (
+                              <><Sparkles className="w-4 h-4 mr-2" />Process</>
+                            )}
+                          </Button>
+                        </div>
+                        
                         <p className="text-xs text-slate-500">
-                          YouTube, Vimeo, and cloud storage URL support will be available soon.
+                          Supports YouTube, Vimeo, Twitter/X, TikTok, Instagram, Facebook, and 1000+ sites
                         </p>
                       </div>
                     </div>
