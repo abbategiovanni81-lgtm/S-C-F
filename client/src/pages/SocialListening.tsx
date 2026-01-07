@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown } from "lucide-react";
+import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight } from "lucide-react";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -61,6 +61,8 @@ export default function SocialListening() {
   const [viralUrl, setViralUrl] = useState("");
   const [maxComments, setMaxComments] = useState(50);
   const [sortByOpportunity, setSortByOpportunity] = useState(true);
+  const [quickKeywords, setQuickKeywords] = useState("");
+  const [quickPlatforms, setQuickPlatforms] = useState<string[]>(["reddit", "youtube"]);
 
   const [newPost, setNewPost] = useState({
     platform: "youtube",
@@ -180,6 +182,28 @@ export default function SocialListening() {
     },
   });
 
+  const quickScanMutation = useMutation({
+    mutationFn: async (data: { keywords: string[]; platforms: string[] }) => {
+      const res = await apiRequest("POST", "/api/listening/quick-scan", data);
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({
+        title: "Scan complete!",
+        description: `Found ${data.totalImported} engagement opportunities.`,
+      });
+      setQuickKeywords("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scan failed",
+        description: error.message || "Failed to scan",
+        variant: "destructive",
+      });
+    },
+  });
+
   const togglePlatform = (platform: string) => {
     setScanPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
@@ -222,20 +246,123 @@ export default function SocialListening() {
     toast({ title: "Copied to clipboard" });
   };
 
+  const toggleQuickPlatform = (platform: string) => {
+    setQuickPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
+    );
+  };
+
+  const handleQuickScan = () => {
+    const keywords = quickKeywords.split(",").map(k => k.trim()).filter(k => k.length > 0);
+    if (keywords.length > 0 && quickPlatforms.length > 0) {
+      quickScanMutation.mutate({ keywords, platforms: quickPlatforms });
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-display" data-testid="text-page-title">Social Listening</h1>
-            <p className="text-muted-foreground mt-1">Monitor mentions, respond to comments, and track trending topics</p>
+            <p className="text-muted-foreground mt-1">Find engagement opportunities across social media</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] })} data-testid="button-refresh">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-            <Dialog open={urlScrapeDialogOpen} onOpenChange={setUrlScrapeDialogOpen}>
+          <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] })} data-testid="button-refresh">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Quick Scan Section - Primary User Action */}
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Search className="w-5 h-5 text-primary" />
+              Quick Keyword Scan
+            </CardTitle>
+            <CardDescription>
+              Enter keywords to find posts and comments where you can engage with your target audience
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!apifyStatus?.configured ? (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-600">Apify not configured</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Add your APIFY_API_TOKEN environment variable to enable social media scanning.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <Input
+                      value={quickKeywords}
+                      onChange={(e) => setQuickKeywords(e.target.value)}
+                      placeholder="Enter keywords separated by commas (e.g., fitness tips, workout routine, gym motivation)"
+                      className="h-11"
+                      data-testid="input-quick-keywords"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleQuickScan}
+                    disabled={!quickKeywords.trim() || quickPlatforms.length === 0 || quickScanMutation.isPending}
+                    className="h-11 px-6"
+                    data-testid="button-quick-scan"
+                  >
+                    {quickScanMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
+                        Scan Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground">Scan on:</span>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { id: "reddit", label: "Reddit", color: "orange" },
+                      { id: "youtube", label: "YouTube", color: "red" },
+                      { id: "tiktok", label: "TikTok", color: "pink" },
+                      { id: "instagram", label: "Instagram", color: "purple" },
+                    ].map((platform) => (
+                      <label
+                        key={platform.id}
+                        className={`flex items-center gap-2 px-3 py-1.5 border rounded-full cursor-pointer text-sm transition-colors ${
+                          quickPlatforms.includes(platform.id) 
+                            ? "bg-primary/10 border-primary text-primary" 
+                            : "bg-muted/50 border-border hover:bg-muted"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={quickPlatforms.includes(platform.id)}
+                          onCheckedChange={() => toggleQuickPlatform(platform.id)}
+                          className="w-4 h-4"
+                        />
+                        {platform.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Alternative Actions */}
+        <div className="flex gap-3 flex-wrap">
+          <Dialog open={urlScrapeDialogOpen} onOpenChange={setUrlScrapeDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" data-testid="button-scrape-url">
                   <Link2 className="w-4 h-4 mr-2" />
@@ -337,16 +464,16 @@ export default function SocialListening() {
             </Dialog>
             <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="default" data-testid="button-scan-now">
+                <Button variant="outline" data-testid="button-brand-scan">
                   <Radar className="w-4 h-4 mr-2" />
-                  Scan Now
+                  Brand Brief Scan
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Scan Social Media</DialogTitle>
+                  <DialogTitle>Scan with Brand Brief Keywords</DialogTitle>
                   <DialogDescription>
-                    Use Apify scrapers to automatically find posts and comments matching your brand keywords.
+                    Automatically extract keywords from your brand brief and scan for relevant posts.
                   </DialogDescription>
                 </DialogHeader>
                 {!apifyStatus?.configured ? (
@@ -571,9 +698,27 @@ export default function SocialListening() {
             ) : pendingHits.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No new posts to review</p>
-                  <p className="text-sm text-muted-foreground mt-1">Add posts manually or set up automatic scanning</p>
+                  <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">No engagement opportunities yet</p>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                    Use the Quick Keyword Scan above to find posts and comments where you can engage with your target audience
+                  </p>
+                  <div className="flex gap-4 justify-center text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">1</div>
+                      Enter keywords
+                    </div>
+                    <ChevronRight className="w-4 h-4" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">2</div>
+                      Select platforms
+                    </div>
+                    <ChevronRight className="w-4 h-4" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">3</div>
+                      Review results
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             ) : (

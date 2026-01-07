@@ -4604,6 +4604,128 @@ export async function registerRoutes(
     }
   });
 
+  // Quick scan with custom keywords (no brand brief required)
+  app.post("/api/listening/quick-scan", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { keywords, platforms = ["reddit"] } = req.body;
+
+      if (!keywords || keywords.length === 0) {
+        return res.status(400).json({ error: "Keywords are required" });
+      }
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Apify not configured", 
+          message: "Please add your APIFY_API_TOKEN to use scanning" 
+        });
+      }
+
+      const results: { platform: string; itemsFound: number; itemsImported: number }[] = [];
+
+      for (const platform of platforms) {
+        const actorConfig = APIFY_ACTORS[platform];
+        if (!actorConfig) {
+          console.warn(`No actor configured for platform: ${platform}`);
+          continue;
+        }
+
+        const scanRun = await storage.createScanRun({
+          userId,
+          briefId: null,
+          platform,
+          actorId: actorConfig.actorId,
+          status: "running",
+          keywords,
+        });
+
+        try {
+          const input: Record<string, any> = {
+            [actorConfig.searchField]: platform === "reddit" 
+              ? keywords.slice(0, 5).map((kw: string) => ({ term: kw, sort: "relevance" }))
+              : keywords.slice(0, 5),
+            maxItems: 30,
+          };
+
+          const items = await apifyService.runActorAndWait(actorConfig.actorId, input, 180000);
+          let imported = 0;
+
+          for (const item of items) {
+            const normalized = normalizeApifyItem(platform, item, keywords, null);
+            if (!normalized || !normalized.postContent) continue;
+
+            const postId = normalized.postId || `${platform}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const isDuplicate = await storage.checkDuplicateHit(platform, postId);
+            if (isDuplicate) continue;
+
+            // Calculate opportunity score
+            const commentText = normalized.postContent;
+            const isQuestion = commentText.includes("?") || /\b(how|what|why|when|where|who|can|could|would|should|is|are|does|do)\b/i.test(commentText);
+            const likes = normalized.likes || 0;
+            const baseScore = Math.min(likes * 2, 50);
+            const questionBonus = isQuestion ? 25 : 0;
+            const lengthBonus = commentText.length > 50 ? 15 : commentText.length > 20 ? 10 : 0;
+            const opportunityScore = Math.min(baseScore + questionBonus + lengthBonus, 100);
+
+            await storage.createListeningHit({
+              userId,
+              briefId: null,
+              platform: normalized.platform || platform,
+              postId,
+              postUrl: normalized.postUrl || null,
+              postContent: normalized.postContent,
+              authorName: normalized.authorName || null,
+              authorHandle: normalized.authorHandle || null,
+              authorProfileUrl: normalized.authorProfileUrl || null,
+              postType: normalized.postType || "post",
+              matchedKeywords: normalized.matchedKeywords || [],
+              sentiment: null,
+              engagementScore: normalized.engagementScore || null,
+              likes: normalized.likes || null,
+              comments: normalized.comments || null,
+              shares: normalized.shares || null,
+              isQuestion: isQuestion ? "yes" : "no",
+              isTrending: null,
+              replyStatus: "pending",
+              postedAt: normalized.postedAt || null,
+              sourceUrl: null,
+              sourceTitle: null,
+              sourceChannel: null,
+              opportunityScore,
+              scanType: "keyword",
+            });
+            imported++;
+          }
+
+          await storage.updateScanRun(scanRun.id, {
+            status: "completed",
+            itemsFound: items.length,
+            itemsImported: imported,
+          });
+
+          results.push({ platform, itemsFound: items.length, itemsImported: imported });
+        } catch (error: any) {
+          console.error(`Quick scan failed for ${platform}:`, error);
+          await storage.updateScanRun(scanRun.id, {
+            status: "failed",
+            errorMessage: error.message,
+          });
+          results.push({ platform, itemsFound: 0, itemsImported: 0 });
+        }
+      }
+
+      res.json({
+        success: true,
+        keywords,
+        results,
+        totalImported: results.reduce((sum, r) => sum + r.itemsImported, 0),
+      });
+    } catch (error: any) {
+      console.error("Quick scan error:", error);
+      res.status(500).json({ error: error.message || "Failed to run quick scan" });
+    }
+  });
+
   // Scrape comments from a viral URL (YouTube, TikTok, Instagram)
   app.post("/api/listening/scrape-url", requireAuth, async (req: any, res) => {
     try {
