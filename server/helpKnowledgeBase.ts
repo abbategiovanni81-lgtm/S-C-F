@@ -1,6 +1,98 @@
 export const HELP_KNOWLEDGE_BASE = `
 # SocialCommand Platform - Complete Help Guide
 
+## CREATOR TYPE RECOMMENDATIONS
+
+### "What should I use based on my niche?"
+
+**Fitness & Health Creators**
+- Best formats: Reels, TikToks (15-60 sec workout demos)
+- Top tools: Video to Clips (turn workout videos into clips), Talking Photo (tips), Carousels (workout plans)
+- Recommended: Film workouts, use Video to Clips to extract best moments, add AI captions
+
+**Beauty & Fashion Creators**
+- Best formats: Reels, Stories, Carousels
+- Top tools: Image to Video (product showcases), Virtual Try-On, Talking Photo (tutorials)
+- Recommended: Create before/after carousels, use AI for product descriptions
+
+**Business & Coaches**
+- Best formats: Long-form YouTube (5-15 min), LinkedIn posts, Carousels
+- Top tools: Talking Photo (talking head content), Voice Clone (scale yourself), Content Analyzer
+- Recommended: Clone your voice, create educational content at scale
+
+**E-commerce & Product Brands**
+- Best formats: Reels, Product carousels, UGC testimonials
+- Top tools: Face Swap (diverse UGC), Talking Photo (reviews), Image to Video
+- Recommended: Create multiple UGC-style videos with Face Swap, use Talking Photo for testimonials
+
+**Real Estate Agents**
+- Best formats: Reels (property tours), Carousels (listings), Stories
+- Top tools: Image to Video (animate photos), Talking Video (property walkthroughs)
+- Recommended: Turn property photos into video tours, use carousels for listings
+
+**Restaurants & Food**
+- Best formats: Reels (food reveals), Stories, TikToks
+- Top tools: Image to Video (dish showcases), Quick videos, Carousels (menus)
+- Recommended: Short, appetizing clips with strong hooks
+
+**Educators & Course Creators**
+- Best formats: Long-form YouTube, Carousels (lessons), Short explainers
+- Top tools: Voice Clone, Talking Photo, Video to Clips (repurpose long content)
+- Recommended: Create long content, use Video to Clips to make shorts
+
+**Musicians & Artists**
+- Best formats: Reels, YouTube Shorts, TikToks
+- Top tools: Video Style Transfer (artistic effects), Image to Video, Caption Removal
+- Recommended: Turn album art into animated videos, add artistic effects
+
+**Tech & SaaS**
+- Best formats: Demo videos, LinkedIn carousels, Tutorial shorts
+- Top tools: Talking Photo (explainers), Carousels (features), Content Analyzer
+- Recommended: Create product demo clips, educational carousels
+
+**Personal Brands & Influencers**
+- Best formats: All - diversify across platforms
+- Top tools: Voice Clone (scale content), Talking Video, Social Listening (engagement)
+- Recommended: Clone voice to create more content, use Social Listening to engage audience
+
+### "What format works best for each platform?"
+
+| Platform | Best Format | Ideal Length | Key Feature |
+|----------|-------------|--------------|-------------|
+| TikTok | Vertical video | 15-30 sec | Hook in 1-2 seconds |
+| Instagram Reels | Vertical video | 15-60 sec | Trending audio helps |
+| Instagram Feed | Carousel | 5-10 slides | First slide = hook |
+| Instagram Stories | Quick clips/images | 15 sec each | Polls & questions |
+| YouTube Shorts | Vertical video | 30-60 sec | Clear value proposition |
+| YouTube Long | Horizontal video | 8-15 min | Strong thumbnail |
+| LinkedIn | Text + carousel | 5-10 slides | Professional insight |
+| Twitter/X | Text + image/clip | 1-2 sentences | Engaging hook |
+| Facebook | Video or carousel | 1-3 min video | Shareable content |
+| Pinterest | Vertical image/video | Static or 15-60 sec | Searchable keywords |
+
+### "I'm a beginner - where should I start?"
+1. **First 10 minutes**: Create a Brand Brief (go to Brand Briefs → New)
+2. **Next 20 minutes**: Generate your first piece of content (Content Queue → Generate)
+3. **Quick win**: Create a carousel - they're easiest and perform well
+4. **Then try**: A Talking Photo video - just upload a photo and add text
+5. **Level up**: Use Video to Clips to repurpose existing content
+
+### "I'm intermediate - how do I scale?"
+1. Clone your voice in Creator Studio
+2. Use AI to generate content batches
+3. Set up Social Listening for daily engagement
+4. Repurpose long content with Video to Clips
+5. A/B test with Content Analyzer
+
+### "I'm advanced - what power features should I use?"
+1. Face Swap for diverse UGC at scale
+2. AI Dubbing to reach international audiences
+3. Content Comparison for competitive analysis
+4. Batch content generation with templates
+5. Multi-platform scheduling from single content
+
+---
+
 ## GETTING STARTED
 
 ### "I want to start making content - where do I begin?"
