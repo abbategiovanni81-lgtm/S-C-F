@@ -5887,9 +5887,13 @@ export async function registerRoutes(
 
           if (fs.existsSync(clipPath)) {
             const clipBuffer = fs.readFileSync(clipPath);
-            const storagePath = `uploads/clips/${userId}/${clipFileName}`;
-            await uploadToStorage(storagePath, clipBuffer);
-            const clipUrl = `/objects/${storagePath}`;
+            const uploadResult = await objectStorageService.uploadBuffer(
+              clipBuffer,
+              clipFileName,
+              "video/mp4",
+              true
+            );
+            const clipUrl = uploadResult.objectPath;
 
             extractedClips.push({
               id: randomUUID(),
