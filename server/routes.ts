@@ -4797,12 +4797,23 @@ export async function registerRoutes(
         });
 
         try {
-          const input: Record<string, any> = {
-            [actorConfig.searchField]: platform === "reddit" 
-              ? keywords.slice(0, 5).map((kw: string) => ({ term: kw, sort: "relevance" }))
-              : keywords.slice(0, 5),
-            maxItems: 30,
-          };
+          let input: Record<string, any>;
+          if (platform === "reddit") {
+            input = {
+              [actorConfig.searchField]: keywords.slice(0, 5).map((kw: string) => ({ term: kw, sort: "relevance" })),
+              maxItems: 30,
+            };
+          } else if (platform === "youtube") {
+            input = {
+              [actorConfig.searchField]: keywords.join(" "),
+              maxResults: 30,
+            };
+          } else {
+            input = {
+              [actorConfig.searchField]: keywords.slice(0, 5),
+              maxItems: 30,
+            };
+          }
 
           const items = await apifyService.runActorAndWait(actorConfig.actorId, input, 180000);
           let imported = 0;

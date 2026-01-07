@@ -42,7 +42,7 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
   youtube: {
     actorId: "scraper_one/youtube-search-scraper",
     platform: "youtube",
-    searchField: "searchQuery",
+    searchField: "query",
   },
   youtubeComments: {
     actorId: "alexey/youtube-comment-scraper",
