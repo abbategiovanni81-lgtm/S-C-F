@@ -577,47 +577,72 @@ export async function scrapeYouTubeChannel(url: string): Promise<SocialProfileDa
     throw new Error("Apify API token not configured");
   }
 
+  console.log(`Scraping YouTube channel: ${url}`);
+  
   const response = await fetch(
-    `https://api.apify.com/v2/acts/streamers~youtube-channel-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    `https://api.apify.com/v2/acts/streamers~youtube-channel-scraper/run-sync-get-dataset-items?token=${apiToken}&timeout=120`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         startUrls: [{ url }],
-        maxResults: 12,
+        maxResults: 15,
       }),
     }
   );
 
   if (!response.ok) {
-    throw new Error(`YouTube scrape failed: ${response.status}`);
+    const errorText = await response.text().catch(() => "");
+    console.error(`YouTube scrape failed: ${response.status} - ${errorText}`);
+    throw new Error(`Unable to access YouTube channel. Please check the URL and try again.`);
   }
 
-  const items = await response.json();
-  if (!items || items.length === 0) {
-    throw new Error("No YouTube channel data found");
+  let items;
+  try {
+    items = await response.json();
+  } catch (parseError) {
+    console.error("Failed to parse YouTube scraper response:", parseError);
+    throw new Error("YouTube channel data could not be processed. Please try again.");
+  }
+  
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    throw new Error("No YouTube channel data found. The channel may be private or the URL may be incorrect.");
   }
 
   const channel = items[0];
-  const videos = items.slice(1) || channel.videos || [];
+  
+  if (!channel || (!channel.channelName && !channel.channelHandle)) {
+    throw new Error("Could not find channel information. Please check the URL format.");
+  }
+  
+  let videos: any[] = [];
+  if (items.length > 1) {
+    videos = items.slice(1);
+  } else if (channel.videos && Array.isArray(channel.videos)) {
+    videos = channel.videos;
+  } else if (channel.latestVideos && Array.isArray(channel.latestVideos)) {
+    videos = channel.latestVideos;
+  }
+  
+  console.log(`YouTube scrape complete: ${channel.channelName}, ${videos.length} videos found`);
   
   return {
     platform: "youtube",
     url,
     username: channel.channelHandle || channel.channelName || "",
-    displayName: channel.channelName || "",
-    bio: channel.channelDescription || "",
-    followerCount: channel.numberOfSubscribers || 0,
+    displayName: channel.channelName || channel.channelHandle || "",
+    bio: channel.channelDescription || channel.description || "",
+    followerCount: channel.numberOfSubscribers || channel.subscriberCount || 0,
     followingCount: 0,
-    postCount: channel.numberOfVideos || 0,
+    postCount: channel.numberOfVideos || channel.videoCount || 0,
     recentPosts: videos.slice(0, 10).map((video: any) => ({
-      caption: video.title || "",
-      likes: video.likes || 0,
-      comments: video.commentsCount || 0,
-      date: video.date,
+      caption: video.title || video.text || "",
+      likes: video.likes || video.likeCount || 0,
+      comments: video.commentsCount || video.commentCount || 0,
+      date: video.date || video.publishedAt,
     })),
-    profileImageUrl: channel.channelLogoUrl,
-    isVerified: channel.isVerified,
+    profileImageUrl: channel.channelLogoUrl || channel.thumbnailUrl,
+    isVerified: channel.isVerified || channel.verified || false,
   };
 }
 

@@ -217,7 +217,26 @@ export async function registerRoutes(
       if (platform && platform !== "website") {
         // Handle social media profile URL
         console.log(`Scraping ${platform} profile: ${url}`);
-        const profileData = await scrapeSocialProfile(url);
+        let profileData;
+        try {
+          profileData = await scrapeSocialProfile(url);
+        } catch (scrapeError: any) {
+          console.error(`Failed to scrape ${platform} profile:`, scrapeError);
+          return res.status(400).json({ 
+            error: `Unable to access this ${platform} profile. The account may be private, have restricted access, or the platform may be temporarily unavailable. Please try again or enter your brand details manually.` 
+          });
+        }
+        
+        // Validate we have enough data to analyze
+        const hasContent = profileData.bio || 
+          (profileData.recentPosts && profileData.recentPosts.length > 0) ||
+          profileData.displayName;
+        
+        if (!hasContent) {
+          return res.status(400).json({
+            error: `This ${platform} profile doesn't have enough public content to analyze. Please ensure the account is public and has some posts, or enter your brand details manually.`
+          });
+        }
         
         console.log(`Analyzing ${platform} profile for brand brief...`);
         brandAnalysis = await analyzeBrandFromSocialProfile({
@@ -227,10 +246,17 @@ export async function registerRoutes(
           bio: profileData.bio,
           followerCount: profileData.followerCount,
           postCount: profileData.postCount,
-          recentPosts: profileData.recentPosts,
+          recentPosts: profileData.recentPosts || [],
           isVerified: profileData.isVerified,
           category: profileData.category,
         });
+        
+        // Validate we got a proper analysis result
+        if (!brandAnalysis || typeof brandAnalysis !== 'object' || !brandAnalysis.name) {
+          return res.status(400).json({
+            error: `Could not generate brand analysis from this profile. Please try again or enter your brand details manually.`
+          });
+        }
       } else {
         // Handle regular website URL
         console.log(`Scraping website: ${url}`);
