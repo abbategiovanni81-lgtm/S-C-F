@@ -30,6 +30,7 @@ import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import { processVideoForClips, extractAndUploadClip } from "./videoProcessing";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -5798,7 +5799,7 @@ export async function registerRoutes(
     }
   });
 
-  // Analyze video and generate clip suggestions
+  // Analyze video and generate clip suggestions - full pipeline with real AI
   app.post("/api/video-to-clips/analyze", isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req);
@@ -5806,51 +5807,108 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { videoUrl, suggestions, customPrompt } = req.body;
-      if (!videoUrl) {
-        return res.status(400).json({ error: "videoUrl is required" });
+      const { videoBuffer, suggestions = [], customPrompt } = req.body;
+      
+      // Check if we have video data in the request (from upload)
+      if (!videoBuffer) {
+        return res.status(400).json({ error: "Video data is required. Please upload a video first." });
       }
 
-      // For now, return mock clips - real implementation would use Whisper for transcription
-      // and GPT for identifying key moments
-      const mockClips = [
-        {
-          id: randomUUID(),
-          startTime: 12,
-          endTime: 42,
-          title: "Key insight on monetization",
-          transcript: "The most important thing about monetization is understanding your audience's pain points...",
-        },
-        {
-          id: randomUUID(),
-          startTime: 87,
-          endTime: 115,
-          title: "Emotional story moment",
-          transcript: "When I first started, I had no idea what I was doing. But that failure taught me...",
-        },
-        {
-          id: randomUUID(),
-          startTime: 156,
-          endTime: 189,
-          title: "Unique strategy reveal",
-          transcript: "Here's the strategy that nobody else is talking about. Instead of focusing on...",
-        },
-        {
-          id: randomUUID(),
-          startTime: 245,
-          endTime: 278,
-          title: "Call to action moment",
-          transcript: "If you implement just one thing from this video, make it this technique because...",
-        },
-      ];
+      // Convert base64 to buffer if needed
+      let buffer: Buffer;
+      if (typeof videoBuffer === "string") {
+        buffer = Buffer.from(videoBuffer, "base64");
+      } else {
+        return res.status(400).json({ error: "Invalid video data format" });
+      }
+
+      console.log(`Processing video for user ${userId}, size: ${buffer.length} bytes`);
+
+      // Process video with real AI pipeline
+      const result = await processVideoForClips(
+        buffer,
+        userId,
+        suggestions,
+        customPrompt
+      );
+
+      // Return clips with IDs for frontend
+      const clips = result.clips.map((clip, index) => ({
+        id: randomUUID(),
+        title: clip.title,
+        startTime: clip.startTime,
+        endTime: clip.endTime,
+        transcript: clip.transcript,
+        score: clip.score,
+        reason: clip.reason,
+      }));
 
       res.json({
-        clips: mockClips,
-        totalDuration: 320, // Mock video duration in seconds
-        message: "Clips generated successfully",
+        clips,
+        totalDuration: result.duration,
+        transcript: result.transcript,
+        message: "Clips generated successfully using AI analysis",
       });
     } catch (error: any) {
       console.error("Video analysis error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Upload and analyze in one step (simpler flow)
+  app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+
+      const suggestions = req.body.suggestions ? JSON.parse(req.body.suggestions) : [];
+      const customPrompt = req.body.customPrompt || "";
+
+      console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
+
+      // Save original video to cloud storage for later clip extraction
+      const originalFilename = `video-source-${userId}-${Date.now()}.mp4`;
+      const uploadResult = await objectStorageService.uploadBuffer(
+        req.file.buffer,
+        originalFilename,
+        req.file.mimetype,
+        true
+      );
+
+      // Process with AI to get clip suggestions
+      const result = await processVideoForClips(
+        req.file.buffer,
+        userId,
+        suggestions,
+        customPrompt
+      );
+
+      // Return clips with IDs
+      const clips = result.clips.map((clip, index) => ({
+        id: randomUUID(),
+        title: clip.title,
+        startTime: clip.startTime,
+        endTime: clip.endTime,
+        transcript: clip.transcript,
+        score: clip.score,
+        reason: clip.reason,
+      }));
+
+      res.json({
+        clips,
+        totalDuration: result.duration,
+        transcript: result.transcript,
+        sourceVideoPath: uploadResult.objectPath,
+        message: "Video processed successfully with AI",
+      });
+    } catch (error: any) {
+      console.error("Video processing error:", error);
       res.status(500).json({ error: error.message });
     }
   });

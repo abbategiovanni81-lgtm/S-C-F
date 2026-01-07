@@ -52,25 +52,36 @@ export default function VideoToClips() {
   const [urlInput, setUrlInput] = useState("");
   const [isUrlProcessing, setIsUrlProcessing] = useState(false);
 
-  const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
+  const [sourceVideoPath, setSourceVideoPath] = useState<string | null>(null);
+
+  const processMutation = useMutation({
+    mutationFn: async (params: { file: File; suggestions: string[]; customPrompt: string }) => {
       const formData = new FormData();
-      formData.append("video", file);
-      const res = await fetch("/api/video-to-clips/upload", {
+      formData.append("video", params.file);
+      formData.append("suggestions", JSON.stringify(params.suggestions));
+      formData.append("customPrompt", params.customPrompt);
+      
+      const res = await fetch("/api/video-to-clips/process", {
         method: "POST",
         body: formData,
       });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Processing failed");
+      }
       return res.json();
     },
     onSuccess: (data) => {
-      setVideoUrl(data.videoUrl);
+      setGeneratedClips(data.clips);
+      setSourceVideoPath(data.sourceVideoPath);
       setShowAnalyzingModal(false);
-      setShowSuggestionsModal(true);
+      setShowSuggestionsModal(false);
+      toast({ title: "Clips generated!", description: `Found ${data.clips.length} potential clips using AI` });
     },
     onError: (error: Error) => {
       setShowAnalyzingModal(false);
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      setShowSuggestionsModal(false);
+      toast({ title: "Processing failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -91,7 +102,7 @@ export default function VideoToClips() {
       setVideoUrl(data.videoUrl);
       setIsUrlProcessing(false);
       setShowSuggestionsModal(true);
-      toast({ title: "Video ready!", description: "Video downloaded successfully" });
+      toast({ title: "Video ready!", description: "Video accepted for processing" });
     },
     onError: (error: Error) => {
       setIsUrlProcessing(false);
@@ -108,26 +119,6 @@ export default function VideoToClips() {
     urlMutation.mutate(urlInput.trim());
   };
 
-  const analyzeMutation = useMutation({
-    mutationFn: async (params: { videoUrl: string; suggestions: string[]; customPrompt: string }) => {
-      const res = await fetch("/api/video-to-clips/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-      });
-      if (!res.ok) throw new Error("Analysis failed");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setGeneratedClips(data.clips);
-      setShowSuggestionsModal(false);
-      toast({ title: "Clips generated!", description: `Found ${data.clips.length} potential clips` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
-    },
-  });
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -138,34 +129,45 @@ export default function VideoToClips() {
     }
 
     setUploadedVideo(file);
-    setShowAnalyzingModal(true);
-    
-    let progress = 0;
-    const steps = ["Uploading video...", "Processing frames...", "Extracting audio...", "Ready for analysis"];
-    const interval = setInterval(() => {
-      progress += 8;
-      setAnalysisProgress(Math.min(progress, 95));
-      const stepIndex = Math.floor(progress / 25);
-      if (stepIndex < steps.length) {
-        setAnalysisStep(steps[stepIndex]);
-      }
-    }, 200);
-
-    try {
-      await uploadMutation.mutateAsync(file);
-      setAnalysisProgress(100);
-    } finally {
-      clearInterval(interval);
-    }
+    setShowSuggestionsModal(true);
   };
 
-  const handleGenerateClips = () => {
-    if (!videoUrl) return;
-    analyzeMutation.mutate({
-      videoUrl,
-      suggestions: selectedSuggestions,
-      customPrompt,
-    });
+  const handleGenerateClips = async () => {
+    if (!uploadedVideo) {
+      toast({ title: "No video", description: "Please upload a video first", variant: "destructive" });
+      return;
+    }
+    
+    setShowSuggestionsModal(false);
+    setShowAnalyzingModal(true);
+    setAnalysisProgress(0);
+    setAnalysisStep("Starting AI analysis...");
+    
+    const steps = [
+      "Uploading video...", 
+      "Extracting audio...", 
+      "Transcribing with Whisper AI...", 
+      "Analyzing for best clips...",
+      "Finalizing results..."
+    ];
+    let stepIndex = 0;
+    
+    const interval = setInterval(() => {
+      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+      setAnalysisStep(steps[stepIndex]);
+      setAnalysisProgress(prev => Math.min(prev + 15, 90));
+    }, 3000);
+    
+    try {
+      await processMutation.mutateAsync({
+        file: uploadedVideo,
+        suggestions: selectedSuggestions,
+        customPrompt,
+      });
+    } finally {
+      clearInterval(interval);
+      setAnalysisProgress(100);
+    }
   };
 
   const toggleSuggestion = (id: string) => {
@@ -234,43 +236,20 @@ export default function VideoToClips() {
 
                   <TabsContent value="url">
                     <div className="border-2 border-dashed border-slate-600 rounded-xl p-12 text-center">
-                      <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Link2 className="w-10 h-10 text-purple-400" />
+                      <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Clock className="w-10 h-10 text-amber-400" />
                       </div>
-                      <h3 className="text-xl font-semibold text-white mb-2">Paste video URL</h3>
-                      <p className="text-slate-400 mb-6">Best for longer videos (5+ minutes)</p>
+                      <h3 className="text-xl font-semibold text-white mb-2">Coming Soon</h3>
+                      <p className="text-slate-400 mb-6">URL processing for longer videos is being finalized</p>
                       
-                      <div className="max-w-md mx-auto space-y-4">
-                        <Input
-                          placeholder="https://youtube.com/watch?v=... or Dropbox/Drive link"
-                          value={urlInput}
-                          onChange={(e) => setUrlInput(e.target.value)}
-                          className="bg-slate-900 border-slate-600 text-white"
-                          data-testid="input-video-url"
-                        />
-                        <Button
-                          onClick={handleUrlSubmit}
-                          disabled={isUrlProcessing || !urlInput.trim()}
-                          className="w-full bg-purple-600 hover:bg-purple-700"
-                          data-testid="button-process-url"
-                        >
-                          {isUrlProcessing ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                              Downloading video...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Process Video
-                            </>
-                          )}
-                        </Button>
+                      <div className="bg-slate-800/50 rounded-lg p-4 max-w-md mx-auto">
+                        <p className="text-sm text-slate-300 mb-3">
+                          For now, please use <strong>Upload File</strong> for videos under 5 minutes.
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          YouTube, Vimeo, and cloud storage URL support will be available soon.
+                        </p>
                       </div>
-
-                      <p className="text-sm text-slate-500 mt-6">
-                        Supports YouTube, Vimeo, Dropbox, Google Drive, and direct video links
-                      </p>
                     </div>
                   </TabsContent>
                 </Tabs>
