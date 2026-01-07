@@ -30,6 +30,7 @@ interface ContentAnalysis {
     sameStructure: string;
     differentTopic: string;
     myTone: string;
+    trendingAngle?: string;
   };
   hookRewrites: string[];
   postAdvice: {
@@ -99,7 +100,8 @@ ${analysis.whyThisWorked.map(p => `- ${p}`).join("\n")}
 ## Adaptation Ideas
 - **Structure:** ${analysis.adaptationForMyChannel.sameStructure}
 - **Topic:** ${analysis.adaptationForMyChannel.differentTopic}
-- **Tone:** ${analysis.adaptationForMyChannel.myTone}
+- **Tone:** ${analysis.adaptationForMyChannel.myTone}${analysis.adaptationForMyChannel.trendingAngle ? `
+- **Trending Angle:** ${analysis.adaptationForMyChannel.trendingAngle}` : ""}
 
 ## Hook Rewrites
 ${analysis.hookRewrites.map((h, i) => `${i + 1}. ${h}`).join("\n")}`;
@@ -399,6 +401,15 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       <p className="text-sm font-medium text-muted-foreground">Your Tone</p>
                       <p className="text-sm" data-testid="text-adapt-tone">{analysis.adaptationForMyChannel.myTone}</p>
                     </div>
+                    {analysis.adaptationForMyChannel.trendingAngle && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          Trending Angle
+                        </p>
+                        <p className="text-sm text-green-700 dark:text-green-400" data-testid="text-adapt-trending">{analysis.adaptationForMyChannel.trendingAngle}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

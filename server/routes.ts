@@ -721,42 +721,66 @@ export async function registerRoutes(
             contentGoals: brief.contentGoals,
           };
           
-          // Fetch trending topics for this brief
-          const trendingTopics = await storage.getTrendingTopics(brief.userId, briefId);
+          // Fetch trending topics for this specific brief
+          const trendingTopics = await storage.getTrendingTopics(undefined, briefId);
           
-          // Fetch recent high-engagement listening hits for this brief
+          // Fetch recent listening hits for this brief
           const listeningHits = await storage.getListeningHitsByBrief(briefId);
           
-          // Extract high-engagement themes from listening hits (top themes by engagement)
+          // Extract high-engagement themes from listening hits
           const highEngagementThemes: string[] = [];
           const keywordCounts: Record<string, number> = {};
           
-          for (const hit of listeningHits.slice(0, 50)) {
-            if (hit.matchedKeywords && hit.engagementScore && hit.engagementScore > 100) {
+          // Sort by engagement and take top hits
+          const sortedHits = [...listeningHits]
+            .sort((a, b) => (b.engagementScore || 0) - (a.engagementScore || 0))
+            .slice(0, 30);
+          
+          for (const hit of sortedHits) {
+            // Use matchedKeywords if available
+            if (hit.matchedKeywords && hit.matchedKeywords.length > 0) {
               for (const keyword of hit.matchedKeywords) {
-                keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1;
+                keywordCounts[keyword] = (keywordCounts[keyword] || 0) + (hit.engagementScore || 1);
+              }
+            } else if (hit.postContent) {
+              // Fallback: extract key phrases from post content
+              const words = hit.postContent.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .filter(w => w.length > 4);
+              const uniqueWords = [...new Set(words)].slice(0, 5);
+              for (const word of uniqueWords) {
+                keywordCounts[word] = (keywordCounts[word] || 0) + (hit.engagementScore || 1);
               }
             }
           }
           
-          // Get top 5 themes by frequency
+          // Get top 5 themes weighted by engagement
           const sortedThemes = Object.entries(keywordCounts)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 5)
             .map(([keyword]) => keyword);
           highEngagementThemes.push(...sortedThemes);
           
-          // Build trending context
-          if (trendingTopics.length > 0 || highEngagementThemes.length > 0) {
-            trendingContext = {
-              topics: trendingTopics.slice(0, 5).map(t => ({
-                topic: t.topic,
-                keywords: t.keywords || undefined,
-                engagement: t.engagementTotal || undefined,
-              })),
-              highEngagementThemes,
-            };
+          // Also use brand brief content pillars if no listening data
+          if (highEngagementThemes.length === 0 && brief.contentGoals) {
+            const goalWords = brief.contentGoals.toLowerCase()
+              .replace(/[^a-z0-9\s]/g, " ")
+              .split(/\s+/)
+              .filter(w => w.length > 4)
+              .slice(0, 3);
+            highEngagementThemes.push(...goalWords);
           }
+          
+          // Build trending context - always include if brief is selected
+          trendingContext = {
+            topics: trendingTopics.slice(0, 5).map(t => ({
+              topic: t.topic,
+              keywords: t.keywords || undefined,
+              engagement: t.engagementTotal || undefined,
+            })),
+            highEngagementThemes,
+          };
         }
       }
 
