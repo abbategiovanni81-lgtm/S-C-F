@@ -718,6 +718,14 @@ CREATE INDEX idx_clips_category ON video_clip_library(category);
 
 OpenAI Batch API offers 50% discount for non-urgent processing (results within 24 hours). We can use this for any AI task that doesn't need instant results.
 
+#### 🔒 Hard Boundary (NEVER use Batch API for)
+
+- Live typing responses
+- On-screen "Generate now" actions  
+- Anything the user explicitly triggers and expects instantly
+
+Batch API is ONLY for background pre-generation that users don't see happening.
+
 #### Batch-Eligible Tasks
 
 | Task | Current Method | Batch Method | User Experience |
