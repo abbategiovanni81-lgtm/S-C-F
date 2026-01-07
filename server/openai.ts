@@ -1999,6 +1999,18 @@ Make it look like a polished Instagram carousel slide with:
   // Check if we have a detailed extracted style (from "match my style" mode)
   const isDetailedExtractedStyle = request.style && request.style.length > 100;
   
+  // Helper to create spelling emphasis for short text
+  const createSpellingEmphasis = (text: string): string => {
+    // Only for short overlays (5 words or less), spell out each word
+    const words = text.split(/\s+/).filter(w => w.length > 0);
+    if (words.length <= 6) {
+      return words.map(word => `"${word}" (spelled: ${word.split('').join('-')})`).join(', ');
+    }
+    return `"${text}"`;
+  };
+  
+  const spellingHelp = createSpellingEmphasis(request.textOverlay);
+  
   // Generate fresh image with DALL-E 3 including text overlay
   const generatePrompt = isDetailedExtractedStyle 
     ? `Create a professional social media carousel slide image that EXACTLY matches this visual style:
@@ -2007,10 +2019,15 @@ ${request.style}
 
 ${slideContext}
 
-IMPORTANT - Include this exact text overlay prominently on the image:
-"${request.textOverlay}"
+TEXT OVERLAY REQUIREMENTS (CRITICAL - SPELLING MUST BE PERFECT):
+Display this exact text: ${spellingHelp}
 
-The text must be large, bold, and easily readable with proper contrast.
+Rules for text:
+- SPELL EVERY WORD EXACTLY AS SHOWN - no extra letters, no missing letters
+- Use large, bold, sans-serif typography 
+- High contrast with background (add text shadow or solid background panel if needed)
+- Keep text short and prominent
+
 Brand: ${request.brandName}
 Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}
 
@@ -2018,22 +2035,23 @@ CRITICAL: Maintain the EXACT same color palette, typography style, layout approa
     : `Create a professional social media carousel slide image.
 ${slideContext}
 
-IMPORTANT - Include this exact text overlay prominently on the image:
-"${request.textOverlay}"
+TEXT OVERLAY REQUIREMENTS (CRITICAL - SPELLING MUST BE PERFECT):
+Display this exact text: ${spellingHelp}
 
-The text should be:
-- Large, bold, and easily readable
-- Positioned in the upper portion of the image
-- With proper contrast (use shadows, backgrounds, or contrasting colors)
-- In a modern, clean sans-serif font style
+Rules for text:
+- SPELL EVERY WORD EXACTLY AS SHOWN - no extra letters, no missing letters
+- Use large, bold, sans-serif typography
+- Position in upper 40% of image
+- High contrast with background (add text shadow or solid background panel if needed)
+- Each word must be spelled correctly
 
 Visual composition:
 - Style: ${request.style || "Modern, professional, social media marketing aesthetic"}
 - Color scheme: ${request.colorScheme || "Bold, vibrant colors with good contrast"}
 - Brand: ${request.brandName}
 - Include relevant visual elements that support the text message
-- Leave some visual breathing room around the text
-- Make it look like a polished Instagram/TikTok carousel slide
+- Leave visual breathing room around the text
+- Polished Instagram/TikTok carousel look
 
 Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}`;
 

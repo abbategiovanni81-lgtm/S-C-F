@@ -387,10 +387,30 @@ export default function ReadyToPost() {
 
           {/* Carousel Images Display */}
           {hasCarouselImages && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <LayoutGrid className="w-4 h-4 text-purple-500" />
-                Carousel Images ({carouselImages.length} slides)
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <LayoutGrid className="w-4 h-4 text-purple-500" />
+                  Carousel Images ({carouselImages.length} slides)
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => {
+                    carouselImages.forEach((slide: any, i: number) => {
+                      const link = document.createElement('a');
+                      link.href = slide.imageUrl;
+                      link.download = `slide-${slide.slideIndex + 1}.png`;
+                      link.target = '_blank';
+                      setTimeout(() => link.click(), i * 300);
+                    });
+                  }}
+                  data-testid={`button-download-all-slides-${content.id}`}
+                >
+                  <Download className="w-4 h-4" />
+                  Download All Slides
+                </Button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {carouselImages.sort((a: any, b: any) => a.slideIndex - b.slideIndex).map((slide: any, i: number) => (

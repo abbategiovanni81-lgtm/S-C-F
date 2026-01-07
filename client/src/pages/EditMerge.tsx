@@ -117,6 +117,7 @@ export default function EditMerge() {
   const [generatingImage, setGeneratingImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [movingToReady, setMovingToReady] = useState(false);
+  const [selectedSlideIndex, setSelectedSlideIndex] = useState<number | null>(null);
 
   const handleSelectContent = (content: GeneratedContent) => {
     setSelectedContent(content);
@@ -330,6 +331,12 @@ export default function EditMerge() {
       formData.append("image", file);
       formData.append("contentId", selectedContent.id);
       
+      // If it's a carousel and a slide is selected, pass the slideIndex
+      const carouselImages = getCarouselImages(selectedContent);
+      if (carouselImages.length > 0 && selectedSlideIndex !== null) {
+        formData.append("slideIndex", selectedSlideIndex.toString());
+      }
+      
       const res = await fetch("/api/image/upload", {
         method: "POST",
         body: formData,
@@ -343,7 +350,11 @@ export default function EditMerge() {
       const data = await res.json();
       
       invalidateContentQueries();
-      toast({ title: "Image uploaded!", description: file.name });
+      const successMsg = carouselImages.length > 0 && selectedSlideIndex !== null
+        ? `Slide ${selectedSlideIndex + 1} updated!`
+        : file.name;
+      toast({ title: "Image uploaded!", description: successMsg });
+      setSelectedSlideIndex(null);
     } catch (error: any) {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     } finally {
@@ -723,23 +734,40 @@ export default function EditMerge() {
                       {/* Carousel Images Display */}
                       {getCarouselImages(selectedContent).length > 0 && (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <LayoutGrid className="w-4 h-4 text-purple-500" />
-                            <span className="text-sm">Carousel Images ({getCarouselImages(selectedContent).length} slides)</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <LayoutGrid className="w-4 h-4 text-purple-500" />
+                              <span className="text-sm">Carousel Images ({getCarouselImages(selectedContent).length} slides)</span>
+                            </div>
+                            {selectedSlideIndex !== null && (
+                              <Badge variant="secondary" className="text-xs">
+                                Replacing Slide {selectedSlideIndex + 1}
+                              </Badge>
+                            )}
                           </div>
+                          <p className="text-xs text-muted-foreground">Click a slide to select it for replacement, then upload a new image</p>
                           <div className="grid grid-cols-3 gap-2">
                             {getCarouselImages(selectedContent)
                               .sort((a, b) => a.slideIndex - b.slideIndex)
                               .map((slide: { slideIndex: number; imageUrl: string }, i: number) => (
-                                <div key={i} className="relative">
+                                <div 
+                                  key={i} 
+                                  className={`relative cursor-pointer transition-all ${selectedSlideIndex === slide.slideIndex ? 'ring-2 ring-primary ring-offset-2' : 'hover:ring-2 hover:ring-muted-foreground/50'}`}
+                                  onClick={() => setSelectedSlideIndex(selectedSlideIndex === slide.slideIndex ? null : slide.slideIndex)}
+                                >
                                   <img 
                                     src={slide.imageUrl} 
                                     alt={`Slide ${slide.slideIndex + 1}`} 
                                     className="w-full aspect-square object-cover rounded-lg border"
                                   />
-                                  <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                                  <span className={`absolute top-1 left-1 text-white text-xs px-1.5 py-0.5 rounded ${selectedSlideIndex === slide.slideIndex ? 'bg-primary' : 'bg-black/60'}`}>
                                     {slide.slideIndex + 1}
                                   </span>
+                                  {selectedSlideIndex === slide.slideIndex && (
+                                    <div className="absolute inset-0 bg-primary/20 rounded-lg flex items-center justify-center">
+                                      <span className="text-xs font-medium text-primary-foreground bg-primary px-2 py-1 rounded">Selected</span>
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                           </div>

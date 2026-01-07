@@ -3017,7 +3017,7 @@ export async function registerRoutes(
   app.post("/api/image/upload", contentImageUpload.single("image"), async (req, res) => {
     try {
       const file = req.file;
-      const { contentId } = req.body;
+      const { contentId, slideIndex } = req.body;
       
       if (!file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -3036,9 +3036,32 @@ export async function registerRoutes(
         const existingContent = await storage.getGeneratedContent(contentId);
         if (existingContent) {
           const existingMetadata = (existingContent.generationMetadata as any) || {};
-          await storage.updateGeneratedContent(contentId, {
-            generationMetadata: { ...existingMetadata, uploadedImageUrl: imageUrl },
-          });
+          
+          // Check if this is a carousel slide replacement/addition
+          if (slideIndex !== undefined && slideIndex !== null) {
+            const slideIdx = parseInt(slideIndex, 10);
+            const carouselImages = existingMetadata.generatedCarouselImages || [];
+            
+            // Find if this slide already exists and replace, or add new
+            const existingSlideIndex = carouselImages.findIndex((s: any) => s.slideIndex === slideIdx);
+            if (existingSlideIndex >= 0) {
+              carouselImages[existingSlideIndex] = { slideIndex: slideIdx, imageUrl };
+            } else {
+              carouselImages.push({ slideIndex: slideIdx, imageUrl });
+            }
+            
+            // Sort by slideIndex
+            carouselImages.sort((a: any, b: any) => a.slideIndex - b.slideIndex);
+            
+            await storage.updateGeneratedContent(contentId, {
+              generationMetadata: { ...existingMetadata, generatedCarouselImages: carouselImages },
+            });
+          } else {
+            // Regular single image upload
+            await storage.updateGeneratedContent(contentId, {
+              generationMetadata: { ...existingMetadata, uploadedImageUrl: imageUrl },
+            });
+          }
         }
       }
       
