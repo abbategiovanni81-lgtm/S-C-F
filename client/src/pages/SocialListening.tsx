@@ -781,6 +781,15 @@ export default function SocialListening() {
                               <Sparkles className="w-4 h-4 mr-1" />
                               AI Reply
                             </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => copyToClipboard(hit.postContent)}
+                              data-testid={`button-copy-${hit.id}`}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy
+                            </Button>
                             {(hit.postUrl || extHit.sourceUrl) && (
                               <Button size="sm" variant="outline" asChild>
                                 <a href={hit.postUrl || extHit.sourceUrl} target="_blank" rel="noopener noreferrer">
