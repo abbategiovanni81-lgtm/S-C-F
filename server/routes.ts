@@ -4604,6 +4604,157 @@ export async function registerRoutes(
     }
   });
 
+  // Scrape comments from a viral URL (YouTube, TikTok, Instagram)
+  app.post("/api/listening/scrape-url", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const { url, maxComments = 50, briefId } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Apify not configured", 
+          message: "Please add your APIFY_API_TOKEN to use URL scraping" 
+        });
+      }
+
+      // Detect platform from URL
+      let platform: string;
+      let actorKey: string;
+      let actorInput: Record<string, any>;
+      let sourceTitle = "";
+      let sourceChannel = "";
+
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        platform = "youtube";
+        actorKey = "youtubeComments";
+        actorInput = {
+          startUrls: [{ url }],
+          maxComments,
+          maxReplies: 10,
+        };
+      } else if (url.includes("tiktok.com")) {
+        platform = "tiktok";
+        actorKey = "tiktokComments";
+        actorInput = {
+          postURLs: [url],
+          commentsPerPost: maxComments,
+        };
+      } else if (url.includes("instagram.com")) {
+        platform = "instagram";
+        actorKey = "instagramComments";
+        actorInput = {
+          directUrls: [url],
+          resultsLimit: maxComments,
+        };
+      } else {
+        return res.status(400).json({ 
+          error: "Unsupported platform",
+          message: "Only YouTube, TikTok, and Instagram URLs are supported" 
+        });
+      }
+
+      const actorConfig = APIFY_ACTORS[actorKey];
+      if (!actorConfig) {
+        return res.status(500).json({ error: `Actor ${actorKey} not configured` });
+      }
+
+      // Create scan run record
+      const scanRun = await storage.createScanRun({
+        userId,
+        briefId: briefId || null,
+        platform,
+        actorId: actorConfig.actorId,
+        status: "running",
+        keywords: [url],
+      });
+
+      // Run the scraper
+      const items = await apifyService.runActorAndWait(actorConfig.actorId, actorInput, 300000);
+      let imported = 0;
+
+      // Process each comment
+      for (const item of items) {
+        const commentText = item.text || item.comment || item.body || item.ctext || "";
+        if (!commentText || commentText.length < 3) continue;
+
+        const authorName = item.author?.name || item.authorName || item.username || item.ownerUsername || "Unknown";
+        const authorHandle = item.author?.id || item.authorId || item.uniqueId || item.authorMeta?.id || "";
+        const likes = item.likes || item.likesCount || item.diggCount || 0;
+
+        // Extract source info from first item if available
+        if (!sourceTitle && item.videoTitle) sourceTitle = item.videoTitle;
+        if (!sourceChannel && (item.channelName || item.ownerUsername)) {
+          sourceChannel = item.channelName || item.ownerUsername;
+        }
+
+        // Calculate basic engagement opportunity score (0-100)
+        // Higher likes = more visibility, questions = better engagement opportunity
+        const isQuestion = commentText.includes("?") || /\b(how|what|why|when|where|who|can|could|would|should|is|are|does|do)\b/i.test(commentText);
+        const baseScore = Math.min(likes * 2, 50); // Up to 50 points for likes
+        const questionBonus = isQuestion ? 25 : 0;
+        const lengthBonus = commentText.length > 50 ? 15 : commentText.length > 20 ? 10 : 0;
+        const opportunityScore = Math.min(baseScore + questionBonus + lengthBonus, 100);
+
+        const postId = item.id || item.commentId || item.cid || `${platform}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const isDuplicate = await storage.checkDuplicateHit(platform, postId);
+        if (isDuplicate) continue;
+
+        await storage.createListeningHit({
+          userId,
+          briefId: briefId || null,
+          platform,
+          postId,
+          postUrl: item.url || null,
+          postContent: commentText,
+          authorName,
+          authorHandle,
+          authorProfileUrl: item.author?.profileUrl || item.authorProfileUrl || null,
+          postType: "comment",
+          matchedKeywords: [],
+          sentiment: null,
+          engagementScore: likes,
+          likes,
+          comments: item.replyCount || item.replies?.length || 0,
+          shares: null,
+          isQuestion: isQuestion ? "yes" : "no",
+          isTrending: null,
+          replyStatus: "pending",
+          postedAt: item.createdAt ? new Date(item.createdAt) : null,
+          sourceUrl: url,
+          sourceTitle: sourceTitle || null,
+          sourceChannel: sourceChannel || null,
+          opportunityScore,
+          scanType: "viral_url",
+        });
+        imported++;
+      }
+
+      await storage.updateScanRun(scanRun.id, {
+        status: "completed",
+        itemsFound: items.length,
+        itemsImported: imported,
+      });
+
+      res.json({
+        success: true,
+        platform,
+        url,
+        sourceTitle,
+        sourceChannel,
+        commentsFound: items.length,
+        commentsImported: imported,
+        scanRunId: scanRun.id,
+      });
+    } catch (error: any) {
+      console.error("URL scrape error:", error);
+      res.status(500).json({ error: error.message || "Failed to scrape URL" });
+    }
+  });
+
   // ==================== SCHEDULED POSTS ====================
 
   // Get scheduled posts for a user (with optional date range)
