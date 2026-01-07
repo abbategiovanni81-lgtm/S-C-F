@@ -657,7 +657,6 @@ export default function SocialListening() {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
 
         <Tabs defaultValue="inbox" className="space-y-4">
