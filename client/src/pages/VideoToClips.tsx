@@ -282,10 +282,15 @@ export default function VideoToClips() {
                         src={clip.videoUrl}
                         className="w-full h-full object-cover"
                         poster={clip.thumbnailUrl}
+                        controls
+                        playsInline
+                        preload="metadata"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Video className="w-12 h-12 text-slate-600" />
+                      <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
+                        <Video className="w-12 h-12 text-slate-600 mb-2" />
+                        <p className="text-xs text-slate-500">Clip ready for extraction</p>
+                        <p className="text-xs text-slate-600 mt-1">{clip.startTime}s - {clip.endTime}s</p>
                       </div>
                     )}
                     <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
