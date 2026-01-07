@@ -2,6 +2,7 @@ import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { HelpChatbot } from "@/components/HelpChatbot";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function Layout({ children, title = "Dashboard" }: LayoutProps) {
           </div>
         </main>
       </div>
+      <HelpChatbot />
     </div>
   );
 }

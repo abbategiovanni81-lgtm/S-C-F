@@ -6348,5 +6348,56 @@ Focus on virality, relatability, and calls to action.`
     }
   });
 
+  // Help chatbot endpoint
+  app.post("/api/help-chat", async (req, res) => {
+    try {
+      const { message, history = [] } = req.body;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      const { openai } = await import("./openai");
+      const { HELP_KNOWLEDGE_BASE } = await import("./helpKnowledgeBase");
+
+      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        {
+          role: "system",
+          content: `You are a helpful assistant for SocialCommand, a social media management platform. Your job is to help users understand how to use the platform's features.
+
+Use the following knowledge base to answer questions. Be friendly, concise, and helpful. If a question is outside the platform's features, politely redirect to relevant features.
+
+${HELP_KNOWLEDGE_BASE}
+
+Guidelines:
+- Keep responses short and actionable (2-4 sentences max unless more detail is needed)
+- Use simple, everyday language
+- Suggest specific steps when explaining how to do something
+- If unsure, recommend checking the relevant section or ask for clarification
+- Never make up features that don't exist`
+        },
+        ...history.slice(-10).map((h: { role: string; content: string }) => ({
+          role: h.role as "user" | "assistant",
+          content: h.content,
+        })),
+        { role: "user", content: message },
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.7,
+        max_completion_tokens: 500,
+      });
+
+      const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again.";
+      
+      res.json({ reply });
+    } catch (error: any) {
+      console.error("Help chat error:", error);
+      res.status(500).json({ error: "Sorry, I'm having trouble responding. Please try again." });
+    }
+  });
+
   return httpServer;
 }
