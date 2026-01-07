@@ -35,14 +35,14 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     searchField: "searchQueries",
   },
   reddit: {
-    actorId: "trudax/reddit-scraper",
+    actorId: "apify/reddit-scraper",
     platform: "reddit",
     searchField: "searches",
   },
   youtube: {
-    actorId: "bernardo/youtube-scraper",
+    actorId: "streamers/youtube-scraper",
     platform: "youtube",
-    searchField: "searchKeywords",
+    searchField: "searchQueries",
   },
   youtubeComments: {
     actorId: "alexey/youtube-comment-scraper",
