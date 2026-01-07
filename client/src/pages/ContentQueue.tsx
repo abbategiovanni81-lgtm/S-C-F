@@ -2577,6 +2577,36 @@ export default function ContentQueue() {
                 Download
               </Button>
             )}
+            
+            {/* Archive and Delete buttons for approved content */}
+            <div className="flex gap-2 mt-3 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => archiveMutation.mutate(content.id)}
+                disabled={archiveMutation.isPending}
+                data-testid={`button-archive-approved-${content.id}`}
+              >
+                <Archive className="w-4 h-4" />
+                Archive
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                    deleteMutation.mutate(content.id);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-approved-${content.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
+            </div>
           </div>
         )}
 
@@ -2588,10 +2618,89 @@ export default function ContentQueue() {
          !(content.generationMetadata as any)?.tiktokTextPost &&
          !(content.generationMetadata as any)?.scenePrompts &&
          !(content.generationMetadata as any)?.videoPrompts && (
-          <div className="pt-2">
-            <p className="text-xs text-muted-foreground mb-2">
-              This content needs assets. Use Edit & Merge to add images or video clips before posting.
+          <div className="pt-4 space-y-3 border-t mt-4">
+            <p className="text-xs text-muted-foreground">
+              Legacy content - use Edit & Merge to add images or video clips before posting.
             </p>
+            <Link href={`/edit-merge/${content.id}`}>
+              <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
+                <Scissors className="w-4 h-4" />
+                Go to Edit & Merge
+              </Button>
+            </Link>
+            <div className="flex gap-2 mt-3 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => archiveMutation.mutate(content.id)}
+                disabled={archiveMutation.isPending}
+                data-testid={`button-archive-legacy-${content.id}`}
+              >
+                <Archive className="w-4 h-4" />
+                Archive
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                    deleteMutation.mutate(content.id);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-legacy-${content.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Rejected content actions - re-approve, archive, delete */}
+        {content.status === "rejected" && (
+          <div className="pt-4 space-y-3 border-t mt-4">
+            <p className="text-xs font-medium text-muted-foreground">Actions</p>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => approveMutation.mutate(content.id)}
+                disabled={approveMutation.isPending}
+                data-testid={`button-reapprove-${content.id}`}
+              >
+                <Check className="w-4 h-4" />
+                Re-approve
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 gap-2"
+                onClick={() => archiveMutation.mutate(content.id)}
+                disabled={archiveMutation.isPending}
+                data-testid={`button-archive-rejected-${content.id}`}
+              >
+                <Archive className="w-4 h-4" />
+                Archive
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                    deleteMutation.mutate(content.id);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-rejected-${content.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
