@@ -149,35 +149,254 @@ Carousels are multi-slide posts (great for Instagram):
 ## CREATOR STUDIO (Advanced AI Tools)
 
 ### "What tools are in Creator Studio?"
-Creator Studio has advanced AI tools:
+Creator Studio has powerful AI tools for creating UGC-style content:
 
 1. **Voice Clone** - Clone your voice for AI voiceovers
-2. **Talking Photo** - Make a photo speak with AI
-3. **Talking Video** - Make a video speak with AI (avatar lip-sync)
-4. **Face Swap** - Swap faces in videos
-5. **AI Dubbing** - Translate videos to other languages
-6. **Image to Video** - Turn a still image into a video
-7. **Caption Removal** - Remove existing captions from videos
-8. **Video Style Transfer** - Apply artistic styles to videos
-9. **Virtual Try-On** - Try clothes on photos
-10. **Image Reformat** - Resize images for different platforms
+2. **Talking Photo** - Make any photo speak with realistic lip-sync
+3. **Talking Video** - Make a person in video speak your script (avatar lip-sync)
+4. **Face Swap** - Swap faces in videos for UGC content
+5. **AI Dubbing** - Translate videos to 28+ languages
+6. **Image to Video** - Turn a still image into animated video
+7. **Caption Removal** - Remove existing captions/text from videos
+8. **Video Style Transfer** - Apply artistic styles to your videos
+9. **Virtual Try-On** - See how clothes look on photos
+10. **Image Reformat** - Resize images for any platform (9:16, 1:1, 16:9, etc.)
+
+### "How do I create UGC-style content?"
+UGC (User-Generated Content) style videos are authentic, personal videos. Here's how:
+
+**Option 1: Talking Photo (easiest)**
+1. Go to **Creator Studio** → **Talking Photo**
+2. Upload a photo of a person (you or a stock photo)
+3. Type your script or paste text
+4. AI animates the photo to speak naturally
+5. Download and use as UGC testimonial or talking head
+
+**Option 2: Talking Video with Lip-Sync**
+1. Go to **Creator Studio** → **Talking Video**
+2. Upload a video of someone speaking (or silent)
+3. Enter new script or upload audio
+4. AI makes the video lip-sync to the new audio
+5. Perfect for repurposing content or translations
+
+**Option 3: Face Swap**
+1. Go to **Creator Studio** → **Face Swap**
+2. Upload your source video
+3. Upload a photo of the face to swap in
+4. AI replaces the face while keeping natural movement
+5. Great for creating diverse UGC-style content
 
 ### "How do I use Talking Photo?"
+**Step-by-step:**
 1. Go to **Creator Studio**
 2. Select **Talking Photo** tab
-3. Upload a photo with a clear face
-4. Either:
-   - Type text and AI will speak it
-   - Upload an audio file
-5. AI animates the face to match the audio
-6. Download the result
+3. Upload a photo with a clear face (front-facing works best)
+4. Enter your script in the text box
+5. Choose a voice (or use your cloned voice)
+6. Click **Generate**
+7. Wait 30-60 seconds for processing
+8. Preview and download the result
+
+**Tips:**
+- Use high-quality photos with good lighting
+- Face should be clearly visible, looking at camera
+- Keep scripts under 60 seconds for best results
 
 ### "How do I clone my voice?"
-1. Go to **Creator Studio**
-2. Select **Voice Clone** tab
-3. Upload 1-3 minutes of clear voice audio (just you speaking)
-4. AI creates a voice model
-5. Now you can use your cloned voice for any voiceover generation
+**Step-by-step:**
+1. Go to **Creator Studio** → **Voice Clone** tab
+2. Record or upload 1-3 minutes of clear voice audio
+   - Just you speaking naturally
+   - No background noise
+   - Normal conversational tone
+3. Click **Create Voice Clone**
+4. Wait for processing (takes a few minutes)
+5. Your cloned voice appears in the voice selector
+6. Use it for any voiceover or Talking Photo/Video
+
+### "How do I use Talking Video / Lip-Sync?"
+**Step-by-step:**
+1. Go to **Creator Studio** → **Talking Video** tab
+2. Upload your video (with a person speaking or looking at camera)
+3. Enter new script OR upload audio file
+4. Select voice if using text-to-speech
+5. Click **Generate**
+6. AI matches lip movements to the new audio
+7. Download the synced video
+
+**Use cases:**
+- Translate your video to another language
+- Create testimonials from stock footage
+- Update old videos with new scripts
+
+### "How do I use Face Swap?"
+**Step-by-step:**
+1. Go to **Creator Studio** → **Face Swap** tab
+2. Upload the target video (the video you want to modify)
+3. Upload a photo of the face to swap in
+4. Click **Swap Face**
+5. AI processes and creates the new video
+6. Download and use
+
+### "How do I use AI Dubbing?"
+Translate your videos to other languages:
+1. Go to **Creator Studio** → **AI Dubbing** tab
+2. Upload your video with speech
+3. Select target language(s)
+4. AI transcribes, translates, and re-voices in new language
+5. Lip-sync is automatically adjusted
+6. Download dubbed versions
+
+### "How do I use Image to Video?"
+Turn a still image into motion:
+1. Go to **Creator Studio** → **Image to Video** tab
+2. Upload your image
+3. Describe the motion you want (e.g., "zoom in slowly", "pan left to right")
+4. AI animates the image
+5. Download the video clip
+
+### "How do I use Caption Removal?"
+Remove burned-in captions from videos:
+1. Go to **Creator Studio** → **Caption Removal** tab
+2. Upload video with captions you want removed
+3. AI detects and removes text overlays
+4. Download clean video
+5. Add your own captions if needed
+
+### "How do I reformat images for different platforms?"
+1. Go to **Creator Studio** → **Image Reformat** tab
+2. Upload your image
+3. Select target format:
+   - 9:16 (TikTok, Reels, Stories)
+   - 1:1 (Instagram Feed)
+   - 16:9 (YouTube, Twitter)
+   - 4:5 (Instagram Portrait)
+4. AI resizes intelligently (keeps important parts)
+5. Download all sizes
+
+---
+
+## VOICEOVERS
+
+### "How do I add a voiceover to my content?"
+**Option 1: AI Voice (ElevenLabs)**
+1. When generating content, select "Add Voiceover"
+2. Choose from library of AI voices
+3. AI speaks your script naturally
+4. Voiceover is automatically added to video
+
+**Option 2: Your Cloned Voice**
+1. First, clone your voice in Creator Studio
+2. Then select your cloned voice when generating content
+3. AI speaks in YOUR voice
+
+**Option 3: Upload Your Own Audio**
+1. In Edit & Merge, click "Upload Audio"
+2. Upload your recorded voiceover (MP3/WAV)
+3. Sync with your video scenes
+
+### "How do I get the best voiceover quality?"
+- Keep sentences short and natural
+- Use punctuation for natural pauses
+- Add commas where you want brief pauses
+- Use periods for longer pauses
+- Avoid ALL CAPS (sounds robotic)
+
+---
+
+## UPLOADING YOUR OWN CONTENT
+
+### "How do I upload my own videos?"
+**For editing:**
+1. Go to **Edit & Merge**
+2. Click **Upload Video** or drag and drop
+3. Video is added to your project
+4. Use AI to add captions, voiceovers, or effects
+
+**For scheduling:**
+1. Go to **Content Calendar**
+2. Click **New Post**
+3. Click **Upload** in the media section
+4. Select your video file
+5. Add caption and schedule
+
+### "How do I upload my own images?"
+**For posts:**
+1. Go to **Content Calendar** → **New Post**
+2. Click **Upload** in media section
+3. Select image file
+4. Add caption, hashtags, and schedule
+
+**For carousels:**
+1. When creating carousel, click **Upload Slides**
+2. Upload multiple images
+3. Arrange order as needed
+
+**For brand assets:**
+1. Go to **Brand Briefs** → Select your brief
+2. Click **Assets** tab
+3. Upload logos, product photos, headshots
+4. These can be used in AI-generated content
+
+### "What file formats are supported?"
+- **Videos:** MP4, MOV, WebM
+- **Images:** JPG, PNG, WebP, GIF
+- **Audio:** MP3, WAV, M4A
+
+### "What are the file size limits?"
+- Videos: Up to 500MB
+- Images: Up to 20MB
+- Audio: Up to 50MB
+
+---
+
+## EDIT & MERGE
+
+### "What is Edit & Merge?"
+Edit & Merge is where you fine-tune AI-generated content before posting:
+- Combine multiple video scenes
+- Add or replace voiceovers
+- Adjust timing and order
+- Add transitions
+- Preview final result
+- Download finished video
+
+### "How do I use Edit & Merge?"
+**Step-by-step:**
+1. Go to **Edit & Merge**
+2. Select content from your approved queue OR start fresh
+3. View your scenes/clips in the timeline
+4. For each scene, you can:
+   - **Regenerate** - Get new AI version
+   - **Replace** - Upload your own clip
+   - **Delete** - Remove from final video
+   - **Reorder** - Drag to new position
+5. Add voiceover:
+   - Click **Add Voiceover**
+   - Type script or upload audio
+   - AI syncs to video
+6. Preview the full video
+7. Click **Merge & Download** to get final video
+
+### "How do I combine scenes into one video?"
+1. Go to **Edit & Merge**
+2. Add all your scenes (AI-generated or uploaded)
+3. Arrange them in order (drag and drop)
+4. Click **Merge All**
+5. AI combines into single video with smooth transitions
+6. Download the finished video
+
+### "How do I replace a scene with my own footage?"
+1. In **Edit & Merge**, find the scene
+2. Click the **Replace** button on that scene
+3. Upload your own video clip
+4. It replaces the AI scene but keeps the voiceover timing
+
+### "How do I add music or background audio?"
+1. In **Edit & Merge**, click **Add Audio**
+2. Upload your audio file (MP3, WAV)
+3. Adjust volume levels
+4. Audio is mixed with voiceover in final video
 
 ---
 
@@ -213,49 +432,155 @@ Creator Studio has advanced AI tools:
 ## SOCIAL LISTENING
 
 ### "What is Social Listening?"
-Social Listening finds posts and comments across social media where you can engage with potential customers.
+Social Listening helps you find conversations where you can engage with potential customers:
+- Find people asking questions you can answer
+- Discover trending topics in your niche
+- Monitor brand mentions
+- Generate on-brand replies with AI
+- Track engagement opportunities across platforms
 
 ### "How do I use Social Listening?"
-**Quick Keyword Scan (fastest):**
+There are three ways to find engagement opportunities:
+
+**1. Quick Keyword Scan (fastest - start here!)**
 1. Go to **Social Listening**
-2. In the Quick Scan box, enter keywords (comma separated)
-3. Select platforms (Reddit, YouTube, TikTok, Instagram)
+2. In the Quick Scan box at the top, enter keywords
+   - Separate with commas: "fitness tips, workout routine, gym motivation"
+3. Check the platforms you want to scan:
+   - Reddit (great for questions)
+   - YouTube (comments on videos)
+   - TikTok (trending discussions)
+   - Instagram (comments and posts)
 4. Click **Scan Now**
-5. Review results sorted by Opportunity Score
-6. Click on any post to generate an AI reply
+5. Wait 1-2 minutes for results
+6. Review results sorted by Opportunity Score
+7. Click any result to view details and generate a reply
 
-**Brand Brief Scan:**
+**2. Brand Brief Scan (uses your keywords automatically)**
 1. Click **Brand Brief Scan** button
-2. Select your Brand Brief (keywords are extracted automatically)
-3. Choose platforms
-4. Click **Start Scan**
+2. Select your Brand Brief
+3. AI extracts keywords from your brand voice, audience, and goals
+4. Choose which platforms to scan
+5. Click **Start Scan**
+6. Perfect for regular monitoring of your niche
 
-**Viral URL Scraper:**
+**3. Viral URL Scraper (mine comments from popular posts)**
 1. Click **Scrape Viral URL**
-2. Paste a viral video URL (YouTube, TikTok, Instagram)
-3. Select how many comments to extract
-4. Click **Find Engagement Opportunities**
-5. AI extracts comments and scores them
+2. Paste a URL from:
+   - YouTube video (youtube.com or youtu.be)
+   - TikTok post
+   - Instagram post
+3. Select how many comments to extract (25-200)
+4. Optionally link to a Brand Brief
+5. Click **Find Engagement Opportunities**
+6. AI extracts comments and calculates opportunity scores
+7. Find questions and engaged commenters to reply to
 
 ### "What is Opportunity Score?"
-A 0-100 rating that shows how valuable a post/comment is:
-- **70-100 (Green)**: High value - engage first! Usually questions or high-engagement posts
-- **40-69 (Yellow)**: Medium value - good opportunities
-- **0-39 (Gray)**: Lower priority
+A 0-100 rating that prioritizes which posts to engage with:
 
-Score is based on:
-- Number of likes/engagement
-- Whether it's a question (questions = good opportunity)
-- Comment length (longer = more thoughtful)
+**70-100 (Green - High Priority)**
+- Questions from your target audience
+- High engagement (many likes)
+- Detailed comments showing interest
+- ENGAGE THESE FIRST!
+
+**40-69 (Yellow - Medium Priority)**
+- Moderate engagement
+- Relevant but not urgent
+- Good for building presence
+
+**0-39 (Gray - Lower Priority)**
+- Low engagement
+- Short/generic comments
+- Address if you have time
+
+**How it's calculated:**
+- Base score from likes (more likes = higher score)
+- +25 points if it's a question
+- +10-15 points for longer, thoughtful comments
 
 ### "How do I generate a reply?"
-1. Find a post in Social Listening
-2. Click on it to open details
-3. Select your Brand Brief (for context)
-4. Choose reply tone (professional, friendly, casual)
+**Step-by-step:**
+1. In Social Listening, click on a post/comment
+2. Details panel opens on the right
+3. Select your **Brand Brief** (required for context)
+4. Choose **Reply Tone**:
+   - Professional - formal, business-like
+   - Friendly - warm, approachable
+   - Casual - relaxed, conversational
 5. Click **Generate Reply**
-6. AI creates an on-brand response
-7. Copy and paste to the platform, or edit as needed
+6. AI writes an on-brand response
+7. Review and edit if needed
+8. Copy to clipboard and paste on the platform
+
+**Tips for great replies:**
+- Add value, don't just promote
+- Answer questions directly
+- Be helpful first, promotional second
+- Personalize if possible
+
+### "How do I monitor my brand mentions?"
+1. Create a Brand Brief with your brand name as a keyword
+2. Run a Brand Brief Scan regularly
+3. Results will include mentions of your brand
+4. Respond to feedback, questions, and comments
+
+### "How often should I scan?"
+- **Daily**: For active engagement strategies
+- **2-3x per week**: For regular presence
+- **Weekly**: For monitoring only
+
+---
+
+## VIDEO TO CLIPS
+
+### "What is Video to Clips?"
+Video to Clips automatically turns long videos into short, shareable clips:
+- Paste a YouTube URL or upload a video
+- AI transcribes the entire video
+- AI identifies the most engaging moments
+- Generates clips with hooks and captions
+- Ready for TikTok, Reels, or Shorts
+
+### "How do I use Video to Clips?"
+**Step-by-step:**
+1. Go to **Video to Clips**
+2. Paste a YouTube video URL (or upload your own video)
+3. Click **Process Video**
+4. Wait for processing:
+   - Downloading video (30 sec - 2 min)
+   - Transcribing with AI (1-5 min depending on length)
+   - Identifying best clips (30 sec)
+5. Review generated clips:
+   - Each clip has a start/end time
+   - AI-generated hook for the clip
+   - Caption and hashtags
+6. For each clip you can:
+   - **Preview** - Watch the clip
+   - **Download** - Get the video file
+   - **Regenerate Hook** - Get new AI text
+   - **Schedule** - Send directly to calendar
+7. Download all clips or select your favorites
+
+### "What makes a good clip?"
+The AI looks for:
+- High-energy moments
+- Questions or surprising statements
+- Emotional peaks
+- Actionable tips or advice
+- Complete thoughts (not cut mid-sentence)
+
+### "Can I use my own videos?"
+Yes! In Video to Clips:
+1. Click **Upload Video** instead of pasting URL
+2. Select your video file (MP4, MOV)
+3. Processing works the same way
+
+### "How long can the source video be?"
+- Recommended: 5-60 minutes
+- Maximum: 2 hours
+- Shorter videos process faster
 
 ---
 
