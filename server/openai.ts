@@ -1776,6 +1776,87 @@ ${data.text.slice(0, 8000)}`;
   };
 }
 
+// Social Profile Brand Analysis
+export interface SocialProfileAnalysisRequest {
+  platform: "instagram" | "tiktok" | "youtube" | "twitter";
+  username: string;
+  displayName: string;
+  bio: string;
+  followerCount: number;
+  postCount: number;
+  recentPosts: {
+    caption: string;
+    likes: number;
+    comments: number;
+  }[];
+  isVerified?: boolean;
+  category?: string;
+}
+
+export async function analyzeBrandFromSocialProfile(data: SocialProfileAnalysisRequest): Promise<BrandAnalysisResult> {
+  const systemPrompt = `You are a brand strategist analyzing a social media profile to create a brand brief.
+Analyze the provided profile information and extract key brand information.
+
+Return a JSON object with:
+- name: The brand/creator name (use displayName or derive from username)
+- accountType: One of "brand", "influencer", "ugc", or "educator" based on the content style
+- brandVoice: A 2-3 sentence description of the creator's tone, personality, and communication style based on their bio and post captions
+- targetAudience: A 2-3 sentence description of who this creator is targeting based on their content themes
+- contentGoals: A 2-3 sentence description of what the creator likely wants to achieve with their social media
+- suggestedPlatforms: An array of recommended platforms where this style would perform well (Instagram, TikTok, YouTube, Twitter, LinkedIn, Facebook)
+- postingFrequency: One of "Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"
+
+Be specific and insightful. Base your analysis on the actual content, bio, and engagement patterns. Consider follower count and engagement rates.`;
+
+  const postsText = data.recentPosts.slice(0, 8).map((p, i) => 
+    `Post ${i + 1}: "${p.caption.slice(0, 300)}" (${p.likes} likes, ${p.comments} comments)`
+  ).join("\n");
+
+  const userPrompt = `Analyze this ${data.platform} profile and create a brand brief:
+
+Platform: ${data.platform.toUpperCase()}
+Username: @${data.username}
+Display Name: ${data.displayName}
+Bio: ${data.bio}
+Followers: ${data.followerCount.toLocaleString()}
+Posts: ${data.postCount}
+Verified: ${data.isVerified ? "Yes" : "No"}
+${data.category ? `Category: ${data.category}` : ""}
+
+Recent Posts:
+${postsText || "No recent posts available"}`;
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 1000,
+  });
+
+  const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+  
+  const validAccountTypes = ["brand", "influencer", "ugc", "educator"];
+  const rawAccountType = (result.accountType || "influencer").toLowerCase().trim();
+  const normalizedAccountType = validAccountTypes.includes(rawAccountType) ? rawAccountType : "influencer";
+  
+  const validFrequencies = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+  const rawFrequency = result.postingFrequency || "3x per week";
+  const normalizedFrequency = validFrequencies.find(f => f.toLowerCase() === rawFrequency.toLowerCase()) || "3x per week";
+  
+  return {
+    name: result.name || data.displayName || data.username,
+    accountType: normalizedAccountType as "brand" | "influencer" | "ugc" | "educator",
+    brandVoice: result.brandVoice || "",
+    targetAudience: result.targetAudience || "",
+    contentGoals: result.contentGoals || "",
+    suggestedPlatforms: result.suggestedPlatforms || [data.platform.charAt(0).toUpperCase() + data.platform.slice(1)],
+    postingFrequency: normalizedFrequency,
+  };
+}
+
 // Carousel Image Generation with Brand Assets
 export interface CarouselImageRequest {
   slideNumber: number;

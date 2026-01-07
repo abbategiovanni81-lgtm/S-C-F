@@ -12,8 +12,8 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
-import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis } from "./apify";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
+import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { a2eService } from "./a2e";
@@ -208,21 +208,46 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid URL format" });
       }
 
-      // Step 1: Scrape website content using Apify
-      console.log(`Scraping website: ${url}`);
-      const scrapedData = await scrapeWebsiteForBrandAnalysis(url);
+      // Detect if this is a social media profile URL
+      const platform = detectSocialPlatform(url);
+      console.log(`Detected platform: ${platform} for URL: ${url}`);
+      
+      let brandAnalysis;
+      
+      if (platform && platform !== "website") {
+        // Handle social media profile URL
+        console.log(`Scraping ${platform} profile: ${url}`);
+        const profileData = await scrapeSocialProfile(url);
+        
+        console.log(`Analyzing ${platform} profile for brand brief...`);
+        brandAnalysis = await analyzeBrandFromSocialProfile({
+          platform: profileData.platform,
+          username: profileData.username,
+          displayName: profileData.displayName,
+          bio: profileData.bio,
+          followerCount: profileData.followerCount,
+          postCount: profileData.postCount,
+          recentPosts: profileData.recentPosts,
+          isVerified: profileData.isVerified,
+          category: profileData.category,
+        });
+      } else {
+        // Handle regular website URL
+        console.log(`Scraping website: ${url}`);
+        const scrapedData = await scrapeWebsiteForBrandAnalysis(url);
 
-      // Step 2: Analyze content with OpenAI
-      console.log("Analyzing brand from website content...");
-      const brandAnalysis = await analyzeBrandFromWebsite(scrapedData);
+        console.log("Analyzing brand from website content...");
+        brandAnalysis = await analyzeBrandFromWebsite(scrapedData);
+      }
 
       res.json({
         success: true,
         data: brandAnalysis,
+        sourceType: platform && platform !== "website" ? platform : "website",
       });
     } catch (error: any) {
       console.error("Error generating brand brief from URL:", error);
-      res.status(500).json({ error: error.message || "Failed to analyze website" });
+      res.status(500).json({ error: error.message || "Failed to analyze URL" });
     }
   });
 
