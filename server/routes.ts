@@ -28,6 +28,7 @@ import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededEr
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { processVideoForClips, extractAndUploadClip } from "./videoProcessing";
@@ -5873,10 +5874,10 @@ export async function registerRoutes(
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
       // Save video to temp file for FFmpeg processing
-      const tempDir = require("path").join(require("os").tmpdir(), `video-clips-${Date.now()}`);
-      require("fs").mkdirSync(tempDir, { recursive: true });
-      const tempVideoPath = require("path").join(tempDir, "source.mp4");
-      require("fs").writeFileSync(tempVideoPath, req.file.buffer);
+      const tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
+      fs.mkdirSync(tempDir, { recursive: true });
+      const tempVideoPath = path.join(tempDir, "source.mp4");
+      fs.writeFileSync(tempVideoPath, req.file.buffer);
 
       // Process with AI to get clip suggestions
       const result = await processVideoForClips(
@@ -5892,7 +5893,6 @@ export async function registerRoutes(
         const clip = result.clips[i];
         try {
           console.log(`Extracting clip ${i + 1}/${result.clips.length}: ${clip.startTime}s - ${clip.endTime}s`);
-          const { extractAndUploadClip } = await import("./videoProcessing");
           const extracted = await extractAndUploadClip(
             tempVideoPath,
             userId,
@@ -5914,7 +5914,6 @@ export async function registerRoutes(
           });
         } catch (extractError) {
           console.error(`Error extracting clip ${i}:`, extractError);
-          // Still include clip metadata even if extraction failed
           extractedClips.push({
             id: randomUUID(),
             title: clip.title,
@@ -5929,7 +5928,7 @@ export async function registerRoutes(
 
       // Cleanup temp files
       try {
-        require("fs").rmSync(tempDir, { recursive: true, force: true });
+        fs.rmSync(tempDir, { recursive: true, force: true });
       } catch (e) {
         console.error("Cleanup error:", e);
       }
