@@ -1133,7 +1133,8 @@ export async function analyzeViralContent(
   imageBase64: string,
   mimeType: string,
   brandBrief?: { brandVoice: string; targetAudience: string; contentGoals: string; name?: string },
-  trendingContext?: TrendingContext
+  trendingContext?: TrendingContext,
+  additionalImages?: Array<{ base64: string; mimeType: string }>
 ): Promise<ContentAnalysisResult> {
   let brandContext = "";
   
@@ -1200,20 +1201,41 @@ Respond in JSON format:
   }
 }`;
 
+  // Build image content array - primary image first, then additional images
+  const imageContent: Array<{ type: "image_url"; image_url: { url: string } }> = [
+    {
+      type: "image_url",
+      image_url: {
+        url: `data:${mimeType};base64,${imageBase64}`,
+      },
+    },
+  ];
+  
+  // Add additional images if provided
+  if (additionalImages && additionalImages.length > 0) {
+    for (const img of additionalImages) {
+      imageContent.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${img.mimeType};base64,${img.base64}`,
+        },
+      });
+    }
+  }
+
+  const multiImageNote = additionalImages && additionalImages.length > 0 
+    ? `\n\nNote: You are analyzing ${1 + additionalImages.length} related screenshots. Look for patterns and common elements across all images to provide comprehensive insights.`
+    : "";
+
   const response = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system", content: systemPrompt + multiImageNote },
       {
         role: "user",
         content: [
           { type: "text", text: userPrompt },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${imageBase64}`,
-            },
-          },
+          ...imageContent,
         ],
       },
     ],

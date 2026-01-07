@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, RefreshCw, Save, CheckCircle } from "lucide-react";
+import { Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, RefreshCw, Save, CheckCircle, X } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -44,8 +44,9 @@ export default function ContentAnalyzer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState(0);
   const [selectedBriefId, setSelectedBriefId] = useState<string>("");
   const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null);
   const [saved, setSaved] = useState(false);
@@ -55,9 +56,11 @@ export default function ContentAnalyzer() {
   });
 
   const analyzeMutation = useMutation({
-    mutationFn: async ({ file, briefId }: { file: File; briefId?: string }) => {
+    mutationFn: async ({ files, briefId }: { files: File[]; briefId?: string }) => {
       const formData = new FormData();
-      formData.append("image", file);
+      files.forEach((file) => {
+        formData.append("images", file);
+      });
       if (briefId) {
         formData.append("briefId", briefId);
       }
@@ -73,8 +76,9 @@ export default function ContentAnalyzer() {
     },
     onSuccess: (data) => {
       setAnalysis(data);
+      setCurrentAnalysisIndex(0);
       setSaved(false);
-      toast({ title: "Analysis complete!" });
+      toast({ title: `Analysis complete! Analyzed ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}.` });
     },
     onError: (error: any) => {
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
@@ -139,39 +143,53 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
     },
   });
 
+  const MAX_FILES = 10;
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const newFiles = [...selectedFiles, ...files].slice(0, MAX_FILES);
+      setSelectedFiles(newFiles);
+      setPreviewUrls(newFiles.map(f => URL.createObjectURL(f)));
       setAnalysis(null);
     }
-  }, []);
+  }, [selectedFiles]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+    if (files.length > 0) {
+      const newFiles = [...selectedFiles, ...files].slice(0, MAX_FILES);
+      setSelectedFiles(newFiles);
+      setPreviewUrls(newFiles.map(f => URL.createObjectURL(f)));
       setAnalysis(null);
     }
-  }, []);
+  }, [selectedFiles]);
+
+  const handleRemoveFile = useCallback((index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    setPreviewUrls(newFiles.map(f => URL.createObjectURL(f)));
+    if (analysis && currentAnalysisIndex >= newFiles.length) {
+      setCurrentAnalysisIndex(Math.max(0, newFiles.length - 1));
+    }
+  }, [selectedFiles, analysis, currentAnalysisIndex]);
 
   const handleAnalyze = () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
     analyzeMutation.mutate({
-      file: selectedFile,
+      files: selectedFiles,
       briefId: selectedBriefId && selectedBriefId !== "none" ? selectedBriefId : undefined,
     });
   };
 
   const handleReset = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     setAnalysis(null);
     setSelectedBriefId("");
     setSaved(false);
+    setCurrentAnalysisIndex(0);
   };
 
   return (
@@ -198,28 +216,54 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
-                className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
+                className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer min-h-[200px]"
                 onClick={() => document.getElementById("file-input")?.click()}
                 data-testid="dropzone-upload"
               >
-                {previewUrl ? (
-                  <div className="space-y-4">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-h-64 mx-auto rounded-lg shadow-md"
-                      data-testid="img-preview"
-                    />
-                    <p className="text-sm text-muted-foreground">{selectedFile?.name}</p>
+                {previewUrls.length > 0 ? (
+                  <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {previewUrls.map((url, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded-lg shadow-sm"
+                            data-testid={`img-preview-${index}`}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFile(index);
+                            }}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            data-testid={`button-remove-${index}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {selectedFiles.length < MAX_FILES && (
+                        <div
+                          onClick={() => document.getElementById("file-input")?.click()}
+                          className="w-full h-20 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                        >
+                          <Upload className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedFiles.length} of {MAX_FILES} images selected
+                    </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 py-4">
                     <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
                     <p className="text-muted-foreground">
-                      Drop an image here or click to browse
+                      Drop images here or click to browse
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supports PNG, JPG, WEBP (max 10MB)
+                      Upload up to 10 screenshots (PNG, JPG, WEBP)
                     </p>
                   </div>
                 )}
@@ -227,6 +271,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                   id="file-input"
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   onChange={handleFileSelect}
                   data-testid="input-file"
@@ -264,7 +309,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                 <div className="flex gap-2">
                   <Button
                     onClick={handleAnalyze}
-                    disabled={!selectedFile || analyzeMutation.isPending}
+                    disabled={selectedFiles.length === 0 || analyzeMutation.isPending}
                     className="flex-1"
                     data-testid="button-analyze"
                   >
@@ -280,7 +325,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       </>
                     )}
                   </Button>
-                  {(selectedFile || analysis) && (
+                  {(selectedFiles.length > 0 || analysis) && (
                     <Button variant="outline" onClick={handleReset} data-testid="button-reset">
                       <RefreshCw className="w-4 h-4" />
                     </Button>

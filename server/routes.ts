@@ -724,13 +724,14 @@ export async function registerRoutes(
     }
   });
 
-  // Content Analysis endpoint (OpenAI Vision)
+  // Content Analysis endpoint (OpenAI Vision) - supports up to 10 images
   const analyzeUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
   
-  app.post("/api/analyze-content", analyzeUpload.single("image"), async (req, res) => {
+  app.post("/api/analyze-content", analyzeUpload.array("images", 10), async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No image file provided" });
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
       }
 
       const { briefId } = req.body;
@@ -810,10 +811,21 @@ export async function registerRoutes(
         }
       }
 
-      const imageBase64 = req.file.buffer.toString("base64");
-      const mimeType = req.file.mimetype;
+      // Analyze all images and combine insights
+      const allImagesBase64 = files.map(f => ({
+        base64: f.buffer.toString("base64"),
+        mimeType: f.mimetype,
+      }));
 
-      const analysis = await analyzeViralContent(imageBase64, mimeType, brandBrief, trendingContext);
+      // Analyze the first image as primary, pass all images for comprehensive analysis
+      const primaryImage = allImagesBase64[0];
+      const analysis = await analyzeViralContent(
+        primaryImage.base64, 
+        primaryImage.mimeType, 
+        brandBrief, 
+        trendingContext,
+        allImagesBase64.length > 1 ? allImagesBase64.slice(1) : undefined
+      );
       res.json(analysis);
     } catch (error: any) {
       console.error("Error analyzing content:", error);
