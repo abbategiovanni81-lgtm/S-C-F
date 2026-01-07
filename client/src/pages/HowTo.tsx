@@ -24,7 +24,8 @@ import {
   Users,
   Globe,
   Palette,
-  Languages
+  Languages,
+  Scissors
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -248,8 +249,25 @@ export default function HowTo() {
                   />
 
                   <FeatureCard
+                    icon={<Scissors className="h-6 w-6" />}
+                    title="8. Video to Clips"
+                    description="Upload a long-form video and automatically extract short clips for social media."
+                    howItWorks={
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Upload your video (MP4, MOV, etc.)</li>
+                        <li>AI analyzes the video for key moments and highlights</li>
+                        <li>Select which clips to extract with custom start/end times</li>
+                        <li>Download optimized clips ready for TikTok, Reels, or Shorts</li>
+                      </ol>
+                    }
+                    apiNeeded="Built-in (no API key required)"
+                    pricing="Included in all tiers"
+                    isFree
+                  />
+
+                  <FeatureCard
                     icon={<Search className="h-6 w-6" />}
-                    title="8. Content Inspiration Analyzer"
+                    title="9. Content Inspiration Analyzer"
                     description="Paste a viral video URL and get AI analysis of why it worked + content ideas for your brand."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
@@ -264,7 +282,7 @@ export default function HowTo() {
 
                   <FeatureCard
                     icon={<MessageSquare className="h-6 w-6" />}
-                    title="9. Social Listening"
+                    title="10. Social Listening"
                     description="Monitor mentions of your brand/keywords across platforms (YouTube, TikTok, Instagram, X, Reddit)."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
@@ -280,7 +298,7 @@ export default function HowTo() {
 
                   <FeatureCard
                     icon={<Youtube className="h-6 w-6" />}
-                    title="10. YouTube Auto-Publishing"
+                    title="11. YouTube Auto-Publishing"
                     description="Post finished videos directly to your YouTube channel."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
