@@ -4573,13 +4573,105 @@ export async function registerRoutes(
     }
   });
 
-  // Get trending topics
-  app.get("/api/listening/trending", async (req, res) => {
+  // Get trending topics - analyzes scanned hits for patterns
+  app.get("/api/listening/trending", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const briefId = req.query.briefId as string | undefined;
-      const topics = await storage.getTrendingTopics(userId, briefId);
-      res.json(topics);
+      
+      // Get user's listening hits to analyze
+      const hits = await storage.getListeningHits(userId, briefId);
+      
+      if (hits.length === 0) {
+        return res.json([]);
+      }
+      
+      // Analyze hits for trending topics
+      const topicMap = new Map<string, { 
+        mentions: number; 
+        totalLikes: number; 
+        platforms: Set<string>;
+        keywords: Set<string>;
+        isQuestion: number;
+        examples: string[];
+      }>();
+      
+      // Common words to filter out
+      const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+        'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
+        'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'then', 'once',
+        'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other',
+        'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'can',
+        'just', 'now', 'and', 'but', 'or', 'if', 'because', 'until', 'while', 'about', 'this', 'that',
+        'these', 'those', 'what', 'which', 'who', 'whom', 'its', 'it', 'my', 'your', 'his', 'her', 'our',
+        'their', 'i', 'me', 'you', 'he', 'she', 'we', 'they', 'them', 'us', 'get', 'got', 'getting']);
+      
+      for (const hit of hits) {
+        // Extract significant words from content
+        const content = (hit.postContent || '').toLowerCase();
+        const words = content.split(/\s+/)
+          .map(w => w.replace(/[^a-z0-9]/g, ''))
+          .filter(w => w.length > 3 && !stopWords.has(w));
+        
+        // Count word frequencies and group into topics
+        const wordFreq = new Map<string, number>();
+        for (const word of words) {
+          wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
+        }
+        
+        // Use matched keywords as primary topics, fall back to frequent words
+        const hitTopics = hit.matchedKeywords && hit.matchedKeywords.length > 0 
+          ? hit.matchedKeywords 
+          : Array.from(wordFreq.entries())
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3)
+              .map(([w]) => w);
+        
+        for (const topic of hitTopics) {
+          const topicLower = topic.toLowerCase();
+          if (!topicMap.has(topicLower)) {
+            topicMap.set(topicLower, {
+              mentions: 0,
+              totalLikes: 0,
+              platforms: new Set(),
+              keywords: new Set(),
+              isQuestion: 0,
+              examples: [],
+            });
+          }
+          const data = topicMap.get(topicLower)!;
+          data.mentions++;
+          data.totalLikes += hit.likes || 0;
+          data.platforms.add(hit.platform);
+          if (hit.matchedKeywords) {
+            hit.matchedKeywords.forEach(kw => data.keywords.add(kw));
+          }
+          if (hit.isQuestion === 'yes') data.isQuestion++;
+          if (data.examples.length < 3) {
+            data.examples.push(hit.postContent?.slice(0, 100) || '');
+          }
+        }
+      }
+      
+      // Convert to trending topics format
+      const trendingTopics = Array.from(topicMap.entries())
+        .filter(([_, data]) => data.mentions >= 2) // At least 2 mentions to be trending
+        .map(([topic, data]) => ({
+          id: `trend-${topic}`,
+          topic: topic.charAt(0).toUpperCase() + topic.slice(1),
+          mentionCount: data.mentions,
+          engagementTotal: data.totalLikes,
+          platform: Array.from(data.platforms).join(', '),
+          keywords: Array.from(data.keywords).slice(0, 5),
+          sentiment: data.isQuestion > data.mentions / 2 ? 'curious' : 'neutral',
+          trendScore: data.mentions * 10 + Math.min(data.totalLikes / 100, 50),
+          examplePosts: data.examples,
+        }))
+        .sort((a, b) => b.trendScore - a.trendScore)
+        .slice(0, 10);
+      
+      res.json(trendingTopics);
     } catch (error: any) {
       console.error("Error fetching trending topics:", error);
       res.status(500).json({ error: "Failed to fetch trending topics" });
