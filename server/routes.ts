@@ -5855,7 +5855,7 @@ export async function registerRoutes(
     }
   });
 
-  // Upload and analyze in one step (simpler flow)
+  // Upload, analyze, and extract clips in one step
   app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
     try {
       const userId = getUserId(req);
@@ -5872,14 +5872,11 @@ export async function registerRoutes(
 
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
-      // Save original video to cloud storage for later clip extraction
-      const originalFilename = `video-source-${userId}-${Date.now()}.mp4`;
-      const uploadResult = await objectStorageService.uploadBuffer(
-        req.file.buffer,
-        originalFilename,
-        req.file.mimetype,
-        true
-      );
+      // Save video to temp file for FFmpeg processing
+      const tempDir = require("path").join(require("os").tmpdir(), `video-clips-${Date.now()}`);
+      require("fs").mkdirSync(tempDir, { recursive: true });
+      const tempVideoPath = require("path").join(tempDir, "source.mp4");
+      require("fs").writeFileSync(tempVideoPath, req.file.buffer);
 
       // Process with AI to get clip suggestions
       const result = await processVideoForClips(
@@ -5889,23 +5886,59 @@ export async function registerRoutes(
         customPrompt
       );
 
-      // Return clips with IDs
-      const clips = result.clips.map((clip, index) => ({
-        id: randomUUID(),
-        title: clip.title,
-        startTime: clip.startTime,
-        endTime: clip.endTime,
-        transcript: clip.transcript,
-        score: clip.score,
-        reason: clip.reason,
-      }));
+      // Extract actual video clips using FFmpeg
+      const extractedClips = [];
+      for (let i = 0; i < result.clips.length; i++) {
+        const clip = result.clips[i];
+        try {
+          console.log(`Extracting clip ${i + 1}/${result.clips.length}: ${clip.startTime}s - ${clip.endTime}s`);
+          const { extractAndUploadClip } = await import("./videoProcessing");
+          const extracted = await extractAndUploadClip(
+            tempVideoPath,
+            userId,
+            i,
+            clip.startTime,
+            clip.endTime
+          );
+          
+          extractedClips.push({
+            id: randomUUID(),
+            title: clip.title,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            transcript: clip.transcript,
+            score: clip.score,
+            reason: clip.reason,
+            videoUrl: `/objects/${extracted.clipPath}`,
+            thumbnailUrl: `/objects/${extracted.thumbnailPath}`,
+          });
+        } catch (extractError) {
+          console.error(`Error extracting clip ${i}:`, extractError);
+          // Still include clip metadata even if extraction failed
+          extractedClips.push({
+            id: randomUUID(),
+            title: clip.title,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            transcript: clip.transcript,
+            score: clip.score,
+            reason: clip.reason,
+          });
+        }
+      }
+
+      // Cleanup temp files
+      try {
+        require("fs").rmSync(tempDir, { recursive: true, force: true });
+      } catch (e) {
+        console.error("Cleanup error:", e);
+      }
 
       res.json({
-        clips,
+        clips: extractedClips,
         totalDuration: result.duration,
         transcript: result.transcript,
-        sourceVideoPath: uploadResult.objectPath,
-        message: "Video processed successfully with AI",
+        message: "Video processed and clips extracted successfully",
       });
     } catch (error: any) {
       console.error("Video processing error:", error);
