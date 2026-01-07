@@ -5,9 +5,15 @@ import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import OpenAI from "openai";
 
 const execAsync = promisify(exec);
 const objectStorageService = new ObjectStorageService();
+
+// Use direct OpenAI API for Whisper (Replit proxy doesn't support audio endpoints)
+const whisperClient = new OpenAI({
+  apiKey: process.env.OPENAI_DALLE_API_KEY,
+});
 
 interface TranscriptSegment {
   start: number;
@@ -45,7 +51,8 @@ export async function extractAudioFromVideo(videoPath: string, outputPath: strin
 export async function transcribeAudio(audioPath: string): Promise<{ transcript: string; segments: TranscriptSegment[] }> {
   const audioFile = fs.createReadStream(audioPath);
   
-  const response = await openai.audio.transcriptions.create({
+  // Use direct OpenAI client for Whisper (not Replit proxy)
+  const response = await whisperClient.audio.transcriptions.create({
     file: audioFile,
     model: "whisper-1",
     response_format: "verbose_json",
