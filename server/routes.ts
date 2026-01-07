@@ -5688,5 +5688,110 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== VIDEO TO CLIPS ====================
+  
+  // Multer config for video uploads
+  const videoToClipsUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith("video/")) {
+        cb(null, true);
+      } else {
+        cb(new Error("Only video files allowed"));
+      }
+    },
+  });
+
+  // Upload video for clip extraction
+  app.post("/api/video-to-clips/upload", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+
+      const filename = `video-to-clips-${userId}-${Date.now()}.mp4`;
+      
+      // Upload to cloud storage
+      const result = await objectStorageService.uploadBuffer(
+        req.file.buffer,
+        filename,
+        req.file.mimetype,
+        true
+      );
+
+      res.json({
+        videoUrl: result.objectPath,
+        filename: result.filename,
+        size: req.file.size,
+      });
+    } catch (error: any) {
+      console.error("Video upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Analyze video and generate clip suggestions
+  app.post("/api/video-to-clips/analyze", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { videoUrl, suggestions, customPrompt } = req.body;
+      if (!videoUrl) {
+        return res.status(400).json({ error: "videoUrl is required" });
+      }
+
+      // For now, return mock clips - real implementation would use Whisper for transcription
+      // and GPT for identifying key moments
+      const mockClips = [
+        {
+          id: randomUUID(),
+          startTime: 12,
+          endTime: 42,
+          title: "Key insight on monetization",
+          transcript: "The most important thing about monetization is understanding your audience's pain points...",
+        },
+        {
+          id: randomUUID(),
+          startTime: 87,
+          endTime: 115,
+          title: "Emotional story moment",
+          transcript: "When I first started, I had no idea what I was doing. But that failure taught me...",
+        },
+        {
+          id: randomUUID(),
+          startTime: 156,
+          endTime: 189,
+          title: "Unique strategy reveal",
+          transcript: "Here's the strategy that nobody else is talking about. Instead of focusing on...",
+        },
+        {
+          id: randomUUID(),
+          startTime: 245,
+          endTime: 278,
+          title: "Call to action moment",
+          transcript: "If you implement just one thing from this video, make it this technique because...",
+        },
+      ];
+
+      res.json({
+        clips: mockClips,
+        totalDuration: 320, // Mock video duration in seconds
+        message: "Clips generated successfully",
+      });
+    } catch (error: any) {
+      console.error("Video analysis error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -1,0 +1,158 @@
+What YouTube’s AI Actually Optimises For (Verified)
+
+YouTube has confirmed repeatedly (Creator Insider, YouTube Engineering blogs) that recommendations are driven by viewer satisfaction signals, not tricks.
+
+The core signals are:
+	1.	Click-Through Rate (CTR)
+→ Did the title + thumbnail earn the click?
+	2.	Watch Time & Retention
+→ How long did viewers stay, especially in the first 30–60 seconds?
+	3.	Post-Watch Satisfaction
+→ Likes, comments, subscribes, rewatches, and not clicking away quickly.
+	4.	Viewer-Content Match
+→ Does this video satisfy a specific viewer profile?
+
+❗ YouTube does not reward:
+	•	Keyword stuffing
+	•	Upload frequency alone
+	•	Hashtag spam
+	•	“Gaming” tactics
+
+This is confirmed by YouTube itself. I can state this confidently.
+
+⸻
+
+2. What Social Command AI Should Optimise When Creating YouTube Content
+
+A. Idea Selection (Most Important Stage)
+
+Social Command AI should never start with “make a video”.
+
+It should start with:
+
+“What problem, curiosity, or desire does the viewer already have?”
+
+Best-performing YouTube ideas:
+	•	Solve a problem faster than alternatives
+	•	Reframe something people think they already understand
+	•	Create emotional tension (“I didn’t expect this to work…”)
+
+AI rule:
+Each video idea must clearly answer:
+	•	Who is this for?
+	•	What question are they asking?
+	•	Why would they watch past 30 seconds?
+
+If the AI cannot answer these → the idea is weak.
+
+⸻
+
+B. Hook Engineering (First 5–10 Seconds)
+
+YouTube’s AI heavily weights early retention.
+
+Social Command AI should:
+	•	Generate hook-first scripts, not intros
+	•	Avoid branding, greetings, or context in the first 10 seconds
+	•	Start inside the value
+
+Effective hook structures the AI should generate:
+	•	“Most people get this wrong…”
+	•	“I tested this so you don’t have to…”
+	•	“This changed how I do X forever…”
+	•	“If you’re doing X, stop — here’s why”
+
+❗ The hook must:
+	•	Create curiosity
+	•	Promise a payoff
+	•	Match the title exactly (no bait-and-switch)
+
+⸻
+
+C. Script Structure That Maximises Retention
+
+Social Command AI should default to this AI-friendly structure:
+	1.	Hook (0–10s) – emotional or curiosity trigger
+	2.	Context (10–30s) – why this matters now
+	3.	Core Value (30–70%) – steps, insights, proof
+	4.	Pattern Breaks – questions, visuals, examples
+	5.	Payoff / Resolution – clear takeaway
+	6.	Soft CTA – aligned with value (not “like & subscribe” spam)
+
+This structure aligns with what YouTube calls “viewer satisfaction modelling”.
+
+⸻
+
+D. Titles & Thumbnails (AI-Assisted, Human-Judged)
+
+YouTube’s AI tests videos by showing them to small audiences first.
+
+If CTR is low, the video dies — even if the content is good.
+
+Social Command AI should:
+	•	Generate multiple title–thumbnail pairings
+	•	Ensure emotional clarity, not cleverness
+	•	Avoid long titles (ideally < 60 characters)
+
+Strong AI-generated titles:
+	•	Clear outcome
+	•	One idea only
+	•	Implied benefit or tension
+
+Example pattern:
+
+“I Tried X for 30 Days — Here’s What Actually Happened”
+
+⸻
+
+E. Consistency Over Virality
+
+Verified insight:
+YouTube’s AI now learns who your audience is over time.
+
+Social Command AI should:
+	•	Encourage repeatable formats
+	•	Maintain niche consistency
+	•	Track which hooks, topics, and structures perform best
+
+❗ One viral video without follow-ups often hurts long-term growth.
+
+⸻
+
+3. What Social Command AI Should NOT Claim or Do
+
+To stay credible and truthful:
+
+❌ Do not claim:
+	•	“Guaranteed views”
+	•	“Algorithm hacks”
+	•	“Post at this exact time for growth”
+	•	“Hashtags boost reach”
+
+❌ Do not optimise for:
+	•	Upload volume alone
+	•	Clickbait that doesn’t deliver
+	•	Generic, multi-niche content
+
+These claims are not supported by YouTube.
+
+⸻
+
+4. How This Translates Into Social Command AI Features
+
+Social Command AI should position itself as:
+
+“A viewer-first content intelligence system — not an algorithm hack tool.”
+
+Core YouTube-specific features it should emphasise:
+	•	Hook scoring (early-retention prediction)
+	•	Script flow optimisation
+	•	Title–thumbnail alignment checks
+	•	Content consistency tracking
+	•	Post-publish learning loops
+
+⸻
+
+5. One-Sentence Summary for You
+
+Social Command AI should help creators make content the YouTube AI wants to recommend, by first satisfying the human watching it.
