@@ -472,14 +472,21 @@ export default function BrandBriefs() {
             <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg p-4 mb-4">
               <Label className="flex items-center gap-2 mb-2">
                 <Globe className="w-4 h-4 text-purple-500" />
-                Quick Start: Analyze Your Website
+                Quick Start: Analyze Your Profile or Website
               </Label>
               <p className="text-xs text-muted-foreground mb-3">
-                Paste your website URL and we'll auto-fill your brand brief using AI
+                Paste your social media profile or website URL and we'll auto-fill your brand brief using AI
               </p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-700 dark:text-purple-300 border border-purple-200/50">Instagram</span>
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-300 border border-gray-200/50">TikTok</span>
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-700 dark:text-red-300 border border-red-200/50">YouTube</span>
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200/50">Twitter/X</span>
+                <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-700 dark:text-gray-300 border border-gray-200/50">Website</span>
+              </div>
               <div className="flex gap-2">
                 <Input
-                  placeholder="https://your-website.com"
+                  placeholder="https://instagram.com/yourname or https://your-website.com"
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
                   className="flex-1"
