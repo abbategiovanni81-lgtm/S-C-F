@@ -379,12 +379,12 @@ export default function VideoToClips() {
 
               <Button
                 onClick={handleGenerateClips}
-                disabled={analyzeMutation.isPending}
+                disabled={processMutation.isPending}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 data-testid="button-generate-clips"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
-                {analyzeMutation.isPending ? "Generating clips..." : "Generate new clips"}
+                {processMutation.isPending ? "Generating clips..." : "Generate new clips"}
               </Button>
             </div>
           </DialogContent>
