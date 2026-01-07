@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle } from "lucide-react";
+import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown } from "lucide-react";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -57,6 +57,10 @@ export default function SocialListening() {
 
   const [scanBriefId, setScanBriefId] = useState<string>("");
   const [scanPlatforms, setScanPlatforms] = useState<string[]>(["reddit"]);
+  const [urlScrapeDialogOpen, setUrlScrapeDialogOpen] = useState(false);
+  const [viralUrl, setViralUrl] = useState("");
+  const [maxComments, setMaxComments] = useState(50);
+  const [sortByOpportunity, setSortByOpportunity] = useState(true);
 
   const [newPost, setNewPost] = useState({
     platform: "youtube",
@@ -153,15 +157,46 @@ export default function SocialListening() {
     },
   });
 
+  const urlScrapeMutation = useMutation({
+    mutationFn: async (data: { url: string; maxComments: number; briefId?: string }) => {
+      const res = await apiRequest("POST", "/api/listening/scrape-url", data);
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({
+        title: "Comments scraped!",
+        description: `Found ${data.commentsImported} engagement opportunities from ${data.platform}.`,
+      });
+      setUrlScrapeDialogOpen(false);
+      setViralUrl("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scrape failed",
+        description: error.message || "Failed to scrape comments",
+        variant: "destructive",
+      });
+    },
+  });
+
   const togglePlatform = (platform: string) => {
     setScanPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
   };
 
-  const pendingHits = hits.filter((h) => h.replyStatus === "pending");
+  const pendingHits = hits
+    .filter((h) => h.replyStatus === "pending")
+    .sort((a, b) => {
+      if (sortByOpportunity) {
+        return ((b as any).opportunityScore || 0) - ((a as any).opportunityScore || 0);
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   const draftedHits = hits.filter((h) => h.replyStatus === "drafted");
   const sentHits = hits.filter((h) => h.replyStatus === "sent");
+  const viralUrlHits = hits.filter((h) => (h as any).scanType === "viral_url");
 
   const getPlatformColor = (platform: string) => {
     switch (platform.toLowerCase()) {
@@ -200,6 +235,106 @@ export default function SocialListening() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
+            <Dialog open={urlScrapeDialogOpen} onOpenChange={setUrlScrapeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-scrape-url">
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Scrape Viral URL
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    Scrape Viral Content
+                  </DialogTitle>
+                  <DialogDescription>
+                    Extract comments from a viral video or post to find engagement opportunities. Works with YouTube, TikTok, and Instagram.
+                  </DialogDescription>
+                </DialogHeader>
+                {!apifyStatus?.configured ? (
+                  <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-600">Apify not configured</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Add your APIFY_API_TOKEN to scrape comments from viral content.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <label className="text-sm font-medium">Video/Post URL *</label>
+                      <Input
+                        value={viralUrl}
+                        onChange={(e) => setViralUrl(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=... or TikTok/Instagram URL"
+                        data-testid="input-viral-url"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Paste a YouTube, TikTok, or Instagram post URL
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Max Comments</label>
+                      <Select value={maxComments.toString()} onValueChange={(v) => setMaxComments(parseInt(v))}>
+                        <SelectTrigger data-testid="select-max-comments">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="25">25 comments</SelectItem>
+                          <SelectItem value="50">50 comments</SelectItem>
+                          <SelectItem value="100">100 comments</SelectItem>
+                          <SelectItem value="200">200 comments</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Brand Brief (optional)</label>
+                      <Select value={scanBriefId} onValueChange={setScanBriefId}>
+                        <SelectTrigger data-testid="select-url-brief">
+                          <SelectValue placeholder="Select to link comments to a brand..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {briefs.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        if (viralUrl) {
+                          urlScrapeMutation.mutate({ 
+                            url: viralUrl, 
+                            maxComments,
+                            briefId: scanBriefId || undefined 
+                          });
+                        }
+                      }}
+                      disabled={!viralUrl || urlScrapeMutation.isPending}
+                      data-testid="button-start-scrape"
+                    >
+                      {urlScrapeMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Scraping comments... (may take 1-2 minutes)
+                        </>
+                      ) : (
+                        <>
+                          <Target className="w-4 h-4 mr-2" />
+                          Find Engagement Opportunities
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
             <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="default" data-testid="button-scan-now">
@@ -414,6 +549,21 @@ export default function SocialListening() {
           </TabsList>
 
           <TabsContent value="inbox" className="space-y-4">
+            {/* Sort toggle */}
+            {pendingHits.length > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">{pendingHits.length} engagement opportunities</p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSortByOpportunity(!sortByOpportunity)}
+                  data-testid="button-toggle-sort"
+                >
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
+                </Button>
+              </div>
+            )}
             {hitsLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -428,52 +578,79 @@ export default function SocialListening() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {pendingHits.map((hit) => (
-                  <Card key={hit.id} data-testid={`card-hit-${hit.id}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge className={getPlatformColor(hit.platform)}>{hit.platform}</Badge>
-                            <Badge variant="outline">{hit.postType}</Badge>
-                            {hit.sentiment && <Badge className={getSentimentColor(hit.sentiment)}>{hit.sentiment}</Badge>}
-                            {hit.isQuestion === "yes" && <Badge variant="secondary">Question</Badge>}
+                {pendingHits.map((hit) => {
+                  const extHit = hit as any;
+                  const opportunityScore = extHit.opportunityScore || 0;
+                  const getOpportunityColor = (score: number) => {
+                    if (score >= 70) return "bg-green-500/10 text-green-600 border-green-500/30";
+                    if (score >= 40) return "bg-yellow-500/10 text-yellow-600 border-yellow-500/30";
+                    return "bg-gray-500/10 text-gray-600 border-gray-500/30";
+                  };
+                  return (
+                    <Card key={hit.id} data-testid={`card-hit-${hit.id}`} className="relative">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <Badge className={getPlatformColor(hit.platform)}>{hit.platform}</Badge>
+                              <Badge variant="outline">{hit.postType}</Badge>
+                              {hit.sentiment && <Badge className={getSentimentColor(hit.sentiment)}>{hit.sentiment}</Badge>}
+                              {hit.isQuestion === "yes" && <Badge variant="secondary">Question</Badge>}
+                              {opportunityScore > 0 && (
+                                <Badge className={getOpportunityColor(opportunityScore)}>
+                                  <Target className="w-3 h-3 mr-1" />
+                                  {opportunityScore}% Opportunity
+                                </Badge>
+                              )}
+                              {extHit.scanType === "viral_url" && (
+                                <Badge variant="outline" className="text-xs">
+                                  <Youtube className="w-3 h-3 mr-1" />
+                                  Viral
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm mb-2">{hit.postContent}</p>
+                            {extHit.sourceTitle && (
+                              <div className="text-xs text-muted-foreground mb-2 bg-muted/50 rounded px-2 py-1 inline-block">
+                                From: {extHit.sourceTitle} {extHit.sourceChannel && `by ${extHit.sourceChannel}`}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              {hit.authorHandle && <span>@{hit.authorHandle}</span>}
+                              {hit.authorName && <span>{hit.authorName}</span>}
+                              {hit.likes && <span>{hit.likes} likes</span>}
+                              {hit.matchedKeywords && hit.matchedKeywords.length > 0 && (
+                                <span>Keywords: {hit.matchedKeywords.join(", ")}</span>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-sm mb-2">{hit.postContent}</p>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            {hit.authorHandle && <span>@{hit.authorHandle}</span>}
-                            {hit.authorName && <span>{hit.authorName}</span>}
-                            {hit.matchedKeywords && hit.matchedKeywords.length > 0 && (
-                              <span>Keywords: {hit.matchedKeywords.join(", ")}</span>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedHit(hit);
+                                setSelectedBrief(hit.briefId || "");
+                                setReplyDialogOpen(true);
+                              }}
+                              data-testid={`button-reply-${hit.id}`}
+                            >
+                              <Sparkles className="w-4 h-4 mr-1" />
+                              AI Reply
+                            </Button>
+                            {(hit.postUrl || extHit.sourceUrl) && (
+                              <Button size="sm" variant="outline" asChild>
+                                <a href={hit.postUrl || extHit.sourceUrl} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-4 h-4 mr-1" />
+                                  View
+                                </a>
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedHit(hit);
-                              setSelectedBrief(hit.briefId || "");
-                              setReplyDialogOpen(true);
-                            }}
-                            data-testid={`button-reply-${hit.id}`}
-                          >
-                            <Sparkles className="w-4 h-4 mr-1" />
-                            AI Reply
-                          </Button>
-                          {hit.postUrl && (
-                            <Button size="sm" variant="outline" asChild>
-                              <a href={hit.postUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="w-4 h-4 mr-1" />
-                                View
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
