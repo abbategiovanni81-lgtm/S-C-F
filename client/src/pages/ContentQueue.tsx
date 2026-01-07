@@ -2513,6 +2513,7 @@ export default function ContentQueue() {
                 const platform = normalizePlatformName(rawPlatform);
                 const accounts = (platformAccounts as any)[platform] || [];
                 const hasAccount = accounts.length > 0;
+                const contentHasVideo = !!getVideoUrlFromContent(content);
                 const platformStyles: Record<string, { bg: string; icon: any }> = {
                   YouTube: { bg: "bg-red-600 hover:bg-red-700", icon: Youtube },
                   Twitter: { bg: "bg-black hover:bg-gray-800", icon: null },
@@ -2525,6 +2526,11 @@ export default function ContentQueue() {
                   Bluesky: { bg: "bg-sky-400 hover:bg-sky-500", icon: null },
                 };
                 const style = platformStyles[platform] || { bg: "bg-gray-600 hover:bg-gray-700", icon: null };
+                
+                // Skip YouTube for image-only content (no video available)
+                if (platform === "YouTube" && !contentHasVideo) {
+                  return null;
+                }
                 
                 if (hasAccount) {
                   return (
@@ -2629,7 +2635,7 @@ export default function ContentQueue() {
          !(content.generationMetadata as any)?.videoPrompts && (
           <div className="pt-4 space-y-3 border-t mt-4">
             <p className="text-xs text-muted-foreground">
-              Legacy content - use Edit & Merge to add images or video clips before posting.
+              Legacy content - use Edit & Merge to add images or video clips, or move directly to Ready to Post.
             </p>
             <Link href={`/edit-merge/${content.id}`}>
               <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
@@ -2637,6 +2643,22 @@ export default function ContentQueue() {
                 Go to Edit & Merge
               </Button>
             </Link>
+            <Button
+              className="w-full gap-2"
+              variant="outline"
+              onClick={() => markReadyMutation.mutate(content.id)}
+              disabled={markingReadyId === content.id}
+              data-testid={`button-mark-ready-legacy-${content.id}`}
+            >
+              {markingReadyId === content.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <ArrowRight className="w-4 h-4" />
+                  Move to Ready to Post
+                </>
+              )}
+            </Button>
             <div className="flex gap-2 mt-3 pt-3 border-t">
               <Button
                 variant="outline"
