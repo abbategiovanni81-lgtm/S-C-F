@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause } from "lucide-react";
+import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause, Link2, Info } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ClipSuggestion {
   id: string;
@@ -48,6 +49,8 @@ export default function VideoToClips() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [generatedClips, setGeneratedClips] = useState<GeneratedClip[]>([]);
   const [playingClipId, setPlayingClipId] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState("");
+  const [isUrlProcessing, setIsUrlProcessing] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -70,6 +73,40 @@ export default function VideoToClips() {
       toast({ title: "Upload failed", description: error.message, variant: "destructive" });
     },
   });
+
+  const urlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const res = await fetch("/api/video-to-clips/url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "URL processing failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setVideoUrl(data.videoUrl);
+      setIsUrlProcessing(false);
+      setShowSuggestionsModal(true);
+      toast({ title: "Video ready!", description: "Video downloaded successfully" });
+    },
+    onError: (error: Error) => {
+      setIsUrlProcessing(false);
+      toast({ title: "URL failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleUrlSubmit = () => {
+    if (!urlInput.trim()) {
+      toast({ title: "Enter a URL", description: "Please paste a video URL", variant: "destructive" });
+      return;
+    }
+    setIsUrlProcessing(true);
+    urlMutation.mutate(urlInput.trim());
+  };
 
   const analyzeMutation = useMutation({
     mutationFn: async (params: { videoUrl: string; suggestions: string[]; customPrompt: string }) => {
@@ -146,30 +183,100 @@ export default function VideoToClips() {
         </div>
 
         {generatedClips.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="p-12">
-              <div 
-                className="border-2 border-dashed border-slate-600 rounded-xl p-12 text-center hover:border-purple-500 transition-colors cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-                data-testid="upload-area"
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={handleFileSelect}
-                  data-testid="video-input"
-                />
-                <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Upload className="w-10 h-10 text-purple-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Upload your video</h3>
-                <p className="text-slate-400 mb-4">Drag and drop or click to browse</p>
-                <p className="text-sm text-slate-500">Supports MP4, MOV, AVI up to 500MB</p>
+          <div className="space-y-4">
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-200">
+                <p className="font-medium mb-1">Which option should I use?</p>
+                <p className="text-blue-300/80">
+                  <strong>Upload</strong> for videos under 5 minutes (up to 500MB). 
+                  <strong> Paste URL</strong> for longer videos from YouTube, Vimeo, Dropbox, or Google Drive.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardContent className="p-8">
+                <Tabs defaultValue="upload" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="upload" className="flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload File
+                    </TabsTrigger>
+                    <TabsTrigger value="url" className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4" />
+                      Paste URL
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="upload">
+                    <div 
+                      className="border-2 border-dashed border-slate-600 rounded-xl p-12 text-center hover:border-purple-500 transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                      data-testid="upload-area"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                        data-testid="video-input"
+                      />
+                      <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Upload className="w-10 h-10 text-purple-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2">Upload your video</h3>
+                      <p className="text-slate-400 mb-4">Drag and drop or click to browse</p>
+                      <p className="text-sm text-slate-500">Best for videos under 5 minutes (MP4, MOV, AVI up to 500MB)</p>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="url">
+                    <div className="border-2 border-dashed border-slate-600 rounded-xl p-12 text-center">
+                      <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Link2 className="w-10 h-10 text-purple-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2">Paste video URL</h3>
+                      <p className="text-slate-400 mb-6">Best for longer videos (5+ minutes)</p>
+                      
+                      <div className="max-w-md mx-auto space-y-4">
+                        <Input
+                          placeholder="https://youtube.com/watch?v=... or Dropbox/Drive link"
+                          value={urlInput}
+                          onChange={(e) => setUrlInput(e.target.value)}
+                          className="bg-slate-900 border-slate-600 text-white"
+                          data-testid="input-video-url"
+                        />
+                        <Button
+                          onClick={handleUrlSubmit}
+                          disabled={isUrlProcessing || !urlInput.trim()}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          data-testid="button-process-url"
+                        >
+                          {isUrlProcessing ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                              Downloading video...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Process Video
+                            </>
+                          )}
+                        </Button>
+                      </div>
+
+                      <p className="text-sm text-slate-500 mt-6">
+                        Supports YouTube, Vimeo, Dropbox, Google Drive, and direct video links
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
