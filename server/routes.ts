@@ -5909,8 +5909,8 @@ export async function registerRoutes(
             transcript: clip.transcript,
             score: clip.score,
             reason: clip.reason,
-            videoUrl: `/objects/${extracted.clipPath}`,
-            thumbnailUrl: `/objects/${extracted.thumbnailPath}`,
+            videoUrl: extracted.clipPath.startsWith('/objects') ? extracted.clipPath : `/objects/${extracted.clipPath}`,
+            thumbnailUrl: extracted.thumbnailPath.startsWith('/objects') ? extracted.thumbnailPath : `/objects/${extracted.thumbnailPath}`,
           });
         } catch (extractError) {
           console.error(`Error extracting clip ${i}:`, extractError);
