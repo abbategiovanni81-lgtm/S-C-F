@@ -546,7 +546,16 @@ export default function ContentQueue() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
+      // Mark content as posted after successful upload
+      if (selectedContent) {
+        try {
+          await fetch(`/api/content/${selectedContent.id}/posted`, { method: "PATCH" });
+          invalidateContentQueries();
+        } catch (e) {
+          console.error("Failed to mark as posted:", e);
+        }
+      }
       toast({
         title: "Video Published!",
         description: `Your video is now on YouTube: ${data.url}`,
@@ -1558,7 +1567,7 @@ export default function ContentQueue() {
         formData.append("accountId", publishForm.accountId);
       }
       if (scheduleEnabled && scheduleDate && scheduleTime) {
-        formData.append("scheduledTime", new Date(`${scheduleDate}T${scheduleTime}`).toISOString());
+        formData.append("publishAt", new Date(`${scheduleDate}T${scheduleTime}`).toISOString());
       }
 
       uploadMutation.mutate(formData);
