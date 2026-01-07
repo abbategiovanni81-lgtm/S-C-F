@@ -5738,68 +5738,7 @@ export async function registerRoutes(
     }
   });
 
-  // Process video from URL
-  app.post("/api/video-to-clips/url", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = getUserId(req);
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const { url } = req.body;
-      if (!url || typeof url !== "string") {
-        return res.status(400).json({ error: "URL is required" });
-      }
-
-      // Validate URL format
-      let parsedUrl: URL;
-      try {
-        parsedUrl = new URL(url);
-        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-          throw new Error("Invalid protocol");
-        }
-      } catch (e) {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-
-      // Check for supported platforms
-      const hostname = parsedUrl.hostname.toLowerCase();
-      const supportedDomains = [
-        "youtube.com", "www.youtube.com", "youtu.be",
-        "vimeo.com", "www.vimeo.com",
-        "dropbox.com", "www.dropbox.com", "dl.dropboxusercontent.com",
-        "drive.google.com", "docs.google.com",
-        "loom.com", "www.loom.com"
-      ];
-
-      const isSupported = supportedDomains.some(d => hostname === d || hostname.endsWith("." + d));
-      const isDirectVideo = url.match(/\.(mp4|mov|avi|webm|mkv)(\?|$)/i);
-
-      if (!isSupported && !isDirectVideo) {
-        return res.status(400).json({ 
-          error: "Unsupported URL. Use YouTube, Vimeo, Dropbox, Google Drive, or direct video links (.mp4, .mov, etc.)" 
-        });
-      }
-
-      // For now, return a mock response - real implementation would:
-      // 1. Use yt-dlp for YouTube/Vimeo
-      // 2. Download directly for Dropbox/Drive/direct links
-      // 3. Store in cloud storage
-      const filename = `video-url-${userId}-${Date.now()}.mp4`;
-      
-      // Mock response - in production would actually download the video
-      res.json({
-        videoUrl: `/objects/public/${filename}`,
-        filename,
-        source: hostname,
-        message: "Video URL accepted for processing",
-      });
-    } catch (error: any) {
-      console.error("URL processing error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
+  
   // Analyze video and generate clip suggestions - full pipeline with real AI
   app.post("/api/video-to-clips/analyze", isAuthenticated, async (req: any, res) => {
     try {
