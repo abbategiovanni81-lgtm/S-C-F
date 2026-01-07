@@ -1114,6 +1114,7 @@ export interface ContentAnalysisResult {
     sameStructure: string;
     differentTopic: string;
     myTone: string;
+    trendingAngle?: string;
   };
   hookRewrites: string[];
   postAdvice: {
@@ -1123,27 +1124,52 @@ export interface ContentAnalysisResult {
   };
 }
 
+export interface TrendingContext {
+  topics: { topic: string; keywords?: string[]; engagement?: number }[];
+  highEngagementThemes: string[];
+}
+
 export async function analyzeViralContent(
   imageBase64: string,
   mimeType: string,
-  brandBrief?: { brandVoice: string; targetAudience: string; contentGoals: string }
+  brandBrief?: { brandVoice: string; targetAudience: string; contentGoals: string; name?: string },
+  trendingContext?: TrendingContext
 ): Promise<ContentAnalysisResult> {
-  const brandContext = brandBrief
-    ? `\n\nBrand Context for Adaptation:
+  let brandContext = "";
+  
+  if (brandBrief) {
+    brandContext = `\n\nBrand Context for Personalized Adaptation:
+- Brand Name: ${brandBrief.name || "Your Brand"}
 - Brand Voice: ${brandBrief.brandVoice}
 - Target Audience: ${brandBrief.targetAudience}
-- Content Goals: ${brandBrief.contentGoals}`
-    : "\n\nNo brand brief provided - provide generic adaptation advice.";
+- Content Goals: ${brandBrief.contentGoals}
 
-  const systemPrompt = `You are an expert social media analyst who breaks down viral content. Analyze the screenshot of a social media post and provide a detailed breakdown.${brandContext}`;
+IMPORTANT: All adaptation suggestions should be tailored specifically for this brand's voice and audience. The topic suggestions should directly relate to what ${brandBrief.name || "this brand"}'s followers would find valuable.`;
+  } else {
+    brandContext = "\n\nNo brand brief provided - provide generic adaptation advice.";
+  }
+
+  let trendingSection = "";
+  if (trendingContext && (trendingContext.topics.length > 0 || trendingContext.highEngagementThemes.length > 0)) {
+    trendingSection = `\n\nTRENDING IN YOUR NICHE (use these to make topic suggestions more relevant):`;
+    if (trendingContext.topics.length > 0) {
+      trendingSection += `\n- Trending Topics: ${trendingContext.topics.map(t => t.topic).join(", ")}`;
+    }
+    if (trendingContext.highEngagementThemes.length > 0) {
+      trendingSection += `\n- High-Engagement Themes: ${trendingContext.highEngagementThemes.join(", ")}`;
+    }
+    trendingSection += `\n\nIncorporate these trending topics/themes into your topic suggestions and trendingAngle recommendation.`;
+  }
+
+  const systemPrompt = `You are an expert social media analyst who breaks down viral content. Analyze the screenshot of a social media post and provide a detailed breakdown.${brandContext}${trendingSection}`;
 
   const userPrompt = `Analyze this viral/successful social media post screenshot and provide insights in the following structure:
 
 1. **Why This Worked** - 2-3 bullet points on the emotion, hook, and audience appeal
 2. **Visual Breakdown** - Camera angles/shot type, text overlays, colors, and framing
 3. **Content Structure** - Opening line/hook, middle idea/value, and payoff/CTA
-4. **Adaptation for MY Channel** - How to use the same structure with a different topic in my brand's tone
-5. **3 Hook Rewrites** - Short, punchy, scroll-stopping variations of the hook
+4. **Adaptation for MY Channel** - How to use the same structure with a different topic in my brand's tone. ${trendingContext ? "Include a trendingAngle that incorporates current trending topics in my niche." : ""}
+5. **3 Hook Rewrites** - Short, punchy, scroll-stopping variations of the hook tailored to the brand voice
 6. **Post Advice** - Best platform, format recommendations, and caption angle
 
 Respond in JSON format:
@@ -1161,15 +1187,16 @@ Respond in JSON format:
     "payoff": "the CTA/payoff"
   },
   "adaptationForMyChannel": {
-    "sameStructure": "how to use the same structure",
-    "differentTopic": "topic suggestions for the brand",
-    "myTone": "how to adapt to brand voice"
+    "sameStructure": "how to use the same structure for your brand",
+    "differentTopic": "specific topic suggestions tailored to your brand and audience",
+    "myTone": "how to adapt to your brand voice"${trendingContext ? `,
+    "trendingAngle": "how to incorporate current trending topics into this content format"` : ""}
   },
-  "hookRewrites": ["hook 1", "hook 2", "hook 3"],
+  "hookRewrites": ["hook 1 in brand voice", "hook 2 in brand voice", "hook 3 in brand voice"],
   "postAdvice": {
     "platform": "recommended platform(s)",
     "format": "format recommendation",
-    "captionAngle": "caption strategy"
+    "captionAngle": "caption strategy aligned with brand goals"
   }
 }`;
 

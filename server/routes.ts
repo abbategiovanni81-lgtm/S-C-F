@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest } from "./openai";
+import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -709,22 +709,61 @@ export async function registerRoutes(
 
       const { briefId } = req.body;
       let brandBrief = undefined;
+      let trendingContext: TrendingContext | undefined = undefined;
 
       if (briefId) {
         const brief = await storage.getBrandBrief(briefId);
         if (brief) {
           brandBrief = {
+            name: brief.name,
             brandVoice: brief.brandVoice,
             targetAudience: brief.targetAudience,
             contentGoals: brief.contentGoals,
           };
+          
+          // Fetch trending topics for this brief
+          const trendingTopics = await storage.getTrendingTopics(brief.userId, briefId);
+          
+          // Fetch recent high-engagement listening hits for this brief
+          const listeningHits = await storage.getListeningHitsByBrief(briefId);
+          
+          // Extract high-engagement themes from listening hits (top themes by engagement)
+          const highEngagementThemes: string[] = [];
+          const keywordCounts: Record<string, number> = {};
+          
+          for (const hit of listeningHits.slice(0, 50)) {
+            if (hit.matchedKeywords && hit.engagementScore && hit.engagementScore > 100) {
+              for (const keyword of hit.matchedKeywords) {
+                keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1;
+              }
+            }
+          }
+          
+          // Get top 5 themes by frequency
+          const sortedThemes = Object.entries(keywordCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([keyword]) => keyword);
+          highEngagementThemes.push(...sortedThemes);
+          
+          // Build trending context
+          if (trendingTopics.length > 0 || highEngagementThemes.length > 0) {
+            trendingContext = {
+              topics: trendingTopics.slice(0, 5).map(t => ({
+                topic: t.topic,
+                keywords: t.keywords || undefined,
+                engagement: t.engagementTotal || undefined,
+              })),
+              highEngagementThemes,
+            };
+          }
         }
       }
 
       const imageBase64 = req.file.buffer.toString("base64");
       const mimeType = req.file.mimetype;
 
-      const analysis = await analyzeViralContent(imageBase64, mimeType, brandBrief);
+      const analysis = await analyzeViralContent(imageBase64, mimeType, brandBrief, trendingContext);
       res.json(analysis);
     } catch (error: any) {
       console.error("Error analyzing content:", error);
