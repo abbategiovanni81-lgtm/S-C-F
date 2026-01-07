@@ -594,6 +594,119 @@ CREATE TABLE brand_subreddits (
 
 ---
 
+### Reels Generator with Google Drive Video Library
+
+**Status:** Not implemented
+**Cost:** Free (uses existing Google OAuth)
+**Effort:** ~4-6 hours
+
+#### Overview
+
+Add 4th content format option: "Reels" (5-10 second videos) that leverages user's 5000+ video clips stored on Google Drive.
+
+#### Folder Structure (User's Drive)
+
+```
+01-FA...IDEOS/
+02-Boss...Videos/
+03-300+ Luxury Clipss/
+04-Travel Videos/
+05-Ama...Videos/
+06-Dark...Videos/
+07-Luxury women/
+08-Melanin Videos/
+```
+
+#### Implementation
+
+**1. Google Drive Integration**
+```typescript
+// server/googleDrive.ts
+import { google } from 'googleapis';
+
+export async function listDriveFolders(accessToken: string) {
+  const drive = google.drive({ version: 'v3', auth: oauthClient });
+  return drive.files.list({
+    q: "mimeType='application/vnd.google-apps.folder'",
+    fields: 'files(id, name)'
+  });
+}
+
+export async function listVideoClips(accessToken: string, folderId: string) {
+  const drive = google.drive({ version: 'v3', auth: oauthClient });
+  return drive.files.list({
+    q: `'${folderId}' in parents and mimeType contains 'video/'`,
+    fields: 'files(id, name, thumbnailLink, webContentLink)'
+  });
+}
+
+export async function downloadClip(accessToken: string, fileId: string) {
+  // Download to cloud storage for processing
+}
+```
+
+**2. Database Schema**
+```sql
+CREATE TABLE video_clip_library (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR REFERENCES users(id),
+  drive_file_id VARCHAR NOT NULL,
+  drive_folder_id VARCHAR,
+  filename VARCHAR(255),
+  thumbnail_url TEXT,
+  category VARCHAR(100), -- Luxury, Travel, Boss, etc.
+  tags TEXT[],
+  duration_seconds INTEGER,
+  synced_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_clips_user ON video_clip_library(user_id);
+CREATE INDEX idx_clips_category ON video_clip_library(category);
+```
+
+**3. Reels Generation Flow**
+1. User selects "Reels" format in Brand Briefs
+2. AI generates script, caption, hashtags (as normal)
+3. UI shows "Select B-roll" with clips from user's Drive library
+4. AI can suggest clips based on script keywords + category matching
+5. System downloads selected clip, overlays text captions
+6. Outputs 5-10 second reel ready to post
+
+**4. Text Overlay Processing**
+- Use FFmpeg for video processing
+- Add text overlays with animated captions
+- Support multiple text styles (handwritten, bold, minimal)
+- Preserve original video audio or mute for voiceover
+
+**5. API Endpoints**
+- `GET /api/drive/folders` - List user's video folders
+- `GET /api/drive/clips?folderId=xxx` - List clips in folder
+- `POST /api/drive/sync` - Sync clips metadata to database
+- `POST /api/reels/generate` - Generate reel with overlay
+- `GET /api/clips/suggest?keywords=luxury,travel` - AI clip suggestions
+
+**6. UI Components**
+- [ ] "Reels" format option in Brand Briefs (4th box)
+- [ ] Google Drive folder browser
+- [ ] Clip preview grid with thumbnails
+- [ ] Text overlay editor with style options
+- [ ] Preview before finalizing
+
+#### Implementation Checklist
+
+- [ ] Add Google Drive API scopes to OAuth flow
+- [ ] Create `server/googleDrive.ts` service
+- [ ] Add `video_clip_library` table
+- [ ] Create sync endpoint to import clip metadata
+- [ ] Install FFmpeg for video processing
+- [ ] Build text overlay service with FFmpeg
+- [ ] Add "Reels" format option to Brand Briefs UI
+- [ ] Create clip browser/selector component
+- [ ] Add AI clip suggestion based on script content
+- [ ] Test end-to-end reel generation
+
+---
+
 ### Optional Enhancements
 
 - [ ] Anthropic/Claude as alternative to OpenAI (requires `ANTHROPIC_API_KEY`)
