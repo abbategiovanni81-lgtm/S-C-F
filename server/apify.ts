@@ -389,3 +389,302 @@ export async function scrapeWebsiteForBrandAnalysis(url: string): Promise<Websit
 }
 
 export const apifyService = new ApifyService();
+
+// Social Profile Scraping for Brand Brief Generation
+
+export interface SocialProfileData {
+  platform: "instagram" | "tiktok" | "youtube" | "twitter";
+  url: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  followerCount: number;
+  followingCount: number;
+  postCount: number;
+  recentPosts: {
+    caption: string;
+    likes: number;
+    comments: number;
+    date?: string;
+  }[];
+  profileImageUrl?: string;
+  isVerified?: boolean;
+  category?: string;
+}
+
+export function detectSocialPlatform(url: string): "instagram" | "tiktok" | "youtube" | "twitter" | "website" | null {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes("instagram.com") || lowerUrl.includes("instagr.am")) {
+    return "instagram";
+  }
+  if (lowerUrl.includes("tiktok.com")) {
+    return "tiktok";
+  }
+  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) {
+    return "youtube";
+  }
+  if (lowerUrl.includes("twitter.com") || lowerUrl.includes("x.com")) {
+    return "twitter";
+  }
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return "website";
+  }
+  return null;
+}
+
+export function extractUsernameFromUrl(url: string, platform: string): string {
+  try {
+    const urlObj = new URL(url);
+    const pathname = urlObj.pathname.replace(/^\/+|\/+$/g, "");
+    
+    if (platform === "instagram" || platform === "tiktok" || platform === "twitter") {
+      // Handle @username format and path format
+      const parts = pathname.split("/");
+      let username = parts[0];
+      if (username.startsWith("@")) {
+        username = username.slice(1);
+      }
+      return username;
+    }
+    
+    if (platform === "youtube") {
+      // Handle /channel/, /@username, /c/ formats
+      const parts = pathname.split("/");
+      if (parts[0] === "channel") {
+        return parts[1] || "";
+      }
+      if (parts[0] === "c" || parts[0] === "user") {
+        return parts[1] || "";
+      }
+      if (parts[0].startsWith("@")) {
+        return parts[0].slice(1);
+      }
+      return parts[0] || "";
+    }
+    
+    return pathname;
+  } catch {
+    return url;
+  }
+}
+
+export async function scrapeInstagramProfile(url: string): Promise<SocialProfileData> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) {
+    throw new Error("Apify API token not configured");
+  }
+
+  const username = extractUsernameFromUrl(url, "instagram");
+  
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usernames: [username],
+        resultsLimit: 12,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Instagram scrape failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  if (!items || items.length === 0) {
+    throw new Error("No Instagram profile data found");
+  }
+
+  const profile = items[0];
+  
+  return {
+    platform: "instagram",
+    url,
+    username: profile.username || username,
+    displayName: profile.fullName || profile.username || username,
+    bio: profile.biography || "",
+    followerCount: profile.followersCount || 0,
+    followingCount: profile.followingCount || 0,
+    postCount: profile.postsCount || 0,
+    recentPosts: (profile.latestPosts || []).slice(0, 10).map((post: any) => ({
+      caption: post.caption || "",
+      likes: post.likesCount || 0,
+      comments: post.commentsCount || 0,
+      date: post.timestamp,
+    })),
+    profileImageUrl: profile.profilePicUrl,
+    isVerified: profile.verified,
+    category: profile.businessCategoryName,
+  };
+}
+
+export async function scrapeTikTokProfile(url: string): Promise<SocialProfileData> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) {
+    throw new Error("Apify API token not configured");
+  }
+
+  const username = extractUsernameFromUrl(url, "tiktok");
+  
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profiles: [username.startsWith("@") ? username : `@${username}`],
+        resultsPerPage: 12,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`TikTok scrape failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  if (!items || items.length === 0) {
+    throw new Error("No TikTok profile data found");
+  }
+
+  const profile = items[0];
+  
+  return {
+    platform: "tiktok",
+    url,
+    username: profile.uniqueId || username,
+    displayName: profile.nickname || profile.uniqueId || username,
+    bio: profile.signature || "",
+    followerCount: profile.followerCount || profile.fans || 0,
+    followingCount: profile.followingCount || 0,
+    postCount: profile.videoCount || 0,
+    recentPosts: (profile.latestVideos || items.slice(1) || []).slice(0, 10).map((video: any) => ({
+      caption: video.desc || video.text || "",
+      likes: video.diggCount || video.likes || 0,
+      comments: video.commentCount || video.comments || 0,
+      date: video.createTime,
+    })),
+    profileImageUrl: profile.avatarLarger || profile.avatarMedium,
+    isVerified: profile.verified,
+  };
+}
+
+export async function scrapeYouTubeChannel(url: string): Promise<SocialProfileData> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) {
+    throw new Error("Apify API token not configured");
+  }
+
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/streamers~youtube-channel-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        startUrls: [{ url }],
+        maxResults: 12,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`YouTube scrape failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  if (!items || items.length === 0) {
+    throw new Error("No YouTube channel data found");
+  }
+
+  const channel = items[0];
+  const videos = items.slice(1) || channel.videos || [];
+  
+  return {
+    platform: "youtube",
+    url,
+    username: channel.channelHandle || channel.channelName || "",
+    displayName: channel.channelName || "",
+    bio: channel.channelDescription || "",
+    followerCount: channel.numberOfSubscribers || 0,
+    followingCount: 0,
+    postCount: channel.numberOfVideos || 0,
+    recentPosts: videos.slice(0, 10).map((video: any) => ({
+      caption: video.title || "",
+      likes: video.likes || 0,
+      comments: video.commentsCount || 0,
+      date: video.date,
+    })),
+    profileImageUrl: channel.channelLogoUrl,
+    isVerified: channel.isVerified,
+  };
+}
+
+export async function scrapeTwitterProfile(url: string): Promise<SocialProfileData> {
+  const apiToken = process.env.APIFY_API_TOKEN;
+  if (!apiToken) {
+    throw new Error("Apify API token not configured");
+  }
+
+  const username = extractUsernameFromUrl(url, "twitter");
+  
+  const response = await fetch(
+    `https://api.apify.com/v2/acts/apidojo~twitter-user-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        handles: [username],
+        tweetsDesired: 12,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Twitter scrape failed: ${response.status}`);
+  }
+
+  const items = await response.json();
+  if (!items || items.length === 0) {
+    throw new Error("No Twitter profile data found");
+  }
+
+  const profile = items[0];
+  
+  return {
+    platform: "twitter",
+    url,
+    username: profile.userName || profile.screen_name || username,
+    displayName: profile.name || profile.userName || username,
+    bio: profile.description || "",
+    followerCount: profile.followers || profile.followers_count || 0,
+    followingCount: profile.following || profile.friends_count || 0,
+    postCount: profile.statusesCount || profile.statuses_count || 0,
+    recentPosts: (profile.tweets || []).slice(0, 10).map((tweet: any) => ({
+      caption: tweet.full_text || tweet.text || "",
+      likes: tweet.favorite_count || 0,
+      comments: tweet.reply_count || 0,
+      date: tweet.created_at,
+    })),
+    profileImageUrl: profile.profileImageUrl || profile.profile_image_url_https,
+    isVerified: profile.verified || profile.isBlueVerified,
+  };
+}
+
+export async function scrapeSocialProfile(url: string): Promise<SocialProfileData> {
+  const platform = detectSocialPlatform(url);
+  
+  switch (platform) {
+    case "instagram":
+      return scrapeInstagramProfile(url);
+    case "tiktok":
+      return scrapeTikTokProfile(url);
+    case "youtube":
+      return scrapeYouTubeChannel(url);
+    case "twitter":
+      return scrapeTwitterProfile(url);
+    default:
+      throw new Error(`Unsupported platform or invalid URL: ${url}`);
+  }
+}
