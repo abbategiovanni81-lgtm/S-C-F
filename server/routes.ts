@@ -5185,11 +5185,11 @@ export async function registerRoutes(
         };
       } else if (url.includes("reddit.com")) {
         platform = "reddit";
-        // Use Reddit post scraper to get comments
-        actorKey = "redditPost";
+        actorKey = "redditComments";
         actorInput = {
           startUrls: [{ url }],
-          maxComments,
+          maxItems: maxComments,
+          scrapeComments: true,
         };
       } else if (url.includes("tiktok.com")) {
         platform = "tiktok";

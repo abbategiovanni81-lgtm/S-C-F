@@ -231,6 +231,7 @@ export const listeningHits = pgTable("listening_hits", {
   sourceChannel: text("source_channel"), // Channel/account name of source
   opportunityScore: integer("opportunity_score"), // AI-calculated engagement opportunity (0-100)
   scanType: text("scan_type").default("keyword"), // "keyword", "viral_url", "manual"
+  commentTypes: text("comment_types").array(), // AI-classified: "question", "disagreeing", "wants_info", "expert", "most_liked"
 });
 
 export const insertListeningHitSchema = createInsertSchema(listeningHits).omit({
