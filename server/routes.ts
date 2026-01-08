@@ -5224,6 +5224,16 @@ export async function registerRoutes(
       const sourceTitle = parentHit.postContent?.slice(0, 100) || "";
       const sourceChannel = parentHit.authorName || parentHit.authorHandle || "";
 
+      // Extract and prepare comments for classification
+      const commentsToProcess: Array<{
+        item: any;
+        commentText: string;
+        authorName: string;
+        authorHandle: string;
+        likes: number;
+        postId: string;
+      }> = [];
+
       for (const item of items) {
         const commentText = item.text || item.comment || item.body || item.ctext || "";
         if (!commentText || commentText.length < 3) continue;
@@ -5231,16 +5241,56 @@ export async function registerRoutes(
         const authorName = item.author?.name || item.authorName || item.username || item.ownerUsername || "Unknown";
         const authorHandle = item.author?.id || item.authorId || item.uniqueId || "";
         const likes = item.likes || item.likesCount || item.diggCount || item.score || 0;
+        const postId = item.id || item.commentId || item.cid || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        const isDuplicate = await storage.checkDuplicateHit(platform, postId);
+        if (!isDuplicate) {
+          commentsToProcess.push({ item, commentText, authorName, authorHandle, likes, postId });
+        }
+      }
+
+      // AI classification for comment types (batch process)
+      let classifications: Record<string, string[]> = {};
+      if (commentsToProcess.length > 0) {
+        try {
+          const commentsForAI = commentsToProcess.map((c, i) => `[${i}] ${c.commentText.slice(0, 200)}`).join("\n");
+          const classifyResponse = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{
+              role: "system",
+              content: `Classify each comment into one or more types. Types: question (asking something), disagreeing (expressing disagreement/criticism), wants_info (seeking more details), expert (shows expertise/authority). Reply as JSON: {"0":["question"],"1":["expert","wants_info"],...}`
+            }, {
+              role: "user",
+              content: commentsForAI
+            }],
+            response_format: { type: "json_object" },
+            max_tokens: 1000,
+          });
+          const parsed = JSON.parse(classifyResponse.choices[0]?.message?.content || "{}");
+          classifications = parsed;
+        } catch (err) {
+          console.error("AI classification failed, continuing without types:", err);
+        }
+      }
+
+      // Find top 5 most liked for "most_liked" tag
+      const sortedByLikes = [...commentsToProcess].sort((a, b) => b.likes - a.likes);
+      const topLikedIds = new Set(sortedByLikes.slice(0, 5).map(c => c.postId));
+
+      // Save comments with classifications
+      for (let i = 0; i < commentsToProcess.length; i++) {
+        const { item, commentText, authorName, authorHandle, likes, postId } = commentsToProcess[i];
+        
+        const commentTypes: string[] = classifications[String(i)] || [];
+        if (topLikedIds.has(postId)) {
+          commentTypes.push("most_liked");
+        }
 
         const isQuestion = commentText.includes("?") || /\b(how|what|why|when|where|who|can|could|would|should|is|are|does|do)\b/i.test(commentText);
         const baseScore = Math.min(likes * 2, 50);
         const questionBonus = isQuestion ? 25 : 0;
         const lengthBonus = commentText.length > 50 ? 15 : commentText.length > 20 ? 10 : 0;
         const opportunityScore = Math.min(baseScore + questionBonus + lengthBonus, 100);
-
-        const postId = item.id || item.commentId || item.cid || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const isDuplicate = await storage.checkDuplicateHit(platform, postId);
-        if (isDuplicate) continue;
 
         await storage.createListeningHit({
           userId,
@@ -5268,6 +5318,7 @@ export async function registerRoutes(
           sourceChannel,
           opportunityScore,
           scanType: "viral_url",
+          commentTypes: commentTypes.length > 0 ? commentTypes : null,
         });
         imported++;
       }

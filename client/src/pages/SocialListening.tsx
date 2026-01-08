@@ -63,6 +63,7 @@ export default function SocialListening() {
   const [sortByOpportunity, setSortByOpportunity] = useState(true);
   const [quickKeywords, setQuickKeywords] = useState("");
   const [quickPlatforms, setQuickPlatforms] = useState<string[]>(["reddit", "youtube"]);
+  const [commentTypeFilter, setCommentTypeFilter] = useState<string | null>(null);
 
   const [newPost, setNewPost] = useState({
     platform: "youtube",
@@ -233,6 +234,11 @@ export default function SocialListening() {
 
   const pendingHits = hits
     .filter((h) => h.replyStatus === "pending")
+    .filter((h) => {
+      if (!commentTypeFilter) return true;
+      const types = (h as any).commentTypes as string[] | null;
+      return types && types.includes(commentTypeFilter);
+    })
     .sort((a, b) => {
       if (sortByOpportunity) {
         return ((b as any).opportunityScore || 0) - ((a as any).opportunityScore || 0);
@@ -698,17 +704,69 @@ export default function SocialListening() {
           <TabsContent value="inbox" className="space-y-4">
             {/* Sort toggle */}
             {pendingHits.length > 1 && (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{pendingHits.length} engagement opportunities</p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSortByOpportunity(!sortByOpportunity)}
-                  data-testid="button-toggle-sort"
-                >
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
-                </Button>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">{pendingHits.length} engagement opportunities</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSortByOpportunity(!sortByOpportunity)}
+                    data-testid="button-toggle-sort"
+                  >
+                    <ArrowUpDown className="w-4 h-4 mr-2" />
+                    {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === null ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter(null)}
+                    data-testid="filter-all"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === "question" ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter("question")}
+                    data-testid="filter-question"
+                  >
+                    Questions
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === "wants_info" ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter("wants_info")}
+                    data-testid="filter-wants-info"
+                  >
+                    Wants Info
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === "disagreeing" ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter("disagreeing")}
+                    data-testid="filter-disagreeing"
+                  >
+                    Disagreeing
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === "expert" ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter("expert")}
+                    data-testid="filter-expert"
+                  >
+                    Expert
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={commentTypeFilter === "most_liked" ? "default" : "outline"}
+                    onClick={() => setCommentTypeFilter("most_liked")}
+                    data-testid="filter-most-liked"
+                  >
+                    Most Liked
+                  </Button>
+                </div>
               </div>
             )}
             {hitsLoading ? (
@@ -761,6 +819,19 @@ export default function SocialListening() {
                               <Badge variant="outline">{hit.postType}</Badge>
                               {hit.sentiment && <Badge className={getSentimentColor(hit.sentiment)}>{hit.sentiment}</Badge>}
                               {hit.isQuestion === "yes" && <Badge variant="secondary">Question</Badge>}
+                              {(extHit.commentTypes as string[] | null)?.map((type: string) => (
+                                <Badge key={type} variant="outline" className={
+                                  type === "question" ? "border-blue-500 text-blue-500" :
+                                  type === "wants_info" ? "border-purple-500 text-purple-500" :
+                                  type === "disagreeing" ? "border-red-500 text-red-500" :
+                                  type === "expert" ? "border-green-500 text-green-500" :
+                                  type === "most_liked" ? "border-yellow-500 text-yellow-500" : ""
+                                }>
+                                  {type === "wants_info" ? "Wants Info" : 
+                                   type === "most_liked" ? "Top Liked" :
+                                   type.charAt(0).toUpperCase() + type.slice(1)}
+                                </Badge>
+                              ))}
                               {opportunityScore > 0 && (
                                 <Badge className={getOpportunityColor(opportunityScore)}>
                                   <Target className="w-3 h-3 mr-1" />
