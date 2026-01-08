@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
+import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -5063,12 +5063,15 @@ export async function registerRoutes(
 
       // Process each comment
       for (const item of items) {
-        const commentText = item.text || item.comment || item.body || item.ctext || "";
+        // YouTube streamers/youtube-comments-scraper uses: comment, cid, author, voteCount
+        const commentText = item.comment || item.text || item.body || item.ctext || "";
         if (!commentText || commentText.length < 3) continue;
 
-        const authorName = item.author?.name || item.authorName || item.username || item.ownerUsername || "Unknown";
-        const authorHandle = item.author?.id || item.authorId || item.uniqueId || item.authorMeta?.id || "";
-        const likes = item.likes || item.likesCount || item.diggCount || 0;
+        // YouTube author is "@username" string, not an object
+        const authorName = item.author || item.authorName || item.username || item.ownerUsername || "Unknown";
+        const authorHandle = (typeof item.author === 'string' ? item.author.replace(/^@/, "") : item.author?.id) || item.authorId || item.uniqueId || item.authorMeta?.id || "";
+        // YouTube uses voteCount
+        const likes = item.voteCount || item.likes || item.likesCount || item.diggCount || 0;
 
         // Extract source info from first item if available
         if (!sourceTitle && item.videoTitle) sourceTitle = item.videoTitle;
@@ -5084,7 +5087,8 @@ export async function registerRoutes(
         const lengthBonus = commentText.length > 50 ? 15 : commentText.length > 20 ? 10 : 0;
         const opportunityScore = Math.min(baseScore + questionBonus + lengthBonus, 100);
 
-        const postId = item.id || item.commentId || item.cid || `${platform}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        // YouTube uses cid, others use id
+        const postId = item.cid || item.id || item.commentId || `${platform}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const isDuplicate = await storage.checkDuplicateHit(platform, postId);
         if (isDuplicate) continue;
 
@@ -5235,13 +5239,18 @@ export async function registerRoutes(
       }> = [];
 
       for (const item of items) {
-        const commentText = item.text || item.comment || item.body || item.ctext || "";
+        // YouTube streamers/youtube-comments-scraper uses: comment, cid, author, voteCount
+        // Reddit trudax/reddit-scraper-lite uses: body, id, author, score
+        const commentText = item.comment || item.text || item.body || item.ctext || "";
         if (!commentText || commentText.length < 3) continue;
 
-        const authorName = item.author?.name || item.authorName || item.username || item.ownerUsername || "Unknown";
-        const authorHandle = item.author?.id || item.authorId || item.uniqueId || "";
-        const likes = item.likes || item.likesCount || item.diggCount || item.score || 0;
-        const postId = item.id || item.commentId || item.cid || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        // YouTube author is "@username", Reddit uses author field
+        const authorName = item.author || item.authorName || item.username || item.ownerUsername || "Unknown";
+        const authorHandle = item.author?.replace(/^@/, "") || item.authorId || item.uniqueId || "";
+        // YouTube uses voteCount, Reddit uses score
+        const likes = item.voteCount || item.likes || item.likesCount || item.diggCount || item.score || 0;
+        // YouTube uses cid, Reddit uses id
+        const postId = item.cid || item.id || item.commentId || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
         const isDuplicate = await storage.checkDuplicateHit(platform, postId);
         if (!isDuplicate) {
