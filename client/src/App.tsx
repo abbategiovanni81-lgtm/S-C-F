@@ -27,6 +27,7 @@ import ContentComparison from "@/pages/ContentComparison";
 import Testimonials from "@/pages/Testimonials";
 import RedditManager from "@/pages/RedditManager";
 import VideoToClips from "@/pages/VideoToClips";
+import Editor from "@/pages/Editor";
 
 function AuthenticatedRoutes() {
   return (
@@ -38,6 +39,7 @@ function AuthenticatedRoutes() {
       <Route path="/content-comparison" component={ContentComparison} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
+      <Route path="/editor" component={Editor} />
       <Route path="/ready-to-post" component={ReadyToPost} />
       <Route path="/social-listening" component={SocialListening} />
       <Route path="/schedule" component={Schedule} />
