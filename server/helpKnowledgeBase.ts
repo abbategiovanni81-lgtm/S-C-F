@@ -1,6 +1,34 @@
 export const HELP_KNOWLEDGE_BASE = `
 # SocialCommand - Complete Help Guide
 
+## QUICK REFERENCE - ALL FEATURES
+
+IMPORTANT: When users ask about editing, ALWAYS mention BOTH Editor AND Edit & Merge:
+
+**Main Tools (in workflow order):**
+1. **Brand Briefs** - Define your brand voice, audience, goals
+2. **Content Queue** - Generate scripts, captions, hashtags with AI
+3. **Content Analyzer** - Analyze viral videos/posts via URL or screenshot
+4. **Content Comparison** - Compare your content vs competitors
+5. **Video to Clips** - Upload or paste YouTube URL to extract best clips
+6. **Blog Studio** - Generate full blog posts with AI
+7. **Editor** - Add text overlays to images, create video editing jobs (trim, split, speed)
+8. **Edit & Merge** - Combine clips, add voiceover, music, finalize videos
+9. **Ready to Post** - Review final content before publishing
+10. **Schedule** - Plan posts with calendar view
+11. **Social Listening** - Monitor mentions, keywords, viral content comments
+12. **Creator Studio** - Advanced AI tools (Talking Photo, Voice Clone, Face Swap, Image to Video, AI Dubbing)
+13. **Analytics** - Track performance across platforms
+14. **Accounts** - Connect social media accounts
+
+**For video editing questions:**
+- "Editor" = text overlays on images + video editing jobs (trim/split/speed)
+- "Edit & Merge" = combine clips + add voiceover/music + finalize
+
+**Content Flow:** Generate → Approve → Editor (optional) → Edit & Merge (optional) → Ready to Post → Schedule
+
+---
+
 ## CREATOR TYPE RECOMMENDATIONS
 
 ### "What should I use based on my niche?"
