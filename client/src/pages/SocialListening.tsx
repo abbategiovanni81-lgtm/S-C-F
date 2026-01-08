@@ -63,7 +63,9 @@ export default function SocialListening() {
   const [sortByOpportunity, setSortByOpportunity] = useState(true);
   const [quickKeywords, setQuickKeywords] = useState("");
   const [quickPlatforms, setQuickPlatforms] = useState<string[]>(["reddit", "youtube"]);
-  const [commentTypeFilter, setCommentTypeFilter] = useState<string | null>(null);
+  const [commentsDialogOpen, setCommentsDialogOpen] = useState(false);
+  const [selectedHitForComments, setSelectedHitForComments] = useState<ListeningHit | null>(null);
+  const [commentsDialogFilter, setCommentsDialogFilter] = useState<string | null>(null);
 
   const [newPost, setNewPost] = useState({
     platform: "youtube",
@@ -234,11 +236,6 @@ export default function SocialListening() {
 
   const pendingHits = hits
     .filter((h) => h.replyStatus === "pending")
-    .filter((h) => {
-      if (!commentTypeFilter) return true;
-      const types = (h as any).commentTypes as string[] | null;
-      return types && types.includes(commentTypeFilter);
-    })
     .sort((a, b) => {
       if (sortByOpportunity) {
         return ((b as any).opportunityScore || 0) - ((a as any).opportunityScore || 0);
@@ -717,56 +714,6 @@ export default function SocialListening() {
                     {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === null ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter(null)}
-                    data-testid="filter-all"
-                  >
-                    All
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === "question" ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter("question")}
-                    data-testid="filter-question"
-                  >
-                    Questions
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === "wants_info" ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter("wants_info")}
-                    data-testid="filter-wants-info"
-                  >
-                    Wants Info
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === "disagreeing" ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter("disagreeing")}
-                    data-testid="filter-disagreeing"
-                  >
-                    Disagreeing
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === "expert" ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter("expert")}
-                    data-testid="filter-expert"
-                  >
-                    Expert
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={commentTypeFilter === "most_liked" ? "default" : "outline"}
-                    onClick={() => setCommentTypeFilter("most_liked")}
-                    data-testid="filter-most-liked"
-                  >
-                    Most Liked
-                  </Button>
-                </div>
               </div>
             )}
             {hitsLoading ? (
@@ -819,7 +766,8 @@ export default function SocialListening() {
                               <Badge variant="outline">{hit.postType}</Badge>
                               {hit.sentiment && <Badge className={getSentimentColor(hit.sentiment)}>{hit.sentiment}</Badge>}
                               {hit.isQuestion === "yes" && <Badge variant="secondary">Question</Badge>}
-                              {(extHit.commentTypes as string[] | null)?.map((type: string) => (
+                              {/* Only show comment type badges for actual comments, not posts */}
+                              {hit.postType === "comment" && (extHit.commentTypes as string[] | null)?.map((type: string) => (
                                 <Badge key={type} variant="outline" className={
                                   type === "question" ? "border-blue-500 text-blue-500" :
                                   type === "wants_info" ? "border-purple-500 text-purple-500" :
@@ -882,27 +830,37 @@ export default function SocialListening() {
                               <Copy className="w-4 h-4 mr-1" />
                               Copy
                             </Button>
-                            {(hit.postUrl || extHit.sourceUrl) && (
-                              <Button size="sm" variant="outline" asChild>
-                                <a href={hit.postUrl || extHit.sourceUrl} target="_blank" rel="noopener noreferrer">
+                            {(() => {
+                              // Generate fallback URL for Reddit posts
+                              let viewUrl = hit.postUrl || extHit.sourceUrl;
+                              if (!viewUrl && hit.platform.toLowerCase() === "reddit" && hit.postId) {
+                                viewUrl = `https://reddit.com/comments/${hit.postId}`;
+                              }
+                              if (!viewUrl) return null;
+                              return (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => window.open(viewUrl!, "_blank")}
+                                  data-testid={`button-view-${hit.id}`}
+                                >
                                   <ExternalLink className="w-4 h-4 mr-1" />
                                   View
-                                </a>
-                              </Button>
-                            )}
-                            {hit.postUrl && ["youtube", "reddit", "tiktok", "instagram"].includes(hit.platform.toLowerCase()) && (
+                                </Button>
+                              );
+                            })()}
+                            {(hit.postUrl || hit.postId) && ["youtube", "reddit", "tiktok", "instagram"].includes(hit.platform.toLowerCase()) && hit.postType !== "comment" && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => scrapeCommentsMutation.mutate(hit.id)}
-                                disabled={scrapeCommentsMutation.isPending}
+                                onClick={() => {
+                                  setSelectedHitForComments(hit);
+                                  setCommentsDialogFilter(null);
+                                  setCommentsDialogOpen(true);
+                                }}
                                 data-testid={`button-scrape-comments-${hit.id}`}
                               >
-                                {scrapeCommentsMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                ) : (
-                                  <MessageCircle className="w-4 h-4 mr-1" />
-                                )}
+                                <MessageCircle className="w-4 h-4 mr-1" />
                                 Comments
                               </Button>
                             )}
@@ -1129,6 +1087,141 @@ export default function SocialListening() {
                   )}
                   Generate Reply
                 </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Comments Dialog */}
+        <Dialog open={commentsDialogOpen} onOpenChange={setCommentsDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Scrape Comments</DialogTitle>
+              <DialogDescription>
+                Scrape and analyze comments from this post. Comments will be AI-classified for easy filtering.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedHitForComments && (
+              <div className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-sm font-medium mb-1">{selectedHitForComments.platform}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{selectedHitForComments.postContent}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Comment types to look for:</p>
+                  <p className="text-xs text-muted-foreground">All comments will be scraped and AI will classify them into these categories:</p>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Badge variant="outline" className="border-blue-500 text-blue-500">Questions</Badge>
+                    <Badge variant="outline" className="border-purple-500 text-purple-500">Wants Info</Badge>
+                    <Badge variant="outline" className="border-red-500 text-red-500">Disagreeing</Badge>
+                    <Badge variant="outline" className="border-green-500 text-green-500">Expert</Badge>
+                    <Badge variant="outline" className="border-yellow-500 text-yellow-500">Top Liked</Badge>
+                  </div>
+                </div>
+
+                {/* Show child comments if they exist */}
+                {(() => {
+                  const childComments = hits.filter(h => 
+                    h.postType === "comment" && 
+                    (h as any).sourceUrl === selectedHitForComments.postUrl
+                  );
+                  
+                  if (childComments.length > 0) {
+                    const filteredComments = commentsDialogFilter 
+                      ? childComments.filter(c => {
+                          const types = (c as any).commentTypes as string[] | null;
+                          return types && types.includes(commentsDialogFilter);
+                        })
+                      : childComments;
+                    
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{childComments.length} comments scraped</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant={commentsDialogFilter === null ? "default" : "outline"}
+                            onClick={() => setCommentsDialogFilter(null)}
+                          >
+                            All ({childComments.length})
+                          </Button>
+                          {["question", "wants_info", "disagreeing", "expert", "most_liked"].map(type => {
+                            const count = childComments.filter(c => {
+                              const types = (c as any).commentTypes as string[] | null;
+                              return types && types.includes(type);
+                            }).length;
+                            if (count === 0) return null;
+                            return (
+                              <Button
+                                key={type}
+                                size="sm"
+                                variant={commentsDialogFilter === type ? "default" : "outline"}
+                                onClick={() => setCommentsDialogFilter(type)}
+                              >
+                                {type === "wants_info" ? "Wants Info" : 
+                                 type === "most_liked" ? "Top Liked" : 
+                                 type.charAt(0).toUpperCase() + type.slice(1)} ({count})
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {filteredComments.slice(0, 20).map(comment => (
+                            <div key={comment.id} className="p-3 bg-muted/30 rounded-lg">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <span className="text-xs font-medium">{comment.authorName || comment.authorHandle}</span>
+                                {comment.likes && <span className="text-xs text-muted-foreground">{comment.likes} likes</span>}
+                                {((comment as any).commentTypes as string[] | null)?.map((type: string) => (
+                                  <Badge key={type} variant="outline" className={`text-xs ${
+                                    type === "question" ? "border-blue-500 text-blue-500" :
+                                    type === "wants_info" ? "border-purple-500 text-purple-500" :
+                                    type === "disagreeing" ? "border-red-500 text-red-500" :
+                                    type === "expert" ? "border-green-500 text-green-500" :
+                                    type === "most_liked" ? "border-yellow-500 text-yellow-500" : ""
+                                  }`}>
+                                    {type === "wants_info" ? "Wants Info" : 
+                                     type === "most_liked" ? "Top Liked" :
+                                     type.charAt(0).toUpperCase() + type.slice(1)}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <p className="text-sm line-clamp-3">{comment.postContent}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    scrapeCommentsMutation.mutate(selectedHitForComments.id);
+                  }}
+                  disabled={scrapeCommentsMutation.isPending || !selectedHitForComments.postUrl}
+                >
+                  {scrapeCommentsMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Scraping & Classifying...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      {hits.filter(h => h.postType === "comment" && (h as any).sourceUrl === selectedHitForComments.postUrl).length > 0 
+                        ? "Scrape More Comments" 
+                        : "Scrape Comments"}
+                    </>
+                  )}
+                </Button>
+                {!selectedHitForComments.postUrl && (
+                  <p className="text-xs text-destructive text-center">Cannot scrape: No URL available for this post</p>
+                )}
               </div>
             )}
           </DialogContent>

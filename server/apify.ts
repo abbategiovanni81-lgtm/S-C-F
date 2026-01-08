@@ -241,10 +241,23 @@ export function normalizeRedditItem(
 
   const isComment = !!item.body && !item.title;
 
+  // Handle different Reddit URL formats from various actors
+  let postUrl: string | null = null;
+  if (item.url && item.url.includes("reddit.com")) {
+    postUrl = item.url;
+  } else if (item.permalink) {
+    // Some actors return relative permalink
+    postUrl = item.permalink.startsWith("http") ? item.permalink : `https://reddit.com${item.permalink}`;
+  } else if (item.id) {
+    // Fallback: construct URL from subreddit and id
+    const subreddit = item.subreddit || item.subredditName || "unknown";
+    postUrl = `https://reddit.com/r/${subreddit}/comments/${item.id}`;
+  }
+
   return {
     platform: "reddit",
     postId: item.id || null,
-    postUrl: item.permalink ? `https://reddit.com${item.permalink}` : null,
+    postUrl,
     postContent: text,
     authorName: item.author || null,
     authorHandle: item.author || null,
@@ -252,10 +265,10 @@ export function normalizeRedditItem(
     postType: isComment ? "comment" : "post",
     matchedKeywords,
     likes: item.score || item.ups || null,
-    comments: item.num_comments || null,
+    comments: item.num_comments || item.numComments || null,
     shares: null,
-    engagementScore: (item.score || 0) + (item.num_comments || 0),
-    postedAt: item.created_utc ? new Date(item.created_utc * 1000) : null,
+    engagementScore: (item.score || 0) + (item.num_comments || item.numComments || 0),
+    postedAt: item.created_utc ? new Date(item.created_utc * 1000) : (item.createdAt ? new Date(item.createdAt) : null),
     briefId,
   };
 }
