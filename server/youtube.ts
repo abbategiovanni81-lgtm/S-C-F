@@ -459,3 +459,65 @@ export async function getTopVideos(accessToken: string, channelId: string) {
     return null;
   }
 }
+
+// Post a comment or reply to YouTube
+export async function postYouTubeComment(params: {
+  accessToken: string;
+  videoId: string;
+  text: string;
+  parentCommentId?: string; // If replying to an existing comment
+}) {
+  const { accessToken, videoId, text, parentCommentId } = params;
+  
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  
+  const youtube = google.youtube({ version: "v3", auth });
+
+  try {
+    if (parentCommentId) {
+      // Reply to an existing comment
+      const response = await youtube.comments.insert({
+        part: ["snippet"],
+        requestBody: {
+          snippet: {
+            parentId: parentCommentId,
+            textOriginal: text,
+          },
+        },
+      });
+      
+      console.log("[YouTube] Reply posted successfully:", response.data.id);
+      return {
+        success: true,
+        commentId: response.data.id,
+        type: "reply",
+      };
+    } else {
+      // Post a top-level comment on the video
+      const response = await youtube.commentThreads.insert({
+        part: ["snippet"],
+        requestBody: {
+          snippet: {
+            videoId,
+            topLevelComment: {
+              snippet: {
+                textOriginal: text,
+              },
+            },
+          },
+        },
+      });
+      
+      console.log("[YouTube] Comment posted successfully:", response.data.id);
+      return {
+        success: true,
+        commentId: response.data.id,
+        type: "comment",
+      };
+    }
+  } catch (error: any) {
+    console.error("[YouTube] Failed to post comment:", error?.message || error);
+    throw new Error(error?.message || "Failed to post comment to YouTube");
+  }
+}

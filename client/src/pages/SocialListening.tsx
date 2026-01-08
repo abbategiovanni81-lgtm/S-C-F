@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight, MessageCircle, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
+import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief, SocialAccount } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 
@@ -96,6 +96,58 @@ export default function SocialListening() {
 
   const { data: trending = [] } = useQuery<TrendingTopic[]>({
     queryKey: ["/api/listening/trending"],
+  });
+
+  // Fetch YouTube accounts for direct posting
+  const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
+    queryKey: ["/api/social-accounts"],
+    queryFn: async () => {
+      const res = await fetch("/api/social-accounts", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const youtubeAccounts = socialAccounts.filter(
+    (a) => a.platform === "YouTube" && a.isConnected === "connected" && a.accessToken
+  );
+
+  // State for tracking which draft is being posted
+  const [postingDraftId, setPostingDraftId] = useState<string | null>(null);
+
+  // Helper to extract YouTube video ID from URL
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  // Mutation for posting reply to YouTube
+  const postToYouTubeMutation = useMutation({
+    mutationFn: async (data: { draftId: string; accountId: string; text: string; videoId?: string; postUrl?: string; parentCommentId?: string }) => {
+      const res = await apiRequest("POST", "/api/youtube/comment", {
+        accountId: data.accountId,
+        text: data.text,
+        videoId: data.videoId,
+        postUrl: data.postUrl,
+        parentCommentId: data.parentCommentId,
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to post comment");
+      }
+      return { ...await res.json(), draftId: data.draftId };
+    },
+    onSuccess: (data) => {
+      updateDraftMutation.mutate({ id: data.draftId, data: { status: "sent" } });
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({ title: "Posted to YouTube!", description: "Your reply has been posted successfully." });
+      setPostingDraftId(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to post", description: error.message || "Could not post to YouTube", variant: "destructive" });
+      setPostingDraftId(null);
+    },
   });
 
   const addHitMutation = useMutation({
@@ -988,7 +1040,7 @@ export default function SocialListening() {
                               </div>
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Button
                               onClick={() => {
                                 updateDraftMutation.mutate({ id: draft.id, data: { status: "approved" } });
@@ -1014,6 +1066,52 @@ export default function SocialListening() {
                                 </a>
                               </Button>
                             )}
+                            {/* Post to YouTube button */}
+                            {(() => {
+                              if (originalHit?.platform !== "YouTube") return null;
+                              
+                              // Try to get video URL from postUrl or sourceUrl
+                              const videoUrl = originalHit.postUrl || (originalHit as any).sourceUrl;
+                              const videoId = videoUrl ? extractYouTubeVideoId(videoUrl) : null;
+                              
+                              // For comments, postId contains the YouTube comment ID
+                              const parentCommentId = originalHit.postType === "comment" ? originalHit.postId : undefined;
+                              
+                              if (youtubeAccounts.length === 0) {
+                                return <p className="text-xs text-muted-foreground">Connect a YouTube account to post directly</p>;
+                              }
+                              
+                              if (!videoId) {
+                                return <p className="text-xs text-muted-foreground">Cannot post: missing video URL</p>;
+                              }
+                              
+                              return (
+                                <Button
+                                  variant="default"
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => {
+                                    setPostingDraftId(draft.id);
+                                    postToYouTubeMutation.mutate({
+                                      draftId: draft.id,
+                                      accountId: youtubeAccounts[0].id,
+                                      text: draft.replyContent,
+                                      videoId,
+                                      postUrl: videoUrl,
+                                      parentCommentId: parentCommentId || undefined,
+                                    });
+                                  }}
+                                  disabled={postToYouTubeMutation.isPending && postingDraftId === draft.id}
+                                  data-testid={`button-post-youtube-${draft.id}`}
+                                >
+                                  {postToYouTubeMutation.isPending && postingDraftId === draft.id ? (
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <Youtube className="w-4 h-4 mr-1" />
+                                  )}
+                                  {parentCommentId ? "Reply on YouTube" : "Comment on YouTube"}
+                                </Button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </CardContent>

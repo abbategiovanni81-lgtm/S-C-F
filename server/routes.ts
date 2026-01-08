@@ -21,7 +21,7 @@ import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
 import { redditService } from "./reddit";
-import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, revokeToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos } from "./youtube";
+import { getAuthUrl, getTokensFromCode, getChannelInfo, getChannelAnalytics, getRecentVideos, uploadVideo, refreshAccessToken, revokeToken, getTrafficSources, getDeviceAnalytics, getGeographicAnalytics, getViewerRetention, getPeakViewingTimes, getTopVideos, postYouTubeComment } from "./youtube";
 import * as socialPlatforms from "./socialPlatforms";
 import { ObjectStorageService, objectStorageClient } from "./objectStorage";
 import { getUsageStats, checkQuota, incrementUsage, assertQuota, QuotaExceededError, checkCreatorStudioQuota, incrementCreatorStudioUsage, assertCreatorStudioQuota, CreatorStudioAccessError, getA2ECapacityStatus } from "./usageService";
@@ -3218,6 +3218,77 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("[YouTube] Revoke error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Post a comment or reply to YouTube
+  app.post("/api/youtube/comment", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { accountId, videoId, text, parentCommentId } = req.body;
+
+      if (!accountId || !text) {
+        return res.status(400).json({ error: "accountId and text are required" });
+      }
+
+      // Get the YouTube account
+      const account = await storage.getSocialAccount(accountId);
+      if (!account || account.userId !== userId) {
+        return res.status(404).json({ error: "YouTube account not found" });
+      }
+
+      if (account.platform !== "YouTube") {
+        return res.status(400).json({ error: "Account is not a YouTube account" });
+      }
+
+      if (!account.accessToken) {
+        return res.status(400).json({ error: "YouTube account not properly connected. Please reconnect." });
+      }
+
+      // Check if token needs refresh
+      let accessToken = account.accessToken;
+      if (account.tokenExpiry && new Date(account.tokenExpiry) <= new Date()) {
+        if (account.refreshToken) {
+          try {
+            const newTokens = await refreshAccessToken(account.refreshToken);
+            accessToken = newTokens.access_token!;
+            await storage.updateSocialAccount(account.id, {
+              accessToken: newTokens.access_token,
+              tokenExpiry: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
+            });
+          } catch (refreshError) {
+            return res.status(401).json({ error: "Token expired. Please reconnect your YouTube account." });
+          }
+        } else {
+          return res.status(401).json({ error: "Token expired. Please reconnect your YouTube account." });
+        }
+      }
+
+      // Determine the videoId - either from request or from the post URL
+      let targetVideoId = videoId;
+      if (!targetVideoId && req.body.postUrl) {
+        // Extract video ID from YouTube URL
+        const urlMatch = req.body.postUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (urlMatch) {
+          targetVideoId = urlMatch[1];
+        }
+      }
+
+      if (!targetVideoId) {
+        return res.status(400).json({ error: "Could not determine video ID. Please provide videoId or a valid YouTube URL." });
+      }
+
+      const result = await postYouTubeComment({
+        accessToken,
+        videoId: targetVideoId,
+        text,
+        parentCommentId,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("[YouTube] Comment post error:", error);
+      res.status(500).json({ error: error.message || "Failed to post comment" });
     }
   });
 
