@@ -7778,15 +7778,26 @@ Respond in JSON:
       if (file) {
         imageBuffer = file.buffer;
       } else if (imageUrl) {
-        // Use the properly configured objectStorageClient from objectStorage.ts
         const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
         
         if (imageUrl.startsWith("/objects/")) {
-          // It's an object storage path - use the configured client
+          // Try object storage first, then fallback to HTTP fetch
           const gcsPath = imageUrl.replace("/objects/", "");
-          const bucket = objectStorageClient.bucket(bucketId!);
-          const [buffer] = await bucket.file(gcsPath).download();
-          imageBuffer = buffer;
+          try {
+            const bucket = objectStorageClient.bucket(bucketId!);
+            const [buffer] = await bucket.file(gcsPath).download();
+            imageBuffer = buffer;
+          } catch (storageError: any) {
+            // Fallback: Try fetching via HTTP (image might be served at a URL)
+            console.log("Object storage fetch failed, trying HTTP fallback:", storageError.message);
+            const httpUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER?.toLowerCase()}.repl.co` : ''}${imageUrl}`;
+            const response = await fetch(imageUrl.startsWith("http") ? imageUrl : httpUrl);
+            if (!response.ok) {
+              throw new Error(`Image not found in storage and HTTP fetch failed. The image may have been deleted.`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            imageBuffer = Buffer.from(arrayBuffer);
+          }
         } else if (imageUrl.startsWith("http")) {
           // External URL - fetch it
           const response = await fetch(imageUrl);
