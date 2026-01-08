@@ -125,8 +125,9 @@ export default function ContentResearch() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/content-analysis/videos"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/content-analysis/videos"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/content-analysis/videos"] });
       toast({ title: "Transcript fetched successfully!" });
     },
     onError: (error: Error) => {
@@ -147,8 +148,9 @@ export default function ContentResearch() {
       }
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/content-analysis/videos", selectedVideoId, "results"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/content-analysis/videos", selectedVideoId, "results"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/content-analysis/videos", selectedVideoId, "results"] });
       toast({ title: "Analysis complete!" });
     },
     onError: (error: Error) => {
