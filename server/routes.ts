@@ -834,6 +834,184 @@ export async function registerRoutes(
     }
   });
 
+  // Scrape post by URL endpoint - supports TikTok and Instagram
+  app.post("/api/scrape-post", requireAuth, async (req: any, res) => {
+    try {
+      const { url, briefId } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Detect platform from URL
+      let platform: "tiktok" | "instagram" | null = null;
+      if (url.includes("tiktok.com")) {
+        platform = "tiktok";
+      } else if (url.includes("instagram.com")) {
+        platform = "instagram";
+      }
+
+      if (!platform) {
+        return res.status(400).json({ error: "URL must be from TikTok or Instagram" });
+      }
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ error: "Apify API token not configured. Please add APIFY_API_TOKEN to secrets." });
+      }
+
+      // Select the appropriate actor
+      const actorConfig = platform === "tiktok" 
+        ? APIFY_ACTORS.tiktokPostByUrl 
+        : APIFY_ACTORS.instagramPostByUrl;
+
+      // Build input for the actor
+      const input = {
+        [actorConfig.searchField]: [url],
+      };
+
+      console.log(`Scraping ${platform} post:`, url);
+
+      // Run the actor and wait for results
+      const items = await apifyService.runActorAndWait(actorConfig.actorId, input, 120000);
+
+      if (!items || items.length === 0) {
+        return res.status(404).json({ error: "Could not scrape post. It may be private or unavailable." });
+      }
+
+      const item = items[0];
+
+      // Normalize the response based on platform
+      let scrapedData: {
+        platform: string;
+        url: string;
+        caption: string;
+        author: string;
+        authorHandle: string;
+        likes: number;
+        comments: number;
+        shares?: number;
+        views?: number;
+        videoUrl?: string;
+        thumbnailUrl?: string;
+        hashtags?: string[];
+        postedAt?: string;
+      };
+
+      if (platform === "tiktok") {
+        scrapedData = {
+          platform: "tiktok",
+          url: item.url || url,
+          caption: item.description || item.text || "",
+          author: item.profile_username || item.authorMeta?.name || "",
+          authorHandle: item.profile_username || item.authorMeta?.nickname || "",
+          likes: item.digg_count || item.diggCount || item.likes || 0,
+          comments: item.comment_count || item.commentCount || item.comments || 0,
+          shares: item.share_count || item.shareCount || item.shares || 0,
+          views: item.play_count || item.playCount || item.plays || 0,
+          videoUrl: item.video_url || item.videoUrl || item.downloadAddr || undefined,
+          thumbnailUrl: item.cover || item.thumbnail || undefined,
+          hashtags: item.hashtags?.map((h: any) => typeof h === "string" ? h : h.name) || [],
+          postedAt: item.create_time || item.createTime || undefined,
+        };
+      } else {
+        // Instagram
+        scrapedData = {
+          platform: "instagram",
+          url: item.url || url,
+          caption: item.caption || item.description || "",
+          author: item.ownerFullName || item.ownerUsername || "",
+          authorHandle: item.ownerUsername || "",
+          likes: item.likesCount || item.likes || 0,
+          comments: item.commentsCount || item.comments || 0,
+          shares: undefined,
+          views: item.videoViewCount || item.videoPlayCount || undefined,
+          videoUrl: item.videoUrl || undefined,
+          thumbnailUrl: item.displayUrl || item.thumbnailUrl || undefined,
+          hashtags: item.hashtags || [],
+          postedAt: item.timestamp || undefined,
+        };
+      }
+
+      // If briefId provided, also analyze with AI
+      let analysis = null;
+      if (briefId) {
+        const brief = await storage.getBrandBrief(briefId);
+        if (brief && scrapedData.caption) {
+          // Analyze the scraped caption with OpenAI
+          const brandBrief = {
+            name: brief.name,
+            brandVoice: brief.brandVoice,
+            targetAudience: brief.targetAudience,
+            contentGoals: brief.contentGoals,
+          };
+          
+          // Use a simplified analysis for scraped text
+          try {
+            const analysisPrompt = `Analyze this viral ${platform} post and provide actionable insights:
+
+POST CAPTION:
+${scrapedData.caption}
+
+ENGAGEMENT METRICS:
+- Likes: ${scrapedData.likes}
+- Comments: ${scrapedData.comments}
+${scrapedData.views ? `- Views: ${scrapedData.views}` : ""}
+${scrapedData.shares ? `- Shares: ${scrapedData.shares}` : ""}
+
+BRAND CONTEXT:
+- Brand Voice: ${brandBrief.brandVoice}
+- Target Audience: ${brandBrief.targetAudience}
+- Content Goals: ${brandBrief.contentGoals}
+
+Provide analysis in this JSON structure:
+{
+  "whyThisWorked": "explanation of success factors",
+  "contentStructure": {
+    "hook": "the opening hook used",
+    "middleIdea": "the core value/message",
+    "payoff": "how it closes/CTA"
+  },
+  "hookRewrites": ["3 alternative hooks for your brand"],
+  "adaptationForMyChannel": {
+    "sameStructure": "how to use same structure",
+    "differentTopic": "topic adaptation for your niche",
+    "myTone": "how to match your brand voice",
+    "trendingAngle": "current trend to leverage"
+  },
+  "postAdvice": {
+    "captionAngle": "suggested caption approach",
+    "bestFormats": ["format suggestions"]
+  }
+}`;
+
+            const completion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                { role: "system", content: "You are a viral content analyst. Return only valid JSON." },
+                { role: "user", content: analysisPrompt }
+              ],
+              response_format: { type: "json_object" },
+            });
+
+            const responseText = completion.choices[0].message.content || "{}";
+            analysis = JSON.parse(responseText);
+          } catch (aiError) {
+            console.error("AI analysis failed:", aiError);
+          }
+        }
+      }
+
+      res.json({ 
+        scrapedData, 
+        analysis,
+        message: `Successfully scraped ${platform} post` 
+      });
+    } catch (error: any) {
+      console.error("Error scraping post:", error);
+      res.status(500).json({ error: error.message || "Failed to scrape post" });
+    }
+  });
+
   // Image upload endpoint
   const imageUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
   

@@ -59,6 +59,16 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     platform: "youtube",
     searchField: "urls",
   },
+  tiktokPostByUrl: {
+    actorId: "autoscraping/tiktok-posts-by-url",
+    platform: "tiktok",
+    searchField: "urls",
+  },
+  instagramPostByUrl: {
+    actorId: "apify/instagram-post-scraper",
+    platform: "instagram",
+    searchField: "directUrls",
+  },
 };
 
 export interface ApifyRunResult {
