@@ -225,7 +225,7 @@ export class ObjectStorageService {
       });
     }
     
-    const objectPath = `/objects/${fullPath}`;
+    const objectPath = `/objects/uploads/${objectId}${ext}`;
     return { objectPath, publicUrl: objectPath };
   }
 }
