@@ -4484,6 +4484,18 @@ export async function registerRoutes(
     }
   });
 
+  // Clear all listening hits for user
+  app.delete("/api/listening/hits/clear-all", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const deletedCount = await storage.clearListeningHits(userId);
+      res.json({ success: true, deletedCount });
+    } catch (error: any) {
+      console.error("Error clearing listening hits:", error);
+      res.status(500).json({ error: "Failed to clear listening hits" });
+    }
+  });
+
   // Generate an AI reply for a listening hit
   app.post("/api/listening/generate-reply", async (req, res) => {
     try {

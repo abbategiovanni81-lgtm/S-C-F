@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight, MessageCircle } from "lucide-react";
+import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight, MessageCircle, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -223,6 +224,27 @@ export default function SocialListening() {
       toast({
         title: "Scrape failed",
         description: error.message || "Failed to scrape comments",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/listening/hits/clear-all");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({
+        title: "Cleared!",
+        description: `Removed ${data.deletedCount} posts and comments.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Clear failed",
+        description: error.message || "Failed to clear posts",
         variant: "destructive",
       });
     },
@@ -699,20 +721,58 @@ export default function SocialListening() {
           </TabsList>
 
           <TabsContent value="inbox" className="space-y-4">
-            {/* Sort toggle */}
-            {pendingHits.length > 1 && (
+            {/* Sort toggle and Clear All */}
+            {pendingHits.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{pendingHits.length} engagement opportunities</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSortByOpportunity(!sortByOpportunity)}
-                    data-testid="button-toggle-sort"
-                  >
-                    <ArrowUpDown className="w-4 h-4 mr-2" />
-                    {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
-                  </Button>
+                  <p className="text-sm text-muted-foreground">{hits.length} total items ({pendingHits.length} pending)</p>
+                  <div className="flex items-center gap-2">
+                    {pendingHits.length > 1 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setSortByOpportunity(!sortByOpportunity)}
+                        data-testid="button-toggle-sort"
+                      >
+                        <ArrowUpDown className="w-4 h-4 mr-2" />
+                        {sortByOpportunity ? "Sorted by Opportunity" : "Sorted by Date"}
+                      </Button>
+                    )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          data-testid="button-clear-all"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Clear All
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear all posts and comments?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete all {hits.length} scraped posts and comments. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => clearAllMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {clearAllMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              "Clear All"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             )}

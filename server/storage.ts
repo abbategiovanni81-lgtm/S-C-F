@@ -76,6 +76,7 @@ export interface IStorage {
   getListeningHits(userId?: string, status?: string): Promise<ListeningHit[]>;
   getListeningHitsByBrief(briefId: string): Promise<ListeningHit[]>;
   updateListeningHit(id: string, data: Partial<InsertListeningHit>): Promise<ListeningHit | undefined>;
+  clearListeningHits(userId: string): Promise<number>;
   
   createReplyDraft(draft: InsertReplyDraft): Promise<ReplyDraft>;
   getReplyDrafts(userId?: string, status?: string): Promise<ReplyDraft[]>;
@@ -407,6 +408,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(listeningHits.id, id))
       .returning();
     return result[0];
+  }
+
+  async clearListeningHits(userId: string): Promise<number> {
+    const result = await db.delete(listeningHits)
+      .where(eq(listeningHits.userId, userId))
+      .returning();
+    return result.length;
   }
 
   async createReplyDraft(draft: InsertReplyDraft): Promise<ReplyDraft> {
