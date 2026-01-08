@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight } from "lucide-react";
+import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight, MessageCircle } from "lucide-react";
 import type { ListeningHit, ReplyDraft, TrendingTopic, BrandBrief } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -199,6 +199,27 @@ export default function SocialListening() {
       toast({
         title: "Scan failed",
         description: error.message || "Failed to scan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const scrapeCommentsMutation = useMutation({
+    mutationFn: async (hitId: string) => {
+      const res = await apiRequest("POST", `/api/listening/hits/${hitId}/scrape-comments`, { maxComments: 30 });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
+      toast({
+        title: "Comments scraped!",
+        description: `Found ${data.commentsImported} engagement opportunities from the comments.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Scrape failed",
+        description: error.message || "Failed to scrape comments",
         variant: "destructive",
       });
     },
@@ -796,6 +817,22 @@ export default function SocialListening() {
                                   <ExternalLink className="w-4 h-4 mr-1" />
                                   View
                                 </a>
+                              </Button>
+                            )}
+                            {hit.postUrl && ["youtube", "reddit", "tiktok", "instagram"].includes(hit.platform.toLowerCase()) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => scrapeCommentsMutation.mutate(hit.id)}
+                                disabled={scrapeCommentsMutation.isPending}
+                                data-testid={`button-scrape-comments-${hit.id}`}
+                              >
+                                {scrapeCommentsMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <MessageCircle className="w-4 h-4 mr-1" />
+                                )}
+                                Comments
                               </Button>
                             )}
                           </div>
