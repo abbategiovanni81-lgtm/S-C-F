@@ -556,3 +556,39 @@ export const insertVideoComparisonSchema = createInsertSchema(videoComparisons).
 
 export type InsertVideoComparison = z.infer<typeof insertVideoComparisonSchema>;
 export type VideoComparison = typeof videoComparisons.$inferSelect;
+
+// Edit Jobs - Queue for video/image editing operations
+export const EDIT_JOB_TYPES = ["video_trim", "video_split", "video_speed", "video_merge", "audio_sync", "text_overlay", "image_text"] as const;
+export type EditJobType = typeof EDIT_JOB_TYPES[number];
+
+export const EDIT_JOB_STATUS = ["pending", "queued", "processing", "completed", "failed"] as const;
+export type EditJobStatus = typeof EDIT_JOB_STATUS[number];
+
+export const editJobs = pgTable("edit_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  jobType: text("job_type").notNull(), // "video_trim", "video_split", "video_speed", "text_overlay", etc.
+  status: text("status").notNull().default("pending"), // "pending", "queued", "processing", "completed", "failed"
+  priority: text("priority").notNull().default("standard"), // "rush", "standard" (overnight)
+  sourceUrl: text("source_url"), // Original video/image URL
+  sourceType: text("source_type").notNull(), // "video" or "image"
+  editInstructions: jsonb("edit_instructions").notNull(), // JSON with all edit parameters
+  outputUrl: text("output_url"), // Final processed file URL
+  errorMessage: text("error_message"),
+  progress: integer("progress").default(0), // 0-100
+  estimatedCompletionAt: timestamp("estimated_completion_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertEditJobSchema = createInsertSchema(editJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEditJob = z.infer<typeof insertEditJobSchema>;
+export type EditJob = typeof editJobs.$inferSelect;

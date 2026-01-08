@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons, editJobs } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
@@ -34,7 +34,9 @@ import type {
   VideoAnalysisResult,
   InsertVideoAnalysisResult,
   VideoComparison,
-  InsertVideoComparison
+  InsertVideoComparison,
+  EditJob,
+  InsertEditJob
 } from "@shared/schema";
 import { eq, and, desc, gte, lte, between, sql, isNull, isNotNull } from "drizzle-orm";
 
@@ -146,6 +148,14 @@ export interface IStorage {
   getVideoComparison(id: string): Promise<VideoComparison | undefined>;
   updateVideoComparison(id: string, data: Partial<InsertVideoComparison>): Promise<VideoComparison | undefined>;
   deleteVideoComparison(id: string): Promise<void>;
+
+  // Edit Jobs
+  createEditJob(job: InsertEditJob): Promise<EditJob>;
+  getEditJobs(userId: string): Promise<EditJob[]>;
+  getEditJob(id: string): Promise<EditJob | undefined>;
+  getQueuedEditJobs(): Promise<EditJob[]>;
+  updateEditJob(id: string, data: Partial<InsertEditJob>): Promise<EditJob | undefined>;
+  deleteEditJob(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -767,6 +777,41 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVideoComparison(id: string): Promise<void> {
     await db.delete(videoComparisons).where(eq(videoComparisons.id, id));
+  }
+
+  // Edit Jobs
+  async createEditJob(job: InsertEditJob): Promise<EditJob> {
+    const result = await db.insert(editJobs).values(job).returning();
+    return result[0];
+  }
+
+  async getEditJobs(userId: string): Promise<EditJob[]> {
+    return db.select().from(editJobs)
+      .where(eq(editJobs.userId, userId))
+      .orderBy(desc(editJobs.createdAt));
+  }
+
+  async getEditJob(id: string): Promise<EditJob | undefined> {
+    const result = await db.select().from(editJobs).where(eq(editJobs.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getQueuedEditJobs(): Promise<EditJob[]> {
+    return db.select().from(editJobs)
+      .where(eq(editJobs.status, "queued"))
+      .orderBy(editJobs.createdAt);
+  }
+
+  async updateEditJob(id: string, data: Partial<InsertEditJob>): Promise<EditJob | undefined> {
+    const result = await db.update(editJobs)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(editJobs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEditJob(id: string): Promise<void> {
+    await db.delete(editJobs).where(eq(editJobs.id, id));
   }
 }
 
