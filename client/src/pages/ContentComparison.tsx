@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, Link as LinkIcon, Video, Image as ImageIcon, ArrowRight, BarChart2, Target, Lightbulb, CheckCircle, AlertCircle, X } from "lucide-react";
+import { Loader2, Upload, Link as LinkIcon, Video, Image as ImageIcon, ArrowRight, BarChart2, Target, Lightbulb, CheckCircle, AlertCircle, X, Wand2, BookOpen } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import type { GeneratedContent } from "@shared/schema";
 
 interface ContentMetadata {
@@ -538,6 +539,31 @@ export default function ContentComparison() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              </div>
+
+              {/* Generate Content from Comparison */}
+              <div className="pt-4 border-t space-y-3">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-primary" />
+                  Create Content Using These Insights
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Use the strengths and improvements from this comparison to generate new content
+                </p>
+                <div className="flex gap-3">
+                  <Link href="/content-queue">
+                    <Button className="gap-2" data-testid="button-generate-from-comparison">
+                      <Wand2 className="w-4 h-4" />
+                      Generate Video/Image Content
+                    </Button>
+                  </Link>
+                  <Link href="/blog-studio">
+                    <Button variant="outline" className="gap-2" data-testid="button-blog-from-comparison">
+                      <BookOpen className="w-4 h-4" />
+                      Create Blog Post
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </CardContent>
