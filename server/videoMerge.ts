@@ -49,17 +49,52 @@ async function ensureTempDir() {
 }
 
 async function downloadFile(url: string, outputPath: string): Promise<void> {
+  // Handle object storage paths (e.g., /objects/uploads/xxx.mp4)
+  if (url.startsWith("/objects/")) {
+    const privateDir = process.env.PRIVATE_OBJECT_DIR;
+    if (privateDir) {
+      try {
+        const gcsPath = url.replace("/objects/", "");
+        const objectPath = `${privateDir}/${gcsPath}`;
+        const parts = objectPath.startsWith("/") ? objectPath.slice(1).split("/") : objectPath.split("/");
+        const bucketName = parts[0];
+        const objectName = parts.slice(1).join("/");
+        
+        const bucket = objectStorageClient.bucket(bucketName);
+        const [buffer] = await bucket.file(objectName).download();
+        fs.writeFileSync(outputPath, buffer);
+        console.log(`[VideoMerge] Downloaded from object storage: ${url}`);
+        return;
+      } catch (storageError: any) {
+        console.log(`[VideoMerge] Object storage download failed, trying HTTP: ${storageError.message}`);
+        // Fall through to HTTP download
+      }
+    }
+    
+    // Fallback: Try HTTP download via localhost
+    const port = process.env.PORT || 5000;
+    const httpUrl = `http://localhost:${port}${url}`;
+    return downloadFromHttp(httpUrl, outputPath);
+  }
+  
   // Handle local paths (e.g., /generated-media/video-xxx.mp4)
   if (url.startsWith("/")) {
     const localPath = path.join(process.cwd(), "public", url);
     if (fs.existsSync(localPath)) {
       fs.copyFileSync(localPath, outputPath);
       return;
-    } else {
-      throw new Error(`Local file not found: ${localPath}`);
     }
+    
+    // Try HTTP fallback for local paths that might be served dynamically
+    const port = process.env.PORT || 5000;
+    const httpUrl = `http://localhost:${port}${url}`;
+    return downloadFromHttp(httpUrl, outputPath);
   }
   
+  return downloadFromHttp(url, outputPath);
+}
+
+async function downloadFromHttp(url: string, outputPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith("https") ? https : http;
     const file = fs.createWriteStream(outputPath);
