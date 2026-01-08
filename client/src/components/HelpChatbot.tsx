@@ -13,6 +13,44 @@ interface Message {
   content: string;
 }
 
+function formatChatMessage(text: string): React.ReactNode {
+  const lines = text.split(/\n+/);
+  
+  return lines.map((line, lineIndex) => {
+    let formatted = line
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-slate-200 dark:bg-slate-700 px-1 rounded text-xs">$1</code>');
+    
+    const numberedMatch = line.match(/^(\d+)\.\s*\*\*(.*?)\*\*:?\s*(.*)/);
+    if (numberedMatch) {
+      return (
+        <div key={lineIndex} className="mb-2">
+          <div className="font-semibold text-primary">{numberedMatch[1]}. {numberedMatch[2]}</div>
+          {numberedMatch[3] && <div className="ml-4 text-muted-foreground">{numberedMatch[3]}</div>}
+        </div>
+      );
+    }
+    
+    const bulletMatch = line.match(/^[-•]\s*(.*)/);
+    if (bulletMatch) {
+      return (
+        <div key={lineIndex} className="ml-2 mb-1 flex gap-1">
+          <span>•</span>
+          <span dangerouslySetInnerHTML={{ __html: formatted }} />
+        </div>
+      );
+    }
+    
+    if (line.trim()) {
+      return (
+        <p key={lineIndex} className="mb-2" dangerouslySetInnerHTML={{ __html: formatted }} />
+      );
+    }
+    return null;
+  });
+}
+
 export function HelpChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -115,14 +153,14 @@ export function HelpChatbot() {
                     </div>
                   )}
                   <div
-                    className={`rounded-lg px-3 py-2 max-w-[80%] text-sm ${
+                    className={`rounded-lg px-3 py-2 max-w-[85%] text-sm ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
                     }`}
                     data-testid={`message-${msg.role}-${i}`}
                   >
-                    {msg.content}
+                    {msg.role === "assistant" ? formatChatMessage(msg.content) : msg.content}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
