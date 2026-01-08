@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare, Star, Check } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare, Star, Check, Type } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -61,7 +61,7 @@ export default function Landing() {
         <div id="how-it-works" className="max-w-6xl mx-auto mb-12 md:mb-16 pt-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-8">How It Works</h2>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4 mb-8">
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
               <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">1</div>
               <Zap className="h-5 w-5 text-purple-400 mx-auto mb-1" />
@@ -99,6 +99,20 @@ export default function Landing() {
             
             <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
               <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">6</div>
+              <Scissors className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Video to Clips</h3>
+              <p className="text-gray-400 text-[10px]">Split & organize</p>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">7</div>
+              <Type className="h-5 w-5 text-purple-400 mx-auto mb-1" />
+              <h3 className="text-white font-semibold mb-1 text-xs">Editor</h3>
+              <p className="text-gray-400 text-[10px]">Text overlays & style</p>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 rounded-xl p-3 md:p-4 text-center">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-2 text-white font-bold text-xs">8</div>
               <Calendar className="h-5 w-5 text-purple-400 mx-auto mb-1" />
               <h3 className="text-white font-semibold mb-1 text-xs">Schedule & Post</h3>
               <p className="text-gray-400 text-[10px]">YouTube, TikTok, IG</p>
@@ -247,7 +261,9 @@ export default function Landing() {
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 60 videos, 500 images</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 450 lipsync, 15 avatars</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Studio included</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Studio Package + Getty</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Steve AI video engine</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Getty Images library</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Priority support</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 6 team logins</li>
               </ul>
             </div>
