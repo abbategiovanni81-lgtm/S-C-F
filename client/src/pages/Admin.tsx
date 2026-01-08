@@ -4,11 +4,40 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Shield, Users, Crown, User, Loader2, FileText, Video, Image, Mic, Calendar, Link2, DollarSign } from "lucide-react";
+import { Shield, Users, Crown, User, Loader2, FileText, Video, Image, Mic, Calendar, Link2, DollarSign, Plus, Pencil, Trash2, Eye, Globe } from "lucide-react";
 import { Redirect } from "wouter";
+
+interface Blog {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string | null;
+  body: string;
+  heroImageUrl: string | null;
+  metaDescription: string | null;
+  metaKeywords: string | null;
+  authorName: string | null;
+  status: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/--+/g, '-')
+    .trim();
+}
 
 interface UserStats {
   brandBriefs: number;
@@ -42,6 +71,34 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [blogDialogOpen, setBlogDialogOpen] = useState(false);
+  const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const [blogForm, setBlogForm] = useState({
+    title: "",
+    slug: "",
+    summary: "",
+    body: "",
+    heroImageUrl: "",
+    metaDescription: "",
+    metaKeywords: "",
+    authorName: "",
+    status: "draft"
+  });
+
+  const resetBlogForm = () => {
+    setBlogForm({
+      title: "",
+      slug: "",
+      summary: "",
+      body: "",
+      heroImageUrl: "",
+      metaDescription: "",
+      metaKeywords: "",
+      authorName: "",
+      status: "draft"
+    });
+    setEditingBlog(null);
+  };
   
   const { data, isLoading, error } = useQuery<{ users: AdminUser[] }>({
     queryKey: ["/api/admin/users"],
@@ -75,6 +132,80 @@ export default function Admin() {
       toast({ title: "Failed to update tier", description: error.message, variant: "destructive" });
     },
   });
+
+  const { data: blogsData, isLoading: blogsLoading } = useQuery<{ blogs: Blog[] }>({
+    queryKey: ["/api/admin/blogs"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/blogs", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch blogs");
+      return res.json();
+    },
+  });
+
+  const saveBlogMutation = useMutation({
+    mutationFn: async (data: typeof blogForm & { id?: string }) => {
+      const url = data.id ? `/api/admin/blogs/${data.id}` : "/api/admin/blogs";
+      const method = data.id ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save blog");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blogs"] });
+      toast({ title: editingBlog ? "Blog updated" : "Blog created" });
+      setBlogDialogOpen(false);
+      resetBlogForm();
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to save blog", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteBlogMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/blogs/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete blog");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blogs"] });
+      toast({ title: "Blog deleted" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to delete blog", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const openEditBlog = (blog: Blog) => {
+    setEditingBlog(blog);
+    setBlogForm({
+      title: blog.title,
+      slug: blog.slug,
+      summary: blog.summary || "",
+      body: blog.body,
+      heroImageUrl: blog.heroImageUrl || "",
+      metaDescription: blog.metaDescription || "",
+      metaKeywords: blog.metaKeywords || "",
+      authorName: blog.authorName || "",
+      status: blog.status
+    });
+    setBlogDialogOpen(true);
+  };
+
+  const handleSaveBlog = () => {
+    saveBlogMutation.mutate(editingBlog ? { ...blogForm, id: editingBlog.id } : blogForm);
+  };
 
   if (!isOwner) {
     return <Redirect to="/dashboard" />;
@@ -288,6 +419,226 @@ export default function Admin() {
                         )}
                       </div>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SEO Blog Manager */}
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-green-500" />
+                <CardTitle>SEO Blog Manager</CardTitle>
+              </div>
+              <Dialog open={blogDialogOpen} onOpenChange={(open) => {
+                setBlogDialogOpen(open);
+                if (!open) resetBlogForm();
+              }}>
+                <DialogTrigger asChild>
+                  <Button size="sm" data-testid="button-new-blog">
+                    <Plus className="h-4 w-4 mr-2" /> New Blog
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{editingBlog ? "Edit Blog" : "Create New Blog"}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Title *</Label>
+                        <Input
+                          value={blogForm.title}
+                          onChange={(e) => {
+                            setBlogForm(prev => ({
+                              ...prev,
+                              title: e.target.value,
+                              slug: prev.slug || slugify(e.target.value)
+                            }));
+                          }}
+                          placeholder="Blog post title"
+                          data-testid="input-blog-title"
+                        />
+                      </div>
+                      <div>
+                        <Label>URL Slug *</Label>
+                        <Input
+                          value={blogForm.slug}
+                          onChange={(e) => setBlogForm(prev => ({ ...prev, slug: e.target.value }))}
+                          placeholder="url-friendly-slug"
+                          data-testid="input-blog-slug"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">/blog/{blogForm.slug || "your-slug"}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Summary</Label>
+                      <Textarea
+                        value={blogForm.summary}
+                        onChange={(e) => setBlogForm(prev => ({ ...prev, summary: e.target.value }))}
+                        placeholder="Brief description for blog listings..."
+                        rows={2}
+                        data-testid="input-blog-summary"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Content (Markdown) *</Label>
+                      <Textarea
+                        value={blogForm.body}
+                        onChange={(e) => setBlogForm(prev => ({ ...prev, body: e.target.value }))}
+                        placeholder="Write your blog content in Markdown..."
+                        rows={10}
+                        className="font-mono text-sm"
+                        data-testid="input-blog-body"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Hero Image URL</Label>
+                        <Input
+                          value={blogForm.heroImageUrl}
+                          onChange={(e) => setBlogForm(prev => ({ ...prev, heroImageUrl: e.target.value }))}
+                          placeholder="https://example.com/image.jpg"
+                          data-testid="input-blog-hero"
+                        />
+                      </div>
+                      <div>
+                        <Label>Author Name</Label>
+                        <Input
+                          value={blogForm.authorName}
+                          onChange={(e) => setBlogForm(prev => ({ ...prev, authorName: e.target.value }))}
+                          placeholder="Author name"
+                          data-testid="input-blog-author"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4 space-y-4">
+                      <h4 className="font-medium text-sm text-muted-foreground">SEO Meta Tags</h4>
+                      <div>
+                        <Label>Meta Description</Label>
+                        <Textarea
+                          value={blogForm.metaDescription}
+                          onChange={(e) => setBlogForm(prev => ({ ...prev, metaDescription: e.target.value }))}
+                          placeholder="SEO description for search results (150-160 chars)"
+                          rows={2}
+                          maxLength={160}
+                          data-testid="input-blog-meta-desc"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1 text-right">
+                          {blogForm.metaDescription.length}/160 characters
+                        </p>
+                      </div>
+                      <div>
+                        <Label>Meta Keywords</Label>
+                        <Input
+                          value={blogForm.metaKeywords}
+                          onChange={(e) => setBlogForm(prev => ({ ...prev, metaKeywords: e.target.value }))}
+                          placeholder="keyword1, keyword2, keyword3"
+                          data-testid="input-blog-keywords"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-4 border-t">
+                      <div className="flex-1">
+                        <Label>Status</Label>
+                        <Select value={blogForm.status} onValueChange={(value) => setBlogForm(prev => ({ ...prev, status: value }))}>
+                          <SelectTrigger data-testid="select-blog-status">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="published">Published</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2 pt-6">
+                        <Button variant="outline" onClick={() => setBlogDialogOpen(false)}>Cancel</Button>
+                        <Button 
+                          onClick={handleSaveBlog}
+                          disabled={!blogForm.title || !blogForm.slug || !blogForm.body || saveBlogMutation.isPending}
+                          data-testid="button-save-blog"
+                        >
+                          {saveBlogMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {editingBlog ? "Update Blog" : "Create Blog"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <CardDescription>Create and manage SEO blog posts for the platform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {blogsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : !blogsData?.blogs?.length ? (
+              <p className="text-center text-muted-foreground py-8">No blogs yet. Create your first blog post!</p>
+            ) : (
+              <div className="border rounded-lg divide-y">
+                {blogsData.blogs.map((blog) => (
+                  <div key={blog.id} className="p-4 flex items-center justify-between gap-4" data-testid={`blog-row-${blog.id}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium truncate">{blog.title}</p>
+                        <Badge variant={blog.status === "published" ? "default" : "secondary"}>
+                          {blog.status === "published" ? "Published" : "Draft"}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">/blog/{blog.slug}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {blog.status === "published" && blog.publishedAt 
+                          ? `Published: ${new Date(blog.publishedAt).toLocaleDateString()}`
+                          : `Created: ${new Date(blog.createdAt).toLocaleDateString()}`
+                        }
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {blog.status === "published" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(`/blog/${blog.slug}`, "_blank")}
+                          title="View"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditBlog(blog)}
+                        title="Edit"
+                        data-testid={`button-edit-blog-${blog.id}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this blog?")) {
+                            deleteBlogMutation.mutate(blog.id);
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete"
+                        data-testid={`button-delete-blog-${blog.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

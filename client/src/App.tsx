@@ -29,6 +29,8 @@ import RedditManager from "@/pages/RedditManager";
 import VideoToClips from "@/pages/VideoToClips";
 import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
+import Blogs from "@/pages/Blogs";
+import BlogPost from "@/pages/BlogPost";
 
 function AuthenticatedRoutes() {
   return (
@@ -69,6 +71,8 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/testimonials" component={Testimonials} />
+      <Route path="/blog" component={Blogs} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route>
         {() => {
           if (isLoading) {
