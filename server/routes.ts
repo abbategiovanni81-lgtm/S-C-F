@@ -7470,5 +7470,173 @@ Respond in JSON:
     }
   });
 
+  // ============ EDIT JOBS ============
+
+  app.get("/api/edit-jobs", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const jobs = await storage.getEditJobs(userId);
+      res.json(jobs);
+    } catch (error: any) {
+      console.error("Get edit jobs error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/edit-jobs/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const job = await storage.getEditJob(req.params.id);
+      if (!job || job.userId !== userId) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      res.json(job);
+    } catch (error: any) {
+      console.error("Get edit job error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/edit-jobs", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { name, jobType, priority, sourceUrl, sourceType, editInstructions } = req.body;
+
+      if (!name || !jobType || !sourceType || !editInstructions) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const job = await storage.createEditJob({
+        userId,
+        name,
+        jobType,
+        priority: priority || "standard",
+        sourceUrl,
+        sourceType,
+        editInstructions,
+        status: priority === "rush" ? "queued" : "pending",
+      });
+
+      res.json(job);
+    } catch (error: any) {
+      console.error("Create edit job error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/edit-jobs/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const job = await storage.getEditJob(req.params.id);
+      if (!job || job.userId !== userId) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      const updated = await storage.updateEditJob(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Update edit job error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/edit-jobs/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const job = await storage.getEditJob(req.params.id);
+      if (!job || job.userId !== userId) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      await storage.deleteEditJob(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete edit job error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/edit-jobs/text-overlay", requireAuth, upload.single("image"), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const file = req.file;
+      const { text, fontSize, fontColor, fontFamily, position, backgroundColor } = req.body;
+
+      if (!file) {
+        return res.status(400).json({ error: "Image file required" });
+      }
+
+      const sharp = (await import("sharp")).default;
+      
+      const parsedFontSize = parseInt(fontSize) || 48;
+      const parsedFontColor = fontColor || "#ffffff";
+      const parsedBgColor = backgroundColor || "transparent";
+      const parsedPosition = position || "center";
+      const parsedFontFamily = fontFamily || "Arial, sans-serif";
+      
+      const metadata = await sharp(file.buffer).metadata();
+      const width = metadata.width || 1080;
+      const height = metadata.height || 1080;
+
+      let textX = width / 2;
+      let textY = height / 2;
+      let textAnchor = "middle";
+
+      if (parsedPosition === "top") textY = parsedFontSize + 20;
+      else if (parsedPosition === "bottom") textY = height - 40;
+      else if (parsedPosition === "top-left") { textX = 20; textY = parsedFontSize + 20; textAnchor = "start"; }
+      else if (parsedPosition === "top-right") { textX = width - 20; textY = parsedFontSize + 20; textAnchor = "end"; }
+      else if (parsedPosition === "bottom-left") { textX = 20; textY = height - 40; textAnchor = "start"; }
+      else if (parsedPosition === "bottom-right") { textX = width - 20; textY = height - 40; textAnchor = "end"; }
+
+      const textLines = (text || "Sample Text").split("\\n");
+      const lineHeight = parsedFontSize * 1.2;
+      const textElements = textLines.map((line: string, i: number) => 
+        `<text x="${textX}" y="${textY + (i * lineHeight)}" font-size="${parsedFontSize}" font-family="${parsedFontFamily}" fill="${parsedFontColor}" text-anchor="${textAnchor}" dominant-baseline="middle">${line.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&#39;', '"': '&quot;' }[c] || c))}</text>`
+      ).join("");
+
+      const svgOverlay = Buffer.from(`
+        <svg width="${width}" height="${height}">
+          ${parsedBgColor !== "transparent" ? `<rect x="0" y="${textY - parsedFontSize}" width="${width}" height="${lineHeight * textLines.length + 20}" fill="${parsedBgColor}" opacity="0.7"/>` : ""}
+          ${textElements}
+        </svg>
+      `);
+
+      const outputBuffer = await sharp(file.buffer)
+        .composite([{ input: svgOverlay, top: 0, left: 0 }])
+        .png()
+        .toBuffer();
+
+      const { Storage } = await import("@google-cloud/storage");
+      const gcsStorage = new Storage();
+      const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+      
+      if (!bucketId) {
+        return res.status(500).json({ error: "Object storage not configured" });
+      }
+
+      const bucket = gcsStorage.bucket(bucketId);
+      const fileName = `public/edited/${userId}-text-overlay-${Date.now()}.png`;
+      const gcsFile = bucket.file(fileName);
+
+      await gcsFile.save(outputBuffer, {
+        contentType: "image/png",
+        metadata: { cacheControl: "public, max-age=31536000" },
+      });
+
+      const publicUrl = `/objects/${fileName}`;
+
+      res.json({ 
+        success: true, 
+        outputUrl: publicUrl,
+        width,
+        height
+      });
+    } catch (error: any) {
+      console.error("Text overlay error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
