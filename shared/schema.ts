@@ -72,6 +72,14 @@ export const generatedContent = pgTable("generated_content", {
   scheduledFor: timestamp("scheduled_for"),
   archivedAt: timestamp("archived_at"), // Null = not archived, timestamp = archived
   deletedAt: timestamp("deleted_at"), // Null = not deleted, timestamp = soft deleted
+  // Blog-specific fields (used when contentType includes "blog")
+  blogTitle: text("blog_title"),
+  blogSlug: text("blog_slug"),
+  blogSummary: text("blog_summary"),
+  blogBody: text("blog_body"), // Markdown content
+  blogMetaDescription: text("blog_meta_description"), // SEO description (150-160 chars)
+  blogMetaKeywords: text("blog_meta_keywords"), // Comma-separated keywords
+  blogHeroImageUrl: text("blog_hero_image_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
