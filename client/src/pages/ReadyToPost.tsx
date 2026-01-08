@@ -389,32 +389,53 @@ export default function ReadyToPost() {
             </div>
           )}
 
-          {/* Single Image Display */}
-          {hasImage && !hasCarouselImages && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ImageIcon className="w-4 h-4 text-blue-500" />
-                Generated Image
+          {/* Single/Multiple Image Display - show both generated and uploaded */}
+          {!hasCarouselImages && (() => {
+            const genImg = metadata?.generatedImageUrl;
+            const uploadImg = metadata?.uploadedImageUrl;
+            const images = [
+              genImg && { url: genImg, label: "AI Generated", type: "generated" },
+              uploadImg && { url: uploadImg, label: "Uploaded", type: "uploaded" }
+            ].filter(Boolean) as { url: string; label: string; type: string }[];
+            
+            if (images.length === 0) return null;
+            
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  Your Images ({images.length})
+                </div>
+                <div className="grid grid-cols-2 gap-3 max-w-md">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <img 
+                        src={img.url} 
+                        alt={img.label} 
+                        className="w-full rounded-lg border"
+                        data-testid={`image-preview-${content.id}-${img.type}`}
+                      />
+                      <span className={`absolute top-1 left-1 text-white text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                        img.type === "generated" ? "bg-purple-600" : "bg-blue-600"
+                      }`}>
+                        {img.label}
+                      </span>
+                      <a
+                        href={img.url}
+                        download={`${img.type}-image-${content.id}.png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
+                        data-testid={`link-download-${img.type}-${content.id}`}
+                      >
+                        <Download className="w-3 h-3" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <img 
-                src={imageUrl} 
-                alt="Generated content" 
-                className="w-full max-w-md rounded-lg border"
-                data-testid={`image-preview-${content.id}`}
-              />
-              <a
-                href={imageUrl}
-                download={`image-${content.id}.png`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                data-testid={`link-download-image-${content.id}`}
-              >
-                <Download className="w-4 h-4" />
-                Download Image
-              </a>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Carousel Images Display */}
           {hasCarouselImages && (
