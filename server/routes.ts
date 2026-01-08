@@ -4652,9 +4652,9 @@ Provide analysis in this JSON structure:
   // ===== Social Listening Endpoints =====
   
   // Get listening hits (posts found matching keywords)
-  app.get("/api/listening/hits", async (req, res) => {
+  app.get("/api/listening/hits", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const status = req.query.status as string | undefined;
       const hits = await storage.getListeningHits(userId, status);
       res.json(hits);
@@ -4721,12 +4721,17 @@ Provide analysis in this JSON structure:
   });
 
   // Update a listening hit status
-  app.patch("/api/listening/hits/:id", async (req, res) => {
+  app.patch("/api/listening/hits/:id", requireAuth, async (req: any, res) => {
     try {
-      const hit = await storage.updateListeningHit(req.params.id, req.body);
-      if (!hit) {
+      const userId = req.userId;
+      // First verify the hit belongs to this user
+      const existingHits = await storage.getListeningHits(userId);
+      const existingHit = existingHits.find(h => h.id === req.params.id);
+      if (!existingHit) {
         return res.status(404).json({ error: "Listening hit not found" });
       }
+      
+      const hit = await storage.updateListeningHit(req.params.id, req.body);
       res.json(hit);
     } catch (error: any) {
       console.error("Error updating listening hit:", error);
@@ -4747,16 +4752,17 @@ Provide analysis in this JSON structure:
   });
 
   // Generate an AI reply for a listening hit
-  app.post("/api/listening/generate-reply", async (req, res) => {
+  app.post("/api/listening/generate-reply", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.userId;
       const { hitId, briefId, replyTone } = req.body;
 
       if (!hitId) {
         return res.status(400).json({ error: "hitId is required" });
       }
 
-      // Get the listening hit
-      const hits = await storage.getListeningHits();
+      // Get the listening hit - only for this user
+      const hits = await storage.getListeningHits(userId);
       const hit = hits.find(h => h.id === hitId);
       if (!hit) {
         return res.status(404).json({ error: "Listening hit not found" });
@@ -4809,9 +4815,9 @@ Provide analysis in this JSON structure:
   });
 
   // Get reply drafts
-  app.get("/api/listening/drafts", async (req, res) => {
+  app.get("/api/listening/drafts", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const status = req.query.status as string | undefined;
       const drafts = await storage.getReplyDrafts(userId, status);
       res.json(drafts);
@@ -4822,12 +4828,17 @@ Provide analysis in this JSON structure:
   });
 
   // Update a reply draft
-  app.patch("/api/listening/drafts/:id", async (req, res) => {
+  app.patch("/api/listening/drafts/:id", requireAuth, async (req: any, res) => {
     try {
-      const draft = await storage.updateReplyDraft(req.params.id, req.body);
-      if (!draft) {
+      const userId = req.userId;
+      // Verify the draft belongs to this user
+      const existingDrafts = await storage.getReplyDrafts(userId);
+      const existingDraft = existingDrafts.find(d => d.id === req.params.id);
+      if (!existingDraft) {
         return res.status(404).json({ error: "Reply draft not found" });
       }
+      
+      const draft = await storage.updateReplyDraft(req.params.id, req.body);
       res.json(draft);
     } catch (error: any) {
       console.error("Error updating reply draft:", error);
@@ -4979,8 +4990,9 @@ Provide analysis in this JSON structure:
   });
 
   // Start a scan using Apify scrapers
-  app.post("/api/listening/scan", async (req, res) => {
+  app.post("/api/listening/scan", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.userId;
       const { briefId, platforms, maxItems = 20 } = req.body;
 
       if (!apifyService.isConfigured()) {
@@ -4997,6 +5009,11 @@ Provide analysis in this JSON structure:
       const brief = await storage.getBrandBrief(briefId);
       if (!brief) {
         return res.status(404).json({ error: "Brand brief not found" });
+      }
+      
+      // Verify the brief belongs to this user
+      if (brief.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
 
       const keywords = extractKeywordsFromBrief({
@@ -5103,9 +5120,9 @@ Provide analysis in this JSON structure:
   });
 
   // Get scan history
-  app.get("/api/listening/scans", async (req, res) => {
+  app.get("/api/listening/scans", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const briefId = req.query.briefId as string | undefined;
       const scans = await storage.getScanRuns(userId, briefId);
       res.json(scans);
