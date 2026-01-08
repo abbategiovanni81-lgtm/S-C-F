@@ -746,7 +746,7 @@ export default function Editor() {
                           <p className="text-sm text-muted-foreground">
                             Type: {job.jobType.replace("_", " ")} | Created: {new Date(job.createdAt).toLocaleString()}
                           </p>
-                          {job.progress > 0 && job.progress < 100 && (
+                          {job.progress != null && job.progress > 0 && job.progress < 100 && (
                             <div className="mt-2">
                               <div className="h-2 bg-muted rounded-full overflow-hidden">
                                 <div
@@ -762,7 +762,26 @@ export default function Editor() {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {job.outputUrl && (
+                          {job.status === "completed" && job.outputUrl && (
+                            <>
+                              <Button asChild size="sm" variant="outline">
+                                <a href={job.outputUrl} download>
+                                  <Download className="w-4 h-4" />
+                                </a>
+                              </Button>
+                              <Link href="/edit-merge">
+                                <Button size="sm" variant="outline" data-testid={`button-job-edit-merge-${job.id}`}>
+                                  <Scissors className="w-4 h-4 mr-1" /> Edit & Merge
+                                </Button>
+                              </Link>
+                              <Link href="/ready-to-post">
+                                <Button size="sm" data-testid={`button-job-ready-${job.id}`}>
+                                  <Send className="w-4 h-4 mr-1" /> Ready to Post
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                          {job.status !== "completed" && job.outputUrl && (
                             <Button asChild size="sm" variant="outline">
                               <a href={job.outputUrl} download>
                                 <Download className="w-4 h-4" />
