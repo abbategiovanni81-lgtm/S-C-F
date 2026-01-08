@@ -15,7 +15,8 @@ import { Link } from "wouter";
 import { 
   Type, Image as ImageIcon, Video, Clock, Loader2, Upload, 
   Trash2, Download, RefreshCw, Scissors, Zap, Moon, CheckCircle,
-  XCircle, AlertCircle, Play, Pause, ArrowRight, Send
+  XCircle, AlertCircle, Play, Pause, ArrowRight, Send,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 import type { EditJob, GeneratedContent } from "@shared/schema";
 
@@ -55,6 +56,14 @@ export default function Editor() {
   const [sourceContentId, setSourceContentId] = useState<string | null>(null);
   const [sourceContent, setSourceContent] = useState<GeneratedContent | null>(null);
 
+  // Carousel/multi-image state
+  const [carouselImages, setCarouselImages] = useState<Array<{
+    imageUrl: string;
+    textOverlay: string;
+    outputUrl?: string;
+  }>>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   // Text overlay state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -86,7 +95,7 @@ export default function Editor() {
     queryKey: ["/api/content?status=approved"],
   });
 
-  // Load content from URL params
+  // Load content from URL params - supports carousels with multiple images
   useEffect(() => {
     if (params.contentId && approvedContent.length > 0 && !sourceContentId) {
       const content = approvedContent.find(c => c.id === params.contentId);
@@ -94,28 +103,72 @@ export default function Editor() {
         setSourceContentId(content.id);
         setSourceContent(content);
         
-        // Get image URL from content metadata
         const metadata = content.generationMetadata as any;
-        const imageUrl = content.thumbnailUrl || 
-          metadata?.generatedImageUrl || 
-          metadata?.generatedCarouselImages?.[0]?.imageUrl;
         
-        if (imageUrl) {
-          // Load image from URL
-          setImagePreview(imageUrl);
+        // Check for carousel content with multiple images
+        if (metadata?.generatedCarouselImages && metadata.generatedCarouselImages.length > 0) {
+          // Load all carousel images
+          const slides = metadata.carouselPrompts?.slides || [];
+          const images = metadata.generatedCarouselImages.map((img: any, idx: number) => ({
+            imageUrl: img.imageUrl,
+            textOverlay: slides[idx]?.textOverlay || "",
+            outputUrl: undefined,
+          }));
           
-          // Get text overlay from metadata
-          const textOverlay = metadata?.imagePrompts?.textOverlay || 
-            metadata?.carouselPrompts?.slides?.[0]?.textOverlay || "";
-          if (textOverlay) {
-            setOverlayText(textOverlay);
+          setCarouselImages(images);
+          setCurrentImageIndex(0);
+          setImagePreview(images[0].imageUrl);
+          setOverlayText(images[0].textOverlay || "Your Text Here");
+          
+          toast({ 
+            title: "Carousel loaded", 
+            description: `${images.length} images loaded. Use arrows to navigate between slides.` 
+          });
+        } else {
+          // Single image content
+          const imageUrl = content.thumbnailUrl || 
+            metadata?.generatedImageUrl;
+          
+          if (imageUrl) {
+            setCarouselImages([{
+              imageUrl,
+              textOverlay: metadata?.imagePrompts?.textOverlay || "",
+            }]);
+            setCurrentImageIndex(0);
+            setImagePreview(imageUrl);
+            
+            const textOverlay = metadata?.imagePrompts?.textOverlay || "";
+            if (textOverlay) {
+              setOverlayText(textOverlay);
+            }
+            
+            toast({ title: "Content loaded", description: "Image loaded from Content Queue. Add your text overlay." });
           }
-          
-          toast({ title: "Content loaded", description: "Image loaded from Content Queue. Add your text overlay." });
         }
       }
     }
   }, [params.contentId, approvedContent, sourceContentId, toast]);
+  
+  // Navigate carousel images
+  const handlePrevImage = () => {
+    if (carouselImages.length > 1 && currentImageIndex > 0) {
+      const newIndex = currentImageIndex - 1;
+      setCurrentImageIndex(newIndex);
+      setImagePreview(carouselImages[newIndex].outputUrl || carouselImages[newIndex].imageUrl);
+      setOverlayText(carouselImages[newIndex].textOverlay || "Your Text Here");
+      setOutputUrl(carouselImages[newIndex].outputUrl || null);
+    }
+  };
+  
+  const handleNextImage = () => {
+    if (carouselImages.length > 1 && currentImageIndex < carouselImages.length - 1) {
+      const newIndex = currentImageIndex + 1;
+      setCurrentImageIndex(newIndex);
+      setImagePreview(carouselImages[newIndex].outputUrl || carouselImages[newIndex].imageUrl);
+      setOverlayText(carouselImages[newIndex].textOverlay || "Your Text Here");
+      setOutputUrl(carouselImages[newIndex].outputUrl || null);
+    }
+  };
 
   // Handle image selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,9 +195,12 @@ export default function Editor() {
     try {
       const formData = new FormData();
       
-      // If we have a file, use it; otherwise use the URL
+      // If we have a file, use it; otherwise use the URL from current carousel image
       if (selectedImage) {
         formData.append("image", selectedImage);
+      } else if (carouselImages.length > 0) {
+        // Use original image URL for processing (not output which may already have overlay)
+        formData.append("imageUrl", carouselImages[currentImageIndex].imageUrl);
       } else if (imagePreview) {
         formData.append("imageUrl", imagePreview);
       }
@@ -172,7 +228,27 @@ export default function Editor() {
 
       const data = await res.json();
       setOutputUrl(data.outputUrl);
-      toast({ title: "Text overlay applied successfully!" });
+      
+      // Save output to carousel array
+      if (carouselImages.length > 0) {
+        const updatedImages = [...carouselImages];
+        updatedImages[currentImageIndex] = {
+          ...updatedImages[currentImageIndex],
+          outputUrl: data.outputUrl,
+          textOverlay: overlayText,
+        };
+        setCarouselImages(updatedImages);
+        
+        const editedCount = updatedImages.filter(img => img.outputUrl).length;
+        toast({ 
+          title: "Text overlay applied!", 
+          description: carouselImages.length > 1 
+            ? `Slide ${currentImageIndex + 1}/${carouselImages.length} edited (${editedCount} total)` 
+            : undefined 
+        });
+      } else {
+        toast({ title: "Text overlay applied successfully!" });
+      }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -457,11 +533,66 @@ export default function Editor() {
               {/* Preview */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ImageIcon className="w-5 h-5" /> Preview
+                  <CardTitle className="flex items-center gap-2 justify-between">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="w-5 h-5" /> Preview
+                    </div>
+                    {carouselImages.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handlePrevImage}
+                          disabled={currentImageIndex === 0}
+                          data-testid="button-prev-slide"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-sm font-normal min-w-[60px] text-center">
+                          {currentImageIndex + 1} / {carouselImages.length}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={handleNextImage}
+                          disabled={currentImageIndex === carouselImages.length - 1}
+                          data-testid="button-next-slide"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {/* Carousel thumbnail strip */}
+                  {carouselImages.length > 1 && (
+                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                      {carouselImages.map((img, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setCurrentImageIndex(idx);
+                            setImagePreview(img.outputUrl || img.imageUrl);
+                            setOverlayText(img.textOverlay || "Your Text Here");
+                            setOutputUrl(img.outputUrl || null);
+                          }}
+                          className={`relative flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-all ${
+                            idx === currentImageIndex ? "border-primary ring-2 ring-primary/50" : "border-muted hover:border-muted-foreground/50"
+                          }`}
+                          data-testid={`button-slide-${idx}`}
+                        >
+                          <img src={img.outputUrl || img.imageUrl} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                          {img.outputUrl && (
+                            <div className="absolute bottom-0 right-0 bg-green-500 text-white p-0.5 rounded-tl">
+                              <CheckCircle className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
                   <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                     {outputUrl ? (
                       <img
