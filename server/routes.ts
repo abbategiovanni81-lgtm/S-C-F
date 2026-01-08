@@ -7778,15 +7778,13 @@ Respond in JSON:
       if (file) {
         imageBuffer = file.buffer;
       } else if (imageUrl) {
-        // Fetch image from URL
-        const { Storage } = await import("@google-cloud/storage");
-        const gcsStorage = new Storage();
+        // Use the properly configured objectStorageClient from objectStorage.ts
         const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
         
         if (imageUrl.startsWith("/objects/")) {
-          // It's a GCS path
+          // It's an object storage path - use the configured client
           const gcsPath = imageUrl.replace("/objects/", "");
-          const bucket = gcsStorage.bucket(bucketId!);
+          const bucket = objectStorageClient.bucket(bucketId!);
           const [buffer] = await bucket.file(gcsPath).download();
           imageBuffer = buffer;
         } else if (imageUrl.startsWith("http")) {
@@ -7841,15 +7839,14 @@ Respond in JSON:
         .png()
         .toBuffer();
 
-      const { Storage } = await import("@google-cloud/storage");
-      const gcsStorage = new Storage();
+      // Use the properly configured objectStorageClient
       const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
       
       if (!bucketId) {
         return res.status(500).json({ error: "Object storage not configured" });
       }
 
-      const bucket = gcsStorage.bucket(bucketId);
+      const bucket = objectStorageClient.bucket(bucketId);
       const fileName = `public/edited/${userId}-text-overlay-${Date.now()}.png`;
       const gcsFile = bucket.file(fileName);
 
