@@ -472,3 +472,87 @@ export const insertVideoClipSchema = createInsertSchema(videoClips).omit({
 
 export type InsertVideoClip = z.infer<typeof insertVideoClipSchema>;
 export type VideoClip = typeof videoClips.$inferSelect;
+
+// Content Analysis - YouTube Videos with transcripts
+export const analyzedVideos = pgTable("analyzed_videos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  videoId: text("video_id").notNull(), // YouTube video ID
+  videoUrl: text("video_url").notNull(),
+  title: text("title").notNull(),
+  channelName: text("channel_name"),
+  channelId: text("channel_id"),
+  description: text("description"),
+  duration: integer("duration"), // Duration in seconds
+  viewCount: integer("view_count"),
+  likeCount: integer("like_count"),
+  commentCount: integer("comment_count"),
+  publishedAt: timestamp("published_at"),
+  thumbnailUrl: text("thumbnail_url"),
+  transcript: text("transcript"), // Full transcript text
+  transcriptSegments: jsonb("transcript_segments"), // [{start: 0, end: 5, text: "..."}, ...]
+  tags: text("tags").array(),
+  category: text("category"),
+  language: text("language"),
+  status: text("status").notNull().default("pending"), // "pending", "scraping", "analyzing", "completed", "failed"
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAnalyzedVideoSchema = createInsertSchema(analyzedVideos).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAnalyzedVideo = z.infer<typeof insertAnalyzedVideoSchema>;
+export type AnalyzedVideo = typeof analyzedVideos.$inferSelect;
+
+// Content Analysis - AI Analysis Results
+export const videoAnalysisResults = pgTable("video_analysis_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  videoId: varchar("video_id").notNull().references(() => analyzedVideos.id),
+  analysisType: text("analysis_type").notNull(), // "structure", "hooks", "cta", "topics", "comparison"
+  summary: text("summary"),
+  hookAnalysis: jsonb("hook_analysis"), // {type, duration, strength, transcript}
+  contentStructure: jsonb("content_structure"), // [{section, startTime, endTime, summary}]
+  keyTopics: text("key_topics").array(),
+  ctaAnalysis: jsonb("cta_analysis"), // {hasCta, type, placement, strength}
+  toneAnalysis: jsonb("tone_analysis"), // {primary, secondary, consistency}
+  engagementTips: text("engagement_tips").array(),
+  scriptIdeas: text("script_ideas").array(),
+  strengths: text("strengths").array(),
+  weaknesses: text("weaknesses").array(),
+  rawAnalysis: jsonb("raw_analysis"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertVideoAnalysisResultSchema = createInsertSchema(videoAnalysisResults).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVideoAnalysisResult = z.infer<typeof insertVideoAnalysisResultSchema>;
+export type VideoAnalysisResult = typeof videoAnalysisResults.$inferSelect;
+
+// Content Comparison - Compare multiple videos
+export const videoComparisons = pgTable("video_comparisons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  videoIds: text("video_ids").array().notNull(), // Array of analyzedVideos.id
+  comparisonResult: jsonb("comparison_result"), // AI comparison analysis
+  winningPatterns: text("winning_patterns").array(),
+  contentGaps: text("content_gaps").array(),
+  recommendations: text("recommendations").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertVideoComparisonSchema = createInsertSchema(videoComparisons).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVideoComparison = z.infer<typeof insertVideoComparisonSchema>;
+export type VideoComparison = typeof videoComparisons.$inferSelect;
