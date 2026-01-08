@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield, Wand2, GitCompare, MessageSquare, Film, Type } from "lucide-react";
+import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield, Wand2, GitCompare, MessageSquare, Film, Type, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { icon: GitCompare, label: "Content Comparison", href: "/content-comparison" },
   { icon: Scissors, label: "Edit & Merge", href: "/edit-merge" },
   { icon: Type, label: "Editor", href: "/editor" },
+  { icon: BookOpen, label: "Blog Studio", href: "/blog-studio" },
   { icon: Download, label: "Ready to Post", href: "/ready-to-post" },
   { icon: Headphones, label: "Social Listening", href: "/social-listening" },
   { icon: Wand2, label: "Creator Studio", href: "/creator-studio" },

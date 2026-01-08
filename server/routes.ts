@@ -7663,5 +7663,89 @@ Respond in JSON:
     }
   });
 
+  // Blog generation endpoint
+  app.post("/api/blog/generate", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { briefId, topic, sourceId } = req.body;
+
+      if (!briefId || !topic) {
+        return res.status(400).json({ error: "Brief ID and topic are required" });
+      }
+
+      const brief = await storage.getBrandBrief(briefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+
+      const apiKey = process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "OpenAI API key not configured" });
+      }
+
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey });
+
+      let sourceContext = "";
+      if (sourceId) {
+        const sourceContent = await storage.getAnalyzedContent(sourceId);
+        if (sourceContent) {
+          const meta = sourceContent.analysisResult as any;
+          sourceContext = `
+Use this analyzed content as inspiration:
+Title: ${meta?.title || "N/A"}
+Summary: ${meta?.summary || meta?.description || "N/A"}
+Key Points: ${JSON.stringify(meta?.keyPoints || meta?.hooks || [])}
+`;
+        }
+      }
+
+      const prompt = `You are a professional blog writer for a brand. Write a complete blog post based on the following:
+
+BRAND CONTEXT:
+- Brand Name: ${brief.name}
+- Brand Voice: ${brief.brandVoice}
+- Target Audience: ${brief.targetAudience}
+- Content Goals: ${brief.contentGoals}
+
+TOPIC: ${topic}
+${sourceContext}
+
+Generate a complete blog post in the following JSON format:
+{
+  "title": "Compelling blog title",
+  "summary": "Brief 2-3 sentence summary for listings",
+  "body": "Full blog content in Markdown format with proper headings (## for H2, ### for H3), paragraphs, bullet points, and engaging content. Should be 800-1200 words.",
+  "metaDescription": "SEO meta description, exactly 150-160 characters",
+  "metaKeywords": "keyword1, keyword2, keyword3, keyword4, keyword5"
+}
+
+Requirements:
+- Match the brand voice exactly
+- Write for the target audience
+- Include a compelling introduction hook
+- Use clear section headings
+- Include actionable takeaways
+- End with a call-to-action
+- Meta description must be 150-160 characters
+- Include 5-8 relevant keywords`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const content = completion.choices[0].message.content;
+      const blogData = JSON.parse(content || "{}");
+
+      res.json(blogData);
+    } catch (error: any) {
+      console.error("Blog generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

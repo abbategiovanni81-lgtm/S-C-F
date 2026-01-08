@@ -28,6 +28,7 @@ import Testimonials from "@/pages/Testimonials";
 import RedditManager from "@/pages/RedditManager";
 import VideoToClips from "@/pages/VideoToClips";
 import Editor from "@/pages/Editor";
+import BlogStudio from "@/pages/BlogStudio";
 
 function AuthenticatedRoutes() {
   return (
@@ -41,6 +42,8 @@ function AuthenticatedRoutes() {
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/editor" component={Editor} />
       <Route path="/editor/:contentId" component={Editor} />
+      <Route path="/blog-studio" component={BlogStudio} />
+      <Route path="/blog-studio/:sourceType/:sourceId" component={BlogStudio} />
       <Route path="/ready-to-post" component={ReadyToPost} />
       <Route path="/social-listening" component={SocialListening} />
       <Route path="/schedule" component={Schedule} />
