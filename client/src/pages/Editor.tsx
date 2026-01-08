@@ -109,6 +109,10 @@ export default function Editor() {
   const [isDragging, setIsDragging] = useState(false);
   const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  // Track original image dimensions for accurate scaling
+  const [originalImageSize, setOriginalImageSize] = useState<{ width: number; height: number } | null>(null);
+  const [previewScale, setPreviewScale] = useState(1);
 
   // Video job state
   const [videoJobName, setVideoJobName] = useState("");
@@ -230,11 +234,39 @@ export default function Editor() {
       setOutputUrl(null);
       const reader = new FileReader();
       reader.onload = (event) => {
-        setImagePreview(event.target?.result as string);
+        const dataUrl = event.target?.result as string;
+        setImagePreview(dataUrl);
+        
+        // Get original image dimensions
+        const img = new Image();
+        img.onload = () => {
+          setOriginalImageSize({ width: img.width, height: img.height });
+        };
+        img.src = dataUrl;
       };
       reader.readAsDataURL(file);
     }
   };
+  
+  // Load original dimensions when imagePreview changes (for URL-loaded images)
+  useEffect(() => {
+    if (imagePreview && !selectedImage) {
+      const img = new Image();
+      img.onload = () => {
+        setOriginalImageSize({ width: img.width, height: img.height });
+      };
+      img.src = imagePreview;
+    }
+  }, [imagePreview, selectedImage]);
+  
+  // Calculate scale factor when preview container or image changes
+  useEffect(() => {
+    if (previewRef.current && originalImageSize) {
+      const containerWidth = previewRef.current.offsetWidth;
+      const scale = containerWidth / originalImageSize.width;
+      setPreviewScale(Math.min(scale, 1)); // Never scale up
+    }
+  }, [originalImageSize, imagePreview]);
 
   // Process text overlay
   const handleTextOverlay = async () => {
@@ -561,6 +593,11 @@ export default function Editor() {
                       className="w-full"
                       data-testid="slider-font-size"
                     />
+                    {originalImageSize && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Image: {originalImageSize.width}×{originalImageSize.height}px — Preview scales to match final output
+                      </p>
+                    )}
                   </div>
 
                   {/* Text Styles */}
@@ -887,17 +924,17 @@ export default function Editor() {
                         >
                           <span
                             style={{
-                              fontSize: `${Math.min(fontSize / 2, 48)}px`,
+                              fontSize: `${Math.max(fontSize * previewScale, 8)}px`,
                               color: fontColor,
                               fontFamily: fontFamily,
                               fontWeight: isBold ? "bold" : "normal",
                               fontStyle: isItalic ? "italic" : "normal",
                               textDecoration: isUnderline ? "underline" : "none",
-                              WebkitTextStroke: hasStroke ? `1px ${strokeColor}` : "none",
-                              textShadow: hasShadow ? "2px 2px 4px rgba(0,0,0,0.5)" : "none",
+                              WebkitTextStroke: hasStroke ? `${Math.max(1 * previewScale, 0.5)}px ${strokeColor}` : "none",
+                              textShadow: hasShadow ? `${2 * previewScale}px ${2 * previewScale}px ${4 * previewScale}px rgba(0,0,0,0.5)` : "none",
                               backgroundColor: backgroundColor !== "transparent" ? `${backgroundColor}b3` : "transparent",
-                              padding: backgroundColor !== "transparent" ? "8px 16px" : "4px",
-                              borderRadius: "4px",
+                              padding: backgroundColor !== "transparent" ? `${8 * previewScale}px ${16 * previewScale}px` : `${4 * previewScale}px`,
+                              borderRadius: `${4 * previewScale}px`,
                               textAlign: "center",
                               whiteSpace: "pre-line",
                               display: "inline-block",
