@@ -7791,15 +7791,21 @@ Respond in JSON:
             const [buffer] = await bucket.file(gcsPath).download();
             imageBuffer = buffer;
           } catch (storageError: any) {
-            // Fallback: Try fetching via HTTP (image might be served at a URL)
+            // Fallback: Try fetching via internal HTTP using localhost
             console.log("Object storage fetch failed, trying HTTP fallback:", storageError.message);
-            const httpUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER?.toLowerCase()}.repl.co` : ''}${imageUrl}`;
-            const response = await fetch(imageUrl.startsWith("http") ? imageUrl : httpUrl);
-            if (!response.ok) {
-              throw new Error(`Image not found in storage and HTTP fetch failed. The image may have been deleted.`);
+            // Use localhost since this is an internal request
+            const port = process.env.PORT || 5000;
+            const localUrl = `http://localhost:${port}${imageUrl}`;
+            try {
+              const response = await fetch(localUrl);
+              if (!response.ok) {
+                throw new Error(`HTTP fetch returned ${response.status}`);
+              }
+              const arrayBuffer = await response.arrayBuffer();
+              imageBuffer = Buffer.from(arrayBuffer);
+            } catch (httpError: any) {
+              throw new Error(`Image not found. Object storage: ${storageError.message}. HTTP fallback: ${httpError.message}`);
             }
-            const arrayBuffer = await response.arrayBuffer();
-            imageBuffer = Buffer.from(arrayBuffer);
           }
         } else if (imageUrl.startsWith("http")) {
           // External URL - fetch it

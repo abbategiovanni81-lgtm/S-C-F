@@ -158,24 +158,39 @@ export default function Editor() {
             description: `${images.length} images loaded. Use arrows to navigate between slides.` 
           });
         } else {
-          // Single image content
-          const imageUrl = content.thumbnailUrl || 
-            metadata?.generatedImageUrl;
+          // Single image content - load BOTH generated and uploaded images
+          const genImageUrl = metadata?.generatedImageUrl;
+          const uploadedImageUrl = metadata?.uploadedImageUrl;
+          const textOverlay = metadata?.imagePrompts?.textOverlay || "";
           
-          if (imageUrl) {
-            setCarouselImages([{
-              imageUrl,
-              textOverlay: metadata?.imagePrompts?.textOverlay || "",
-            }]);
+          // Build array of all available images
+          const allImages: { imageUrl: string; textOverlay: string; label: string }[] = [];
+          
+          if (genImageUrl) {
+            allImages.push({ imageUrl: genImageUrl, textOverlay, label: "AI Generated" });
+          }
+          if (uploadedImageUrl) {
+            allImages.push({ imageUrl: uploadedImageUrl, textOverlay, label: "Uploaded" });
+          }
+          
+          // Fallback to thumbnailUrl if no images
+          if (allImages.length === 0 && content.thumbnailUrl) {
+            allImages.push({ imageUrl: content.thumbnailUrl, textOverlay, label: "Thumbnail" });
+          }
+          
+          if (allImages.length > 0) {
+            setCarouselImages(allImages);
             setCurrentImageIndex(0);
-            setImagePreview(imageUrl);
+            setImagePreview(allImages[0].imageUrl);
             
-            const textOverlay = metadata?.imagePrompts?.textOverlay || "";
             if (textOverlay) {
               setOverlayText(textOverlay);
             }
             
-            toast({ title: "Content loaded", description: "Image loaded from Content Queue. Add your text overlay." });
+            const msg = allImages.length > 1 
+              ? `${allImages.length} images loaded. Use arrows to navigate between them.`
+              : "Image loaded from Content Queue. Add your text overlay.";
+            toast({ title: "Content loaded", description: msg });
           }
         }
       }
