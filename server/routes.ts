@@ -7678,6 +7678,10 @@ Respond in JSON:
         return res.status(404).json({ error: "Brand brief not found" });
       }
 
+      if (brief.userId !== userId) {
+        return res.status(403).json({ error: "Access denied to this brand brief" });
+      }
+
       const apiKey = process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY;
       if (!apiKey) {
         return res.status(400).json({ error: "OpenAI API key not configured" });

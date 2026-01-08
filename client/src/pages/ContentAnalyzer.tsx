@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, 
   RefreshCw, Save, CheckCircle, X, Plus, Search, Youtube, Trash2, BarChart2, FileText, 
-  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2
+  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen
 } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -996,14 +996,25 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                               Generated!
                             </Button>
                           ) : (
-                            <Button
-                              onClick={() => handleOpenGenerateDialog("post")}
-                              className="gap-2"
-                              data-testid="button-generate-from-post"
-                            >
-                              <Wand2 className="w-4 h-4" />
-                              Generate Content
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => handleOpenGenerateDialog("post")}
+                                className="gap-2"
+                                data-testid="button-generate-from-post"
+                              >
+                                <Wand2 className="w-4 h-4" />
+                                Generate Content
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setLocation("/blog-studio")}
+                                className="gap-2"
+                                data-testid="button-convert-to-blog-post"
+                              >
+                                <BookOpen className="w-4 h-4" />
+                                Create Blog
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </CardContent>
@@ -1309,7 +1320,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                                 </div>
                               )}
 
-                              <div className="pt-4 border-t">
+                              <div className="pt-4 border-t space-y-2">
                                 <Button
                                   onClick={() => handleOpenGenerateDialog("video")}
                                   className="w-full gap-2"
@@ -1317,6 +1328,15 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                                 >
                                   <Wand2 className="w-4 h-4" />
                                   Generate Content from This Analysis
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setLocation(`/blog-studio/video/${video.id}`)}
+                                  className="w-full gap-2"
+                                  data-testid="button-convert-to-blog-video"
+                                >
+                                  <BookOpen className="w-4 h-4" />
+                                  Convert to Blog
                                 </Button>
                               </div>
                             </div>
