@@ -5140,6 +5140,146 @@ export async function registerRoutes(
     }
   });
 
+  // Scrape comments from a specific hit (by hit ID)
+  app.post("/api/listening/hits/:id/scrape-comments", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const hitId = req.params.id;
+      const { maxComments = 30 } = req.body;
+
+      // Get the parent hit
+      const parentHit = await storage.getListeningHit(hitId);
+      if (!parentHit) {
+        return res.status(404).json({ error: "Hit not found" });
+      }
+
+      const url = parentHit.postUrl;
+      if (!url) {
+        return res.status(400).json({ error: "Hit does not have a URL to scrape" });
+      }
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ 
+          error: "Apify not configured", 
+          message: "Please add your APIFY_API_TOKEN to use comment scraping" 
+        });
+      }
+
+      // Detect platform and configure scraper
+      let platform: string;
+      let actorKey: string;
+      let actorInput: Record<string, any>;
+
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        platform = "youtube";
+        actorKey = "youtubeComments";
+        actorInput = {
+          startUrls: [{ url }],
+          maxComments,
+          maxReplies: 5,
+        };
+      } else if (url.includes("reddit.com")) {
+        platform = "reddit";
+        // Use Reddit post scraper to get comments
+        actorKey = "redditPost";
+        actorInput = {
+          startUrls: [{ url }],
+          maxComments,
+        };
+      } else if (url.includes("tiktok.com")) {
+        platform = "tiktok";
+        actorKey = "tiktokComments";
+        actorInput = {
+          postURLs: [url],
+          commentsPerPost: maxComments,
+        };
+      } else if (url.includes("instagram.com")) {
+        platform = "instagram";
+        actorKey = "instagramComments";
+        actorInput = {
+          directUrls: [url],
+          resultsLimit: maxComments,
+        };
+      } else {
+        return res.status(400).json({ 
+          error: "Unsupported platform",
+          message: "Comment scraping is available for YouTube, Reddit, TikTok, and Instagram" 
+        });
+      }
+
+      const actorConfig = APIFY_ACTORS[actorKey];
+      if (!actorConfig) {
+        return res.status(400).json({ error: `Comment scraping not available for ${platform}` });
+      }
+
+      // Run the scraper
+      const items = await apifyService.runActorAndWait(actorConfig.actorId, actorInput, 180000);
+      let imported = 0;
+      
+      const sourceTitle = parentHit.postContent?.slice(0, 100) || "";
+      const sourceChannel = parentHit.authorName || parentHit.authorHandle || "";
+
+      for (const item of items) {
+        const commentText = item.text || item.comment || item.body || item.ctext || "";
+        if (!commentText || commentText.length < 3) continue;
+
+        const authorName = item.author?.name || item.authorName || item.username || item.ownerUsername || "Unknown";
+        const authorHandle = item.author?.id || item.authorId || item.uniqueId || "";
+        const likes = item.likes || item.likesCount || item.diggCount || item.score || 0;
+
+        const isQuestion = commentText.includes("?") || /\b(how|what|why|when|where|who|can|could|would|should|is|are|does|do)\b/i.test(commentText);
+        const baseScore = Math.min(likes * 2, 50);
+        const questionBonus = isQuestion ? 25 : 0;
+        const lengthBonus = commentText.length > 50 ? 15 : commentText.length > 20 ? 10 : 0;
+        const opportunityScore = Math.min(baseScore + questionBonus + lengthBonus, 100);
+
+        const postId = item.id || item.commentId || item.cid || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const isDuplicate = await storage.checkDuplicateHit(platform, postId);
+        if (isDuplicate) continue;
+
+        await storage.createListeningHit({
+          userId,
+          briefId: parentHit.briefId || null,
+          platform,
+          postId,
+          postUrl: item.url || item.permalink || null,
+          postContent: commentText,
+          authorName,
+          authorHandle,
+          authorProfileUrl: item.author?.profileUrl || null,
+          postType: "comment",
+          matchedKeywords: parentHit.matchedKeywords || [],
+          sentiment: null,
+          engagementScore: likes,
+          likes,
+          comments: item.replyCount || 0,
+          shares: null,
+          isQuestion: isQuestion ? "yes" : "no",
+          isTrending: null,
+          replyStatus: "pending",
+          postedAt: item.createdAt ? new Date(item.createdAt) : null,
+          sourceUrl: url,
+          sourceTitle,
+          sourceChannel,
+          opportunityScore,
+          scanType: "viral_url",
+        });
+        imported++;
+      }
+
+      res.json({
+        success: true,
+        platform,
+        parentHitId: hitId,
+        commentsFound: items.length,
+        commentsImported: imported,
+      });
+    } catch (error: any) {
+      console.error("Comment scrape error:", error);
+      res.status(500).json({ error: error.message || "Failed to scrape comments" });
+    }
+  });
+
   // ==================== SCHEDULED POSTS ====================
 
   // Get scheduled posts for a user (with optional date range)

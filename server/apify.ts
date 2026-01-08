@@ -49,6 +49,11 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     platform: "youtube",
     searchField: "startUrls",
   },
+  redditPost: {
+    actorId: "backhoe/reddit-post-scraper",
+    platform: "reddit",
+    searchField: "startUrls",
+  },
 };
 
 export interface ApifyRunResult {

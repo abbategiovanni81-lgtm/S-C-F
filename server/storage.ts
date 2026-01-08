@@ -72,6 +72,7 @@ export interface IStorage {
 
   // Social Listening
   createListeningHit(hit: InsertListeningHit): Promise<ListeningHit>;
+  getListeningHit(id: string): Promise<ListeningHit | undefined>;
   getListeningHits(userId?: string, status?: string): Promise<ListeningHit[]>;
   getListeningHitsByBrief(briefId: string): Promise<ListeningHit[]>;
   updateListeningHit(id: string, data: Partial<InsertListeningHit>): Promise<ListeningHit | undefined>;
@@ -367,6 +368,11 @@ export class DatabaseStorage implements IStorage {
   // Social Listening
   async createListeningHit(hit: InsertListeningHit): Promise<ListeningHit> {
     const result = await db.insert(listeningHits).values(hit).returning();
+    return result[0];
+  }
+
+  async getListeningHit(id: string): Promise<ListeningHit | undefined> {
+    const result = await db.select().from(listeningHits).where(eq(listeningHits.id, id)).limit(1);
     return result[0];
   }
 
