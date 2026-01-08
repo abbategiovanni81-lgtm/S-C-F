@@ -1776,6 +1776,160 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // ==================== SEO BLOG ENDPOINTS (Admin) ====================
+
+  // Get all blogs (admin only)
+  app.get("/api/admin/blogs", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const allBlogs = await storage.getBlogs();
+      res.json({ blogs: allBlogs });
+    } catch (error: any) {
+      console.error("Error fetching blogs:", error);
+      res.status(500).json({ error: "Failed to fetch blogs" });
+    }
+  });
+
+  // Get single blog by ID (admin only)
+  app.get("/api/admin/blogs/:id", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const blog = await storage.getBlog(req.params.id);
+      if (!blog) {
+        return res.status(404).json({ error: "Blog not found" });
+      }
+      res.json(blog);
+    } catch (error: any) {
+      console.error("Error fetching blog:", error);
+      res.status(500).json({ error: "Failed to fetch blog" });
+    }
+  });
+
+  // Create new blog (admin only)
+  app.post("/api/admin/blogs", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const { title, slug, summary, body, heroImageUrl, metaDescription, metaKeywords, authorName, status } = req.body;
+
+      if (!title || !slug || !body) {
+        return res.status(400).json({ error: "Title, slug, and body are required" });
+      }
+
+      // Check slug uniqueness
+      const existing = await storage.getBlogBySlug(slug);
+      if (existing) {
+        return res.status(400).json({ error: "A blog with this slug already exists" });
+      }
+
+      const blogData: any = {
+        title,
+        slug,
+        summary,
+        body,
+        heroImageUrl,
+        metaDescription,
+        metaKeywords,
+        authorName,
+        status: status || "draft",
+        createdBy: userId,
+      };
+
+      if (status === "published") {
+        blogData.publishedAt = new Date();
+      }
+
+      const blog = await storage.createBlog(blogData);
+      res.json(blog);
+    } catch (error: any) {
+      console.error("Error creating blog:", error);
+      res.status(500).json({ error: "Failed to create blog" });
+    }
+  });
+
+  // Update blog (admin only)
+  app.patch("/api/admin/blogs/:id", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, slug, summary, body, heroImageUrl, metaDescription, metaKeywords, authorName, status } = req.body;
+
+      const existingBlog = await storage.getBlog(id);
+      if (!existingBlog) {
+        return res.status(404).json({ error: "Blog not found" });
+      }
+
+      // Check slug uniqueness if changing
+      if (slug && slug !== existingBlog.slug) {
+        const slugExists = await storage.getBlogBySlug(slug);
+        if (slugExists) {
+          return res.status(400).json({ error: "A blog with this slug already exists" });
+        }
+      }
+
+      const updateData: any = {};
+      if (title !== undefined) updateData.title = title;
+      if (slug !== undefined) updateData.slug = slug;
+      if (summary !== undefined) updateData.summary = summary;
+      if (body !== undefined) updateData.body = body;
+      if (heroImageUrl !== undefined) updateData.heroImageUrl = heroImageUrl;
+      if (metaDescription !== undefined) updateData.metaDescription = metaDescription;
+      if (metaKeywords !== undefined) updateData.metaKeywords = metaKeywords;
+      if (authorName !== undefined) updateData.authorName = authorName;
+      if (status !== undefined) {
+        updateData.status = status;
+        if (status === "published" && existingBlog.status !== "published") {
+          updateData.publishedAt = new Date();
+        }
+      }
+
+      const updated = await storage.updateBlog(id, updateData);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating blog:", error);
+      res.status(500).json({ error: "Failed to update blog" });
+    }
+  });
+
+  // Delete blog (admin only)
+  app.delete("/api/admin/blogs/:id", isAuthenticated, isOwnerMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const blog = await storage.getBlog(id);
+      if (!blog) {
+        return res.status(404).json({ error: "Blog not found" });
+      }
+      await storage.deleteBlog(id);
+      res.json({ success: true, message: "Blog deleted" });
+    } catch (error: any) {
+      console.error("Error deleting blog:", error);
+      res.status(500).json({ error: "Failed to delete blog" });
+    }
+  });
+
+  // ==================== PUBLIC BLOG ENDPOINTS ====================
+
+  // Get published blogs (public)
+  app.get("/api/blogs", async (req, res) => {
+    try {
+      const publishedBlogs = await storage.getPublishedBlogs();
+      res.json({ blogs: publishedBlogs });
+    } catch (error: any) {
+      console.error("Error fetching published blogs:", error);
+      res.status(500).json({ error: "Failed to fetch blogs" });
+    }
+  });
+
+  // Get blog by slug (public)
+  app.get("/api/blogs/:slug", async (req, res) => {
+    try {
+      const blog = await storage.getBlogBySlug(req.params.slug);
+      if (!blog || blog.status !== "published") {
+        return res.status(404).json({ error: "Blog not found" });
+      }
+      res.json(blog);
+    } catch (error: any) {
+      console.error("Error fetching blog:", error);
+      res.status(500).json({ error: "Failed to fetch blog" });
+    }
+  });
+
   // ==================== USAGE STATS ENDPOINTS ====================
 
   // Get current user's usage stats

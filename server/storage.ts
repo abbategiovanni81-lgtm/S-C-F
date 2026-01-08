@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons, editJobs } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons, editJobs, blogs } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
@@ -36,7 +36,9 @@ import type {
   VideoComparison,
   InsertVideoComparison,
   EditJob,
-  InsertEditJob
+  InsertEditJob,
+  Blog,
+  InsertBlog
 } from "@shared/schema";
 import { eq, and, desc, gte, lte, between, sql, isNull, isNotNull } from "drizzle-orm";
 
@@ -156,6 +158,15 @@ export interface IStorage {
   getQueuedEditJobs(): Promise<EditJob[]>;
   updateEditJob(id: string, data: Partial<InsertEditJob>): Promise<EditJob | undefined>;
   deleteEditJob(id: string): Promise<void>;
+
+  // Platform Blogs (SEO)
+  createBlog(blog: InsertBlog): Promise<Blog>;
+  getBlog(id: string): Promise<Blog | undefined>;
+  getBlogBySlug(slug: string): Promise<Blog | undefined>;
+  getBlogs(status?: string): Promise<Blog[]>;
+  getPublishedBlogs(): Promise<Blog[]>;
+  updateBlog(id: string, data: Partial<InsertBlog>): Promise<Blog | undefined>;
+  deleteBlog(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -812,6 +823,49 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEditJob(id: string): Promise<void> {
     await db.delete(editJobs).where(eq(editJobs.id, id));
+  }
+
+  // Platform Blogs (SEO)
+  async createBlog(blog: InsertBlog): Promise<Blog> {
+    const result = await db.insert(blogs).values(blog).returning();
+    return result[0];
+  }
+
+  async getBlog(id: string): Promise<Blog | undefined> {
+    const result = await db.select().from(blogs).where(eq(blogs.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getBlogBySlug(slug: string): Promise<Blog | undefined> {
+    const result = await db.select().from(blogs).where(eq(blogs.slug, slug)).limit(1);
+    return result[0];
+  }
+
+  async getBlogs(status?: string): Promise<Blog[]> {
+    if (status) {
+      return db.select().from(blogs)
+        .where(eq(blogs.status, status))
+        .orderBy(desc(blogs.createdAt));
+    }
+    return db.select().from(blogs).orderBy(desc(blogs.createdAt));
+  }
+
+  async getPublishedBlogs(): Promise<Blog[]> {
+    return db.select().from(blogs)
+      .where(eq(blogs.status, "published"))
+      .orderBy(desc(blogs.publishedAt));
+  }
+
+  async updateBlog(id: string, data: Partial<InsertBlog>): Promise<Blog | undefined> {
+    const result = await db.update(blogs)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(blogs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBlog(id: string): Promise<void> {
+    await db.delete(blogs).where(eq(blogs.id, id));
   }
 }
 
