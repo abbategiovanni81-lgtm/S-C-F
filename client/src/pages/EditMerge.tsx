@@ -805,20 +805,46 @@ export default function EditMerge() {
                         </div>
                       </div>
                       
-                      {/* Single Image Display */}
-                      {getImageUrl(selectedContent) && getCarouselImages(selectedContent).length === 0 && (
-                        <div className="space-y-2">
-                          <img 
-                            src={getImageUrl(selectedContent)!} 
-                            alt="Generated/Uploaded" 
-                            className="w-full rounded-lg max-h-48 object-contain bg-black"
-                          />
-                          <Badge variant="default" className="gap-1">
-                            <CheckCircle className="w-3 h-3" />
-                            Image Ready
-                          </Badge>
-                        </div>
-                      )}
+                      {/* Single/Multiple Image Display - show both generated and uploaded */}
+                      {getCarouselImages(selectedContent).length === 0 && (() => {
+                        const metadata = selectedContent.generationMetadata as any;
+                        const genImg = metadata?.generatedImageUrl;
+                        const uploadImg = metadata?.uploadedImageUrl;
+                        const images = [
+                          genImg && { url: genImg, label: "AI Generated", type: "generated" },
+                          uploadImg && { url: uploadImg, label: "Uploaded", type: "uploaded" }
+                        ].filter(Boolean) as { url: string; label: string; type: string }[];
+                        
+                        if (images.length === 0) return null;
+                        
+                        return (
+                          <div className="space-y-3">
+                            <p className="text-xs text-muted-foreground">
+                              Your Images ({images.length}) - {images.length > 1 ? "both will be used" : ""}
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {images.map((img, idx) => (
+                                <div key={idx} className="relative group">
+                                  <img 
+                                    src={img.url} 
+                                    alt={img.label} 
+                                    className="w-full rounded-lg max-h-48 object-contain bg-black border"
+                                  />
+                                  <span className={`absolute top-1 left-1 text-white text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                    img.type === "generated" ? "bg-purple-600" : "bg-blue-600"
+                                  }`}>
+                                    {img.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <Badge variant="default" className="gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              {images.length} Image{images.length > 1 ? "s" : ""} Ready
+                            </Badge>
+                          </div>
+                        );
+                      })()}
                       
                       {/* Carousel Images Display */}
                       {getCarouselImages(selectedContent).length > 0 && (
