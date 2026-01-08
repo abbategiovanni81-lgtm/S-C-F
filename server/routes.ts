@@ -728,8 +728,9 @@ export async function registerRoutes(
   // Content Analysis endpoint (OpenAI Vision) - supports up to 10 images
   const analyzeUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
   
-  app.post("/api/analyze-content", analyzeUpload.array("images", 10), async (req, res) => {
+  app.post("/api/analyze-content", requireAuth, analyzeUpload.array("images", 10), async (req: any, res) => {
     try {
+      const userId = req.userId;
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No image files provided" });
@@ -741,7 +742,8 @@ export async function registerRoutes(
 
       if (briefId) {
         const brief = await storage.getBrandBrief(briefId);
-        if (brief) {
+        // Verify brief belongs to user
+        if (brief && brief.userId === userId) {
           brandBrief = {
             name: brief.name,
             brandVoice: brief.brandVoice,
