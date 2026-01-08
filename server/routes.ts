@@ -5153,6 +5153,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Hit not found" });
       }
 
+      // Multi-tenant security: verify the hit belongs to this user
+      if (parentHit.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
       const url = parentHit.postUrl;
       if (!url) {
         return res.status(400).json({ error: "Hit does not have a URL to scrape" });
