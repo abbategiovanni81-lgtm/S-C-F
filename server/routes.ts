@@ -5165,7 +5165,8 @@ export async function registerRoutes(
       // Generate fallback URL for Reddit posts if postUrl is missing but postId exists
       let url = parentHit.postUrl;
       if (!url && parentHit.platform.toLowerCase() === "reddit" && parentHit.postId) {
-        url = `https://reddit.com/comments/${parentHit.postId}`;
+        // Use www.reddit.com for better compatibility with scrapers
+        url = `https://www.reddit.com/comments/${parentHit.postId}/`;
       }
       if (!url) {
         return res.status(400).json({ error: "Hit does not have a URL to scrape" });
@@ -5194,10 +5195,10 @@ export async function registerRoutes(
       } else if (url.includes("reddit.com")) {
         platform = "reddit";
         actorKey = "redditComments";
+        // practicaltools/apify-reddit-api uses startUrls and maxItems
         actorInput = {
           startUrls: [{ url }],
-          maxItems: maxComments,
-          scrapeComments: true,
+          maxItems: 1, // Get 1 post which includes its comments
         };
       } else if (url.includes("tiktok.com")) {
         platform = "tiktok";
@@ -5226,11 +5227,23 @@ export async function registerRoutes(
       }
 
       // Run the scraper
-      const items = await apifyService.runActorAndWait(actorConfig.actorId, actorInput, 180000);
+      const rawItems = await apifyService.runActorAndWait(actorConfig.actorId, actorInput, 180000);
       let imported = 0;
       
       const sourceTitle = parentHit.postContent?.slice(0, 100) || "";
       const sourceChannel = parentHit.authorName || parentHit.authorHandle || "";
+
+      // Flatten items - practicaltools/apify-reddit-api returns { post, comments } structure
+      const items: any[] = [];
+      for (const raw of rawItems) {
+        if (raw.comments && Array.isArray(raw.comments)) {
+          // Reddit API actor format: extract comments array
+          items.push(...raw.comments.slice(0, maxComments));
+        } else {
+          // YouTube/other flat format
+          items.push(raw);
+        }
+      }
 
       // Extract and prepare comments for classification
       const commentsToProcess: Array<{
@@ -5244,17 +5257,17 @@ export async function registerRoutes(
 
       for (const item of items) {
         // YouTube streamers/youtube-comments-scraper uses: comment, cid, author, voteCount
-        // Reddit trudax/reddit-scraper-lite uses: body, id, author, score
+        // Reddit practicaltools/apify-reddit-api uses: body, parsedId, username, upVotes
         const commentText = item.comment || item.text || item.body || item.ctext || "";
         if (!commentText || commentText.length < 3) continue;
 
-        // YouTube author is "@username", Reddit uses author field
-        const authorName = item.author || item.authorName || item.username || item.ownerUsername || "Unknown";
-        const authorHandle = item.author?.replace(/^@/, "") || item.authorId || item.uniqueId || "";
-        // YouTube uses voteCount, Reddit uses score
-        const likes = item.voteCount || item.likes || item.likesCount || item.diggCount || item.score || 0;
-        // YouTube uses cid, Reddit uses id
-        const postId = item.cid || item.id || item.commentId || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        // YouTube author is "@username", Reddit uses username field
+        const authorName = item.author || item.username || item.authorName || item.ownerUsername || "Unknown";
+        const authorHandle = (typeof item.author === 'string' ? item.author.replace(/^@/, "") : "") || item.username || item.authorId || item.uniqueId || "";
+        // YouTube uses voteCount, Reddit uses upVotes or score
+        const likes = item.voteCount || item.upVotes || item.likes || item.likesCount || item.diggCount || item.score || 0;
+        // YouTube uses cid, Reddit uses parsedId or id
+        const postId = item.cid || item.parsedId || item.id || item.commentId || `${platform}-comment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
         const isDuplicate = await storage.checkDuplicateHit(platform, postId);
         if (!isDuplicate) {

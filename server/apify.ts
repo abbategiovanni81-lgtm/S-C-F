@@ -50,7 +50,7 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     searchField: "startUrls",
   },
   redditComments: {
-    actorId: "trudax/reddit-scraper-lite",
+    actorId: "practicaltools/apify-reddit-api",
     platform: "reddit",
     searchField: "startUrls",
   },
