@@ -600,3 +600,33 @@ export const insertEditJobSchema = createInsertSchema(editJobs).omit({
 
 export type InsertEditJob = z.infer<typeof insertEditJobSchema>;
 export type EditJob = typeof editJobs.$inferSelect;
+
+// Platform SEO Blogs - owner/admin managed, publicly visible
+export const BLOG_STATUS = ["draft", "published"] as const;
+export type BlogStatus = typeof BLOG_STATUS[number];
+
+export const blogs = pgTable("blogs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  body: text("body").notNull(), // Markdown content
+  heroImageUrl: text("hero_image_url"),
+  metaDescription: text("meta_description"), // SEO description (150-160 chars)
+  metaKeywords: text("meta_keywords"), // Comma-separated keywords
+  authorName: text("author_name"),
+  status: text("status").notNull().default("draft"), // "draft" or "published"
+  publishedAt: timestamp("published_at"),
+  createdBy: varchar("created_by").references(() => users.id), // Owner who created it
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBlogSchema = createInsertSchema(blogs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBlog = z.infer<typeof insertBlogSchema>;
+export type Blog = typeof blogs.$inferSelect;
