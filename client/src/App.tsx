@@ -27,6 +27,7 @@ import ContentComparison from "@/pages/ContentComparison";
 import Testimonials from "@/pages/Testimonials";
 import RedditManager from "@/pages/RedditManager";
 import VideoToClips from "@/pages/VideoToClips";
+import ContentResearch from "@/pages/ContentResearch";
 
 function AuthenticatedRoutes() {
   return (
@@ -50,6 +51,7 @@ function AuthenticatedRoutes() {
       <Route path="/admin" component={Admin} />
       <Route path="/reddit" component={RedditManager} />
       <Route path="/video-to-clips" component={VideoToClips} />
+      <Route path="/content-research" component={ContentResearch} />
       <Route component={NotFound} />
     </Switch>
   );

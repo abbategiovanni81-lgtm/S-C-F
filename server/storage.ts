@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
@@ -28,7 +28,13 @@ import type {
   RedditSubreddit,
   InsertRedditSubreddit,
   RedditPost,
-  InsertRedditPost
+  InsertRedditPost,
+  AnalyzedVideo,
+  InsertAnalyzedVideo,
+  VideoAnalysisResult,
+  InsertVideoAnalysisResult,
+  VideoComparison,
+  InsertVideoComparison
 } from "@shared/schema";
 import { eq, and, desc, gte, lte, between, sql, isNull, isNotNull } from "drizzle-orm";
 
@@ -121,6 +127,25 @@ export interface IStorage {
   getRedditPosts(userId: string): Promise<RedditPost[]>;
   getRedditPostsToday(userId: string): Promise<RedditPost[]>;
   updateRedditPost(id: string, data: Partial<InsertRedditPost>): Promise<RedditPost | undefined>;
+
+  // Content Analysis - Analyzed Videos
+  createAnalyzedVideo(video: InsertAnalyzedVideo): Promise<AnalyzedVideo>;
+  getAnalyzedVideo(id: string): Promise<AnalyzedVideo | undefined>;
+  getAnalyzedVideoByVideoId(userId: string, videoId: string): Promise<AnalyzedVideo | undefined>;
+  getAnalyzedVideos(userId: string): Promise<AnalyzedVideo[]>;
+  updateAnalyzedVideo(id: string, data: Partial<InsertAnalyzedVideo>): Promise<AnalyzedVideo | undefined>;
+  deleteAnalyzedVideo(id: string): Promise<void>;
+
+  // Content Analysis - Analysis Results
+  createVideoAnalysisResult(result: InsertVideoAnalysisResult): Promise<VideoAnalysisResult>;
+  getVideoAnalysisResults(videoId: string): Promise<VideoAnalysisResult[]>;
+  
+  // Content Analysis - Comparisons
+  createVideoComparison(comparison: InsertVideoComparison): Promise<VideoComparison>;
+  getVideoComparisons(userId: string): Promise<VideoComparison[]>;
+  getVideoComparison(id: string): Promise<VideoComparison | undefined>;
+  updateVideoComparison(id: string, data: Partial<InsertVideoComparison>): Promise<VideoComparison | undefined>;
+  deleteVideoComparison(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -665,6 +690,83 @@ export class DatabaseStorage implements IStorage {
       .where(eq(redditPosts.id, id))
       .returning();
     return result[0];
+  }
+
+  // Content Analysis - Analyzed Videos
+  async createAnalyzedVideo(video: InsertAnalyzedVideo): Promise<AnalyzedVideo> {
+    const result = await db.insert(analyzedVideos).values(video).returning();
+    return result[0];
+  }
+
+  async getAnalyzedVideo(id: string): Promise<AnalyzedVideo | undefined> {
+    const result = await db.select().from(analyzedVideos).where(eq(analyzedVideos.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getAnalyzedVideoByVideoId(userId: string, videoId: string): Promise<AnalyzedVideo | undefined> {
+    const result = await db.select().from(analyzedVideos)
+      .where(and(eq(analyzedVideos.userId, userId), eq(analyzedVideos.videoId, videoId)))
+      .limit(1);
+    return result[0];
+  }
+
+  async getAnalyzedVideos(userId: string): Promise<AnalyzedVideo[]> {
+    return db.select().from(analyzedVideos)
+      .where(eq(analyzedVideos.userId, userId))
+      .orderBy(desc(analyzedVideos.createdAt));
+  }
+
+  async updateAnalyzedVideo(id: string, data: Partial<InsertAnalyzedVideo>): Promise<AnalyzedVideo | undefined> {
+    const result = await db.update(analyzedVideos)
+      .set(data)
+      .where(eq(analyzedVideos.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteAnalyzedVideo(id: string): Promise<void> {
+    await db.delete(analyzedVideos).where(eq(analyzedVideos.id, id));
+  }
+
+  // Content Analysis - Analysis Results
+  async createVideoAnalysisResult(result: InsertVideoAnalysisResult): Promise<VideoAnalysisResult> {
+    const inserted = await db.insert(videoAnalysisResults).values(result).returning();
+    return inserted[0];
+  }
+
+  async getVideoAnalysisResults(videoId: string): Promise<VideoAnalysisResult[]> {
+    return db.select().from(videoAnalysisResults)
+      .where(eq(videoAnalysisResults.videoId, videoId))
+      .orderBy(desc(videoAnalysisResults.createdAt));
+  }
+
+  // Content Analysis - Comparisons
+  async createVideoComparison(comparison: InsertVideoComparison): Promise<VideoComparison> {
+    const result = await db.insert(videoComparisons).values(comparison).returning();
+    return result[0];
+  }
+
+  async getVideoComparisons(userId: string): Promise<VideoComparison[]> {
+    return db.select().from(videoComparisons)
+      .where(eq(videoComparisons.userId, userId))
+      .orderBy(desc(videoComparisons.createdAt));
+  }
+
+  async getVideoComparison(id: string): Promise<VideoComparison | undefined> {
+    const result = await db.select().from(videoComparisons).where(eq(videoComparisons.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updateVideoComparison(id: string, data: Partial<InsertVideoComparison>): Promise<VideoComparison | undefined> {
+    const result = await db.update(videoComparisons)
+      .set(data)
+      .where(eq(videoComparisons.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteVideoComparison(id: string): Promise<void> {
+    await db.delete(videoComparisons).where(eq(videoComparisons.id, id));
   }
 }
 

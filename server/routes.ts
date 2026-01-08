@@ -6967,5 +6967,329 @@ Guidelines:
     }
   });
 
+  // ============ Content Analysis Routes ============
+
+  // Get all analyzed videos
+  app.get("/api/content-analysis/videos", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const videos = await storage.getAnalyzedVideos(userId);
+      res.json(videos);
+    } catch (error: any) {
+      console.error("Get analyzed videos error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add video for analysis
+  app.post("/api/content-analysis/videos", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { url } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "YouTube URL is required" });
+      }
+
+      // Extract video ID from URL
+      const videoIdMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (!videoIdMatch) {
+        return res.status(400).json({ error: "Invalid YouTube URL" });
+      }
+      const videoId = videoIdMatch[1];
+
+      // Check if already analyzed
+      const existing = await storage.getAnalyzedVideoByVideoId(userId, videoId);
+      if (existing) {
+        return res.json(existing);
+      }
+
+      // Create video record
+      const video = await storage.createAnalyzedVideo({
+        userId,
+        videoId,
+        videoUrl: url,
+        title: "Fetching...",
+        status: "pending",
+      });
+
+      res.json(video);
+    } catch (error: any) {
+      console.error("Add video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Scrape video transcript
+  app.post("/api/content-analysis/videos/:id/scrape", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const videoDbId = req.params.id;
+
+      const video = await storage.getAnalyzedVideo(videoDbId);
+      if (!video || video.userId !== userId) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      if (!apifyService.isConfigured()) {
+        return res.status(400).json({ error: "Apify not configured" });
+      }
+
+      await storage.updateAnalyzedVideo(videoDbId, { status: "scraping" });
+
+      const actorConfig = APIFY_ACTORS.youtubeTranscript;
+      const items = await apifyService.runActorAndWait(actorConfig.actorId, {
+        urls: [video.videoUrl],
+        format: "json",
+      }, 120000);
+
+      if (!items || items.length === 0) {
+        await storage.updateAnalyzedVideo(videoDbId, { status: "failed", errorMessage: "No transcript found" });
+        return res.status(400).json({ error: "No transcript found for this video" });
+      }
+
+      const item = items[0];
+      const fullTranscript = item.transcript || item.text || item.captions?.map((c: any) => c.text).join(" ") || "";
+      const segments = item.captions || item.segments || [];
+
+      await storage.updateAnalyzedVideo(videoDbId, {
+        title: item.title || video.title,
+        channelName: item.channelName || item.author || item.channel,
+        channelId: item.channelId,
+        description: item.description,
+        duration: item.duration || item.lengthSeconds,
+        viewCount: item.viewCount || item.views,
+        likeCount: item.likeCount || item.likes,
+        commentCount: item.commentCount,
+        thumbnailUrl: item.thumbnail || item.thumbnailUrl,
+        transcript: fullTranscript,
+        transcriptSegments: segments,
+        tags: item.tags || [],
+        category: item.category,
+        language: item.language,
+        status: "completed",
+      });
+
+      const updated = await storage.getAnalyzedVideo(videoDbId);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Scrape video error:", error);
+      await storage.updateAnalyzedVideo(req.params.id, { status: "failed", errorMessage: error.message });
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Analyze video with AI
+  app.post("/api/content-analysis/videos/:id/analyze", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const videoDbId = req.params.id;
+      const { analysisType = "full" } = req.body;
+
+      const video = await storage.getAnalyzedVideo(videoDbId);
+      if (!video || video.userId !== userId) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      if (!video.transcript) {
+        return res.status(400).json({ error: "Video must be scraped first" });
+      }
+
+      const { openai } = await import("./openai");
+
+      const analysisPrompt = `Analyze this YouTube video transcript and provide detailed insights:
+
+VIDEO TITLE: ${video.title}
+CHANNEL: ${video.channelName || "Unknown"}
+DURATION: ${video.duration ? Math.floor(video.duration / 60) + " minutes" : "Unknown"}
+VIEWS: ${video.viewCount?.toLocaleString() || "Unknown"}
+
+TRANSCRIPT:
+${video.transcript.slice(0, 12000)}
+
+Please analyze and provide:
+1. HOOK ANALYSIS: Rate the opening hook (first 30 seconds). What technique is used? How effective is it?
+2. CONTENT STRUCTURE: Break down the video into main sections/topics covered
+3. KEY TOPICS: List the main topics and themes discussed
+4. CTA ANALYSIS: What calls-to-action are used? Where are they placed? How effective?
+5. TONE ANALYSIS: What's the overall tone (educational, entertaining, motivational, etc)?
+6. STRENGTHS: What does this video do well?
+7. WEAKNESSES: What could be improved?
+8. ENGAGEMENT TIPS: What techniques are used to keep viewers engaged?
+9. SCRIPT IDEAS: 3 ideas for similar content you could create
+
+Respond in JSON format:
+{
+  "summary": "2-3 sentence summary of the video",
+  "hookAnalysis": {"type": "question|story|statistic|bold_claim", "duration": 30, "strength": 85, "transcript": "..."},
+  "contentStructure": [{"section": "Intro", "startTime": 0, "endTime": 60, "summary": "..."}],
+  "keyTopics": ["topic1", "topic2"],
+  "ctaAnalysis": {"hasCta": true, "type": "subscribe|link|product", "placement": "end", "strength": 70},
+  "toneAnalysis": {"primary": "educational", "secondary": "entertaining", "consistency": 90},
+  "strengths": ["strength1", "strength2"],
+  "weaknesses": ["weakness1", "weakness2"],
+  "engagementTips": ["tip1", "tip2"],
+  "scriptIdeas": ["idea1", "idea2", "idea3"]
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: analysisPrompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const analysisText = response.choices[0]?.message?.content || "{}";
+      const analysis = JSON.parse(analysisText);
+
+      const result = await storage.createVideoAnalysisResult({
+        userId,
+        videoId: videoDbId,
+        analysisType,
+        summary: analysis.summary,
+        hookAnalysis: analysis.hookAnalysis,
+        contentStructure: analysis.contentStructure,
+        keyTopics: analysis.keyTopics,
+        ctaAnalysis: analysis.ctaAnalysis,
+        toneAnalysis: analysis.toneAnalysis,
+        engagementTips: analysis.engagementTips,
+        scriptIdeas: analysis.scriptIdeas,
+        strengths: analysis.strengths,
+        weaknesses: analysis.weaknesses,
+        rawAnalysis: analysis,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Analyze video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get analysis results for a video
+  app.get("/api/content-analysis/videos/:id/results", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const videoDbId = req.params.id;
+
+      const video = await storage.getAnalyzedVideo(videoDbId);
+      if (!video || video.userId !== userId) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      const results = await storage.getVideoAnalysisResults(videoDbId);
+      res.json(results);
+    } catch (error: any) {
+      console.error("Get analysis results error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete analyzed video
+  app.delete("/api/content-analysis/videos/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const videoDbId = req.params.id;
+
+      const video = await storage.getAnalyzedVideo(videoDbId);
+      if (!video || video.userId !== userId) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      await storage.deleteAnalyzedVideo(videoDbId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Compare multiple videos
+  app.post("/api/content-analysis/compare", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { videoIds, name } = req.body;
+
+      if (!videoIds || videoIds.length < 2) {
+        return res.status(400).json({ error: "At least 2 videos required for comparison" });
+      }
+
+      // Fetch all videos
+      const videos: any[] = [];
+      for (const id of videoIds) {
+        const video = await storage.getAnalyzedVideo(id);
+        if (!video || video.userId !== userId) {
+          return res.status(404).json({ error: `Video ${id} not found` });
+        }
+        if (!video.transcript) {
+          return res.status(400).json({ error: `Video "${video.title}" needs to be scraped first` });
+        }
+        videos.push(video);
+      }
+
+      const { openai } = await import("./openai");
+
+      const comparisonPrompt = `Compare these YouTube videos and identify patterns:
+
+${videos.map((v, i) => `
+VIDEO ${i + 1}: ${v.title}
+Channel: ${v.channelName || "Unknown"}
+Views: ${v.viewCount?.toLocaleString() || "Unknown"}
+Duration: ${v.duration ? Math.floor(v.duration / 60) + " min" : "Unknown"}
+Transcript (first 3000 chars): ${v.transcript?.slice(0, 3000) || "N/A"}
+`).join("\n---\n")}
+
+Analyze and compare these videos. Provide:
+1. WINNING PATTERNS: What successful techniques do the top-performing videos use?
+2. CONTENT GAPS: What topics or approaches are missing that you could exploit?
+3. RECOMMENDATIONS: Specific actionable recommendations for creating better content
+
+Respond in JSON:
+{
+  "comparisonSummary": "Overall comparison in 2-3 sentences",
+  "winningPatterns": ["pattern1", "pattern2"],
+  "contentGaps": ["gap1", "gap2"],
+  "recommendations": ["rec1", "rec2", "rec3"]
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: comparisonPrompt }],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+      });
+
+      const comparisonText = response.choices[0]?.message?.content || "{}";
+      const comparison = JSON.parse(comparisonText);
+
+      const result = await storage.createVideoComparison({
+        userId,
+        name: name || `Comparison - ${new Date().toLocaleDateString()}`,
+        videoIds,
+        comparisonResult: comparison,
+        winningPatterns: comparison.winningPatterns,
+        contentGaps: comparison.contentGaps,
+        recommendations: comparison.recommendations,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Compare videos error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all comparisons
+  app.get("/api/content-analysis/comparisons", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const comparisons = await storage.getVideoComparisons(userId);
+      res.json(comparisons);
+    } catch (error: any) {
+      console.error("Get comparisons error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

@@ -54,6 +54,11 @@ export const APIFY_ACTORS: Record<string, ApifyActorConfig> = {
     platform: "reddit",
     searchField: "startUrls",
   },
+  youtubeTranscript: {
+    actorId: "karamelo/youtube-transcripts",
+    platform: "youtube",
+    searchField: "urls",
+  },
 };
 
 export interface ApifyRunResult {
