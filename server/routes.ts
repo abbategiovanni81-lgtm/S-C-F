@@ -7887,23 +7887,16 @@ Respond in JSON:
         .png()
         .toBuffer();
 
-      // Use the properly configured objectStorageClient
-      const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-      
-      if (!bucketId) {
-        return res.status(500).json({ error: "Object storage not configured" });
-      }
+      // Use object storage service to properly save and serve the file
+      const fileName = `${userId}-text-overlay-${Date.now()}.png`;
+      const result = await objectStorageService.uploadBuffer(
+        outputBuffer,
+        fileName,
+        "image/png",
+        true
+      );
 
-      const bucket = objectStorageClient.bucket(bucketId);
-      const fileName = `public/edited/${userId}-text-overlay-${Date.now()}.png`;
-      const gcsFile = bucket.file(fileName);
-
-      await gcsFile.save(outputBuffer, {
-        contentType: "image/png",
-        metadata: { cacheControl: "public, max-age=31536000" },
-      });
-
-      const publicUrl = `/objects/${fileName}`;
+      const publicUrl = result.publicUrl;
 
       res.json({ 
         success: true, 
