@@ -836,7 +836,7 @@ export async function registerRoutes(
     }
   });
 
-  // Scrape post by URL endpoint - supports TikTok and Instagram
+  // Scrape post by URL endpoint - supports YouTube, TikTok and Instagram
   app.post("/api/scrape-post", requireAuth, async (req: any, res) => {
     try {
       const { url, briefId } = req.body;
@@ -846,15 +846,65 @@ export async function registerRoutes(
       }
 
       // Detect platform from URL
-      let platform: "tiktok" | "instagram" | null = null;
-      if (url.includes("tiktok.com")) {
+      let platform: "youtube" | "tiktok" | "instagram" | null = null;
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        platform = "youtube";
+      } else if (url.includes("tiktok.com")) {
         platform = "tiktok";
       } else if (url.includes("instagram.com")) {
         platform = "instagram";
       }
 
       if (!platform) {
-        return res.status(400).json({ error: "URL must be from TikTok or Instagram" });
+        return res.status(400).json({ error: "URL must be from YouTube, TikTok or Instagram" });
+      }
+      
+      // Handle YouTube separately using the YouTube API
+      if (platform === "youtube") {
+        // Extract video ID from URL
+        const videoIdMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (!videoIdMatch) {
+          return res.status(400).json({ error: "Invalid YouTube URL" });
+        }
+        const videoId = videoIdMatch[1];
+        
+        // Fetch video metadata from YouTube Data API if available, otherwise use Apify
+        let youtubeData: any = null;
+        
+        if (apifyService.isConfigured() && APIFY_ACTORS.youtubeTranscript) {
+          try {
+            const items = await apifyService.runActorAndWait(APIFY_ACTORS.youtubeTranscript.actorId, {
+              urls: [`https://www.youtube.com/watch?v=${videoId}`],
+              format: "json",
+            }, 60000);
+            
+            if (items && items.length > 0) {
+              youtubeData = items[0];
+            }
+          } catch (err) {
+            console.error("YouTube scrape error:", err);
+          }
+        }
+        
+        const scrapedData = {
+          platform: "youtube",
+          url: url,
+          caption: youtubeData?.description || youtubeData?.title || "",
+          author: youtubeData?.channelName || youtubeData?.author || "",
+          authorHandle: youtubeData?.channelId || "",
+          likes: youtubeData?.likeCount || youtubeData?.likes || 0,
+          comments: youtubeData?.commentCount || 0,
+          shares: undefined,
+          views: youtubeData?.viewCount || youtubeData?.views || 0,
+          videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+          thumbnailUrl: youtubeData?.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          hashtags: youtubeData?.tags || [],
+          postedAt: youtubeData?.publishedAt || undefined,
+          title: youtubeData?.title || "",
+          duration: youtubeData?.duration || youtubeData?.lengthSeconds || 0,
+        };
+        
+        return res.json({ scrapedData, platform: "youtube" });
       }
 
       if (!apifyService.isConfigured()) {

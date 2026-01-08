@@ -601,7 +601,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       Analyze a Post
                     </CardTitle>
                     <CardDescription>
-                      Paste a TikTok or Instagram URL, or upload a screenshot
+                      Paste a YouTube, TikTok or Instagram URL, or upload a screenshot
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -619,17 +619,17 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
 
                       <TabsContent value="url" className="mt-4 space-y-4">
                         <div className="space-y-2">
-                          <Label>TikTok or Instagram Post URL</Label>
+                          <Label>YouTube, TikTok or Instagram URL</Label>
                           <div className="flex gap-2">
                             <Input
-                              placeholder="https://www.tiktok.com/@user/video/..."
+                              placeholder="https://youtube.com/watch?v=... or tiktok.com/... or instagram.com/..."
                               value={postUrl}
                               onChange={(e) => setPostUrl(e.target.value)}
                               data-testid="input-post-url"
                             />
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Paste a public TikTok or Instagram post URL to scrape the caption and metrics
+                            Paste a public YouTube, TikTok or Instagram URL to scrape the caption and metrics
                           </p>
                         </div>
 
