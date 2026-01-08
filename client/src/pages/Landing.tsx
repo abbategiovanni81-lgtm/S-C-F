@@ -261,7 +261,7 @@ export default function Landing() {
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 60 videos, 500 images</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 450 lipsync, 15 avatars</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Creator Studio included</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Steve AI video engine</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Long form video engine</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Getty Images library</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Priority support</li>
                 <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> 6 team logins</li>
