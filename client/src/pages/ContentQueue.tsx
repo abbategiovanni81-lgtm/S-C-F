@@ -2349,19 +2349,17 @@ export default function ContentQueue() {
             <div className="pt-4 space-y-3 border-t mt-4">
               <p className="text-xs font-medium text-muted-foreground">Actions</p>
               
-              {/* Next Step Options */}
+              {/* Next Step Options - ALL content types get BOTH options */}
               <div className="flex gap-2">
-                {/* For image/carousel content: Option to add text overlay in Editor */}
-                {isImage && (
-                  <Link href={`/editor/${content.id}`} className="flex-1">
-                    <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
-                      <Type className="w-4 h-4" />
-                      Add Text in Editor
-                    </Button>
-                  </Link>
-                )}
+                {/* Editor: Text overlay for images, video editing for videos */}
+                <Link href={`/editor/${content.id}`} className="flex-1">
+                  <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
+                    <Type className="w-4 h-4" />
+                    {isImage ? "Add Text in Editor" : "Editor"}
+                  </Button>
+                </Link>
                 {/* ALL CONTENT: Go to Edit & Merge */}
-                <Link href={`/edit-merge/${content.id}`} className={isImage ? "flex-1" : "w-full"}>
+                <Link href={`/edit-merge/${content.id}`} className="flex-1">
                   <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
                     <Scissors className="w-4 h-4" />
                     Edit & Merge
