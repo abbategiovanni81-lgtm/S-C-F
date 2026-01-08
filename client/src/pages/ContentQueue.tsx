@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw } from "lucide-react";
@@ -100,6 +102,7 @@ export default function ContentQueue() {
   // Image prompt editing state
   const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
+  const [includeTextInPrompt, setIncludeTextInPrompt] = useState(true);
   
   // Carousel slide editing state
   const [editCarouselSlideDialogOpen, setEditCarouselSlideDialogOpen] = useState(false);
@@ -1382,6 +1385,7 @@ export default function ContentQueue() {
       colorScheme: imagePrompts.colorScheme || "",
       style: imagePrompts.style || ""
     });
+    setIncludeTextInPrompt(imagePrompts.includeTextInPrompt !== false);
     setEditImageDialogOpen(true);
   };
 
@@ -1407,7 +1411,8 @@ export default function ContentQueue() {
               mainImagePrompt: editingImage.mainImagePrompt,
               textOverlay: editingImage.textOverlay,
               colorScheme: editingImage.colorScheme,
-              style: editingImage.style
+              style: editingImage.style,
+              includeTextInPrompt: includeTextInPrompt
             } 
           }
         }),
@@ -3570,6 +3575,32 @@ export default function ContentQueue() {
                   placeholder="Text to overlay on the image..."
                   data-testid="input-text-overlay"
                 />
+                <div className="flex items-center justify-between mt-3 p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="include-text-prompt"
+                      checked={includeTextInPrompt}
+                      onCheckedChange={setIncludeTextInPrompt}
+                      data-testid="switch-include-text"
+                    />
+                    <Label htmlFor="include-text-prompt" className="text-sm font-medium cursor-pointer">
+                      Include text in AI prompt
+                    </Label>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>ON:</strong> Text is included in the AI image prompt (AI tries to render text - may be imperfect).<br/><br/>
+                        <strong>OFF:</strong> Generate image without text, then add it manually in the <strong>Editor</strong> page for crisp, clean text overlay.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -3634,6 +3665,32 @@ export default function ContentQueue() {
                   className="min-h-[80px]"
                   data-testid="input-slide-text-overlay"
                 />
+                <div className="flex items-center justify-between mt-3 p-3 bg-muted/50 rounded-lg border">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="include-slide-text-prompt"
+                      checked={includeTextInPrompt}
+                      onCheckedChange={setIncludeTextInPrompt}
+                      data-testid="switch-include-slide-text"
+                    />
+                    <Label htmlFor="include-slide-text-prompt" className="text-sm font-medium cursor-pointer">
+                      Include text in AI prompt
+                    </Label>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="text-sm">
+                        <strong>ON:</strong> Text is included in the AI image prompt (AI tries to render text - may be imperfect).<br/><br/>
+                        <strong>OFF:</strong> Generate image without text, then add it manually in the <strong>Editor</strong> page for crisp, clean text overlay.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="slide-image-prompt">Image Generation Prompt</Label>
