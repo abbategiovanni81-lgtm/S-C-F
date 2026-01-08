@@ -101,6 +101,21 @@ export default function ContentAnalyzer() {
   const [mainTab, setMainTab] = useState("post-analyzer");
   
   // Post Analyzer state
+  const [inputMode, setInputMode] = useState<"screenshot" | "url">("screenshot");
+  const [postUrl, setPostUrl] = useState("");
+  const [scrapedData, setScrapedData] = useState<{
+    platform: string;
+    url: string;
+    caption: string;
+    author: string;
+    authorHandle: string;
+    likes: number;
+    comments: number;
+    shares?: number;
+    views?: number;
+    thumbnailUrl?: string;
+    hashtags?: string[];
+  } | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState(0);
@@ -176,6 +191,37 @@ export default function ContentAnalyzer() {
     },
     onError: (error: any) => {
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Scrape post by URL mutation
+  const scrapePostMutation = useMutation({
+    mutationFn: async ({ url, briefId }: { url: string; briefId?: string }) => {
+      const res = await fetch("/api/scrape-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ url, briefId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to scrape post");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setScrapedData(data.scrapedData);
+      if (data.analysis) {
+        setAnalysis(data.analysis);
+      }
+      setSaved(false);
+      toast({ 
+        title: "Post scraped successfully!", 
+        description: `Got ${data.scrapedData.platform} post from @${data.scrapedData.authorHandle}` 
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Scraping failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -551,78 +597,161 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Upload className="w-5 h-5" />
-                      Upload Screenshot
+                      <Camera className="w-5 h-5" />
+                      Analyze a Post
                     </CardTitle>
                     <CardDescription>
-                      Drag and drop or click to upload a screenshot of a viral social media post
+                      Paste a TikTok or Instagram URL, or upload a screenshot
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleDrop}
-                      className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer min-h-[200px]"
-                      onClick={() => document.getElementById("file-input")?.click()}
-                      data-testid="dropzone-upload"
-                    >
-                      {previewUrls.length > 0 ? (
-                        <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                            {previewUrls.map((url, index) => (
-                              <div key={index} className="relative group">
-                                <img
-                                  src={url}
-                                  alt={`Preview ${index + 1}`}
-                                  className="w-full h-20 object-cover rounded-lg shadow-sm"
-                                  data-testid={`img-preview-${index}`}
-                                />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveFile(index);
-                                  }}
-                                  className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  data-testid={`button-remove-${index}`}
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
-                            {selectedFiles.length < MAX_FILES && (
-                              <div
-                                onClick={() => document.getElementById("file-input")?.click()}
-                                className="w-full h-20 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
-                              >
-                                <Upload className="w-5 h-5 text-muted-foreground" />
+                  <CardContent className="space-y-4">
+                    <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "screenshot" | "url")}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="url" data-testid="tab-input-url">
+                          <Search className="w-4 h-4 mr-2" />
+                          Paste URL
+                        </TabsTrigger>
+                        <TabsTrigger value="screenshot" data-testid="tab-input-screenshot">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Screenshot
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="url" className="mt-4 space-y-4">
+                        <div className="space-y-2">
+                          <Label>TikTok or Instagram Post URL</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="https://www.tiktok.com/@user/video/..."
+                              value={postUrl}
+                              onChange={(e) => setPostUrl(e.target.value)}
+                              data-testid="input-post-url"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Paste a public TikTok or Instagram post URL to scrape the caption and metrics
+                          </p>
+                        </div>
+
+                        {scrapedData && (
+                          <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Badge variant="secondary">{scrapedData.platform}</Badge>
+                              <span className="text-sm text-muted-foreground">@{scrapedData.authorHandle}</span>
+                            </div>
+                            <p className="text-sm line-clamp-4">{scrapedData.caption}</p>
+                            <div className="flex gap-4 text-xs text-muted-foreground">
+                              <span>❤️ {formatNumber(scrapedData.likes)}</span>
+                              <span>💬 {formatNumber(scrapedData.comments)}</span>
+                              {scrapedData.views && <span>👁 {formatNumber(scrapedData.views)}</span>}
+                              {scrapedData.shares && <span>🔗 {formatNumber(scrapedData.shares)}</span>}
+                            </div>
+                            {scrapedData.hashtags && scrapedData.hashtags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {scrapedData.hashtags.slice(0, 5).map((tag, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">#{tag}</Badge>
+                                ))}
                               </div>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {selectedFiles.length} of {MAX_FILES} images selected
-                          </p>
+                        )}
+
+                        <Button
+                          onClick={() => {
+                            if (!postUrl) {
+                              toast({ title: "Please enter a URL", variant: "destructive" });
+                              return;
+                            }
+                            scrapePostMutation.mutate({ 
+                              url: postUrl, 
+                              briefId: selectedBriefId && selectedBriefId !== "none" ? selectedBriefId : undefined 
+                            });
+                          }}
+                          disabled={!postUrl || scrapePostMutation.isPending}
+                          className="w-full"
+                          data-testid="button-scrape-post"
+                        >
+                          {scrapePostMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Scraping post...
+                            </>
+                          ) : (
+                            <>
+                              <Search className="w-4 h-4 mr-2" />
+                              Scrape & Analyze Post
+                            </>
+                          )}
+                        </Button>
+                      </TabsContent>
+
+                      <TabsContent value="screenshot" className="mt-4">
+                        <div
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={handleDrop}
+                          className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer min-h-[200px]"
+                          onClick={() => document.getElementById("file-input")?.click()}
+                          data-testid="dropzone-upload"
+                        >
+                          {previewUrls.length > 0 ? (
+                            <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+                              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                {previewUrls.map((url, index) => (
+                                  <div key={index} className="relative group">
+                                    <img
+                                      src={url}
+                                      alt={`Preview ${index + 1}`}
+                                      className="w-full h-20 object-cover rounded-lg shadow-sm"
+                                      data-testid={`img-preview-${index}`}
+                                    />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveFile(index);
+                                      }}
+                                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                      data-testid={`button-remove-${index}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                                {selectedFiles.length < MAX_FILES && (
+                                  <div
+                                    onClick={() => document.getElementById("file-input")?.click()}
+                                    className="w-full h-20 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors"
+                                  >
+                                    <Upload className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {selectedFiles.length} of {MAX_FILES} images selected
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2 py-4">
+                              <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
+                              <p className="text-muted-foreground">
+                                Drop images here or click to browse
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Upload up to 10 screenshots (PNG, JPG, WEBP)
+                              </p>
+                            </div>
+                          )}
+                          <input
+                            id="file-input"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleFileSelect}
+                            data-testid="input-file"
+                          />
                         </div>
-                      ) : (
-                        <div className="space-y-2 py-4">
-                          <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
-                          <p className="text-muted-foreground">
-                            Drop images here or click to browse
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Upload up to 10 screenshots (PNG, JPG, WEBP)
-                          </p>
-                        </div>
-                      )}
-                      <input
-                        id="file-input"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={handleFileSelect}
-                        data-testid="input-file"
-                      />
-                    </div>
+                      </TabsContent>
+                    </Tabs>
                   </CardContent>
                 </Card>
 
