@@ -153,7 +153,108 @@ You can:
 
 ---
 
-## CREATOR STUDIO - Your AI Production Suite
+## COMPLETE CONTENT FLOW - How Content Moves Through the System
+
+### "What is the content workflow?"
+ALL content follows this path:
+1. **Generated** → Content is created (in Content Queue, Blog Studio, Video to Clips, etc.)
+2. **Pending** → Waiting for your review and approval
+3. **Approved** → Ready for next step - you choose:
+   - **Editor** - Add text overlays to images, or create video editing jobs
+   - **Edit & Merge** - Combine clips, add voiceover, finalize video
+4. **Ready to Post** → Final content ready to publish
+
+### "What are my options after Approving content?"
+Once content is Approved, you see two buttons:
+- **Editor** - For text overlays (images) or video editing jobs
+- **Edit & Merge** - For combining clips, adding audio, finalizing
+
+### "What can I do in Editor?"
+The Editor handles two things:
+1. **Text Overlay** (for images/carousels):
+   - Load approved image content
+   - Add text with custom font, size, color, position
+   - Choose background color for text
+   - Uses Sharp library for crisp text (not AI-generated)
+   - After processing: Send to Edit & Merge OR Ready to Post
+
+2. **Video Editing Jobs** (for all content):
+   - Create trim, split, or speed change jobs
+   - Standard jobs = free overnight processing
+   - Rush jobs = paid immediate processing
+   - Completed jobs show Edit & Merge and Ready to Post buttons
+
+### "What happens in Edit & Merge?"
+Edit & Merge is your final editing station:
+- Combine multiple video clips
+- Add voiceover (record or AI-generated)
+- Add music and sound effects
+- Adjust timing and transitions
+- Move to Ready to Post when complete
+
+---
+
+## BLOG STUDIO - AI-Powered Blog Creation
+
+### "What is Blog Studio?"
+Blog Studio generates complete blog posts using AI, matching your brand voice. Perfect for content marketing, SEO, and repurposing social content.
+
+### "How do I create a blog post?"
+1. Go to Blog Studio from the sidebar
+2. Select your Brand Brief
+3. Enter a topic or prompt
+4. Click "Generate Blog with AI"
+5. AI creates:
+   - Title
+   - Summary
+   - Full body content (in Markdown)
+   - SEO meta description (150-160 characters)
+   - Keywords for SEO
+6. Edit any section in the markdown editor
+7. Add a hero image URL
+8. Choose: Save as Draft or Create Post (Ready to Post)
+
+### "Can I convert analyzed content to a blog?"
+Yes! From Content Analyzer:
+- After analyzing a video or post, click "Create Blog" or "Convert to Blog"
+- Blog Studio opens with context from your analysis
+- AI uses the insights as inspiration
+
+### "Can I convert comparison insights to a blog?"
+Yes! From Content Comparison:
+- After comparing content, click "Create Blog Post"
+- Blog Studio uses the strengths and improvements as inspiration
+
+---
+
+## EDITOR - Text Overlays & Video Jobs
+
+### "What is the Editor for?"
+The Editor has two main functions:
+1. Adding text overlays to images (using Sharp for crisp rendering)
+2. Creating video editing jobs (trim, split, speed changes)
+
+### "How do I add text to an image?"
+1. From Content Queue, approve an image/carousel
+2. Click "Add Text in Editor" 
+3. Upload or load the image
+4. Enter your overlay text
+5. Customize: font, size, color, position, background
+6. Click "Apply Text Overlay"
+7. Choose: Edit & Merge (more editing) or Ready to Post (publish)
+
+### "How do I create a video editing job?"
+1. Go to Editor and select "Video Jobs" tab
+2. Enter job name and select type (trim, split, speed)
+3. Upload or paste video URL
+4. Set parameters (start/end time, speed multiplier)
+5. Choose priority: Standard (free, overnight) or Rush (paid, immediate)
+6. Click Create Job
+7. When complete, choose Edit & Merge or Ready to Post
+
+---
+
+## CREATOR STUDIO - Your AI Production Suite (Enhancement Tools)
 
 Creator Studio is your all-in-one AI video and audio production toolkit. Create professional-looking content without cameras, studios, or expensive equipment.
 

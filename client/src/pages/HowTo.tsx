@@ -575,54 +575,144 @@ export default function HowTo() {
             <TabsContent value="workflows">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
+                  {/* Master Content Flow */}
+                  <Card className="border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-purple-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ArrowRight className="h-5 w-5 text-primary" />
+                        Master Content Flow
+                      </CardTitle>
+                      <CardDescription>
+                        ALL content follows this path through the system
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <Badge variant="secondary">Generated</Badge>
+                        <ArrowRight className="h-4 w-4" />
+                        <Badge variant="outline">Pending</Badge>
+                        <ArrowRight className="h-4 w-4" />
+                        <Badge className="bg-green-600">Approved</Badge>
+                        <ArrowRight className="h-4 w-4" />
+                        <div className="flex gap-1">
+                          <Badge variant="outline">Editor</Badge>
+                          <span className="text-muted-foreground">or</span>
+                          <Badge variant="outline">Edit & Merge</Badge>
+                        </div>
+                        <ArrowRight className="h-4 w-4" />
+                        <Badge className="bg-blue-600">Ready to Post</Badge>
+                      </div>
+                      <Separator className="my-4" />
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium mb-1">Editor</div>
+                          <div className="text-muted-foreground">Text overlays for images, video editing jobs (trim, split, speed)</div>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg">
+                          <div className="font-medium mb-1">Edit & Merge</div>
+                          <div className="text-muted-foreground">Combine clips, add voiceover, music, finalize video</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <WorkflowCard
-                    title="Flow A: Script + Voice + Avatar Video"
-                    description="Create a talking-head video with an AI avatar speaking your script."
+                    title="Flow A: Video Content (Reels, Stories, Shorts, TikTok)"
+                    description="Create video content from script to final post."
                     steps={[
-                      { step: "Create Brand Brief", detail: "Define your brand voice" },
-                      { step: "Generate Script", detail: "OpenAI creates your content" },
-                      { step: "Generate Voiceover", detail: "ElevenLabs converts to audio" },
-                      { step: "Select Avatar & Generate Video", detail: "A2E creates talking video" },
-                      { step: "Download or Publish", detail: "Post to YouTube or download" },
+                      { step: "Brand Brief → Content Queue", detail: "Generate script with AI" },
+                      { step: "Pending → Approve", detail: "Review and approve content" },
+                      { step: "Choose: Editor or Edit & Merge", detail: "Both options available for all content" },
+                      { step: "Editor: Video editing jobs", detail: "Trim, split, or speed changes" },
+                      { step: "Edit & Merge: Finalize", detail: "Combine clips, add audio" },
+                      { step: "Ready to Post", detail: "Publish when ready" },
                     ]}
                     apisUsed={["OpenAI", "ElevenLabs", "A2E"]}
                   />
 
                   <WorkflowCard
-                    title="Flow B: Script + Voice + Stock Footage"
-                    description="Create a video using your voiceover with professional B-roll clips."
+                    title="Flow B: Image/Carousel Content"
+                    description="Create image posts with text overlays."
                     steps={[
-                      { step: "Create Brand Brief", detail: "Define your brand voice" },
-                      { step: "Generate Script", detail: "OpenAI creates your content" },
-                      { step: "Generate Voiceover", detail: "ElevenLabs converts to audio" },
-                      { step: "Search B-Roll clips", detail: "Pexels (FREE)" },
-                      { step: "Combine in Edit & Merge", detail: "Build your final video" },
-                      { step: "Download or Publish", detail: "Post to YouTube or download" },
+                      { step: "Brand Brief → Content Queue", detail: "Generate caption + image prompt" },
+                      { step: "Generate Image", detail: "DALL-E, A2E, Fal.ai, or Pexels" },
+                      { step: "Pending → Approve", detail: "Review generated content" },
+                      { step: "Editor: Add Text Overlay", detail: "Sharp renders crisp text on image" },
+                      { step: "Choose: Edit & Merge or Ready to Post", detail: "More editing or publish" },
                     ]}
-                    apisUsed={["OpenAI", "ElevenLabs", "Pexels (Free)"]}
+                    apisUsed={["OpenAI", "Image Engine"]}
                   />
 
                   <WorkflowCard
-                    title="Flow C: Image Post"
-                    description="Create an image post with AI-generated caption and image."
+                    title="Flow C: Blog Content"
+                    description="Create AI-generated blog posts with SEO optimization."
                     steps={[
-                      { step: "Create Brand Brief", detail: "Define your brand voice" },
-                      { step: "Generate Caption", detail: "OpenAI creates caption + hashtags" },
-                      { step: "Generate Image", detail: "Choose A2E, DALL-E, Fal.ai, or Pexels" },
-                      { step: "Download for posting", detail: "Save and post to your platforms" },
+                      { step: "Blog Studio → Select Brand", detail: "Choose your brand brief" },
+                      { step: "Enter Topic", detail: "Describe what to write about" },
+                      { step: "AI Generates Blog", detail: "Title, body, summary, SEO meta" },
+                      { step: "Edit in Markdown Editor", detail: "Customize content" },
+                      { step: "Save Draft or Create Post", detail: "Draft saves, Create goes to Ready" },
                     ]}
-                    apisUsed={["OpenAI", "Image Engine of Choice"]}
+                    apisUsed={["OpenAI (GPT-4o)"]}
                   />
 
                   <WorkflowCard
-                    title="Flow D: Social Listening Reply"
-                    description="Monitor brand mentions and respond with AI-generated replies."
+                    title="Flow D: From Content Analyzer"
+                    description="Turn viral content analysis into new content."
+                    steps={[
+                      { step: "Upload Screenshot or YouTube URL", detail: "Analyze viral content" },
+                      { step: "AI Breaks Down Success", detail: "Hooks, structure, engagement tactics" },
+                      { step: "Generate Content or Create Blog", detail: "Use insights as inspiration" },
+                      { step: "New content → Pending", detail: "Follows standard flow" },
+                    ]}
+                    apisUsed={["OpenAI", "Apify"]}
+                  />
+
+                  <WorkflowCard
+                    title="Flow E: From Content Comparison"
+                    description="Compare content and generate improvements."
+                    steps={[
+                      { step: "Add Your Content + Competitor", detail: "Upload or link both" },
+                      { step: "AI Compares", detail: "Scores, strengths, improvements" },
+                      { step: "Generate Video/Image Content", detail: "Use insights in Content Queue" },
+                      { step: "Or Create Blog Post", detail: "Blog Studio with comparison context" },
+                    ]}
+                    apisUsed={["OpenAI"]}
+                  />
+
+                  <WorkflowCard
+                    title="Flow F: Video to Clips"
+                    description="Split long videos into social clips."
+                    steps={[
+                      { step: "Upload Long Video", detail: "Or paste YouTube URL" },
+                      { step: "AI Finds Highlights", detail: "Key moments identified" },
+                      { step: "Select Clips", detail: "Choose which to export" },
+                      { step: "Download or Add to Queue", detail: "Clips go to Content Queue as Pending" },
+                    ]}
+                    apisUsed={["Built-in AI"]}
+                  />
+
+                  <WorkflowCard
+                    title="Flow G: Creator Studio Tools"
+                    description="Enhancement tools that attach to existing content."
+                    steps={[
+                      { step: "Select Approved/Ready Content", detail: "Choose content to enhance" },
+                      { step: "Generate Asset", detail: "Voice, Avatar, Lip Sync, etc." },
+                      { step: "Save to Content", detail: "Asset attaches to your content" },
+                      { step: "Continue in flow", detail: "Edit & Merge or Ready to Post" },
+                    ]}
+                    apisUsed={["ElevenLabs", "A2E"]}
+                  />
+
+                  <WorkflowCard
+                    title="Flow H: Social Listening Reply"
+                    description="Monitor mentions and engage."
                     steps={[
                       { step: "Set Keywords", detail: "Define what to monitor" },
-                      { step: "Scan runs automatically", detail: "Apify scrapes platforms" },
-                      { step: "AI analyzes mentions", detail: "OpenAI detects sentiment" },
-                      { step: "Generate reply suggestions", detail: "AI creates contextual replies" },
-                      { step: "Review & post replies", detail: "Approve and send" },
+                      { step: "Scan Platforms", detail: "YouTube, TikTok, Reddit, X" },
+                      { step: "AI Analyzes", detail: "Sentiment + opportunity score" },
+                      { step: "Generate Reply", detail: "AI creates contextual response" },
+                      { step: "Review & Post", detail: "Approve and send" },
                     ]}
                     apisUsed={["Apify", "OpenAI"]}
                   />
