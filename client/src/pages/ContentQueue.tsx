@@ -2060,17 +2060,51 @@ export default function ContentQueue() {
                 )}
               </div>
 
-              {(generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl) && (
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Generated/Uploaded Image</p>
-                  <img 
-                    src={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl || (content.generationMetadata as any)?.uploadedImageUrl} 
-                    alt="Generated content" 
-                    className="rounded-lg max-h-48 object-contain border"
-                    data-testid={`img-generated-${content.id}`}
-                  />
-                </div>
-              )}
+              {/* Show all available images - generated and uploaded */}
+              {(() => {
+                const metadata = content.generationMetadata as any;
+                const genImg = generatedImages[content.id] || metadata?.generatedImageUrl;
+                const uploadImg = metadata?.uploadedImageUrl;
+                const hasImages = genImg || uploadImg;
+                
+                if (!hasImages) return null;
+                
+                return (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Your Images ({[genImg, uploadImg].filter(Boolean).length})
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {genImg && (
+                        <div className="relative">
+                          <img 
+                            src={genImg} 
+                            alt="AI Generated" 
+                            className="rounded-lg max-h-48 object-contain border"
+                            data-testid={`img-generated-${content.id}`}
+                          />
+                          <span className="absolute top-1 left-1 bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">
+                            AI Generated
+                          </span>
+                        </div>
+                      )}
+                      {uploadImg && (
+                        <div className="relative">
+                          <img 
+                            src={uploadImg} 
+                            alt="Uploaded" 
+                            className="rounded-lg max-h-48 object-contain border"
+                            data-testid={`img-uploaded-${content.id}`}
+                          />
+                          <span className="absolute top-1 left-1 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">
+                            Uploaded
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex flex-col sm:flex-row gap-2 mt-2">
                 <Button
@@ -2480,21 +2514,53 @@ export default function ContentQueue() {
                     </Button>
                   </div>
 
-                  {/* Show uploaded/generated image preview */}
-                  {(generatedImages[content.id] || metadata?.generatedImageUrl || metadata?.uploadedImageUrl) && (
-                    <div className="mt-2">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Image Preview</p>
-                      <img 
-                        src={generatedImages[content.id] || metadata?.generatedImageUrl || metadata?.uploadedImageUrl} 
-                        alt="Content image" 
-                        className="rounded-lg max-h-32 object-contain border"
-                        data-testid={`img-preview-${content.id}`}
-                      />
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Go to Edit & Merge above to finalize and move to Ready to Post
-                      </p>
-                    </div>
-                  )}
+                  {/* Show all available images - generated and uploaded */}
+                  {(() => {
+                    const genImg = generatedImages[content.id] || metadata?.generatedImageUrl;
+                    const uploadImg = metadata?.uploadedImageUrl;
+                    const hasImages = genImg || uploadImg;
+                    
+                    if (!hasImages) return null;
+                    
+                    return (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">
+                          Your Images ({[genImg, uploadImg].filter(Boolean).length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {genImg && (
+                            <div className="relative">
+                              <img 
+                                src={genImg} 
+                                alt="AI Generated" 
+                                className="rounded-lg max-h-32 object-contain border"
+                                data-testid={`img-generated-preview-${content.id}`}
+                              />
+                              <span className="absolute top-1 left-1 bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
+                                AI
+                              </span>
+                            </div>
+                          )}
+                          {uploadImg && (
+                            <div className="relative">
+                              <img 
+                                src={uploadImg} 
+                                alt="Uploaded" 
+                                className="rounded-lg max-h-32 object-contain border"
+                                data-testid={`img-uploaded-preview-${content.id}`}
+                              />
+                              <span className="absolute top-1 left-1 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">
+                                Uploaded
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Go to Edit & Merge above to finalize and move to Ready to Post
+                        </p>
+                      </div>
+                    );
+                  })()}
                 </>
               )}
               
