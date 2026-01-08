@@ -13,10 +13,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, 
   RefreshCw, Save, CheckCircle, X, Plus, Search, Youtube, Trash2, BarChart2, FileText, 
-  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image
+  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2
 } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +107,13 @@ export default function ContentAnalyzer() {
   const [selectedBriefId, setSelectedBriefId] = useState<string>("");
   const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // Generate Content dialog state
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text">("video");
+  const [sceneCount, setSceneCount] = useState(3);
+  const [optimizationGoal, setOptimizationGoal] = useState<"reach" | "saves" | "comments" | "clicks">("reach");
+  const [generateSource, setGenerateSource] = useState<"post" | "video">("post");
 
   // Video Research state
   const [newVideoUrl, setNewVideoUrl] = useState("");
@@ -228,6 +236,101 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
     },
   });
+
+  // Generate content with inspiration context
+  const generateContentMutation = useMutation({
+    mutationFn: async ({ briefId, format, scenes, goal, inspirationContext }: { 
+      briefId: string; 
+      format: string; 
+      scenes: number;
+      goal: string;
+      inspirationContext: any;
+    }) => {
+      const res = await apiRequest("POST", "/api/generate-content", {
+        briefId,
+        contentType: "both",
+        contentFormat: format,
+        sceneCount: format === "video" ? scenes : undefined,
+        optimizationGoal: goal,
+        inspirationContext,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setSaved(true);
+      setGenerateDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/content?status=pending"] });
+      toast({ 
+        title: "Content generated!", 
+        description: "View it in your Content Queue to edit and publish.",
+      });
+      setLocation("/content-queue");
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to generate content", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Build inspiration context from post analysis
+  const buildPostInspirationContext = () => {
+    if (!analysis) return null;
+    return {
+      whyThisWorked: analysis.whyThisWorked,
+      contentStructure: analysis.contentStructure,
+      hookRewrites: analysis.hookRewrites,
+      visualBreakdown: analysis.visualBreakdown,
+      adaptationIdeas: {
+        sameStructure: analysis.adaptationForMyChannel.sameStructure,
+        differentTopic: analysis.adaptationForMyChannel.differentTopic,
+        myTone: analysis.adaptationForMyChannel.myTone,
+        trendingAngle: analysis.adaptationForMyChannel.trendingAngle,
+      },
+    };
+  };
+
+  // Build inspiration context from video analysis
+  const buildVideoInspirationContext = () => {
+    if (!latestAnalysis) return null;
+    return {
+      videoAnalysis: {
+        summary: latestAnalysis.summary,
+        hookStrength: latestAnalysis.hookAnalysis?.strength,
+        ctaStrength: latestAnalysis.ctaAnalysis?.strength,
+        keyTopics: latestAnalysis.keyTopics,
+        strengths: latestAnalysis.strengths,
+        scriptIdeas: latestAnalysis.scriptIdeas,
+      },
+    };
+  };
+
+  const handleOpenGenerateDialog = (source: "post" | "video") => {
+    setGenerateSource(source);
+    setGenerateDialogOpen(true);
+  };
+
+  const handleGenerateContent = () => {
+    if (!selectedBriefId || selectedBriefId === "none") {
+      toast({ title: "Please select a brand brief", variant: "destructive" });
+      return;
+    }
+    
+    const inspirationContext = generateSource === "post" 
+      ? buildPostInspirationContext() 
+      : buildVideoInspirationContext();
+    
+    if (!inspirationContext) {
+      toast({ title: "No analysis data available", variant: "destructive" });
+      return;
+    }
+    
+    generateContentMutation.mutate({
+      briefId: selectedBriefId,
+      format: selectedFormat,
+      scenes: sceneCount,
+      goal: optimizationGoal,
+      inspirationContext,
+    });
+  };
 
   // Video Research mutations
   const addVideoMutation = useMutation({
@@ -753,31 +856,24 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       <CardContent className="pt-6">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                           <div>
-                            <h3 className="font-medium">Save this inspiration?</h3>
+                            <h3 className="font-medium">Ready to create content?</h3>
                             <p className="text-sm text-muted-foreground">
-                              {selectedBriefId && selectedBriefId !== "none" 
-                                ? "Add to your Content Queue as a new content idea" 
-                                : "Select a brand brief above to save this analysis"}
+                              Generate a new script using these insights as inspiration
                             </p>
                           </div>
                           {saved ? (
                             <Button disabled className="gap-2" data-testid="button-saved">
                               <CheckCircle className="w-4 h-4" />
-                              Saved!
+                              Generated!
                             </Button>
                           ) : (
                             <Button
-                              onClick={() => saveToQueueMutation.mutate()}
-                              disabled={!selectedBriefId || selectedBriefId === "none" || saveToQueueMutation.isPending}
+                              onClick={() => handleOpenGenerateDialog("post")}
                               className="gap-2"
-                              data-testid="button-save-to-queue"
+                              data-testid="button-generate-from-post"
                             >
-                              {saveToQueueMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Save className="w-4 h-4" />
-                              )}
-                              Save to Content Queue
+                              <Wand2 className="w-4 h-4" />
+                              Generate Content
                             </Button>
                           )}
                         </div>
@@ -1083,6 +1179,17 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                                   </ul>
                                 </div>
                               )}
+
+                              <div className="pt-4 border-t">
+                                <Button
+                                  onClick={() => handleOpenGenerateDialog("video")}
+                                  className="w-full gap-2"
+                                  data-testid="button-generate-from-video"
+                                >
+                                  <Wand2 className="w-4 h-4" />
+                                  Generate Content from This Analysis
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1221,6 +1328,116 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
               >
                 {compareVideosMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <GitCompare className="w-4 h-4 mr-2" />}
                 Compare Videos
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate Content</DialogTitle>
+              <DialogDescription>
+                Create new content using the analyzed {generateSource === "post" ? "post" : "video"} as inspiration
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Brand Brief</Label>
+                <Select value={selectedBriefId} onValueChange={setSelectedBriefId}>
+                  <SelectTrigger data-testid="select-brief-generate">
+                    <SelectValue placeholder="Select a brand brief" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select a brief...</SelectItem>
+                    {briefs.map((brief) => (
+                      <SelectItem key={brief.id} value={brief.id}>
+                        {brief.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Content Format</Label>
+                <RadioGroup value={selectedFormat} onValueChange={(v) => setSelectedFormat(v as any)}>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer ${selectedFormat === "video" ? "border-primary bg-primary/5" : ""}`}>
+                      <RadioGroupItem value="video" />
+                      <Video className="w-4 h-4" />
+                      Video
+                    </Label>
+                    <Label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer ${selectedFormat === "image" ? "border-primary bg-primary/5" : ""}`}>
+                      <RadioGroupItem value="image" />
+                      <Image className="w-4 h-4" />
+                      Image
+                    </Label>
+                    <Label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer ${selectedFormat === "carousel" ? "border-primary bg-primary/5" : ""}`}>
+                      <RadioGroupItem value="carousel" />
+                      <LayoutGrid className="w-4 h-4" />
+                      Carousel
+                    </Label>
+                    <Label className={`flex items-center gap-2 p-3 border rounded-lg cursor-pointer ${selectedFormat === "tiktok_text" ? "border-primary bg-primary/5" : ""}`}>
+                      <RadioGroupItem value="tiktok_text" />
+                      <MessageSquare className="w-4 h-4" />
+                      Text Post
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              {selectedFormat === "video" && (
+                <div className="space-y-2">
+                  <Label>Number of Scenes</Label>
+                  <Select value={sceneCount.toString()} onValueChange={(v) => setSceneCount(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Scene</SelectItem>
+                      <SelectItem value="2">2 Scenes</SelectItem>
+                      <SelectItem value="3">3 Scenes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Optimize For</Label>
+                <Select value={optimizationGoal} onValueChange={(v) => setOptimizationGoal(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="reach">Reach (shares, follows)</SelectItem>
+                    <SelectItem value="saves">Saves (bookmarks)</SelectItem>
+                    <SelectItem value="comments">Comments (engagement)</SelectItem>
+                    <SelectItem value="clicks">Clicks (conversions)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setGenerateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateContent}
+                disabled={!selectedBriefId || selectedBriefId === "none" || generateContentMutation.isPending}
+                data-testid="button-confirm-generate"
+              >
+                {generateContentMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Content
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

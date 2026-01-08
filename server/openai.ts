@@ -381,6 +381,36 @@ export interface BrandAssetReference {
   imageUrl: string;
 }
 
+export interface InspirationContext {
+  whyThisWorked?: string[];
+  contentStructure?: {
+    openingLine?: string;
+    middleIdea?: string;
+    payoff?: string;
+  };
+  hookRewrites?: string[];
+  visualBreakdown?: {
+    camera?: string;
+    text?: string;
+    colors?: string;
+    framing?: string;
+  };
+  adaptationIdeas?: {
+    sameStructure?: string;
+    differentTopic?: string;
+    myTone?: string;
+    trendingAngle?: string;
+  };
+  videoAnalysis?: {
+    summary?: string;
+    hookStrength?: number;
+    ctaStrength?: number;
+    keyTopics?: string[];
+    strengths?: string[];
+    scriptIdeas?: string[];
+  };
+}
+
 export interface ContentGenerationRequest {
   briefId: string;
   brandVoice: string;
@@ -397,6 +427,7 @@ export interface ContentGenerationRequest {
   topPerformingPosts?: { title: string; views: number; postedOn?: string }[];
   sceneCount?: number; // 1-3 scenes for video content
   brandAssets?: BrandAssetReference[]; // Brand assets to reference in image generation
+  inspirationContext?: InspirationContext; // Inspiration from analyzed content
 }
 
 export interface ScenePrompt {
@@ -452,6 +483,59 @@ export async function generateSocialContent(
   const learningSection = request.topPerformingPosts && request.topPerformingPosts.length > 0
     ? `\n\nLEARN FROM TOP PERFORMING POSTS - Study these successful post titles/topics and incorporate similar hooks, structures, and themes:\n${request.topPerformingPosts.slice(0, 5).map((p, i) => `${i + 1}. "${p.title}" (${(p.views || 0).toLocaleString()} views)`).join("\n")}`
     : "";
+
+  // Build inspiration section from analyzed competitor content
+  let inspirationSection = "";
+  if (request.inspirationContext) {
+    const ctx = request.inspirationContext;
+    const parts: string[] = [];
+    
+    parts.push(`\n\n═══════════════════════════════════════════════════════════════════════════════
+INSPIRATION FROM ANALYZED CONTENT - Use these insights to guide your creation:
+═══════════════════════════════════════════════════════════════════════════════`);
+
+    if (ctx.whyThisWorked && ctx.whyThisWorked.length > 0) {
+      parts.push(`\nWHY THE ORIGINAL WORKED:\n${ctx.whyThisWorked.map(w => `• ${w}`).join("\n")}`);
+    }
+    
+    if (ctx.contentStructure) {
+      const cs = ctx.contentStructure;
+      parts.push(`\nPROVEN CONTENT STRUCTURE TO FOLLOW:
+• Opening Hook: ${cs.openingLine || "Start with attention-grabbing statement"}
+• Middle/Value: ${cs.middleIdea || "Deliver core value"}
+• Payoff/CTA: ${cs.payoff || "End with clear call to action"}`);
+    }
+    
+    if (ctx.hookRewrites && ctx.hookRewrites.length > 0) {
+      parts.push(`\nHOOK IDEAS TO ADAPT:\n${ctx.hookRewrites.slice(0, 3).map((h, i) => `${i + 1}. ${h}`).join("\n")}`);
+    }
+    
+    if (ctx.adaptationIdeas) {
+      const ai = ctx.adaptationIdeas;
+      parts.push(`\nADAPTATION GUIDANCE:
+• Structure approach: ${ai.sameStructure || "Follow similar flow"}
+• Topic angle: ${ai.differentTopic || "Apply to your niche"}
+• Tone: ${ai.myTone || "Match brand voice"}${ai.trendingAngle ? `\n• Trending angle: ${ai.trendingAngle}` : ""}`);
+    }
+    
+    if (ctx.videoAnalysis) {
+      const va = ctx.videoAnalysis;
+      if (va.summary) parts.push(`\nVIDEO INSIGHT: ${va.summary}`);
+      if (va.keyTopics && va.keyTopics.length > 0) {
+        parts.push(`\nKEY TOPICS TO COVER: ${va.keyTopics.join(", ")}`);
+      }
+      if (va.strengths && va.strengths.length > 0) {
+        parts.push(`\nSTRENGTHS TO EMULATE:\n${va.strengths.slice(0, 3).map(s => `• ${s}`).join("\n")}`);
+      }
+      if (va.scriptIdeas && va.scriptIdeas.length > 0) {
+        parts.push(`\nSCRIPT IDEAS:\n${va.scriptIdeas.slice(0, 3).map((s, i) => `${i + 1}. ${s}`).join("\n")}`);
+      }
+    }
+    
+    parts.push(`\nIMPORTANT: Use these insights as inspiration but create ORIGINAL content that fits the brand voice and target audience. Do not copy - adapt and improve.`);
+    
+    inspirationSection = parts.join("");
+  }
 
   const contentFormat = request.contentFormat || "video";
 
@@ -906,7 +990,7 @@ SAVES & SHARE ENGINEERING:
 - Share-to-DM triggers ("Send this to someone who...")
 - Group-share hooks for Facebook (community-relevant content)
 - "You'll need this later" framing (bookmark psychology)
-- Utility > entertainment rule (useful content outlasts funny content)${linksSection}${avoidSection}${learningSection}`;
+- Utility > entertainment rule (useful content outlasts funny content)${linksSection}${avoidSection}${learningSection}${inspirationSection}`;
 
   let formatSpecificPrompt = "";
   let formatSpecificJson = "";
