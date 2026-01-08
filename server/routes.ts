@@ -859,7 +859,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "URL must be from YouTube, TikTok or Instagram" });
       }
       
-      // Handle YouTube separately using the YouTube API
+      // Handle YouTube separately - fetch transcript for full analysis
       if (platform === "youtube") {
         // Extract video ID from URL
         const videoIdMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -868,21 +868,45 @@ export async function registerRoutes(
         }
         const videoId = videoIdMatch[1];
         
-        // Fetch video metadata from YouTube Data API if available, otherwise use Apify
+        // Fetch video transcript and metadata using Apify
         let youtubeData: any = null;
+        let transcript = "";
         
         if (apifyService.isConfigured() && APIFY_ACTORS.youtubeTranscript) {
           try {
+            console.log(`Fetching YouTube transcript for video: ${videoId}`);
             const items = await apifyService.runActorAndWait(APIFY_ACTORS.youtubeTranscript.actorId, {
               urls: [`https://www.youtube.com/watch?v=${videoId}`],
-              format: "json",
-            }, 60000);
+            }, 120000);
             
             if (items && items.length > 0) {
               youtubeData = items[0];
+              // Extract transcript - the actor returns transcript in various formats
+              if (youtubeData.transcript) {
+                // If transcript is an array of segments, join them
+                if (Array.isArray(youtubeData.transcript)) {
+                  transcript = youtubeData.transcript
+                    .map((seg: any) => seg.text || seg.content || seg)
+                    .join(" ");
+                } else if (typeof youtubeData.transcript === "string") {
+                  transcript = youtubeData.transcript;
+                }
+              } else if (youtubeData.captions) {
+                // Alternative field name
+                if (Array.isArray(youtubeData.captions)) {
+                  transcript = youtubeData.captions
+                    .map((seg: any) => seg.text || seg.content || seg)
+                    .join(" ");
+                } else if (typeof youtubeData.captions === "string") {
+                  transcript = youtubeData.captions;
+                }
+              } else if (youtubeData.text) {
+                transcript = youtubeData.text;
+              }
+              console.log(`YouTube transcript fetched: ${transcript.length} characters`);
             }
           } catch (err) {
-            console.error("YouTube scrape error:", err);
+            console.error("YouTube transcript fetch error:", err);
           }
         }
         
@@ -890,6 +914,7 @@ export async function registerRoutes(
           platform: "youtube",
           url: url,
           caption: youtubeData?.description || youtubeData?.title || "",
+          transcript: transcript, // Full spoken content from video
           author: youtubeData?.channelName || youtubeData?.author || "",
           authorHandle: youtubeData?.channelId || "",
           likes: youtubeData?.likeCount || youtubeData?.likes || 0,
@@ -904,7 +929,85 @@ export async function registerRoutes(
           duration: youtubeData?.duration || youtubeData?.lengthSeconds || 0,
         };
         
-        return res.json({ scrapedData, platform: "youtube" });
+        // If briefId provided, analyze with AI using FULL TRANSCRIPT
+        let analysis = null;
+        if (briefId && (transcript || scrapedData.caption)) {
+          const brief = await storage.getBrandBrief(briefId);
+          if (brief) {
+            const brandBrief = {
+              name: brief.name,
+              brandVoice: brief.brandVoice,
+              targetAudience: brief.targetAudience,
+              contentGoals: brief.contentGoals,
+            };
+            
+            try {
+              // Use transcript if available, otherwise fall back to description
+              const contentToAnalyze = transcript || scrapedData.caption;
+              const analysisPrompt = `Analyze this viral YouTube video and provide actionable insights:
+
+VIDEO TITLE: ${scrapedData.title}
+
+${transcript ? `FULL VIDEO TRANSCRIPT (what was actually said):
+${transcript.substring(0, 8000)}${transcript.length > 8000 ? '...[truncated]' : ''}` : `VIDEO DESCRIPTION:
+${scrapedData.caption}`}
+
+ENGAGEMENT METRICS:
+- Views: ${scrapedData.views}
+- Likes: ${scrapedData.likes}
+- Comments: ${scrapedData.comments}
+
+BRAND CONTEXT:
+- Brand Voice: ${brandBrief.brandVoice}
+- Target Audience: ${brandBrief.targetAudience}
+- Content Goals: ${brandBrief.contentGoals}
+
+Analyze the ${transcript ? 'spoken content/transcript' : 'description'} and provide:
+{
+  "whyThisWorked": "explanation of success factors based on the actual content",
+  "contentStructure": {
+    "hook": "the opening hook used in first 5-10 seconds",
+    "middleIdea": "the core value/message delivered",
+    "payoff": "how it closes/CTA"
+  },
+  "hookRewrites": ["3 alternative hooks adapted for your brand"],
+  "keyMoments": ["list of standout quotes or moments from the video"],
+  "adaptationForMyChannel": {
+    "sameStructure": "how to use same structure",
+    "differentTopic": "topic adaptation for your niche",
+    "myTone": "how to match your brand voice",
+    "trendingAngle": "current trend to leverage"
+  },
+  "scriptOutline": "A brief script outline you could use based on this video's structure",
+  "postAdvice": {
+    "captionAngle": "suggested caption approach",
+    "bestFormats": ["format suggestions"]
+  }
+}`;
+
+              const completion = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                  { role: "system", content: "You are a viral video analyst specializing in YouTube content. Analyze the actual spoken content/transcript to extract hooks, structure, and adaptable elements. Return only valid JSON." },
+                  { role: "user", content: analysisPrompt }
+                ],
+                response_format: { type: "json_object" },
+              });
+
+              const responseText = completion.choices[0].message.content || "{}";
+              analysis = JSON.parse(responseText);
+            } catch (aiError) {
+              console.error("AI analysis failed:", aiError);
+            }
+          }
+        }
+        
+        return res.json({ 
+          scrapedData, 
+          analysis,
+          hasTranscript: !!transcript,
+          message: transcript ? "Successfully analyzed YouTube video with full transcript" : "Analyzed YouTube video (transcript unavailable, used description)"
+        });
       }
 
       if (!apifyService.isConfigured()) {
@@ -6180,7 +6283,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  // YouTube metadata fetch endpoint
+  // YouTube metadata fetch endpoint - with full transcript support
   app.post("/api/youtube/fetch-metadata", async (req, res) => {
     try {
       const { url } = req.body;
@@ -6195,6 +6298,39 @@ Provide analysis in this JSON structure:
       }
       const videoId = videoIdMatch[1];
 
+      // Fetch transcript using Apify
+      let transcript = "";
+      if (apifyService.isConfigured() && APIFY_ACTORS.youtubeTranscript) {
+        try {
+          console.log(`Fetching YouTube transcript for comparison: ${videoId}`);
+          const items = await apifyService.runActorAndWait(APIFY_ACTORS.youtubeTranscript.actorId, {
+            urls: [`https://www.youtube.com/watch?v=${videoId}`],
+          }, 120000);
+          
+          if (items && items.length > 0) {
+            const data = items[0];
+            if (data.transcript) {
+              if (Array.isArray(data.transcript)) {
+                transcript = data.transcript.map((seg: any) => seg.text || seg.content || seg).join(" ");
+              } else if (typeof data.transcript === "string") {
+                transcript = data.transcript;
+              }
+            } else if (data.captions) {
+              if (Array.isArray(data.captions)) {
+                transcript = data.captions.map((seg: any) => seg.text || seg.content || seg).join(" ");
+              } else if (typeof data.captions === "string") {
+                transcript = data.captions;
+              }
+            } else if (data.text) {
+              transcript = data.text;
+            }
+            console.log(`YouTube transcript for comparison: ${transcript.length} characters`);
+          }
+        } catch (err) {
+          console.error("YouTube transcript fetch for comparison error:", err);
+        }
+      }
+
       // Use YouTube Data API to get video info
       const apiKey = process.env.YOUTUBE_API_KEY;
       if (!apiKey) {
@@ -6208,6 +6344,8 @@ Provide analysis in this JSON structure:
         return res.json({
           title: oembedData.title,
           description: "",
+          transcript: transcript,
+          hasTranscript: !!transcript,
           thumbnailUrl: oembedData.thumbnail_url,
           viewCount: 0,
           likeCount: 0,
@@ -6232,6 +6370,8 @@ Provide analysis in this JSON structure:
       res.json({
         title: video.snippet.title,
         description: video.snippet.description,
+        transcript: transcript,
+        hasTranscript: !!transcript,
         thumbnailUrl: video.snippet.thumbnails.high?.url || video.snippet.thumbnails.default?.url,
         viewCount: parseInt(video.statistics.viewCount || "0"),
         likeCount: parseInt(video.statistics.likeCount || "0"),
