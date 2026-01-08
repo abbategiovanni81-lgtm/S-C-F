@@ -124,10 +124,8 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground mb-3">
                   See which AI services are connected and configured.
                 </p>
-                <Link href="/ai-engines">
-                  <a className="text-sm text-primary font-medium hover:underline" data-testid="link-ai-engines">
-                    View AI Engines →
-                  </a>
+                <Link href="/ai-engines" className="text-sm text-primary font-medium hover:underline" data-testid="link-ai-engines">
+                  View AI Engines →
                 </Link>
               </div>
 
@@ -136,10 +134,8 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground mb-3">
                   Define your brand voice, target audience, and content goals.
                 </p>
-                <Link href="/brand-briefs">
-                  <a className="text-sm text-primary font-medium hover:underline" data-testid="link-create-brief">
-                    Go to Brand Briefs →
-                  </a>
+                <Link href="/brand-briefs" className="text-sm text-primary font-medium hover:underline" data-testid="link-create-brief">
+                  Go to Brand Briefs →
                 </Link>
               </div>
 
@@ -148,10 +144,8 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground mb-3">
                   AI will create scripts, captions, and hashtags based on your brief.
                 </p>
-                <Link href="/content-queue">
-                  <a className="text-sm text-primary font-medium hover:underline" data-testid="link-content-queue">
-                    View Content Queue →
-                  </a>
+                <Link href="/content-queue" className="text-sm text-primary font-medium hover:underline" data-testid="link-content-queue">
+                  View Content Queue →
                 </Link>
               </div>
             </div>
@@ -164,20 +158,14 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <Link href="/brand-briefs">
-                <a className="block w-full p-3 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors" data-testid="button-new-brief">
-                  + New Brand Brief
-                </a>
+              <Link href="/brand-briefs" className="block w-full p-3 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors" data-testid="button-new-brief">
+                + New Brand Brief
               </Link>
-              <Link href="/content-queue">
-                <a className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-review-content">
-                  Review Content
-                </a>
+              <Link href="/content-queue" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-review-content">
+                Review Content
               </Link>
-              <Link href="/accounts">
-                <a className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-connect-account">
-                  Connect Account
-                </a>
+              <Link href="/accounts" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-connect-account">
+                Connect Account
               </Link>
             </div>
           </CardContent>

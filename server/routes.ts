@@ -5162,7 +5162,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied" });
       }
 
-      const url = parentHit.postUrl;
+      // Generate fallback URL for Reddit posts if postUrl is missing but postId exists
+      let url = parentHit.postUrl;
+      if (!url && parentHit.platform.toLowerCase() === "reddit" && parentHit.postId) {
+        url = `https://reddit.com/comments/${parentHit.postId}`;
+      }
       if (!url) {
         return res.status(400).json({ error: "Hit does not have a URL to scrape" });
       }
