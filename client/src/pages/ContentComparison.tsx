@@ -13,14 +13,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, Link as LinkIcon, Video, Image as ImageIcon, ArrowRight, BarChart2, Target, Lightbulb, CheckCircle, AlertCircle, X } from "lucide-react";
 import type { GeneratedContent } from "@shared/schema";
 
-interface YouTubeMetadata {
+interface ContentMetadata {
+  platform: "youtube" | "tiktok" | "instagram";
   title: string;
   description: string;
+  caption?: string;
   thumbnailUrl: string;
   viewCount: number;
   likeCount: number;
   commentCount: number;
+  shareCount?: number;
   channelTitle: string;
+  authorHandle?: string;
   publishedAt: string;
 }
 
@@ -48,8 +52,8 @@ export default function ContentComparison() {
   const [competitorScreenshots, setCompetitorScreenshots] = useState<File[]>([]);
   const [competitorScreenshotPreviews, setCompetitorScreenshotPreviews] = useState<string[]>([]);
   
-  const [competitorMetadata, setCompetitorMetadata] = useState<YouTubeMetadata | null>(null);
-  const [yourMetadata, setYourMetadata] = useState<YouTubeMetadata | null>(null);
+  const [competitorMetadata, setCompetitorMetadata] = useState<ContentMetadata | null>(null);
+  const [yourMetadata, setYourMetadata] = useState<ContentMetadata | null>(null);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
 
   const { data: editMergeContent = [] } = useQuery<GeneratedContent[]>({
@@ -62,18 +66,68 @@ export default function ContentComparison() {
 
   const allContent = [...editMergeContent, ...readyContent];
 
-  const fetchYouTubeMetaMutation = useMutation({
+  // Detect platform from URL
+  const detectPlatform = (url: string): "youtube" | "tiktok" | "instagram" | null => {
+    if (/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)/.test(url)) return "youtube";
+    if (/tiktok\.com/.test(url)) return "tiktok";
+    if (/instagram\.com/.test(url)) return "instagram";
+    return null;
+  };
+
+  const isValidUrl = (url: string) => detectPlatform(url) !== null;
+
+  const fetchContentMetaMutation = useMutation({
     mutationFn: async ({ url, side }: { url: string; side: "your" | "competitor" }) => {
-      const res = await fetch("/api/youtube/fetch-metadata", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to fetch video metadata");
+      const platform = detectPlatform(url);
+      
+      if (platform === "youtube") {
+        const res = await fetch("/api/youtube/fetch-metadata", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ url }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to fetch video metadata");
+        }
+        const data = await res.json();
+        return { 
+          data: { ...data, platform: "youtube" as const }, 
+          side 
+        };
+      } else {
+        // TikTok or Instagram - use scrape-post endpoint
+        const res = await fetch("/api/scrape-post", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ url }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to scrape post");
+        }
+        const result = await res.json();
+        const scraped = result.scrapedData;
+        return { 
+          data: {
+            platform: scraped.platform as "tiktok" | "instagram",
+            title: scraped.caption?.substring(0, 100) || "Post",
+            description: scraped.caption || "",
+            caption: scraped.caption,
+            thumbnailUrl: scraped.thumbnailUrl || "",
+            viewCount: scraped.views || 0,
+            likeCount: scraped.likes || 0,
+            commentCount: scraped.comments || 0,
+            shareCount: scraped.shares,
+            channelTitle: scraped.author || scraped.authorHandle,
+            authorHandle: scraped.authorHandle,
+            publishedAt: scraped.postedAt || "",
+          } as ContentMetadata, 
+          side 
+        };
       }
-      return { data: await res.json(), side };
     },
     onSuccess: ({ data, side }) => {
       if (side === "competitor") {
@@ -81,17 +135,12 @@ export default function ContentComparison() {
       } else {
         setYourMetadata(data);
       }
-      toast({ title: "Video metadata fetched!" });
+      toast({ title: `${data.platform === "youtube" ? "Video" : "Post"} metadata fetched!` });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to fetch metadata", description: error.message, variant: "destructive" });
     },
   });
-
-  // Helper to check if URL looks like a valid YouTube URL
-  const isValidYouTubeUrl = (url: string) => {
-    return url && /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/.test(url);
-  };
 
   const compareMutation = useMutation({
     mutationFn: async () => {
@@ -100,15 +149,15 @@ export default function ContentComparison() {
       if (yourContentSource === "editmerge" && selectedContentId) {
         formData.append("yourContentId", selectedContentId);
       } else if (yourContentSource === "url") {
-        // Only send URL if it's a valid YouTube URL
-        if (isValidYouTubeUrl(yourUrl)) formData.append("yourUrl", yourUrl);
+        // Only send URL if it's valid
+        if (isValidUrl(yourUrl)) formData.append("yourUrl", yourUrl);
         yourScreenshots.forEach((file, i) => {
           formData.append(`yourScreenshot${i}`, file);
         });
       }
       
-      // Only send competitor URL if it's a valid YouTube URL
-      if (isValidYouTubeUrl(competitorUrl)) formData.append("competitorUrl", competitorUrl);
+      // Only send competitor URL if it's valid
+      if (isValidUrl(competitorUrl)) formData.append("competitorUrl", competitorUrl);
       competitorScreenshots.forEach((file, i) => {
         formData.append(`competitorScreenshot${i}`, file);
       });
@@ -236,33 +285,46 @@ export default function ContentComparison() {
                 
                 <TabsContent value="url" className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label>YouTube URL</Label>
+                    <Label>YouTube, TikTok, or Instagram URL</Label>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="https://youtube.com/watch?v=..."
+                        placeholder="https://youtube.com/watch?v=... or tiktok.com/..."
                         value={yourUrl}
                         onChange={(e) => setYourUrl(e.target.value)}
                         data-testid="input-your-url"
                       />
                       <Button
                         variant="outline"
-                        onClick={() => fetchYouTubeMetaMutation.mutate({ url: yourUrl, side: "your" })}
-                        disabled={!yourUrl || fetchYouTubeMetaMutation.isPending}
+                        onClick={() => fetchContentMetaMutation.mutate({ url: yourUrl, side: "your" })}
+                        disabled={!yourUrl || fetchContentMetaMutation.isPending}
                         data-testid="button-fetch-your-meta"
                       >
-                        {fetchYouTubeMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                        {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
                       </Button>
                     </div>
                   </div>
                   
                   {yourMetadata && (
                     <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                      <img src={yourMetadata.thumbnailUrl} alt="Thumbnail" className="rounded-lg w-full max-h-32 object-cover" />
-                      <p className="text-sm font-medium">{yourMetadata.title}</p>
-                      <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>{yourMetadata.viewCount.toLocaleString()} views</span>
-                        <span>•</span>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="secondary" className="capitalize">{yourMetadata.platform}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {yourMetadata.authorHandle ? `@${yourMetadata.authorHandle}` : yourMetadata.channelTitle}
+                        </span>
+                      </div>
+                      {yourMetadata.thumbnailUrl && (
+                        <img src={yourMetadata.thumbnailUrl} alt="Thumbnail" className="rounded-lg w-full max-h-32 object-cover" />
+                      )}
+                      <p className="text-sm font-medium line-clamp-2">
+                        {yourMetadata.platform === "youtube" ? yourMetadata.title : (yourMetadata.caption?.substring(0, 100) || yourMetadata.title)}
+                      </p>
+                      <div className="flex gap-2 text-xs text-muted-foreground flex-wrap">
+                        {yourMetadata.viewCount > 0 && <span>{yourMetadata.viewCount.toLocaleString()} views</span>}
                         <span>{yourMetadata.likeCount.toLocaleString()} likes</span>
+                        <span>{yourMetadata.commentCount.toLocaleString()} comments</span>
+                        {yourMetadata.shareCount && yourMetadata.shareCount > 0 && (
+                          <span>{yourMetadata.shareCount.toLocaleString()} shares</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -305,40 +367,52 @@ export default function ContentComparison() {
                 <BarChart2 className="w-5 h-5 text-orange-500" />
                 Competitor / Viral Content
               </CardTitle>
-              <CardDescription>Paste YouTube URL and/or upload screenshots</CardDescription>
+              <CardDescription>Paste YouTube, TikTok, or Instagram URL and/or upload screenshots</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>YouTube URL</Label>
+                <Label>Video/Post URL</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="https://youtube.com/watch?v=..."
+                    placeholder="https://youtube.com/... or tiktok.com/... or instagram.com/..."
                     value={competitorUrl}
                     onChange={(e) => setCompetitorUrl(e.target.value)}
                     data-testid="input-competitor-url"
                   />
                   <Button
                     variant="outline"
-                    onClick={() => fetchYouTubeMetaMutation.mutate({ url: competitorUrl, side: "competitor" })}
-                    disabled={!competitorUrl || fetchYouTubeMetaMutation.isPending}
+                    onClick={() => fetchContentMetaMutation.mutate({ url: competitorUrl, side: "competitor" })}
+                    disabled={!competitorUrl || fetchContentMetaMutation.isPending}
                     data-testid="button-fetch-competitor-meta"
                   >
-                    {fetchYouTubeMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                    {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
               
               {competitorMetadata && (
                 <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/30 space-y-2 border border-orange-200 dark:border-orange-800">
-                  <img src={competitorMetadata.thumbnailUrl} alt="Thumbnail" className="rounded-lg w-full max-h-32 object-cover" />
-                  <p className="text-sm font-medium">{competitorMetadata.title}</p>
-                  <p className="text-xs text-muted-foreground">{competitorMetadata.channelTitle}</p>
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    <span className="font-semibold text-orange-600">{competitorMetadata.viewCount.toLocaleString()} views</span>
-                    <span>•</span>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="secondary" className="capitalize">{competitorMetadata.platform}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {competitorMetadata.authorHandle ? `@${competitorMetadata.authorHandle}` : competitorMetadata.channelTitle}
+                    </span>
+                  </div>
+                  {competitorMetadata.thumbnailUrl && (
+                    <img src={competitorMetadata.thumbnailUrl} alt="Thumbnail" className="rounded-lg w-full max-h-32 object-cover" />
+                  )}
+                  <p className="text-sm font-medium line-clamp-2">
+                    {competitorMetadata.platform === "youtube" ? competitorMetadata.title : (competitorMetadata.caption?.substring(0, 100) || competitorMetadata.title)}
+                  </p>
+                  <div className="flex gap-2 text-xs text-muted-foreground flex-wrap">
+                    {competitorMetadata.viewCount > 0 && (
+                      <span className="font-semibold text-orange-600">{competitorMetadata.viewCount.toLocaleString()} views</span>
+                    )}
                     <span>{competitorMetadata.likeCount.toLocaleString()} likes</span>
-                    <span>•</span>
                     <span>{competitorMetadata.commentCount.toLocaleString()} comments</span>
+                    {competitorMetadata.shareCount && competitorMetadata.shareCount > 0 && (
+                      <span>{competitorMetadata.shareCount.toLocaleString()} shares</span>
+                    )}
                   </div>
                 </div>
               )}
