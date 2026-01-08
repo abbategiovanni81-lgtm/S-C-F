@@ -12,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { Slider } from "@/components/ui/slider";
 import { 
   Type, Image as ImageIcon, Video, Clock, Loader2, Upload, 
   Trash2, Download, RefreshCw, Scissors, Zap, Moon, CheckCircle,
   XCircle, AlertCircle, Play, Pause, ArrowRight, Send,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Bold, Italic, Underline, Move
 } from "lucide-react";
 import type { EditJob, GeneratedContent } from "@shared/schema";
 
@@ -31,11 +32,30 @@ const POSITIONS = [
 ];
 
 const FONT_FAMILIES = [
+  // Sans-Serif Modern
   { value: "Arial, sans-serif", label: "Arial" },
-  { value: "Georgia, serif", label: "Georgia" },
+  { value: "'Helvetica Neue', Helvetica, sans-serif", label: "Helvetica" },
+  { value: "system-ui, sans-serif", label: "System UI" },
+  { value: "'Segoe UI', sans-serif", label: "Segoe UI" },
+  { value: "Verdana, sans-serif", label: "Verdana" },
+  { value: "Tahoma, sans-serif", label: "Tahoma" },
+  // Bold Display
   { value: "Impact, sans-serif", label: "Impact" },
-  { value: "'Courier New', monospace", label: "Courier New" },
+  { value: "'Arial Black', sans-serif", label: "Arial Black" },
+  { value: "'Trebuchet MS', sans-serif", label: "Trebuchet" },
+  // Serif Classic
+  { value: "Georgia, serif", label: "Georgia" },
+  { value: "'Times New Roman', serif", label: "Times New Roman" },
+  { value: "'Palatino Linotype', Palatino, serif", label: "Palatino" },
+  { value: "'Book Antiqua', serif", label: "Book Antiqua" },
+  // Handwritten/Script
   { value: "'Comic Sans MS', cursive", label: "Comic Sans" },
+  { value: "'Brush Script MT', cursive", label: "Brush Script" },
+  { value: "'Lucida Handwriting', cursive", label: "Lucida Handwriting" },
+  // Monospace
+  { value: "'Courier New', monospace", label: "Courier New" },
+  { value: "'Lucida Console', monospace", label: "Lucida Console" },
+  { value: "Consolas, monospace", label: "Consolas" },
 ];
 
 const JOB_TYPES = [
@@ -68,13 +88,26 @@ export default function Editor() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState("Your Text Here");
-  const [fontSize, setFontSize] = useState("48");
+  const [fontSize, setFontSize] = useState(48);
   const [fontColor, setFontColor] = useState("#ffffff");
   const [fontFamily, setFontFamily] = useState("Arial, sans-serif");
   const [textPosition, setTextPosition] = useState("center");
   const [backgroundColor, setBackgroundColor] = useState("transparent");
   const [processing, setProcessing] = useState(false);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  
+  // Text style options
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [hasStroke, setHasStroke] = useState(true);
+  const [strokeColor, setStrokeColor] = useState("#000000");
+  const [hasShadow, setHasShadow] = useState(false);
+  
+  // Drag positioning
+  const [isDragging, setIsDragging] = useState(false);
+  const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   // Video job state
   const [videoJobName, setVideoJobName] = useState("");
@@ -206,11 +239,25 @@ export default function Editor() {
       }
       
       formData.append("text", overlayText);
-      formData.append("fontSize", fontSize);
+      formData.append("fontSize", String(fontSize));
       formData.append("fontColor", fontColor);
       formData.append("fontFamily", fontFamily);
-      formData.append("position", textPosition);
+      formData.append("position", customPosition ? "custom" : textPosition);
       formData.append("backgroundColor", backgroundColor);
+      
+      // Text styles
+      formData.append("isBold", String(isBold));
+      formData.append("isItalic", String(isItalic));
+      formData.append("isUnderline", String(isUnderline));
+      formData.append("hasStroke", String(hasStroke));
+      formData.append("strokeColor", strokeColor);
+      formData.append("hasShadow", String(hasShadow));
+      
+      // Custom position coordinates (percentage-based)
+      if (customPosition) {
+        formData.append("customX", String(customPosition.x));
+        formData.append("customY", String(customPosition.y));
+      }
       
       if (sourceContentId) {
         formData.append("sourceContentId", sourceContentId);
@@ -437,21 +484,104 @@ export default function Editor() {
                     />
                   </div>
 
+                  {/* Font Size Slider */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>Font Size</Label>
+                      <span className="text-sm text-muted-foreground">{fontSize}px</span>
+                    </div>
+                    <Slider
+                      value={[fontSize]}
+                      onValueChange={(val) => setFontSize(val[0])}
+                      min={12}
+                      max={200}
+                      step={2}
+                      className="w-full"
+                      data-testid="slider-font-size"
+                    />
+                  </div>
+
+                  {/* Text Styles */}
+                  <div>
+                    <Label className="mb-2 block">Text Styles</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant={isBold ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsBold(!isBold)}
+                        data-testid="button-bold"
+                      >
+                        <Bold className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={isItalic ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsItalic(!isItalic)}
+                        data-testid="button-italic"
+                      >
+                        <Italic className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={isUnderline ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setIsUnderline(!isUnderline)}
+                        data-testid="button-underline"
+                      >
+                        <Underline className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={hasStroke ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setHasStroke(!hasStroke)}
+                        className="gap-1"
+                        data-testid="button-stroke"
+                      >
+                        <span className="text-xs font-bold" style={{ WebkitTextStroke: "1px currentColor" }}>A</span>
+                        <span className="text-xs">Stroke</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={hasShadow ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setHasShadow(!hasShadow)}
+                        className="gap-1"
+                        data-testid="button-shadow"
+                      >
+                        <span className="text-xs" style={{ textShadow: "2px 2px 2px rgba(0,0,0,0.5)" }}>A</span>
+                        <span className="text-xs">Shadow</span>
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Stroke Color (when stroke is enabled) */}
+                  {hasStroke && (
+                    <div>
+                      <Label>Stroke Color</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="color"
+                          value={strokeColor}
+                          onChange={(e) => setStrokeColor(e.target.value)}
+                          className="w-12 h-10 p-1 cursor-pointer"
+                          data-testid="input-stroke-color"
+                        />
+                        <Input
+                          value={strokeColor}
+                          onChange={(e) => setStrokeColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Font Size</Label>
-                      <Input
-                        type="number"
-                        value={fontSize}
-                        onChange={(e) => setFontSize(e.target.value)}
-                        min="12"
-                        max="200"
-                        data-testid="input-font-size"
-                      />
-                    </div>
-                    <div>
                       <Label>Font Color</Label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mt-1">
                         <Input
                           type="color"
                           value={fontColor}
@@ -466,45 +596,56 @@ export default function Editor() {
                         />
                       </div>
                     </div>
+                    <div>
+                      <Label>Font Family</Label>
+                      <Select value={fontFamily} onValueChange={setFontFamily}>
+                        <SelectTrigger className="mt-1" data-testid="select-font-family">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {FONT_FAMILIES.map(f => (
+                            <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                              {f.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  <div>
-                    <Label>Font Family</Label>
-                    <Select value={fontFamily} onValueChange={setFontFamily}>
-                      <SelectTrigger data-testid="select-font-family">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONT_FAMILIES.map(f => (
-                          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Text Position</Label>
-                    <Select value={textPosition} onValueChange={setTextPosition}>
-                      <SelectTrigger data-testid="select-text-position">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {POSITIONS.map(p => (
-                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Background Color (for text background)</Label>
-                    <div className="flex gap-2">
-                      <Select value={backgroundColor} onValueChange={setBackgroundColor}>
-                        <SelectTrigger className="flex-1" data-testid="select-bg-color">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Text Position</Label>
+                      <Select 
+                        value={customPosition ? "custom" : textPosition} 
+                        onValueChange={(val) => {
+                          if (val !== "custom") {
+                            setTextPosition(val);
+                            setCustomPosition(null);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="mt-1" data-testid="select-text-position">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="transparent">None (Transparent)</SelectItem>
+                          {POSITIONS.map(p => (
+                            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                          ))}
+                          {customPosition && (
+                            <SelectItem value="custom">Custom (Drag)</SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Background</Label>
+                      <Select value={backgroundColor} onValueChange={setBackgroundColor}>
+                        <SelectTrigger className="mt-1" data-testid="select-bg-color">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="transparent">None</SelectItem>
                           <SelectItem value="#000000">Black</SelectItem>
                           <SelectItem value="#ffffff">White</SelectItem>
                           <SelectItem value="#ff0000">Red</SelectItem>
@@ -514,6 +655,14 @@ export default function Editor() {
                       </Select>
                     </div>
                   </div>
+
+                  {/* Drag instruction */}
+                  {imagePreview && (
+                    <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md text-sm text-muted-foreground">
+                      <Move className="w-4 h-4" />
+                      <span>Drag text on preview to position</span>
+                    </div>
+                  )}
 
                   <Button
                     onClick={handleTextOverlay}
@@ -593,7 +742,10 @@ export default function Editor() {
                     </div>
                   )}
                   
-                  <div className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                  <div 
+                    ref={previewRef}
+                    className="aspect-square bg-muted rounded-lg flex items-center justify-center overflow-hidden relative"
+                  >
                     {outputUrl ? (
                       <img
                         src={outputUrl}
@@ -609,24 +761,84 @@ export default function Editor() {
                           className="max-w-full max-h-full object-contain mx-auto"
                           data-testid="img-input-preview"
                         />
+                        {/* Draggable text overlay preview */}
                         <div
-                          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                          className={`absolute cursor-move select-none ${isDragging ? "opacity-80" : ""}`}
                           style={{
-                            alignItems: textPosition.includes("top") ? "flex-start" : textPosition.includes("bottom") ? "flex-end" : "center",
-                            justifyContent: textPosition.includes("left") ? "flex-start" : textPosition.includes("right") ? "flex-end" : "center",
-                            padding: "20px",
+                            ...(customPosition 
+                              ? { 
+                                  left: `${customPosition.x}%`, 
+                                  top: `${customPosition.y}%`, 
+                                  transform: "translate(-50%, -50%)" 
+                                }
+                              : {
+                                  left: textPosition.includes("left") ? "20px" : textPosition.includes("right") ? "auto" : "50%",
+                                  right: textPosition.includes("right") ? "20px" : "auto",
+                                  top: textPosition.includes("top") ? "20px" : textPosition.includes("bottom") ? "auto" : "50%",
+                                  bottom: textPosition.includes("bottom") ? "40px" : "auto",
+                                  transform: !textPosition.includes("left") && !textPosition.includes("right") ? "translateX(-50%)" : "none",
+                                }
+                            ),
                           }}
+                          onMouseDown={(e) => {
+                            if (!previewRef.current) return;
+                            setIsDragging(true);
+                            const rect = previewRef.current.getBoundingClientRect();
+                            const handleMove = (moveEvent: MouseEvent) => {
+                              const x = ((moveEvent.clientX - rect.left) / rect.width) * 100;
+                              const y = ((moveEvent.clientY - rect.top) / rect.height) * 100;
+                              setCustomPosition({ 
+                                x: Math.max(5, Math.min(95, x)), 
+                                y: Math.max(5, Math.min(95, y)) 
+                              });
+                            };
+                            const handleUp = () => {
+                              setIsDragging(false);
+                              document.removeEventListener("mousemove", handleMove);
+                              document.removeEventListener("mouseup", handleUp);
+                            };
+                            document.addEventListener("mousemove", handleMove);
+                            document.addEventListener("mouseup", handleUp);
+                          }}
+                          onTouchStart={(e) => {
+                            if (!previewRef.current) return;
+                            setIsDragging(true);
+                            const rect = previewRef.current.getBoundingClientRect();
+                            const handleMove = (moveEvent: TouchEvent) => {
+                              const touch = moveEvent.touches[0];
+                              const x = ((touch.clientX - rect.left) / rect.width) * 100;
+                              const y = ((touch.clientY - rect.top) / rect.height) * 100;
+                              setCustomPosition({ 
+                                x: Math.max(5, Math.min(95, x)), 
+                                y: Math.max(5, Math.min(95, y)) 
+                              });
+                            };
+                            const handleUp = () => {
+                              setIsDragging(false);
+                              document.removeEventListener("touchmove", handleMove);
+                              document.removeEventListener("touchend", handleUp);
+                            };
+                            document.addEventListener("touchmove", handleMove);
+                            document.addEventListener("touchend", handleUp);
+                          }}
+                          data-testid="draggable-text"
                         >
                           <span
                             style={{
-                              fontSize: `${Math.min(parseInt(fontSize) / 2, 48)}px`,
+                              fontSize: `${Math.min(fontSize / 2, 48)}px`,
                               color: fontColor,
                               fontFamily: fontFamily,
+                              fontWeight: isBold ? "bold" : "normal",
+                              fontStyle: isItalic ? "italic" : "normal",
+                              textDecoration: isUnderline ? "underline" : "none",
+                              WebkitTextStroke: hasStroke ? `1px ${strokeColor}` : "none",
+                              textShadow: hasShadow ? "2px 2px 4px rgba(0,0,0,0.5)" : "none",
                               backgroundColor: backgroundColor !== "transparent" ? `${backgroundColor}b3` : "transparent",
-                              padding: backgroundColor !== "transparent" ? "8px 16px" : "0",
+                              padding: backgroundColor !== "transparent" ? "8px 16px" : "4px",
                               borderRadius: "4px",
                               textAlign: "center",
                               whiteSpace: "pre-line",
+                              display: "inline-block",
                             }}
                           >
                             {overlayText}

@@ -7769,7 +7769,10 @@ Respond in JSON:
     try {
       const userId = req.userId;
       const file = req.file;
-      const { text, fontSize, fontColor, fontFamily, position, backgroundColor, imageUrl, sourceContentId } = req.body;
+      const { 
+        text, fontSize, fontColor, fontFamily, position, backgroundColor, imageUrl, sourceContentId,
+        isBold, isItalic, isUnderline, hasStroke, strokeColor, hasShadow, customX, customY
+      } = req.body;
 
       const sharp = (await import("sharp")).default;
       
@@ -7817,6 +7820,16 @@ Respond in JSON:
       const parsedPosition = position || "center";
       const parsedFontFamily = fontFamily || "Arial, sans-serif";
       
+      // Parse text styles
+      const parsedIsBold = isBold === "true";
+      const parsedIsItalic = isItalic === "true";
+      const parsedIsUnderline = isUnderline === "true";
+      const parsedHasStroke = hasStroke === "true";
+      const parsedStrokeColor = strokeColor || "#000000";
+      const parsedHasShadow = hasShadow === "true";
+      const parsedCustomX = customX ? parseFloat(customX) : null;
+      const parsedCustomY = customY ? parseFloat(customY) : null;
+      
       const metadata = await sharp(imageBuffer).metadata();
       const width = metadata.width || 1080;
       const height = metadata.height || 1080;
@@ -7825,17 +7838,35 @@ Respond in JSON:
       let textY = height / 2;
       let textAnchor = "middle";
 
-      if (parsedPosition === "top") textY = parsedFontSize + 20;
+      // Handle custom position from drag-and-drop
+      if (parsedPosition === "custom" && parsedCustomX !== null && parsedCustomY !== null) {
+        textX = (parsedCustomX / 100) * width;
+        textY = (parsedCustomY / 100) * height;
+        textAnchor = "middle";
+      } else if (parsedPosition === "top") textY = parsedFontSize + 20;
       else if (parsedPosition === "bottom") textY = height - 40;
       else if (parsedPosition === "top-left") { textX = 20; textY = parsedFontSize + 20; textAnchor = "start"; }
       else if (parsedPosition === "top-right") { textX = width - 20; textY = parsedFontSize + 20; textAnchor = "end"; }
       else if (parsedPosition === "bottom-left") { textX = 20; textY = height - 40; textAnchor = "start"; }
       else if (parsedPosition === "bottom-right") { textX = width - 20; textY = height - 40; textAnchor = "end"; }
 
+      // Build font style string
+      const fontWeight = parsedIsBold ? "bold" : "normal";
+      const fontStyle = parsedIsItalic ? "italic" : "normal";
+      const textDecoration = parsedIsUnderline ? "underline" : "none";
+      
+      // Build stroke and shadow attributes
+      const strokeAttrs = parsedHasStroke 
+        ? `stroke="${parsedStrokeColor}" stroke-width="2" paint-order="stroke fill"` 
+        : "";
+      const shadowFilter = parsedHasShadow 
+        ? `filter="drop-shadow(3px 3px 4px rgba(0,0,0,0.5))"` 
+        : "";
+
       const textLines = (text || "Sample Text").split("\\n");
       const lineHeight = parsedFontSize * 1.2;
       const textElements = textLines.map((line: string, i: number) => 
-        `<text x="${textX}" y="${textY + (i * lineHeight)}" font-size="${parsedFontSize}" font-family="${parsedFontFamily}" fill="${parsedFontColor}" text-anchor="${textAnchor}" dominant-baseline="middle">${line.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&#39;', '"': '&quot;' }[c] || c))}</text>`
+        `<text x="${textX}" y="${textY + (i * lineHeight)}" font-size="${parsedFontSize}" font-family="${parsedFontFamily}" font-weight="${fontWeight}" font-style="${fontStyle}" text-decoration="${textDecoration}" fill="${parsedFontColor}" text-anchor="${textAnchor}" dominant-baseline="middle" ${strokeAttrs} ${shadowFilter}>${line.replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&#39;', '"': '&quot;' }[c] || c))}</text>`
       ).join("");
 
       const svgOverlay = Buffer.from(`
