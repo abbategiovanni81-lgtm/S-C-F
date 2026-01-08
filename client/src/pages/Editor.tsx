@@ -355,34 +355,86 @@ export default function Editor() {
   };
 
   // Navigate to Edit & Merge
-  const handleSendToEditMerge = () => {
+  const handleSendToEditMerge = async () => {
     if (sourceContentId) {
       setLocation(`/edit-merge/${sourceContentId}`);
+    } else if (outputUrl) {
+      // Create content from direct upload before navigating
+      try {
+        const res = await fetch("/api/editor/create-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            outputUrl,
+            originalImageUrl: imagePreview,
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to create content");
+        }
+        
+        const data = await res.json();
+        toast({ title: "Content saved!" });
+        queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+        setLocation(`/edit-merge/${data.contentId}`);
+      } catch (error: any) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
     } else {
-      setLocation("/edit-merge");
+      toast({ title: "Please apply text overlay first", variant: "destructive" });
     }
   };
 
   // Move content to Ready to Post
   const handleSendToReadyToPost = async () => {
-    if (!sourceContentId || !outputUrl) {
-      toast({ title: "No processed image available", variant: "destructive" });
+    if (!outputUrl) {
+      toast({ title: "Please apply text overlay first", variant: "destructive" });
       return;
     }
 
     try {
-      // Update content thumbnail with the edited image and move to ready status
-      const res = await fetch(`/api/content/${sourceContentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          thumbnailUrl: outputUrl,
-          status: "ready"
-        }),
-      });
+      if (sourceContentId) {
+        // Update existing content and move to ready status
+        const res = await fetch(`/api/content/${sourceContentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            thumbnailUrl: outputUrl,
+            status: "ready"
+          }),
+        });
 
-      if (!res.ok) {
-        throw new Error("Failed to update content");
+        if (!res.ok) {
+          throw new Error("Failed to update content");
+        }
+      } else {
+        // Create new content for direct uploads and set to ready
+        const res = await fetch("/api/editor/create-content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            outputUrl,
+            originalImageUrl: imagePreview,
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to create content");
+        }
+        
+        const data = await res.json();
+        
+        // Now update the new content to ready status
+        await fetch(`/api/content/${data.contentId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "ready" }),
+        });
       }
 
       toast({ title: "Success!", description: "Content moved to Ready to Post" });
@@ -981,21 +1033,14 @@ export default function Editor() {
                           >
                             <Scissors className="w-4 h-4 mr-2" /> Edit & Merge
                           </Button>
-                          {sourceContentId && (
-                            <Button
-                              className="flex-1"
-                              onClick={handleSendToReadyToPost}
-                              data-testid="button-send-to-ready"
-                            >
-                              <Send className="w-4 h-4 mr-2" /> Ready to Post
-                            </Button>
-                          )}
+                          <Button
+                            className="flex-1"
+                            onClick={handleSendToReadyToPost}
+                            data-testid="button-send-to-ready"
+                          >
+                            <Send className="w-4 h-4 mr-2" /> Ready to Post
+                          </Button>
                         </div>
-                        {!sourceContentId && (
-                          <p className="text-xs text-muted-foreground">
-                            Tip: Content from Content Queue can be sent directly to Ready to Post
-                          </p>
-                        )}
                       </div>
                     </div>
                   )}

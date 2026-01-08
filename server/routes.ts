@@ -8101,6 +8101,41 @@ Respond in JSON:
     }
   });
 
+  // Create content from Editor-processed image (for direct uploads)
+  app.post("/api/editor/create-content", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { outputUrl, originalImageUrl } = req.body;
+
+      if (!outputUrl) {
+        return res.status(400).json({ error: "Output URL is required" });
+      }
+
+      // Create a new content entry for the edited image
+      const content = await storage.createGeneratedContent({
+        userId,
+        type: "image",
+        platform: "Instagram",
+        title: "Edited Image",
+        script: "",
+        caption: "",
+        hashtags: [],
+        thumbnailUrl: outputUrl,
+        status: "approved",
+        generationMetadata: {
+          source: "editor_upload",
+          generatedImageUrl: outputUrl,
+          originalImageUrl: originalImageUrl || null,
+        }
+      });
+
+      res.json({ success: true, contentId: content.id });
+    } catch (error: any) {
+      console.error("Create content from editor error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Blog generation endpoint
   app.post("/api/blog/generate", requireAuth, async (req: any, res) => {
     try {
