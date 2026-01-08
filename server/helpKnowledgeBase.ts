@@ -101,9 +101,10 @@ A Brand Brief is like giving your AI assistant a complete understanding of your 
 ### "How do I create a Brand Brief?"
 1. Go to Brand Briefs from the sidebar
 2. Click "New Brief"
-3. You'll see two options:
-   - Analyze Website - Paste your website URL and AI extracts your brand info automatically
-   - Manual Setup - Fill in the details yourself
+3. You'll see three options:
+   - **Analyze Website** - Paste your website URL and AI extracts your brand info automatically
+   - **Analyze Social Profile** - Paste a YouTube, TikTok, Instagram, Twitter/X, or LinkedIn profile URL and AI extracts brand info from your social presence
+   - **Manual Setup** - Fill in the details yourself
 4. Define:
    - Brand Name - Your business or personal brand name
    - Industry/Niche - What space you operate in (fitness, beauty, real estate, etc.)
@@ -112,10 +113,21 @@ A Brand Brief is like giving your AI assistant a complete understanding of your 
    - Content Pillars - Your main topics (3-5 themes you always talk about)
    - Goals - What you want to achieve (grow followers, drive sales, build authority)
 
+### "Can I create a Brand Brief from my social media profile?"
+Yes! Just paste your social profile URL:
+- YouTube channel: youtube.com/@yourchannel
+- TikTok profile: tiktok.com/@yourhandle
+- Instagram: instagram.com/yourprofile
+- Twitter/X: twitter.com/yourhandle
+- LinkedIn: linkedin.com/in/yourprofile
+
+AI analyzes your bio, posts, content themes, and audience to extract your brand voice and content pillars automatically.
+
 Pro Tips:
 - Create separate briefs for different brands or product lines
 - Update your brief quarterly as your brand evolves
 - The more specific you are, the better your AI content will be
+- URL analysis works best when you have at least 10+ posts to analyze
 
 ---
 
@@ -422,21 +434,35 @@ When you generate videos or use AI tools:
 ## VIDEO TO CLIPS - Repurpose Long Content
 
 ### "What is Video to Clips?"
-Upload a long video (podcast, webinar, YouTube video) and AI automatically identifies the best moments, cutting them into short-form clips perfect for TikTok, Reels, and Shorts.
+Upload a long video (podcast, webinar, YouTube video) or paste a YouTube URL, and AI automatically identifies the best moments, cutting them into short-form clips perfect for TikTok, Reels, and Shorts.
 
 ### "How do I use Video to Clips?"
 1. Go to Video to Clips
-2. Upload your video (or paste a YouTube link)
-3. AI analyzes the content and finds highlight moments
-4. Review suggested clips with timestamps
-5. Select the ones you want
-6. Export as vertical (9:16) or square (1:1) format
+2. Choose input method:
+   - **Upload File** - Drag and drop or browse for MP4, MOV, etc.
+   - **Paste YouTube URL** - Just paste the link, AI fetches the video
+3. Select what type of clips you want:
+   - Key insights and tips
+   - Emotional highs
+   - Unique strategies
+   - Or enter a custom prompt
+4. AI analyzes the content and finds highlight moments
+5. Review suggested clips with timestamps and preview each one
+6. For each clip, you can:
+   - **Download** - Save the clip to your device
+   - **Add to Queue** - Send to Content Queue as Pending content
+
+### "What happens when I Add to Queue?"
+When you click "Add to Queue" on a clip:
+1. A modal opens where you can edit the hook, caption, and hashtags
+2. Click "Generate with AI" to auto-create hook, caption, and hashtags from the clip transcript
+3. Click "Add to Content Queue" to save as draft content
+4. The clip appears in your Content Queue with status "draft" (Pending)
+5. From there it follows the normal flow: Pending → Approved → Editor/Edit & Merge → Ready to Post
 
 The AI looks for: Strong statements and quotable moments, emotional peaks and reactions, questions and surprising answers, natural start/end points
 
-You can: Adjust start and end times, add captions automatically, choose caption styles, add your logo or watermark
-
-Best for: Podcasters creating social content, course creators promoting modules, coaches repurposing long-form videos, anyone with existing video content
+Best for: Podcasters creating social content, course creators promoting modules, coaches repurposing long-form videos, anyone with existing video content, repurposing competitor content for inspiration
 
 ---
 
@@ -530,42 +556,74 @@ How it's calculated: Base score from likes (more likes = higher score), +25 poin
 ## CONTENT ANALYZER - Decode Viral Success
 
 ### "What is Content Analyzer?"
-Upload a screenshot of any viral post, and AI breaks down exactly why it worked. Understand the psychology, structure, and tactics behind successful content.
+Analyze any viral content to understand why it worked. You can upload screenshots OR paste URLs from YouTube, TikTok, and Instagram. AI breaks down the psychology, structure, and tactics behind successful content.
 
 ### "How do I analyze viral content?"
+**Option 1: Upload Screenshot**
 1. Screenshot a viral post you admire
 2. Go to Content Analyzer
 3. Upload the screenshot
-4. AI examines and provides:
-   - Hook Analysis - Why the opening grabbed attention
-   - Visual Breakdown - What makes the image/video effective
-   - Structure Analysis - How the content flows
-   - Engagement Drivers - What makes people comment/share
-   - Adaptation Ideas - How YOU could create something similar
+4. AI analyzes the visual content
 
-Best for: Learning from successful creators, building a library of proven tactics, improving your content strategy
+**Option 2: Paste URL (YouTube, TikTok, Instagram)**
+1. Copy the URL of a viral video/post
+2. Go to Content Analyzer
+3. Paste the URL in the URL field
+4. AI fetches the video, extracts transcript (for YouTube), and analyzes everything
+
+For both methods, AI provides:
+- Hook Analysis - Why the opening grabbed attention
+- Visual Breakdown - What makes the image/video effective
+- Structure Analysis - How the content flows
+- Engagement Drivers - What makes people comment/share
+- Adaptation Ideas - How YOU could create something similar
+- **Generate Content** - Turn insights into new content
+- **Create Blog Post** - Convert analysis into a blog article
+
+### "What platforms support URL analysis?"
+- **YouTube** - Full analysis with transcript extraction, engagement metrics
+- **TikTok** - Video analysis with caption, audio, engagement data
+- **Instagram** - Post analysis (Reels, images, carousels)
+
+Best for: Learning from successful creators, building a library of proven tactics, improving your content strategy, quickly analyzing competitor content without screenshots
 
 ---
 
 ## CONTENT COMPARISON - Benchmark Your Work
 
 ### "What is Content Comparison?"
-Compare your content against viral posts to see how you stack up. Get a score and specific recommendations for improvement.
+Compare your content against viral posts to see how you stack up. Get a score and specific recommendations for improvement. Supports URL-based comparison for YouTube, TikTok, and Instagram.
 
 ### "How do I compare my content?"
 1. Go to Content Comparison
-2. Upload your content (image or screenshot)
-3. Upload a viral post to compare against
-4. AI analyzes both and scores you on:
+2. **Your Content** - Choose one:
+   - Select from Edit & Merge (your approved/ready content)
+   - Paste a YouTube, TikTok, or Instagram URL
+   - Upload screenshots (up to 6 for carousel comparison)
+3. **Competitor Content** - Choose one:
+   - Paste a YouTube, TikTok, or Instagram URL (AI fetches metadata + thumbnail)
+   - Upload screenshots (up to 6)
+4. Click Compare
+5. AI analyzes both and scores you on:
    - Hook Strength - How well you grab attention
    - Visual Impact - Design and image quality
    - Structure - Flow and organization
    - Caption Strategy - Copy effectiveness
    - Overall Score - Combined rating
 
+### "What can I do after comparing?"
+After comparison, you have two action buttons:
+- **Generate Content** - Create new video/image content using insights (goes to Content Queue)
+- **Create Blog Post** - Convert comparison insights into a blog article (goes to Blog Studio)
+
 For each category, you get: Your score vs. the viral post, specific reasons for the difference, actionable suggestions to improve, examples of what "better" looks like
 
-Best for: Self-improvement with real benchmarks, understanding gaps in your content, A/B testing your content concepts
+### "What platforms work with URL comparison?"
+- **YouTube** - Paste any video URL (fetches title, thumbnail, engagement metrics)
+- **TikTok** - Paste any video URL (fetches video, caption, engagement)
+- **Instagram** - Paste Reels or post URL (fetches content and metrics)
+
+Best for: Self-improvement with real benchmarks, understanding gaps in your content, A/B testing your content concepts, competitive analysis without manual screenshots
 
 ---
 

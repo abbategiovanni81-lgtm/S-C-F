@@ -133,9 +133,16 @@ export default function HowTo() {
                   <FeatureCard
                     icon={<Sparkles className="h-6 w-6" />}
                     title="1. Brand Briefs"
-                    description="Define your brand's voice, target audience, content pillars, and style guidelines. All AI-generated content follows these rules."
-                    howItWorks="Create a brief with your brand name, description, audience, and content themes. The AI uses this as context when generating scripts, captions, and replies."
-                    apiNeeded="None (stored locally)"
+                    description="Define your brand's voice, target audience, content pillars, and style guidelines. Create from website URL or social profile."
+                    howItWorks={
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Paste website URL OR social profile (YouTube, TikTok, Instagram, X, LinkedIn)</li>
+                        <li>AI extracts brand voice, audience, and content themes automatically</li>
+                        <li>Or fill in manually with your brand details</li>
+                        <li>All AI-generated content follows your brief</li>
+                      </ol>
+                    }
+                    apiNeeded="OpenAI + Apify (for URL analysis)"
                   />
 
                   <FeatureCard
@@ -251,13 +258,13 @@ export default function HowTo() {
                   <FeatureCard
                     icon={<Scissors className="h-6 w-6" />}
                     title="8. Video to Clips"
-                    description="Upload a long-form video and automatically extract short clips for social media."
+                    description="Upload a video OR paste a YouTube URL to extract short clips for social media."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
-                        <li>Upload your video (MP4, MOV, etc.)</li>
-                        <li>AI analyzes the video for key moments and highlights</li>
-                        <li>Select which clips to extract with custom start/end times</li>
-                        <li>Download optimized clips ready for TikTok, Reels, or Shorts</li>
+                        <li>Upload video file OR paste YouTube URL</li>
+                        <li>Choose clip types: Key insights, Emotional highs, or custom</li>
+                        <li>AI finds highlight moments with timestamps</li>
+                        <li>Download clips OR add to Content Queue with AI captions</li>
                       </ol>
                     }
                     apiNeeded="Built-in (no API key required)"
@@ -267,16 +274,17 @@ export default function HowTo() {
 
                   <FeatureCard
                     icon={<Search className="h-6 w-6" />}
-                    title="9. Content Inspiration Analyzer"
-                    description="Paste a viral video URL and get AI analysis of why it worked + content ideas for your brand."
+                    title="9. Content Analyzer"
+                    description="Upload screenshot OR paste YouTube/TikTok/Instagram URL to analyze viral content."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
-                        <li>Paste YouTube/TikTok URL</li>
+                        <li>Upload screenshot OR paste platform URL</li>
                         <li>AI analyzes hooks, structure, engagement tactics</li>
-                        <li>Generates content ideas tailored to your brand</li>
+                        <li>Get adaptation ideas for your brand</li>
+                        <li>Generate new content OR create blog post from insights</li>
                       </ol>
                     }
-                    apiNeeded="OpenAI + Apify (for scraping)"
+                    apiNeeded="OpenAI + Apify (for URL scraping)"
                     link="https://platform.openai.com"
                   />
 
@@ -397,14 +405,14 @@ export default function HowTo() {
                   <FeatureCard
                     icon={<Search className="h-6 w-6" />}
                     title="13. Content Comparison"
-                    description="Compare your content against viral competitors to get AI-powered insights and improvements."
+                    description="Compare your content against viral competitors using URLs or screenshots."
                     howItWorks={
                       <ol className="list-decimal list-inside space-y-1">
-                        <li>Select your content from Edit & Merge OR paste a YouTube URL</li>
-                        <li>Paste a competitor's viral video URL</li>
-                        <li>Upload screenshots for visual comparison (optional)</li>
-                        <li>AI analyzes hook strength, visual style, structure, and caption strategy</li>
-                        <li>Get a similarity score, predicted view range, and specific improvements</li>
+                        <li>Your content: Select from Edit & Merge OR paste YouTube/TikTok/Instagram URL</li>
+                        <li>Competitor: Paste URL (YouTube/TikTok/Instagram) OR upload screenshots</li>
+                        <li>AI analyzes hook strength, visual style, structure, caption strategy</li>
+                        <li>Get similarity score, predicted views, and improvements</li>
+                        <li>Generate new content OR create blog post from insights</li>
                       </ol>
                     }
                     apiNeeded="OpenAI (GPT-4o Vision)"
