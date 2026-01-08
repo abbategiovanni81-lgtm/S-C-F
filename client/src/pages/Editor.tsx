@@ -69,6 +69,7 @@ export default function Editor() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const params = useParams<{ contentId?: string }>();
   const [, setLocation] = useLocation();
 
@@ -117,6 +118,9 @@ export default function Editor() {
   const [trimStart, setTrimStart] = useState("0");
   const [trimEnd, setTrimEnd] = useState("10");
   const [speedMultiplier, setSpeedMultiplier] = useState("1.5");
+  const [videoSourceMode, setVideoSourceMode] = useState<"upload" | "url">("upload");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadedVideoName, setUploadedVideoName] = useState<string | null>(null);
 
   // Fetch edit jobs
   const { data: editJobs = [], isLoading: jobsLoading } = useQuery<EditJob[]>({
@@ -376,6 +380,7 @@ export default function Editor() {
       toast({ title: "Job created!", description: videoPriority === "rush" ? "Processing immediately..." : "Queued for overnight processing" });
       setVideoJobName("");
       setVideoSourceUrl("");
+      setUploadedVideoName(null);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -395,9 +400,51 @@ export default function Editor() {
     },
   });
 
+  const handleVideoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      toast({ title: "Please select a video file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 500 * 1024 * 1024) {
+      toast({ title: "Video must be under 500MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append("video", file);
+
+      const res = await fetch("/api/edit-jobs/upload-video", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Upload failed");
+      }
+
+      const data = await res.json();
+      setVideoSourceUrl(data.videoUrl);
+      setUploadedVideoName(file.name);
+      toast({ title: "Video uploaded!", description: file.name });
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } finally {
+      setUploadingVideo(false);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    }
+  };
+
   const handleCreateVideoJob = () => {
     if (!videoJobName || !videoSourceUrl) {
-      toast({ title: "Please fill in job name and source URL", variant: "destructive" });
+      toast({ title: "Please fill in job name and add a video", variant: "destructive" });
       return;
     }
 
@@ -959,13 +1006,75 @@ export default function Editor() {
                 </div>
 
                 <div>
-                  <Label>Source Video URL</Label>
-                  <Input
-                    value={videoSourceUrl}
-                    onChange={(e) => setVideoSourceUrl(e.target.value)}
-                    placeholder="https://... or /objects/..."
-                    data-testid="input-source-url"
-                  />
+                  <Label>Source Video</Label>
+                  <div className="flex gap-2 mt-2 mb-3">
+                    <Button
+                      type="button"
+                      variant={videoSourceMode === "upload" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setVideoSourceMode("upload")}
+                      data-testid="button-source-upload"
+                    >
+                      <Upload className="w-4 h-4 mr-2" /> Upload File
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={videoSourceMode === "url" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setVideoSourceMode("url")}
+                      data-testid="button-source-url"
+                    >
+                      <Video className="w-4 h-4 mr-2" /> Paste URL
+                    </Button>
+                  </div>
+
+                  {videoSourceMode === "upload" ? (
+                    <div>
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoFileSelect}
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => videoInputRef.current?.click()}
+                        disabled={uploadingVideo}
+                        data-testid="button-upload-video"
+                      >
+                        {uploadingVideo ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+                        ) : uploadedVideoName ? (
+                          <><CheckCircle className="w-4 h-4 mr-2 text-green-500" /> {uploadedVideoName}</>
+                        ) : (
+                          <><Upload className="w-4 h-4 mr-2" /> Choose Video (MP4, MOV - up to 500MB)</>
+                        )}
+                      </Button>
+                      {uploadedVideoName && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            setUploadedVideoName(null);
+                            setVideoSourceUrl("");
+                          }}
+                          data-testid="button-clear-video"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Clear
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <Input
+                      value={videoSourceUrl}
+                      onChange={(e) => setVideoSourceUrl(e.target.value)}
+                      placeholder="https://... or /objects/..."
+                      data-testid="input-source-url"
+                    />
+                  )}
                 </div>
 
                 {videoJobType === "video_trim" && (

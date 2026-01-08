@@ -7835,6 +7835,43 @@ Respond in JSON:
 
   // ============ EDIT JOBS ============
 
+  // Video upload for edit jobs
+  const editJobVideoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit for videos
+  });
+
+  app.post("/api/edit-jobs/upload-video", editJobVideoUpload.single("video"), requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+
+      const file = req.file;
+      const timestamp = Date.now();
+      const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const objectPath = `.private/edit-jobs/${userId}/${timestamp}_${sanitizedName}`;
+
+      // Upload to object storage
+      await objectStorageService.uploadBuffer(objectPath, file.buffer, file.mimetype);
+      
+      // Return the object storage path
+      const videoUrl = `/objects/${objectPath}`;
+      
+      res.json({ 
+        success: true, 
+        videoUrl,
+        filename: file.originalname,
+        size: file.size
+      });
+    } catch (error: any) {
+      console.error("Edit job video upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/edit-jobs", requireAuth, async (req: any, res) => {
     try {
       const userId = req.userId;

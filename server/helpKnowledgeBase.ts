@@ -286,7 +286,9 @@ The Editor has two main functions:
 ### "How do I create a video editing job?"
 1. Go to Editor and select "Video Jobs" tab
 2. Enter job name and select type (trim, split, speed)
-3. Upload or paste video URL
+3. Add your video (two options):
+   - **Upload File** - Click to upload from your phone or computer (MP4, MOV up to 500MB)
+   - **Paste URL** - Enter a video URL or /objects/... path
 4. Set parameters (start/end time, speed multiplier)
 5. Choose priority: Standard (free, overnight) or Rush (paid, immediate)
 6. Click Create Job
