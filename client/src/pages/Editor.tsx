@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { 
   Type, Image as ImageIcon, Video, Clock, Loader2, Upload, 
   Trash2, Download, RefreshCw, Scissors, Zap, Moon, CheckCircle,
-  XCircle, AlertCircle, Play, Pause
+  XCircle, AlertCircle, Play, Pause, ArrowRight, Send
 } from "lucide-react";
-import type { EditJob } from "@shared/schema";
+import type { EditJob, GeneratedContent } from "@shared/schema";
 
 const POSITIONS = [
   { value: "top", label: "Top Center" },
@@ -46,6 +48,12 @@ export default function Editor() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const params = useParams<{ contentId?: string }>();
+  const [, setLocation] = useLocation();
+
+  // Source content tracking
+  const [sourceContentId, setSourceContentId] = useState<string | null>(null);
+  const [sourceContent, setSourceContent] = useState<GeneratedContent | null>(null);
 
   // Text overlay state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -73,6 +81,42 @@ export default function Editor() {
     queryKey: ["/api/edit-jobs"],
   });
 
+  // Fetch approved content for loading from URL params
+  const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
+    queryKey: ["/api/content?status=approved"],
+  });
+
+  // Load content from URL params
+  useEffect(() => {
+    if (params.contentId && approvedContent.length > 0 && !sourceContentId) {
+      const content = approvedContent.find(c => c.id === params.contentId);
+      if (content) {
+        setSourceContentId(content.id);
+        setSourceContent(content);
+        
+        // Get image URL from content metadata
+        const metadata = content.generationMetadata as any;
+        const imageUrl = content.thumbnailUrl || 
+          metadata?.generatedImageUrl || 
+          metadata?.generatedCarouselImages?.[0]?.imageUrl;
+        
+        if (imageUrl) {
+          // Load image from URL
+          setImagePreview(imageUrl);
+          
+          // Get text overlay from metadata
+          const textOverlay = metadata?.imagePrompts?.textOverlay || 
+            metadata?.carouselPrompts?.slides?.[0]?.textOverlay || "";
+          if (textOverlay) {
+            setOverlayText(textOverlay);
+          }
+          
+          toast({ title: "Content loaded", description: "Image loaded from Content Queue. Add your text overlay." });
+        }
+      }
+    }
+  }, [params.contentId, approvedContent, sourceContentId, toast]);
+
   // Handle image selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,7 +133,7 @@ export default function Editor() {
 
   // Process text overlay
   const handleTextOverlay = async () => {
-    if (!selectedImage) {
+    if (!selectedImage && !imagePreview) {
       toast({ title: "No image selected", variant: "destructive" });
       return;
     }
@@ -97,13 +141,24 @@ export default function Editor() {
     setProcessing(true);
     try {
       const formData = new FormData();
-      formData.append("image", selectedImage);
+      
+      // If we have a file, use it; otherwise use the URL
+      if (selectedImage) {
+        formData.append("image", selectedImage);
+      } else if (imagePreview) {
+        formData.append("imageUrl", imagePreview);
+      }
+      
       formData.append("text", overlayText);
       formData.append("fontSize", fontSize);
       formData.append("fontColor", fontColor);
       formData.append("fontFamily", fontFamily);
       formData.append("position", textPosition);
       formData.append("backgroundColor", backgroundColor);
+      
+      if (sourceContentId) {
+        formData.append("sourceContentId", sourceContentId);
+      }
 
       const res = await fetch("/api/edit-jobs/text-overlay", {
         method: "POST",
@@ -122,6 +177,45 @@ export default function Editor() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Navigate to Edit & Merge
+  const handleSendToEditMerge = () => {
+    if (sourceContentId) {
+      setLocation(`/edit-merge/${sourceContentId}`);
+    } else {
+      setLocation("/edit-merge");
+    }
+  };
+
+  // Move content to Ready to Post
+  const handleSendToReadyToPost = async () => {
+    if (!sourceContentId || !outputUrl) {
+      toast({ title: "No processed image available", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // Update content thumbnail with the edited image and move to ready status
+      const res = await fetch(`/api/content/${sourceContentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          thumbnailUrl: outputUrl,
+          status: "ready"
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update content");
+      }
+
+      toast({ title: "Success!", description: "Content moved to Ready to Post" });
+      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+      setLocation("/ready-to-post");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -347,7 +441,7 @@ export default function Editor() {
 
                   <Button
                     onClick={handleTextOverlay}
-                    disabled={!selectedImage || processing}
+                    disabled={(!selectedImage && !imagePreview) || processing}
                     className="w-full"
                     data-testid="button-apply-text"
                   >
@@ -417,19 +511,50 @@ export default function Editor() {
                   </div>
 
                   {outputUrl && (
-                    <div className="mt-4 flex gap-2">
-                      <Button asChild className="flex-1" data-testid="button-download-image">
-                        <a href={outputUrl} download>
-                          <Download className="w-4 h-4 mr-2" /> Download
-                        </a>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setOutputUrl(null)}
-                        data-testid="button-reset-preview"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex gap-2">
+                        <Button asChild className="flex-1" data-testid="button-download-image">
+                          <a href={outputUrl} download>
+                            <Download className="w-4 h-4 mr-2" /> Download
+                          </a>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setOutputUrl(null)}
+                          data-testid="button-reset-preview"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Destination options */}
+                      <div className="border-t pt-3 space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Send to next step:</p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={handleSendToEditMerge}
+                            data-testid="button-send-to-edit-merge"
+                          >
+                            <Scissors className="w-4 h-4 mr-2" /> Edit & Merge
+                          </Button>
+                          {sourceContentId && (
+                            <Button
+                              className="flex-1"
+                              onClick={handleSendToReadyToPost}
+                              data-testid="button-send-to-ready"
+                            >
+                              <Send className="w-4 h-4 mr-2" /> Ready to Post
+                            </Button>
+                          )}
+                        </div>
+                        {!sourceContentId && (
+                          <p className="text-xs text-muted-foreground">
+                            Tip: Content from Content Queue can be sent directly to Ready to Post
+                          </p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </CardContent>

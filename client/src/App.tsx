@@ -40,6 +40,7 @@ function AuthenticatedRoutes() {
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/editor" component={Editor} />
+      <Route path="/editor/:contentId" component={Editor} />
       <Route path="/ready-to-post" component={ReadyToPost} />
       <Route path="/social-listening" component={SocialListening} />
       <Route path="/schedule" component={Schedule} />

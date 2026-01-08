@@ -7560,21 +7560,46 @@ Respond in JSON:
     try {
       const userId = req.userId;
       const file = req.file;
-      const { text, fontSize, fontColor, fontFamily, position, backgroundColor } = req.body;
-
-      if (!file) {
-        return res.status(400).json({ error: "Image file required" });
-      }
+      const { text, fontSize, fontColor, fontFamily, position, backgroundColor, imageUrl, sourceContentId } = req.body;
 
       const sharp = (await import("sharp")).default;
       
+      let imageBuffer: Buffer;
+      
+      if (file) {
+        imageBuffer = file.buffer;
+      } else if (imageUrl) {
+        // Fetch image from URL
+        const { Storage } = await import("@google-cloud/storage");
+        const gcsStorage = new Storage();
+        const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+        
+        if (imageUrl.startsWith("/objects/")) {
+          // It's a GCS path
+          const gcsPath = imageUrl.replace("/objects/", "");
+          const bucket = gcsStorage.bucket(bucketId!);
+          const [buffer] = await bucket.file(gcsPath).download();
+          imageBuffer = buffer;
+        } else if (imageUrl.startsWith("http")) {
+          // External URL - fetch it
+          const response = await fetch(imageUrl);
+          if (!response.ok) throw new Error("Failed to fetch image from URL");
+          const arrayBuffer = await response.arrayBuffer();
+          imageBuffer = Buffer.from(arrayBuffer);
+        } else {
+          return res.status(400).json({ error: "Invalid image URL" });
+        }
+      } else {
+        return res.status(400).json({ error: "Image file or URL required" });
+      }
+
       const parsedFontSize = parseInt(fontSize) || 48;
       const parsedFontColor = fontColor || "#ffffff";
       const parsedBgColor = backgroundColor || "transparent";
       const parsedPosition = position || "center";
       const parsedFontFamily = fontFamily || "Arial, sans-serif";
       
-      const metadata = await sharp(file.buffer).metadata();
+      const metadata = await sharp(imageBuffer).metadata();
       const width = metadata.width || 1080;
       const height = metadata.height || 1080;
 
@@ -7602,7 +7627,7 @@ Respond in JSON:
         </svg>
       `);
 
-      const outputBuffer = await sharp(file.buffer)
+      const outputBuffer = await sharp(imageBuffer)
         .composite([{ input: svgOverlay, top: 0, left: 0 }])
         .png()
         .toBuffer();
