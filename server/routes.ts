@@ -1254,7 +1254,7 @@ Provide analysis in this JSON structure:
         const baseEngines: any = {
           openai: { configured: true, name: "OpenAI GPT-4" },
           anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
-          dalle: { configured: isDalleConfigured(), name: "GPT-Image-1" },
+          dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
           a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
           elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
@@ -2118,26 +2118,25 @@ Provide analysis in this JSON structure:
         }
       }
       
-      // Map aspect ratio to GPT-Image size (1024x1024, 1536x1024, 1024x1536)
-      let gptImageSize: "1024x1024" | "1536x1024" | "1024x1536" = "1024x1024";
-      if (req.body.aspectRatio === "landscape" || req.body.aspectRatio === "16:9") gptImageSize = "1536x1024";
-      else if (req.body.aspectRatio === "portrait" || req.body.aspectRatio === "9:16" || req.body.aspectRatio === "4:5" || req.body.aspectRatio === "5:4") gptImageSize = "1024x1536";
+      // Map aspect ratio to DALL-E size
+      let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
+      if (req.body.aspectRatio === "landscape" || req.body.aspectRatio === "16:9") dalleSize = "1792x1024";
+      else if (req.body.aspectRatio === "portrait" || req.body.aspectRatio === "9:16" || req.body.aspectRatio === "4:5" || req.body.aspectRatio === "5:4") dalleSize = "1024x1792";
       
       const result = await generateDalleImage({ 
         prompt, 
-        size: size || gptImageSize, 
-        quality: quality || "medium"
+        size: size || dalleSize, 
+        quality: quality || "standard",
+        style: style || "vivid"
       });
       
-      // GPT-Image returns base64, save to cloud storage for persistence
+      // DALL-E URLs expire, so download and save locally
       let localImageUrl = result.imageUrl;
-      if (result.base64Data) {
-        try {
-          localImageUrl = await saveBase64Media(result.base64Data, "image");
-          console.log(`Saved GPT-Image to ${localImageUrl}`);
-        } catch (saveError) {
-          console.error("Failed to save GPT-Image:", saveError);
-        }
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded DALL-E image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download DALL-E image:", downloadError);
       }
 
       // Increment usage after successful generation
@@ -2196,15 +2195,13 @@ Provide analysis in this JSON structure:
         aspectRatio: normalizedAspect,
       });
       
-      // GPT-Image returns base64, save to cloud storage for persistence
+      // DALL-E URLs expire, so download and save locally
       let localImageUrl = result.imageUrl;
-      if (result.base64Data) {
-        try {
-          localImageUrl = await saveBase64Media(result.base64Data, "image");
-          console.log(`Saved carousel image to ${localImageUrl}`);
-        } catch (saveError) {
-          console.error("Failed to save carousel image:", saveError);
-        }
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded carousel image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download carousel image:", downloadError);
       }
 
       // Increment usage after successful generation
@@ -2278,15 +2275,13 @@ Provide analysis in this JSON structure:
         aspectRatio: normalizedAspect,
       });
       
-      // GPT-Image returns base64, save to cloud storage for persistence
+      // DALL-E URLs expire, so download and save locally
       let localImageUrl = result.imageUrl;
-      if (result.base64Data) {
-        try {
-          localImageUrl = await saveBase64Media(result.base64Data, "image");
-          console.log(`Saved carousel image to ${localImageUrl}`);
-        } catch (saveError) {
-          console.error("Failed to save carousel image:", saveError);
-        }
+      try {
+        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
+        console.log(`Downloaded carousel image to ${localImageUrl}`);
+      } catch (downloadError) {
+        console.error("Failed to download carousel image:", downloadError);
       }
 
       // Increment usage after successful generation

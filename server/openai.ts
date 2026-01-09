@@ -1592,11 +1592,12 @@ Respond in JSON:
   return JSON.parse(content) as TrendAnalysisResult;
 }
 
-// GPT-Image Generation (migrated from DALL-E 3)
+// DALL-E 3 Image Generation (will migrate to GPT-Image-1 when organization is verified)
 export interface DalleImageRequest {
   prompt: string;
-  size?: "1024x1024" | "1536x1024" | "1024x1536";
-  quality?: "low" | "medium" | "high" | "auto";
+  size?: "1024x1024" | "1792x1024" | "1024x1792";
+  quality?: "standard" | "hd";
+  style?: "vivid" | "natural";
 }
 
 export interface DalleImageResult {
@@ -1605,34 +1606,33 @@ export interface DalleImageResult {
   base64Data?: string;
 }
 
-// Create a separate OpenAI client for GPT-Image using the dedicated key
+// Create a separate OpenAI client for DALL-E using the dedicated key
 const dalleClient = new OpenAI({
   apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY,
 });
 
 export async function generateDalleImage(request: DalleImageRequest): Promise<DalleImageResult> {
   if (!isDalleConfigured()) {
-    throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
+    throw new Error("DALL-E API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "dall-e-3",
     prompt: request.prompt,
     n: 1,
     size: request.size || "1024x1024",
-    quality: request.quality || "medium",
+    quality: request.quality || "standard",
+    style: request.style || "vivid",
   });
 
-  const base64Data = response.data[0]?.b64_json;
-  if (!base64Data) {
-    throw new Error("No image generated from GPT-Image");
+  const imageUrl = response.data[0]?.url;
+  if (!imageUrl) {
+    throw new Error("No image generated from DALL-E");
   }
 
-  const dataUri = `data:image/png;base64,${base64Data}`;
-
   return {
-    imageUrl: dataUri,
-    base64Data,
+    imageUrl,
+    revisedPrompt: response.data[0]?.revised_prompt,
   };
 }
 
@@ -2014,7 +2014,7 @@ export async function generateCarouselImage(request: CarouselImageRequest): Prom
     throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
-  const aspectSize = request.aspectRatio === "portrait" ? "1024x1536" : "1024x1024";
+  const aspectSize = request.aspectRatio === "portrait" ? "1024x1792" : "1024x1024";
   
   // Determine slide purpose based on position
   let slideContext = "";
@@ -2142,23 +2142,23 @@ Visual composition:
 Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}`;
 
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "dall-e-3",
     prompt: generatePrompt,
     n: 1,
-    size: aspectSize as "1024x1024" | "1024x1536",
-    quality: "medium",
+    size: aspectSize as "1024x1024" | "1024x1792",
+    quality: "standard",
+    style: "vivid",
   });
 
-  const base64Data = response.data?.[0]?.b64_json;
-  if (!base64Data) {
+  const responseData = response.data?.[0];
+  const imageUrl = responseData?.url;
+  if (!imageUrl) {
     throw new Error("Failed to generate carousel image");
   }
 
-  const dataUri = `data:image/png;base64,${base64Data}`;
-
   return {
-    imageUrl: dataUri,
-    base64Data,
+    imageUrl,
+    revisedPrompt: responseData?.revised_prompt,
   };
 }
 
