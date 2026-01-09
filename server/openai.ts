@@ -2014,7 +2014,7 @@ export async function generateCarouselImage(request: CarouselImageRequest): Prom
     throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
-  const aspectSize = request.aspectRatio === "portrait" ? "1024x1792" : "1024x1024";
+  const aspectSize = request.aspectRatio === "portrait" ? "1024x1536" : "1024x1024";
   
   // Determine slide purpose based on position
   let slideContext = "";
@@ -2141,13 +2141,11 @@ Visual composition:
 
 Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}`;
 
-  const gptImageSize = aspectSize === "1024x1792" ? "1024x1536" : "1024x1024";
-  
   const response = await dalleClient.images.generate({
     model: "gpt-image-1",
     prompt: generatePrompt,
     n: 1,
-    size: gptImageSize as "1024x1024" | "1024x1536",
+    size: aspectSize as "1024x1024" | "1024x1536",
     quality: "medium",
   });
 

@@ -89,6 +89,15 @@ async function saveBase64Media(base64Data: string, type: "video" | "image" | "au
   }
 }
 
+function normalizeAspectToCarouselFormat(aspectRatio: string | undefined): "square" | "portrait" {
+  if (!aspectRatio) return "portrait";
+  const lower = aspectRatio.toLowerCase();
+  if (lower === "square" || lower === "1:1") {
+    return "square";
+  }
+  return "portrait";
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -2175,6 +2184,7 @@ Provide analysis in this JSON structure:
         }
       }
 
+      const normalizedAspect = normalizeAspectToCarouselFormat(aspectRatio);
       const result = await generateCarouselImage({
         slideNumber: slideNumber || 1,
         totalSlides: totalSlides || 4,
@@ -2183,7 +2193,7 @@ Provide analysis in this JSON structure:
         colorScheme,
         style: extractedStyle || style,
         brandAssetUrl: referenceImageUrl || brandAssetUrl,
-        aspectRatio: aspectRatio || "square",
+        aspectRatio: normalizedAspect,
       });
       
       // GPT-Image returns base64, save to cloud storage for persistence
@@ -2256,6 +2266,7 @@ Provide analysis in this JSON structure:
         }
       }
 
+      const normalizedAspect = normalizeAspectToCarouselFormat(aspectRatio);
       const result = await generateCarouselImage({
         slideNumber: slideNumber || 1,
         totalSlides: totalSlides || 7,
@@ -2264,7 +2275,7 @@ Provide analysis in this JSON structure:
         colorScheme,
         style: extractedStyle || style,
         brandAssetUrl: referenceImageUrl || brandAssetUrl,
-        aspectRatio: aspectRatio || "portrait",
+        aspectRatio: normalizedAspect,
       });
       
       // GPT-Image returns base64, save to cloud storage for persistence
