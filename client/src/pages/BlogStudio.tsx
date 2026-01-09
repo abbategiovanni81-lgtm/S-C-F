@@ -49,8 +49,9 @@ export default function BlogStudio() {
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
   });
 
+  // Fetch from content-analysis/videos endpoint (where scraped videos are stored)
   const { data: analyzedContent = [] } = useQuery<any[]>({
-    queryKey: ["/api/content-analyzer"],
+    queryKey: ["/api/content-analysis/videos"],
   });
 
   useEffect(() => {

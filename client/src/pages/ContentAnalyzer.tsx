@@ -1223,14 +1223,21 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                             </div>
                           </div>
 
-                          {selectedVideo.transcript && (
-                            <div>
-                              <h4 className="font-medium mb-2">Transcript Preview</h4>
-                              <div className="p-3 bg-muted/50 rounded-lg text-sm max-h-32 overflow-y-auto">
-                                {selectedVideo.transcript.slice(0, 500)}...
-                              </div>
+                          <div>
+                            <h4 className="font-medium mb-2">Transcript Preview</h4>
+                            <div className="p-3 bg-muted/50 rounded-lg text-sm max-h-32 overflow-y-auto">
+                              {selectedVideo.transcript && selectedVideo.transcript.length > 0 ? (
+                                <>
+                                  {selectedVideo.transcript.slice(0, 500)}
+                                  {selectedVideo.transcript.length > 500 && "..."}
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground italic">
+                                  No transcript available. The video may not have captions, or try clicking "Analyze with AI" to fetch it.
+                                </span>
+                              )}
                             </div>
-                          )}
+                          </div>
 
                           {latestAnalysis && (
                             <div className="space-y-4">
@@ -1331,7 +1338,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                                 </Button>
                                 <Button
                                   variant="outline"
-                                  onClick={() => setLocation(`/blog-studio/video/${video.id}`)}
+                                  onClick={() => setLocation(`/blog-studio/video/${selectedVideo.id}`)}
                                   className="w-full gap-2"
                                   data-testid="button-convert-to-blog-video"
                                 >
