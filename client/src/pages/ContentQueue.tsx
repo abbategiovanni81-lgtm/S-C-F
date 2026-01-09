@@ -13,7 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -103,6 +104,9 @@ export default function ContentQueue() {
   const [editImageDialogOpen, setEditImageDialogOpen] = useState(false);
   const [editingImage, setEditingImage] = useState<{ contentId: string; mainImagePrompt: string; textOverlay: string; colorScheme: string; style: string } | null>(null);
   const [includeTextInPrompt, setIncludeTextInPrompt] = useState(true);
+  
+  // Track which approved content cards have advanced options expanded
+  const [expandedAdvancedOptions, setExpandedAdvancedOptions] = useState<Set<string>>(new Set());
   
   // Carousel slide editing state
   const [editCarouselSlideDialogOpen, setEditCarouselSlideDialogOpen] = useState(false);
@@ -365,6 +369,65 @@ export default function ContentQueue() {
       toast({ title: "Image generated!", description: "Your image is ready." });
     } catch (error: any) {
       toast({ title: "Image generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setGeneratingImageId(null);
+    }
+  };
+
+  const handleGenerateThumbnail = async (content: GeneratedContent) => {
+    if (!checkAIAccess("AI Image Generation")) return;
+    const metadata = content.generationMetadata as any;
+    const prompt = metadata?.videoPrompts?.thumbnailPrompt;
+    
+    if (!prompt) {
+      toast({ title: "No thumbnail prompt", description: "This video has no thumbnail prompt defined.", variant: "destructive" });
+      return;
+    }
+    
+    setGeneratingImageId(content.id);
+    try {
+      // Use 16:9 aspect ratio for video thumbnails
+      const aspectRatio = "16:9";
+      
+      // Use selected image engine
+      const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
+        : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+        : imageEngine === "pexels" ? "/api/pexels/search-image"
+        : imageEngine === "getty" ? "/api/getty/search-image"
+        : "/api/fal/generate-image";
+      
+      // Map imageStyle to DALL-E style parameter
+      const dalleStyle = imageStyle === "illustrated" ? "vivid" : "natural";
+      const stylePrefix = imageStyle === "photorealistic" ? "Photorealistic, lifelike, " 
+        : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
+        : "";
+      const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+      
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate thumbnail");
+      }
+      
+      const data = await res.json();
+      
+      // Save thumbnail to metadata
+      const freshContentRes = await fetch(`/api/content/${content.id}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      await apiRequest("PATCH", `/api/content/${content.id}`, {
+        generationMetadata: { ...existingMetadata, generatedThumbnailUrl: data.imageUrl },
+      });
+      
+      invalidateContentQueries();
+      toast({ title: "Thumbnail generated!", description: "Your video thumbnail is ready." });
+    } catch (error: any) {
+      toast({ title: "Thumbnail generation failed", description: error.message, variant: "destructive" });
     } finally {
       setGeneratingImageId(null);
     }
@@ -1709,10 +1772,19 @@ export default function ContentQueue() {
                 )}
                 
                 {(generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl) && (
-                  <div className="mt-2">
+                  <div className="mt-2 space-y-2">
                     <audio controls className="w-full h-10" data-testid={`audio-voiceover-${content.id}`}>
                       <source src={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl} type="audio/mpeg" />
                     </audio>
+                    <a
+                      href={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl}
+                      download={`voiceover-${content.id}.mp3`}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      data-testid={`link-download-voiceover-${content.id}`}
+                    >
+                      <Download className="w-3 h-3" />
+                      Download Voiceover (MP3)
+                    </a>
                   </div>
                 )}
                 
@@ -1963,7 +2035,7 @@ export default function ContentQueue() {
             )}
 
             {(content.generationMetadata as any).videoPrompts.thumbnailPrompt && (
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
                   <Button
@@ -1982,6 +2054,58 @@ export default function ContentQueue() {
                 <p className="text-sm bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   {(content.generationMetadata as any).videoPrompts.thumbnailPrompt}
                 </p>
+                
+                {/* Generated/Uploaded Thumbnail Display */}
+                {(() => {
+                  const metadata = content.generationMetadata as any;
+                  const thumbnailUrl = metadata?.generatedThumbnailUrl || metadata?.uploadedThumbnailUrl;
+                  if (!thumbnailUrl) return null;
+                  return (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Generated Thumbnail</p>
+                      <div className="relative inline-block">
+                        <img 
+                          src={thumbnailUrl} 
+                          alt="Thumbnail" 
+                          className="rounded-lg max-h-32 object-contain border"
+                          data-testid={`img-thumbnail-preview-${content.id}`}
+                        />
+                        <a
+                          href={thumbnailUrl}
+                          download={`thumbnail-${content.id}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
+                          data-testid={`link-download-thumbnail-${content.id}`}
+                        >
+                          <Download className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Generate Thumbnail Button */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={() => handleGenerateThumbnail(content)}
+                  disabled={generatingImageId === content.id}
+                  data-testid={`button-generate-thumbnail-${content.id}`}
+                >
+                  {generatingImageId === content.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-4 h-4" />
+                      {(content.generationMetadata as any)?.generatedThumbnailUrl ? "Regenerate" : "Generate"} Thumbnail
+                    </>
+                  )}
+                </Button>
               </div>
             )}
             
@@ -2086,6 +2210,16 @@ export default function ContentQueue() {
                           <span className="absolute top-1 left-1 bg-purple-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">
                             AI Generated
                           </span>
+                          <a
+                            href={genImg}
+                            download={`generated-image-${content.id}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
+                            data-testid={`link-download-generated-${content.id}`}
+                          >
+                            <Download className="w-3 h-3" />
+                          </a>
                         </div>
                       )}
                       {uploadImg && (
@@ -2099,6 +2233,16 @@ export default function ContentQueue() {
                           <span className="absolute top-1 left-1 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">
                             Uploaded
                           </span>
+                          <a
+                            href={uploadImg}
+                            download={`uploaded-image-${content.id}.png`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
+                            data-testid={`link-download-uploaded-${content.id}`}
+                          >
+                            <Download className="w-3 h-3" />
+                          </a>
                         </div>
                       )}
                     </div>
@@ -2401,120 +2545,146 @@ export default function ContentQueue() {
                 </Link>
               </div>
               
-              {/* IMAGE/CAROUSEL: Upload or Generate Image */}
+              {/* IMAGE/CAROUSEL: Upload or Generate Image - Hidden in collapsible */}
               {isImage && (
-                <>
-                  {/* Image Engine Selector */}
-                  <div className="bg-muted/50 p-3 rounded-lg space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs font-medium">Image Engine:</Label>
-                      <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal" | "pexels" | "getty") => setImageEngine(v)}>
-                        <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="a2e" disabled={!aiEngines?.a2e?.configured}>
-                            A2E {!aiEngines?.a2e?.configured && "(not configured)"}
-                          </SelectItem>
-                          <SelectItem value="dalle" disabled={!aiEngines?.dalle?.configured}>
-                            DALL-E 3 {!aiEngines?.dalle?.configured && "(not configured)"}
-                          </SelectItem>
-                          <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
-                            Fal.ai {!aiEngines?.fal?.configured && "(not configured)"}
-                          </SelectItem>
-                          <SelectItem value="pexels" disabled={!aiEngines?.pexels?.configured}>
-                            Pexels {!aiEngines?.pexels?.configured && "(not configured)"}
-                          </SelectItem>
-                          {aiEngines?.getty && (
-                            <SelectItem value="getty" disabled={!aiEngines?.getty?.configured}>
-                              Getty {!aiEngines?.getty?.configured && "(not configured)"}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {imageEngine === "dalle" && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Label className="text-xs font-medium">Style:</Label>
-                        <Select value={imageStyle} onValueChange={(v: "photorealistic" | "illustrated" | "minimalist") => setImageStyle(v)}>
-                          <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-image-style">
+                <Collapsible 
+                  open={expandedAdvancedOptions.has(content.id)}
+                  onOpenChange={(open) => {
+                    setExpandedAdvancedOptions(prev => {
+                      const next = new Set(prev);
+                      if (open) next.add(content.id);
+                      else next.delete(content.id);
+                      return next;
+                    });
+                  }}
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full justify-between text-xs text-muted-foreground hover:text-foreground"
+                      data-testid={`button-toggle-advanced-${content.id}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Wand2 className="w-3 h-3" />
+                        Advanced: Generate/Upload Image
+                      </span>
+                      <ChevronDown className={cn("w-4 h-4 transition-transform", expandedAdvancedOptions.has(content.id) && "rotate-180")} />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-3 pt-2">
+                    {/* Image Engine Selector */}
+                    <div className="bg-muted/50 p-3 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs font-medium">Image Engine:</Label>
+                        <Select value={imageEngine} onValueChange={(v: "a2e" | "dalle" | "fal" | "pexels" | "getty") => setImageEngine(v)}>
+                          <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-image-engine">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="photorealistic">Photorealistic</SelectItem>
-                            <SelectItem value="illustrated">Illustrated</SelectItem>
-                            <SelectItem value="minimalist">Minimalist</SelectItem>
+                            <SelectItem value="a2e" disabled={!aiEngines?.a2e?.configured}>
+                              A2E {!aiEngines?.a2e?.configured && "(not configured)"}
+                            </SelectItem>
+                            <SelectItem value="dalle" disabled={!aiEngines?.dalle?.configured}>
+                              DALL-E 3 {!aiEngines?.dalle?.configured && "(not configured)"}
+                            </SelectItem>
+                            <SelectItem value="fal" disabled={!aiEngines?.fal?.configured}>
+                              Fal.ai {!aiEngines?.fal?.configured && "(not configured)"}
+                            </SelectItem>
+                            <SelectItem value="pexels" disabled={!aiEngines?.pexels?.configured}>
+                              Pexels {!aiEngines?.pexels?.configured && "(not configured)"}
+                            </SelectItem>
+                            {aiEngines?.getty && (
+                              <SelectItem value="getty" disabled={!aiEngines?.getty?.configured}>
+                                Getty {!aiEngines?.getty?.configured && "(not configured)"}
+                              </SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      {imageEngine === "a2e" 
-                        ? "A2E generates high-quality images with general or manga styles." 
-                        : imageEngine === "dalle"
-                        ? `DALL-E 3 generates ${imageStyle === "photorealistic" ? "lifelike, realistic" : imageStyle === "illustrated" ? "artistic, illustrated" : "clean, minimalist"} images.`
-                        : imageEngine === "pexels"
-                        ? "Pexels searches free stock photos matching your content."
-                        : imageEngine === "getty"
-                        ? "Getty Images provides premium stock photos (Studio tier only)."
-                        : "Fal.ai generates fast AI images with various style options."}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="flex-1 gap-2"
-                      onClick={() => handleGenerateImage(content)}
-                      disabled={generatingImageId === content.id}
-                      data-testid={`button-generate-image-${content.id}`}
-                    >
-                      {generatingImageId === content.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="w-4 h-4" />
-                          Generate Image
-                        </>
+                      {imageEngine === "dalle" && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Label className="text-xs font-medium">Style:</Label>
+                          <Select value={imageStyle} onValueChange={(v: "photorealistic" | "illustrated" | "minimalist") => setImageStyle(v)}>
+                            <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-image-style">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                              <SelectItem value="illustrated">Illustrated</SelectItem>
+                              <SelectItem value="minimalist">Minimalist</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
-                    </Button>
-                    
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 gap-2"
-                      onClick={() => {
-                        const input = document.createElement("input");
-                        input.type = "file";
-                        input.accept = "image/*";
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) handleImageUpload(content, file);
-                        };
-                        input.click();
-                      }}
-                      disabled={uploadingImageId === content.id}
-                      data-testid={`button-upload-image-${content.id}`}
-                    >
-                      {uploadingImageId === content.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          Upload Image
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                      <p className="text-xs text-muted-foreground">
+                        {imageEngine === "a2e" 
+                          ? "A2E generates high-quality images with general or manga styles." 
+                          : imageEngine === "dalle"
+                          ? `DALL-E 3 generates ${imageStyle === "photorealistic" ? "lifelike, realistic" : imageStyle === "illustrated" ? "artistic, illustrated" : "clean, minimalist"} images.`
+                          : imageEngine === "pexels"
+                          ? "Pexels searches free stock photos matching your content."
+                          : imageEngine === "getty"
+                          ? "Getty Images provides premium stock photos (Studio tier only)."
+                          : "Fal.ai generates fast AI images with various style options."}
+                      </p>
+                    </div>
 
-                  {/* Show all available images - generated and uploaded */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="flex-1 gap-2"
+                        onClick={() => handleGenerateImage(content)}
+                        disabled={generatingImageId === content.id}
+                        data-testid={`button-generate-image-${content.id}`}
+                      >
+                        {generatingImageId === content.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4" />
+                            Generate Image
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/*";
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) handleImageUpload(content, file);
+                          };
+                          input.click();
+                        }}
+                        disabled={uploadingImageId === content.id}
+                        data-testid={`button-upload-image-${content.id}`}
+                      >
+                        {uploadingImageId === content.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            Upload Image
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                  
+                  {/* Show all available images - generated and uploaded (always visible) */}
                   {(() => {
                     const genImg = generatedImages[content.id] || metadata?.generatedImageUrl;
                     const uploadImg = metadata?.uploadedImageUrl;
@@ -2561,7 +2731,7 @@ export default function ContentQueue() {
                       </div>
                     );
                   })()}
-                </>
+                </Collapsible>
               )}
               
               {/* TIKTOK TEXT: Ready immediately */}

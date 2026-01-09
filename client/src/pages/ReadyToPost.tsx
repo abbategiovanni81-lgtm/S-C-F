@@ -490,6 +490,39 @@ export default function ReadyToPost() {
             </div>
           )}
 
+          {/* Video Thumbnail */}
+          {(() => {
+            const thumbnailUrl = metadata?.generatedThumbnailUrl || metadata?.uploadedThumbnailUrl || content.thumbnailUrl;
+            if (!thumbnailUrl || !videoUrl) return null;
+            
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <ImageIcon className="w-4 h-4 text-orange-500" />
+                  Video Thumbnail
+                </div>
+                <div className="relative w-48">
+                  <img 
+                    src={thumbnailUrl} 
+                    alt="Video Thumbnail" 
+                    className="w-full rounded-lg border aspect-video object-cover"
+                    data-testid={`thumbnail-preview-${content.id}`}
+                  />
+                  <a
+                    href={thumbnailUrl}
+                    download={`thumbnail-${content.id}.png`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
+                    data-testid={`link-download-thumbnail-${content.id}`}
+                  >
+                    <Download className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="grid gap-4 md:grid-cols-2">
             {videoUrl && (
               <div className="space-y-2">
