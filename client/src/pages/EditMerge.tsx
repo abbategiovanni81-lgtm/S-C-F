@@ -360,6 +360,14 @@ export default function EditMerge() {
       const data = await res.json();
       
       invalidateContentQueries();
+      
+      // Refetch content to update selectedContent with new image
+      const freshRes = await fetch(`/api/content/${selectedContent.id}`);
+      if (freshRes.ok) {
+        const freshContent = await freshRes.json();
+        setSelectedContent(freshContent);
+      }
+      
       let successMsg = file.name;
       if (isCarousel) {
         successMsg = selectedSlideIndex !== null && !addNew

@@ -552,7 +552,7 @@ export default function ContentQueue() {
         const data = await res.json();
         generatedSlideImages.push({ slideIndex: i, imageUrl: data.imageUrl });
         
-        // Save progress after each successful slide
+        // Save progress after each successful slide and refresh UI
         try {
           const freshContentRes = await fetch(`/api/content/${content.id}`);
           const freshContent = await freshContentRes.json();
@@ -563,6 +563,8 @@ export default function ContentQueue() {
               generatedCarouselImages: generatedSlideImages,
             },
           });
+          // Refresh UI to show the newly generated image immediately
+          invalidateContentQueries();
         } catch (saveErr) {
           console.error("Failed to save slide progress:", saveErr);
         }
@@ -2426,25 +2428,28 @@ export default function ContentQueue() {
               </div>
             </div>
 
-            <Button
-              size="sm"
-              className="gap-2 w-full sm:w-auto"
-              onClick={() => handleGenerateAllCarouselSlides(content)}
-              disabled={generatingCarouselId === content.id}
-              data-testid={`button-generate-carousel-${content.id}`}
-            >
-              {generatingCarouselId === content.id ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
-                </>
-              ) : (
-                <>
-                  <LayoutGrid className="w-4 h-4" />
-                  {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
-                </>
-              )}
-            </Button>
+            {/* Only show this button in Pending - Approved uses the collapsible */}
+            {content.status !== "approved" && (
+              <Button
+                size="sm"
+                className="gap-2 w-full sm:w-auto"
+                onClick={() => handleGenerateAllCarouselSlides(content)}
+                disabled={generatingCarouselId === content.id}
+                data-testid={`button-generate-carousel-${content.id}`}
+              >
+                {generatingCarouselId === content.id ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
+                  </>
+                ) : (
+                  <>
+                    <LayoutGrid className="w-4 h-4" />
+                    {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
@@ -2704,6 +2709,29 @@ export default function ContentQueue() {
                         )}
                       </Button>
                     </div>
+                    
+                    {/* Carousel: Regenerate All Slides button */}
+                    {metadata?.carouselPrompts && (
+                      <Button
+                        size="sm"
+                        className="gap-2 w-full mt-2"
+                        onClick={() => handleGenerateAllCarouselSlides(content)}
+                        disabled={generatingCarouselId === content.id}
+                        data-testid={`button-regenerate-carousel-approved-${content.id}`}
+                      >
+                        {generatingCarouselId === content.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
+                          </>
+                        ) : (
+                          <>
+                            <LayoutGrid className="w-4 h-4" />
+                            {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </CollapsibleContent>
                   
                   {/* Show all available images - generated and uploaded (always visible) */}
