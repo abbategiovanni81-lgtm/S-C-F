@@ -3903,30 +3903,55 @@ Provide analysis in this JSON structure:
       // If accountId provided, use that account's token and channel instead of cookie
       if (accountId) {
         const account = await storage.getSocialAccount(accountId);
-        if (account && account.accessToken) {
-          // Check if token needs refresh
-          if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
-            if (account.refreshToken) {
-              const newTokens = await refreshAccessToken(account.refreshToken);
-              await storage.updateSocialAccount(accountId, {
-                accessToken: newTokens.accessToken,
-                tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
-              });
-              accessToken = newTokens.accessToken;
+        if (account) {
+          console.log(`[YouTube Analytics] Account ${accountId}: hasAccessToken=${!!account.accessToken}, hasRefreshToken=${!!account.refreshToken}, channelId=${account.platformAccountId}, tokenExpiry=${account.tokenExpiry}`);
+          
+          if (account.accessToken) {
+            // Check if token needs refresh
+            if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
+              console.log(`[YouTube Analytics] Token expired, attempting refresh...`);
+              if (account.refreshToken) {
+                try {
+                  const newTokens = await refreshAccessToken(account.refreshToken);
+                  await storage.updateSocialAccount(accountId, {
+                    accessToken: newTokens.accessToken,
+                    tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
+                  });
+                  accessToken = newTokens.accessToken;
+                  console.log(`[YouTube Analytics] Token refreshed successfully`);
+                } catch (refreshError: any) {
+                  console.error(`[YouTube Analytics] Token refresh failed:`, refreshError.message);
+                  return res.status(401).json({ error: "Token expired and refresh failed. Please reconnect your YouTube account." });
+                }
+              } else {
+                return res.status(401).json({ error: "Token expired and no refresh token available. Please reconnect your YouTube account." });
+              }
+            } else {
+              accessToken = account.accessToken;
             }
+            channelId = account.platformAccountId || undefined;
           } else {
-            accessToken = account.accessToken;
+            console.log(`[YouTube Analytics] Account has no access token`);
+            return res.status(401).json({ error: "YouTube account not properly connected. Please reconnect via OAuth." });
           }
-          channelId = account.platformAccountId || undefined;
+        } else {
+          console.log(`[YouTube Analytics] Account not found: ${accountId}`);
         }
       }
       
       if (!accessToken || !channelId) {
-        return res.status(401).json({ error: "Not connected to YouTube" });
+        console.log(`[YouTube Analytics] Missing credentials: hasAccessToken=${!!accessToken}, hasChannelId=${!!channelId}`);
+        return res.status(401).json({ error: "Not connected to YouTube or missing channel ID" });
       }
+      
       const analytics = await getChannelAnalytics(accessToken, channelId);
+      if (!analytics) {
+        console.log(`[YouTube Analytics] API returned null - channel may not have analytics access`);
+        return res.status(404).json({ error: "Analytics API returned no data. This channel may not have YouTube Analytics access yet." });
+      }
       res.json(analytics);
     } catch (error: any) {
+      console.error(`[YouTube Analytics] Error:`, error.message);
       res.status(500).json({ error: error.message });
     }
   });

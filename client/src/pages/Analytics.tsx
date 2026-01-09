@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin, Smartphone, Monitor, Tv, Globe, Play } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin, Smartphone, Monitor, Tv, Globe, Play, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalyticsSnapshot, SocialAccount } from "@shared/schema";
@@ -58,7 +58,7 @@ export default function Analytics() {
   // Auto-select first connected YouTube account if available
   const effectiveYouTubeAccountId = selectedYouTubeAccountId || (connectedYouTubeAccounts.length > 0 ? connectedYouTubeAccounts[0].id : "");
 
-  const { data: channel, isLoading: loadingChannel, error: channelError } = useQuery<YouTubeChannel>({
+  const { data: channel, isLoading: loadingChannel, error: channelError, refetch: refetchChannel } = useQuery<YouTubeChannel>({
     queryKey: ["/api/youtube/channel", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -70,9 +70,11 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0, // Always refetch when query key changes
+    refetchOnMount: true,
   });
 
-  const { data: analytics, isLoading: loadingAnalytics } = useQuery<YouTubeAnalytics>({
+  const { data: analytics, isLoading: loadingAnalytics, refetch: refetchAnalytics } = useQuery<YouTubeAnalytics>({
     queryKey: ["/api/youtube/analytics", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -84,6 +86,8 @@ export default function Analytics() {
     },
     enabled: !!channel || connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0, // Always refetch when query key changes
+    refetchOnMount: true,
   });
 
   const { data: snapshots = [] } = useQuery<AnalyticsSnapshot[]>({
@@ -95,7 +99,7 @@ export default function Analytics() {
   });
 
   // Advanced YouTube Analytics queries
-  const { data: trafficSources, isLoading: loadingTraffic, error: trafficError } = useQuery<{ trafficSources: { source: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: trafficSources, isLoading: loadingTraffic, error: trafficError, refetch: refetchTraffic } = useQuery<{ trafficSources: { source: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/traffic-sources", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -111,9 +115,10 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0,
   });
 
-  const { data: deviceAnalytics, isLoading: loadingDevices, error: deviceError } = useQuery<{ devices: { device: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: deviceAnalytics, isLoading: loadingDevices, error: deviceError, refetch: refetchDevices } = useQuery<{ devices: { device: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/devices", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -129,9 +134,10 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0,
   });
 
-  const { data: geoAnalytics, isLoading: loadingGeo, error: geoError } = useQuery<{ countries: { country: string; views: number; watchTimeMinutes: number }[] } | null>({
+  const { data: geoAnalytics, isLoading: loadingGeo, error: geoError, refetch: refetchGeo } = useQuery<{ countries: { country: string; views: number; watchTimeMinutes: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/geography", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -147,9 +153,10 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0,
   });
 
-  const { data: peakTimes, isLoading: loadingPeakTimes, error: peakTimesError } = useQuery<{ byDayOfWeek: { day: string; views: number }[]; bestDay: string } | null>({
+  const { data: peakTimes, isLoading: loadingPeakTimes, error: peakTimesError, refetch: refetchPeakTimes } = useQuery<{ byDayOfWeek: { day: string; views: number }[]; bestDay: string } | null>({
     queryKey: ["/api/youtube/analytics/peak-times", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -165,9 +172,10 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0,
   });
 
-  const { data: topVideosData, isLoading: loadingTopVideos, error: topVideosError } = useQuery<{ topVideos: { videoId: string; title: string; thumbnail?: string; views: number; avgDuration: number; likes: number; comments: number }[] } | null>({
+  const { data: topVideosData, isLoading: loadingTopVideos, error: topVideosError, refetch: refetchTopVideos } = useQuery<{ topVideos: { videoId: string; title: string; thumbnail?: string; views: number; avgDuration: number; likes: number; comments: number }[] } | null>({
     queryKey: ["/api/youtube/analytics/top-videos", effectiveYouTubeAccountId],
     queryFn: async () => {
       const url = effectiveYouTubeAccountId 
@@ -183,7 +191,32 @@ export default function Analytics() {
     },
     enabled: connectedYouTubeAccounts.length > 0,
     retry: false,
+    staleTime: 0,
   });
+
+  // Function to refresh all YouTube data
+  const handleRefreshAllYouTubeData = async () => {
+    try {
+      toast({ title: "Refreshing...", description: "Fetching latest YouTube data" });
+      await Promise.all([
+        refetchChannel(),
+        refetchAnalytics(),
+        refetchTraffic(),
+        refetchDevices(),
+        refetchGeo(),
+        refetchPeakTimes(),
+        refetchTopVideos(),
+      ]);
+      toast({ title: "Refreshed!", description: "YouTube analytics updated" });
+    } catch (error: any) {
+      console.error("Error refreshing YouTube data:", error);
+      toast({ 
+        title: "Refresh failed", 
+        description: "Some data could not be refreshed. Try reconnecting your YouTube account.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const loadingAdvancedAnalytics = loadingTraffic || loadingDevices || loadingGeo || loadingPeakTimes || loadingTopVideos;
   const hasAdvancedData = trafficSources?.trafficSources?.length || deviceAnalytics?.devices?.length || geoAnalytics?.countries?.length || peakTimes?.byDayOfWeek?.length || topVideosData?.topVideos?.length;
@@ -540,7 +573,18 @@ export default function Analytics() {
                 <h3 className="font-semibold" data-testid="text-channel-name">{channel.title}</h3>
                 <p className="text-sm text-muted-foreground">@{channel.customUrl?.replace("@", "") || channel.channelId}</p>
               </div>
-              <div className="ml-auto flex gap-6 text-sm">
+              <div className="ml-auto flex items-center gap-6 text-sm">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleRefreshAllYouTubeData}
+                  disabled={loadingChannel || loadingAnalytics || loadingAdvancedAnalytics}
+                  className="gap-2"
+                  data-testid="button-refresh-youtube"
+                >
+                  <RefreshCw className={`w-4 h-4 ${(loadingChannel || loadingAnalytics) ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <div className="text-center">
                   <p className="font-bold text-lg" data-testid="text-subscriber-count">{formatNumber(channel.subscriberCount)}</p>
                   <p className="text-muted-foreground">Subscribers</p>
@@ -627,8 +671,30 @@ export default function Analytics() {
                 </Card>
               </>
             ) : (
-              <div className="col-span-4 text-center py-8 text-muted-foreground">
-                <p>Analytics data not available. This may require YouTube Analytics API access.</p>
+              <div className="col-span-4 text-center py-8">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-6 max-w-md mx-auto">
+                  <p className="text-amber-800 dark:text-amber-200 font-medium mb-2">Analytics data not available</p>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                    This usually means the YouTube account needs to be reconnected with proper permissions, or the channel doesn't have YouTube Analytics API access yet.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRefreshAllYouTubeData}
+                      className="gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Try Refresh
+                    </Button>
+                    <Link href="/accounts">
+                      <Button size="sm" variant="default" className="gap-2 w-full">
+                        <Youtube className="w-4 h-4" />
+                        Reconnect YouTube
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               </div>
             )}
           </div>
