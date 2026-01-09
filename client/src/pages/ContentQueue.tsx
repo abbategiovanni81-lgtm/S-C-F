@@ -290,6 +290,7 @@ export default function ContentQueue() {
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
   const [generatingCarouselId, setGeneratingCarouselId] = useState<string | null>(null);
   const [carouselSlideProgress, setCarouselSlideProgress] = useState<Record<string, { current: number; total: number }>>({});
+  const [regeneratingSingleSlide, setRegeneratingSingleSlide] = useState<{ contentId: string; slideIndex: number } | null>(null);
   
   const markReadyMutation = useMutation({
     mutationFn: async (contentId: string) => {
@@ -584,6 +585,119 @@ export default function ContentQueue() {
         delete updated[content.id];
         return updated;
       });
+    }
+  };
+
+  // Regenerate a single carousel slide
+  const handleRegenerateSingleSlide = async (content: GeneratedContent, slideIndex: number) => {
+    if (!checkAIAccess("AI Image Generation")) return;
+    const metadata = content.generationMetadata as any;
+    const slides = metadata?.carouselPrompts?.slides;
+    
+    if (!slides || slideIndex >= slides.length) {
+      toast({ title: "Invalid slide", description: "Could not find the slide to regenerate.", variant: "destructive" });
+      return;
+    }
+    
+    setRegeneratingSingleSlide({ contentId: content.id, slideIndex });
+    
+    const extractedStyle = metadata?.extractedStyle;
+    const referenceImageUrl = metadata?.referenceImageUrl;
+    const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "1:1";
+    const colorScheme = metadata?.carouselPrompts?.colorScheme;
+    const theme = metadata?.carouselPrompts?.theme;
+    
+    try {
+      const slide = slides[slideIndex];
+      const imagePrompt = slide.imagePrompt || slide.textOverlay || `Carousel slide ${slideIndex + 1}`;
+      const textOverlay = slide.textOverlay || "";
+      
+      const dalleStyle = imageStyle === "illustrated" ? "vivid" : "natural";
+      const stylePrefix = imageStyle === "photorealistic" ? "Photorealistic, lifelike, " 
+        : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
+        : "";
+      const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${imagePrompt}` : imagePrompt;
+      
+      const hasAssetToken = /\[asset:[a-z0-9-]+\]/i.test(imagePrompt);
+      
+      let res: Response;
+      
+      if (imageEngine === "dalle" && hasAssetToken) {
+        res = await fetch("/api/dalle/generate-carousel-image-with-assets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slideNumber: slideIndex + 1,
+            totalSlides: slides.length,
+            textOverlay,
+            brandName: "Brand",
+            colorScheme,
+            style: extractedStyle || theme || "Modern, professional social media design",
+            aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+            imagePrompt: styledPrompt,
+            briefId: content.briefId,
+            extractedStyle,
+            referenceImageUrl,
+          }),
+        });
+      } else if (imageEngine === "dalle" && extractedStyle) {
+        res = await fetch("/api/dalle/generate-carousel-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slideNumber: slideIndex + 1,
+            totalSlides: slides.length,
+            textOverlay,
+            brandName: "Brand",
+            colorScheme,
+            style: dalleStyle,
+            aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+            extractedStyle,
+            referenceImageUrl,
+          }),
+        });
+      } else {
+        const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
+          : imageEngine === "dalle" ? "/api/dalle/generate-image" 
+          : imageEngine === "pexels" ? "/api/pexels/search-image"
+          : imageEngine === "getty" ? "/api/getty/search-image"
+          : "/api/fal/generate-image";
+        
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+        });
+      }
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate image");
+      }
+      
+      const data = await res.json();
+      
+      // Update just this slide in the existing carousel images array
+      const freshContentRes = await fetch(`/api/content/${content.id}`);
+      const freshContent = await freshContentRes.json();
+      const existingMetadata = (freshContent?.generationMetadata as any) || {};
+      const existingImages = existingMetadata?.generatedCarouselImages || [];
+      
+      // Replace or add the slide
+      const updatedImages = existingImages.filter((img: any) => img.slideIndex !== slideIndex);
+      updatedImages.push({ slideIndex, imageUrl: data.imageUrl });
+      updatedImages.sort((a: any, b: any) => a.slideIndex - b.slideIndex);
+      
+      await apiRequest("PATCH", `/api/content/${content.id}`, {
+        generationMetadata: { ...existingMetadata, generatedCarouselImages: updatedImages },
+      });
+      
+      invalidateContentQueries();
+      toast({ title: `Slide ${slideIndex + 1} regenerated!`, description: "The new image is ready." });
+    } catch (error: any) {
+      toast({ title: "Slide regeneration failed", description: error.message, variant: "destructive" });
+    } finally {
+      setRegeneratingSingleSlide(null);
     }
   };
 
@@ -2361,15 +2475,33 @@ export default function ContentQueue() {
                           <p className="text-xs font-medium text-muted-foreground">
                             Slide {i + 1} {slide.purpose && <span className="text-purple-500">({slide.purpose})</span>}
                           </p>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => openEditCarouselSlide(content.id, i, slide)}
-                            data-testid={`button-edit-slide-${content.id}-${i}`}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => handleRegenerateSingleSlide(content, i)}
+                              disabled={regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i}
+                              data-testid={`button-regenerate-slide-${content.id}-${i}`}
+                              title="Regenerate this slide"
+                            >
+                              {regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => openEditCarouselSlide(content.id, i, slide)}
+                              data-testid={`button-edit-slide-${content.id}-${i}`}
+                              title="Edit slide prompt"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm mb-1">{slide.imagePrompt}</p>
                         {slide.textOverlay && (

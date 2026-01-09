@@ -32,6 +32,25 @@ const platformIcons: Record<string, React.ComponentType<{ className?: string }>>
   tiktok: TikTokIcon,
 };
 
+// Helper to download image via blob (works for cross-origin images)
+const downloadImageAsBlob = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    // Fallback: open in new tab if blob download fails
+    window.open(url, '_blank');
+  }
+};
+
 export default function ReadyToPost() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -420,16 +439,13 @@ export default function ReadyToPost() {
                       }`}>
                         {img.label}
                       </span>
-                      <a
-                        href={img.url}
-                        download={`${img.type}-image-${content.id}.png`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
-                        data-testid={`link-download-${img.type}-${content.id}`}
+                      <button
+                        onClick={() => downloadImageAsBlob(img.url, `${img.type}-image-${content.id}.png`)}
+                        className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded cursor-pointer"
+                        data-testid={`button-download-${img.type}-${content.id}`}
                       >
                         <Download className="w-3 h-3" />
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -451,12 +467,11 @@ export default function ReadyToPost() {
                   className="gap-2"
                   onClick={() => {
                     carouselImages.forEach((slide: any, i: number) => {
-                      const link = document.createElement('a');
-                      link.href = slide.imageUrl;
-                      link.download = `slide-${slide.slideIndex + 1}.png`;
-                      link.target = '_blank';
-                      setTimeout(() => link.click(), i * 300);
+                      setTimeout(() => {
+                        downloadImageAsBlob(slide.imageUrl, `slide-${slide.slideIndex + 1}.png`);
+                      }, i * 500);
                     });
+                    toast({ title: "Downloading slides...", description: `${carouselImages.length} images will be saved.` });
                   }}
                   data-testid={`button-download-all-slides-${content.id}`}
                 >
@@ -475,15 +490,13 @@ export default function ReadyToPost() {
                     <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                       {slide.slideIndex + 1}
                     </span>
-                    <a
-                      href={slide.imageUrl}
-                      download={`slide-${slide.slideIndex + 1}.png`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                    <button
+                      onClick={() => downloadImageAsBlob(slide.imageUrl, `slide-${slide.slideIndex + 1}.png`)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg cursor-pointer"
+                      data-testid={`button-download-slide-${slide.slideIndex + 1}-${content.id}`}
                     >
                       <Download className="w-5 h-5 text-white" />
-                    </a>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -508,16 +521,13 @@ export default function ReadyToPost() {
                     className="w-full rounded-lg border aspect-video object-cover"
                     data-testid={`thumbnail-preview-${content.id}`}
                   />
-                  <a
-                    href={thumbnailUrl}
-                    download={`thumbnail-${content.id}.png`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded"
-                    data-testid={`link-download-thumbnail-${content.id}`}
+                  <button
+                    onClick={() => downloadImageAsBlob(thumbnailUrl, `thumbnail-${content.id}.png`)}
+                    className="absolute bottom-1 right-1 bg-black/60 hover:bg-black/80 text-white p-1 rounded cursor-pointer"
+                    data-testid={`button-download-thumbnail-${content.id}`}
                   >
                     <Download className="w-3 h-3" />
-                  </a>
+                  </button>
                 </div>
               </div>
             );
@@ -538,15 +548,14 @@ export default function ReadyToPost() {
                 >
                   <source src={videoUrl} type="video/mp4" />
                 </video>
-                <a
-                  href={videoUrl}
-                  download={`video-${content.id}.mp4`}
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                  data-testid={`link-download-video-${content.id}`}
+                <button
+                  onClick={() => downloadImageAsBlob(videoUrl, `video-${content.id}.mp4`)}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+                  data-testid={`button-download-video-${content.id}`}
                 >
                   <Download className="w-4 h-4" />
                   Download Video (MP4)
-                </a>
+                </button>
               </div>
             )}
 
@@ -563,15 +572,14 @@ export default function ReadyToPost() {
                 >
                   <source src={audioUrl} type="audio/mpeg" />
                 </audio>
-                <a
-                  href={audioUrl}
-                  download={`voiceover-${content.id}.mp3`}
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                  data-testid={`link-download-audio-${content.id}`}
+                <button
+                  onClick={() => downloadImageAsBlob(audioUrl, `voiceover-${content.id}.mp3`)}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+                  data-testid={`button-download-audio-${content.id}`}
                 >
                   <Download className="w-4 h-4" />
                   Download Audio (MP3)
-                </a>
+                </button>
               </div>
             )}
           </div>
