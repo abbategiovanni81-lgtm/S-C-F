@@ -66,6 +66,29 @@ async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image"
   }
 }
 
+async function saveBase64Media(base64Data: string, type: "video" | "image" | "audio"): Promise<string> {
+  const buffer = Buffer.from(base64Data, "base64");
+  const ext = type === "video" ? ".mp4" : type === "audio" ? ".mp3" : ".png";
+  const mimeType = type === "video" ? "video/mp4" : type === "audio" ? "audio/mpeg" : "image/png";
+  const filename = `generated-${type}-${randomUUID()}${ext}`;
+  
+  try {
+    const result = await objectStorageService.uploadBuffer(buffer, filename, mimeType, true);
+    console.log(`Saved base64 ${type} to cloud storage: ${result.objectPath}`);
+    return result.objectPath;
+  } catch (cloudError) {
+    console.error("Failed to save to cloud storage, falling back to local:", cloudError);
+    
+    const mediaDir = path.join(process.cwd(), "public", "generated-media");
+    if (!fs.existsSync(mediaDir)) {
+      fs.mkdirSync(mediaDir, { recursive: true });
+    }
+    const filePath = path.join(mediaDir, filename);
+    fs.writeFileSync(filePath, buffer);
+    return `/generated-media/${filename}`;
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -1222,7 +1245,7 @@ Provide analysis in this JSON structure:
         const baseEngines: any = {
           openai: { configured: true, name: "OpenAI GPT-4" },
           anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
-          dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
+          dalle: { configured: isDalleConfigured(), name: "GPT-Image-1" },
           a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
           elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
@@ -2086,25 +2109,26 @@ Provide analysis in this JSON structure:
         }
       }
       
-      // Map aspect ratio to DALL-E size
-      let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
-      if (req.body.aspectRatio === "16:9") dalleSize = "1792x1024";
-      else if (req.body.aspectRatio === "9:16") dalleSize = "1024x1792";
+      // Map aspect ratio to GPT-Image size (1024x1024, 1536x1024, 1024x1536)
+      let gptImageSize: "1024x1024" | "1536x1024" | "1024x1536" = "1024x1024";
+      if (req.body.aspectRatio === "landscape" || req.body.aspectRatio === "16:9") gptImageSize = "1536x1024";
+      else if (req.body.aspectRatio === "portrait" || req.body.aspectRatio === "9:16" || req.body.aspectRatio === "4:5" || req.body.aspectRatio === "5:4") gptImageSize = "1024x1536";
       
       const result = await generateDalleImage({ 
         prompt, 
-        size: size || dalleSize, 
-        quality: quality || "standard",
-        style: style || "vivid"
+        size: size || gptImageSize, 
+        quality: quality || "medium"
       });
       
-      // DALL-E URLs expire, so download and save locally
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded DALL-E image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download DALL-E image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved GPT-Image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save GPT-Image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
@@ -2157,18 +2181,20 @@ Provide analysis in this JSON structure:
         textOverlay,
         brandName,
         colorScheme,
-        style: extractedStyle || style, // Use extracted style from reference image if available
+        style: extractedStyle || style,
         brandAssetUrl: referenceImageUrl || brandAssetUrl,
         aspectRatio: aspectRatio || "square",
       });
       
-      // Save to cloud storage for persistence
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded carousel image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download carousel image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved carousel image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save carousel image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
@@ -2236,18 +2262,20 @@ Provide analysis in this JSON structure:
         textOverlay,
         brandName,
         colorScheme,
-        style: extractedStyle || style, // Use extracted style from "match my style" mode if available
+        style: extractedStyle || style,
         brandAssetUrl: referenceImageUrl || brandAssetUrl,
         aspectRatio: aspectRatio || "portrait",
       });
       
-      // Save to cloud storage for persistence
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded carousel image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download carousel image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved carousel image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save carousel image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
