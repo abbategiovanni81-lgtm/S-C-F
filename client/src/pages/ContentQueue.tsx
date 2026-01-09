@@ -529,29 +529,51 @@ export default function ContentQueue() {
         
         if (!res.ok) {
           const err = await res.json();
-          throw new Error(`Slide ${i + 1} failed: ${err.error || "Failed to generate image"}`);
+          // Save partial progress before throwing
+          if (generatedSlideImages.length > 0) {
+            try {
+              const freshContentRes = await fetch(`/api/content/${content.id}`);
+              const freshContent = await freshContentRes.json();
+              const existingMetadata = (freshContent?.generationMetadata as any) || {};
+              await apiRequest("PATCH", `/api/content/${content.id}`, {
+                generationMetadata: { 
+                  ...existingMetadata, 
+                  generatedCarouselImages: generatedSlideImages,
+                },
+              });
+              invalidateContentQueries();
+            } catch (saveErr) {
+              console.error("Failed to save partial carousel progress:", saveErr);
+            }
+          }
+          throw new Error(`Slide ${i + 1} failed: ${err.error || "Failed to generate image"}. ${generatedSlideImages.length} slides were saved.`);
         }
         
         const data = await res.json();
         generatedSlideImages.push({ slideIndex: i, imageUrl: data.imageUrl });
         
+        // Save progress after each successful slide
+        try {
+          const freshContentRes = await fetch(`/api/content/${content.id}`);
+          const freshContent = await freshContentRes.json();
+          const existingMetadata = (freshContent?.generationMetadata as any) || {};
+          await apiRequest("PATCH", `/api/content/${content.id}`, {
+            generationMetadata: { 
+              ...existingMetadata, 
+              generatedCarouselImages: generatedSlideImages,
+            },
+          });
+        } catch (saveErr) {
+          console.error("Failed to save slide progress:", saveErr);
+        }
+        
         toast({ title: `Slide ${i + 1} generated`, description: `${slides.length - i - 1} remaining...` });
       }
-      
-      // Save all generated images to metadata
-      const freshContentRes = await fetch(`/api/content/${content.id}`);
-      const freshContent = await freshContentRes.json();
-      const existingMetadata = (freshContent?.generationMetadata as any) || {};
-      await apiRequest("PATCH", `/api/content/${content.id}`, {
-        generationMetadata: { 
-          ...existingMetadata, 
-          generatedCarouselImages: generatedSlideImages,
-        },
-      });
       
       invalidateContentQueries();
       toast({ title: "All slides generated!", description: `${slides.length} carousel images are ready.` });
     } catch (error: any) {
+      invalidateContentQueries(); // Refresh to show any saved partial progress
       toast({ title: "Carousel generation failed", description: error.message, variant: "destructive" });
     } finally {
       setGeneratingCarouselId(null);
