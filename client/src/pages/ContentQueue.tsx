@@ -286,8 +286,10 @@ export default function ContentQueue() {
   const [markingReadyId, setMarkingReadyId] = useState<string | null>(null);
   const [generatingImageId, setGeneratingImageId] = useState<string | null>(null);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
   const imageUploadRef = useRef<HTMLInputElement>(null);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<Record<string, string>>({});
   const [generatingCarouselId, setGeneratingCarouselId] = useState<string | null>(null);
   const [carouselSlideProgress, setCarouselSlideProgress] = useState<Record<string, { current: number; total: number }>>({});
   const [regeneratingSingleSlide, setRegeneratingSingleSlide] = useState<{ contentId: string; slideIndex: number } | null>(null);
@@ -313,6 +315,15 @@ export default function ContentQueue() {
     },
   });
 
+  const normalizeDalleAspectRatio = (ratio: string): string => {
+    const portraits = ["4:5", "5:4", "9:16", "3:4"];
+    const landscapes = ["16:9", "4:3"];
+    if (ratio === "1:1") return "square";
+    if (portraits.includes(ratio)) return "portrait";
+    if (landscapes.includes(ratio)) return "landscape";
+    return "square";
+  };
+
   const handleGenerateImage = async (content: GeneratedContent) => {
     if (!checkAIAccess("AI Image Generation")) return;
     const metadata = content.generationMetadata as any;
@@ -328,7 +339,7 @@ export default function ContentQueue() {
     
     setGeneratingImageId(content.id);
     try {
-      const aspectRatio = metadata?.imagePrompts?.aspectRatio || "1:1";
+      const aspectRatio = selectedAspectRatio[content.id] || metadata?.imagePrompts?.aspectRatio || "5:4";
       
       // Use selected image engine
       const endpoint = imageEngine === "a2e" ? "/api/a2e/generate-image" 
@@ -343,11 +354,12 @@ export default function ContentQueue() {
         : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
         : "";
       const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+      const apiAspectRatio = imageEngine === "dalle" ? normalizeDalleAspectRatio(aspectRatio) : aspectRatio;
       
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+        body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
       });
       
       if (!res.ok) {
@@ -403,11 +415,12 @@ export default function ContentQueue() {
         : imageStyle === "minimalist" ? "Clean minimalist design, simple, " 
         : "";
       const styledPrompt = imageEngine === "dalle" ? `${stylePrefix}${prompt}` : prompt;
+      const apiAspectRatio = imageEngine === "dalle" ? normalizeDalleAspectRatio(aspectRatio) : aspectRatio;
       
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+        body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
       });
       
       if (!res.ok) {
@@ -454,7 +467,7 @@ export default function ContentQueue() {
     
     try {
       const generatedSlideImages: { slideIndex: number; imageUrl: string }[] = [];
-      const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "1:1";
+      const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "5:4";
       
       for (let i = 0; i < slides.length; i++) {
         setCarouselSlideProgress(prev => ({ ...prev, [content.id]: { current: i + 1, total: slides.length } }));
@@ -490,7 +503,7 @@ export default function ContentQueue() {
               brandName: "Brand",
               colorScheme,
               style: extractedStyle || theme || "Modern, professional social media design",
-              aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+              aspectRatio: normalizeDalleAspectRatio(aspectRatio),
               imagePrompt: styledPrompt,
               briefId: content.briefId,
               extractedStyle,
@@ -509,7 +522,7 @@ export default function ContentQueue() {
               brandName: "Brand",
               colorScheme,
               style: dalleStyle,
-              aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+              aspectRatio: normalizeDalleAspectRatio(aspectRatio),
               extractedStyle,
               referenceImageUrl,
             }),
@@ -520,11 +533,12 @@ export default function ContentQueue() {
             : imageEngine === "pexels" ? "/api/pexels/search-image"
             : imageEngine === "getty" ? "/api/getty/search-image"
             : "/api/fal/generate-image";
+          const apiAspectRatio = imageEngine === "dalle" ? normalizeDalleAspectRatio(aspectRatio) : aspectRatio;
           
           res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+            body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
           });
         }
         
@@ -603,7 +617,7 @@ export default function ContentQueue() {
     
     const extractedStyle = metadata?.extractedStyle;
     const referenceImageUrl = metadata?.referenceImageUrl;
-    const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "1:1";
+    const aspectRatio = metadata?.carouselPrompts?.aspectRatio || "5:4";
     const colorScheme = metadata?.carouselPrompts?.colorScheme;
     const theme = metadata?.carouselPrompts?.theme;
     
@@ -633,7 +647,7 @@ export default function ContentQueue() {
             brandName: "Brand",
             colorScheme,
             style: extractedStyle || theme || "Modern, professional social media design",
-            aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+            aspectRatio: normalizeDalleAspectRatio(aspectRatio),
             imagePrompt: styledPrompt,
             briefId: content.briefId,
             extractedStyle,
@@ -651,7 +665,7 @@ export default function ContentQueue() {
             brandName: "Brand",
             colorScheme,
             style: dalleStyle,
-            aspectRatio: aspectRatio === "4:5" ? "portrait" : "square",
+            aspectRatio: normalizeDalleAspectRatio(aspectRatio),
             extractedStyle,
             referenceImageUrl,
           }),
@@ -662,11 +676,12 @@ export default function ContentQueue() {
           : imageEngine === "pexels" ? "/api/pexels/search-image"
           : imageEngine === "getty" ? "/api/getty/search-image"
           : "/api/fal/generate-image";
+        const apiAspectRatio = imageEngine === "dalle" ? normalizeDalleAspectRatio(aspectRatio) : aspectRatio;
         
         res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: styledPrompt, aspectRatio, style: dalleStyle }),
+          body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
         });
       }
       
@@ -718,7 +733,7 @@ export default function ContentQueue() {
       }
       
       const data = await res.json();
-      setGeneratedImages(prev => ({ ...prev, [content.id]: data.url }));
+      setUploadedImages(prev => ({ ...prev, [content.id]: data.url }));
       
       // Save to metadata
       const freshContentRes = await fetch(`/api/content/${content.id}`);
@@ -1803,7 +1818,7 @@ export default function ContentQueue() {
 
   const getImageUrlFromContent = (content: GeneratedContent): string | null => {
     const metadata = content.generationMetadata as any;
-    return metadata?.uploadedImageUrl || metadata?.generatedImageUrl || content.thumbnailUrl || null;
+    return uploadedImages[content.id] || generatedImages[content.id] || metadata?.uploadedImageUrl || metadata?.generatedImageUrl || content.thumbnailUrl || null;
   };
 
   const ContentCard = ({ content, showActions = true }: { content: GeneratedContent; showActions?: boolean }) => (
@@ -2326,7 +2341,7 @@ export default function ContentQueue() {
               {(() => {
                 const metadata = content.generationMetadata as any;
                 const genImg = generatedImages[content.id] || metadata?.generatedImageUrl;
-                const uploadImg = metadata?.uploadedImageUrl;
+                const uploadImg = uploadedImages[content.id] || metadata?.uploadedImageUrl;
                 const hasImages = genImg || uploadImg;
                 
                 if (!hasImages) return null;
@@ -2388,7 +2403,22 @@ export default function ContentQueue() {
                 );
               })()}
 
-              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 mb-2">
+                <span className="text-xs text-muted-foreground">Image Size:</span>
+                <select
+                  value={selectedAspectRatio[content.id] || (content.generationMetadata as any)?.imagePrompts?.aspectRatio || "5:4"}
+                  onChange={(e) => setSelectedAspectRatio(prev => ({ ...prev, [content.id]: e.target.value }))}
+                  className="text-xs border rounded px-2 py-1 bg-background"
+                  data-testid={`select-aspect-ratio-${content.id}`}
+                >
+                  <option value="5:4">5:4 (Portrait)</option>
+                  <option value="4:5">4:5 (Tall Portrait)</option>
+                  <option value="1:1">1:1 (Square)</option>
+                  <option value="9:16">9:16 (Story/Reel)</option>
+                  <option value="16:9">16:9 (Landscape)</option>
+                </select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   size="sm"
                   variant={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "outline" : "default"}
@@ -2869,7 +2899,7 @@ export default function ContentQueue() {
                   {/* Show all available images - generated and uploaded (always visible) */}
                   {(() => {
                     const genImg = generatedImages[content.id] || metadata?.generatedImageUrl;
-                    const uploadImg = metadata?.uploadedImageUrl;
+                    const uploadImg = uploadedImages[content.id] || metadata?.uploadedImageUrl;
                     const hasImages = genImg || uploadImg;
                     
                     if (!hasImages) return null;
