@@ -146,20 +146,40 @@ export default function VideoToClips() {
 
   const processMutation = useMutation({
     mutationFn: async (params: { file: File; suggestions: string[]; customPrompt: string }) => {
-      const formData = new FormData();
-      formData.append("video", params.file);
-      formData.append("suggestions", JSON.stringify(params.suggestions));
-      formData.append("customPrompt", params.customPrompt);
-      
-      const res = await fetch("/api/video-to-clips/process", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Processing failed");
+      try {
+        const formData = new FormData();
+        const safeFilename = params.file.name.replace(/[^a-zA-Z0-9._-]/g, "_") || "video.mp4";
+        const safeFile = new File([params.file], safeFilename, { type: params.file.type || "video/mp4" });
+        formData.append("video", safeFile);
+        formData.append("suggestions", JSON.stringify(params.suggestions));
+        formData.append("customPrompt", params.customPrompt);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300000);
+        
+        const res = await fetch("/api/video-to-clips/process", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({ error: "Processing failed" }));
+          throw new Error(error.error || "Processing failed");
+        }
+        return res.json();
+      } catch (err: any) {
+        if (err.name === "AbortError") {
+          throw new Error("Processing timed out. Try a shorter video or use a URL instead.");
+        }
+        if (err.message?.includes("pattern") || err.message?.includes("Load failed")) {
+          throw new Error("Upload failed. Try refreshing the page and uploading again.");
+        }
+        throw err;
       }
-      return res.json();
     },
     onSuccess: (data) => {
       setGeneratedClips(data.clips);
@@ -181,9 +201,10 @@ export default function VideoToClips() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
+        credentials: "include",
       });
       if (!res.ok) {
-        const error = await res.json();
+        const error = await res.json().catch(() => ({ error: "URL processing failed" }));
         throw new Error(error.error || "URL processing failed");
       }
       return res.json();
