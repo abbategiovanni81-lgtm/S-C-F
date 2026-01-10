@@ -148,9 +148,15 @@ export default function VideoToClips() {
     mutationFn: async (params: { file: File; suggestions: string[]; customPrompt: string }) => {
       try {
         const formData = new FormData();
-        const safeFilename = params.file.name.replace(/[^a-zA-Z0-9._-]/g, "_") || "video.mp4";
-        const safeFile = new File([params.file], safeFilename, { type: params.file.type || "video/mp4" });
-        formData.append("video", safeFile);
+        
+        // Safari-compatible file handling - use Blob with explicit filename
+        const originalName = params.file.name || "video.mp4";
+        const safeFilename = originalName.replace(/[^\w.-]/g, "_").substring(0, 200) || "video.mp4";
+        const fileType = params.file.type || "video/mp4";
+        
+        // Use Blob approach for maximum Safari compatibility
+        const blob = new Blob([params.file], { type: fileType });
+        formData.append("video", blob, safeFilename);
         formData.append("suggestions", JSON.stringify(params.suggestions));
         formData.append("customPrompt", params.customPrompt);
         
