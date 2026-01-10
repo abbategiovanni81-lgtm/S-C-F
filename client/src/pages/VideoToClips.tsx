@@ -333,7 +333,7 @@ export default function VideoToClips() {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="video/*"
+                        accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,.mp4,.mov,.avi,.webm"
                         className="hidden"
                         onChange={handleFileSelect}
                         data-testid="video-input"
