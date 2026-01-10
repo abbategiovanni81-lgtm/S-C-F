@@ -7645,15 +7645,30 @@ Provide analysis in this JSON structure:
         console.error("Cleanup error:", e);
       }
 
-      res.json({
-        clips: extractedClips,
-        totalDuration: result.duration,
-        transcript: result.transcript,
-        message: "Video processed from URL successfully",
-      });
+      // Check if response is still writable before sending
+      if (!res.headersSent && !res.writableEnded) {
+        try {
+          res.json({
+            clips: extractedClips,
+            totalDuration: result.duration,
+            transcript: result.transcript,
+            message: "Video processed from URL successfully",
+          });
+        } catch (sendError) {
+          console.error("Failed to send URL response (client disconnected):", sendError);
+        }
+      } else {
+        console.log("Client disconnected before URL response could be sent");
+      }
     } catch (error: any) {
       console.error("URL processing error:", error);
-      res.status(500).json({ error: error.message });
+      if (!res.headersSent && !res.writableEnded) {
+        try {
+          res.status(500).json({ error: error.message });
+        } catch (sendError) {
+          console.error("Failed to send URL error response:", sendError);
+        }
+      }
     }
   });
 
@@ -7734,15 +7749,30 @@ Provide analysis in this JSON structure:
         console.error("Cleanup error:", e);
       }
 
-      res.json({
-        clips: extractedClips,
-        totalDuration: result.duration,
-        transcript: result.transcript,
-        message: "Video processed and clips extracted successfully",
-      });
+      // Check if response is still writable before sending (connection may have timed out)
+      if (!res.headersSent && !res.writableEnded) {
+        try {
+          res.json({
+            clips: extractedClips,
+            totalDuration: result.duration,
+            transcript: result.transcript,
+            message: "Video processed and clips extracted successfully",
+          });
+        } catch (sendError) {
+          console.error("Failed to send response (client may have disconnected):", sendError);
+        }
+      } else {
+        console.log("Client disconnected before response could be sent - clips were generated successfully");
+      }
     } catch (error: any) {
       console.error("Video processing error:", error);
-      res.status(500).json({ error: error.message });
+      if (!res.headersSent && !res.writableEnded) {
+        try {
+          res.status(500).json({ error: error.message });
+        } catch (sendError) {
+          console.error("Failed to send error response:", sendError);
+        }
+      }
     }
   });
 
