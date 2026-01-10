@@ -26,7 +26,15 @@ import {
   Globe,
   Palette,
   Languages,
-  Scissors
+  Scissors,
+  Clock,
+  Edit,
+  Merge,
+  Send,
+  FileCheck,
+  Link,
+  Volume2,
+  Wand2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -423,6 +431,77 @@ export default function HowTo() {
                     apiNeeded="OpenAI (GPT-4o Vision)"
                     pricing="Core: 1/month | Premium+: Unlimited"
                   />
+
+                  {/* New AI Engines Section */}
+                  <Card className="border-2 border-cyan-500/30 bg-gradient-to-r from-cyan-500/5 to-blue-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg">
+                          <Wand2 className="h-6 w-6 text-white" />
+                        </div>
+                        New AI Engines
+                        <Badge className="bg-cyan-500 text-white">Latest</Badge>
+                      </CardTitle>
+                      <CardDescription>Cutting-edge AI capabilities for content creation</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 bg-muted rounded-lg border-2 border-purple-500/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Image className="h-5 w-5 text-purple-500" />
+                            <span className="font-bold">GPT-Image-1</span>
+                          </div>
+                          <Badge variant="outline" className="mb-2 text-xs">via OpenAI API</Badge>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• <strong>Image editing</strong> - modify existing images</li>
+                            <li>• <strong>Variations</strong> - create similar images</li>
+                            <li>• <strong>Faster</strong> than DALL-E 3</li>
+                            <li>• Better for quick iterations</li>
+                            <li>• Lower cost per generation</li>
+                          </ul>
+                        </div>
+
+                        <div className="p-4 bg-muted rounded-lg border-2 border-pink-500/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Video className="h-5 w-5 text-pink-500" />
+                            <span className="font-bold">Sora 2</span>
+                          </div>
+                          <Badge variant="outline" className="mb-2 text-xs">via OpenAI API</Badge>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• <strong>Text-to-Video</strong> - describe and generate</li>
+                            <li>• <strong>Image-to-Video</strong> - animate images</li>
+                            <li>• <strong>Remix</strong> - modify existing videos</li>
+                            <li>• High-quality cinematic output</li>
+                            <li>• Up to 20 seconds per clip</li>
+                          </ul>
+                        </div>
+
+                        <div className="p-4 bg-muted rounded-lg border-2 border-green-500/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Volume2 className="h-5 w-5 text-green-500" />
+                            <span className="font-bold">OpenAI TTS</span>
+                          </div>
+                          <Badge className="bg-green-100 text-green-700 mb-2 text-xs">Budget Option</Badge>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• <strong>5-10× cheaper</strong> than ElevenLabs</li>
+                            <li>• 6 high-quality voices</li>
+                            <li>• Natural speech patterns</li>
+                            <li>• Great for high-volume content</li>
+                            <li>• Uses same OpenAI API key</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="text-sm">
+                          <strong className="text-blue-700 dark:text-blue-300">Access:</strong>{" "}
+                          <span className="text-blue-600 dark:text-blue-400">
+                            All new AI engines use your OpenAI API key. Premium+ subscribers get platform API access included.
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -588,42 +667,160 @@ export default function HowTo() {
             <TabsContent value="workflows">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
-                  {/* Master Content Flow */}
+                  {/* Content Lifecycle Visual */}
                   <Card className="border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-purple-500/5">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <ArrowRight className="h-5 w-5 text-primary" />
-                        Master Content Flow
+                        Content Lifecycle
                       </CardTitle>
                       <CardDescription>
-                        ALL content follows this path through the system
+                        Every piece of content follows this journey from creation to publication
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
-                        <Badge variant="secondary">Generated</Badge>
-                        <ArrowRight className="h-4 w-4" />
-                        <Badge variant="outline">Pending</Badge>
-                        <ArrowRight className="h-4 w-4" />
-                        <Badge className="bg-green-600">Approved</Badge>
-                        <ArrowRight className="h-4 w-4" />
-                        <div className="flex gap-1">
-                          <Badge variant="outline">Editor</Badge>
-                          <span className="text-muted-foreground">or</span>
-                          <Badge variant="outline">Edit & Merge</Badge>
+                    <CardContent className="space-y-6">
+                      {/* Visual Flow Diagram */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="p-4 rounded-lg border-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950 text-center">
+                          <Clock className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+                          <div className="font-bold text-yellow-700 dark:text-yellow-300">1. Pending</div>
+                          <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">Awaiting review</div>
                         </div>
-                        <ArrowRight className="h-4 w-4" />
-                        <Badge className="bg-blue-600">Ready to Post</Badge>
+                        <div className="p-4 rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950 text-center">
+                          <FileCheck className="h-8 w-8 mx-auto mb-2 text-green-600" />
+                          <div className="font-bold text-green-700 dark:text-green-300">2. Approved</div>
+                          <div className="text-xs text-green-600 dark:text-green-400 mt-1">Ready for editing</div>
+                        </div>
+                        <div className="p-4 rounded-lg border-2 border-purple-500 bg-purple-50 dark:bg-purple-950 text-center">
+                          <Edit className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                          <div className="font-bold text-purple-700 dark:text-purple-300">3. Editor</div>
+                          <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">Quick edits</div>
+                        </div>
+                        <div className="p-4 rounded-lg border-2 border-orange-500 bg-orange-50 dark:bg-orange-950 text-center">
+                          <Merge className="h-8 w-8 mx-auto mb-2 text-orange-600" />
+                          <div className="font-bold text-orange-700 dark:text-orange-300">4. Edit & Merge</div>
+                          <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">Combine & finalize</div>
+                        </div>
+                        <div className="p-4 rounded-lg border-2 border-blue-500 bg-blue-50 dark:bg-blue-950 text-center">
+                          <Send className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+                          <div className="font-bold text-blue-700 dark:text-blue-300">5. Ready to Post</div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Schedule & publish</div>
+                        </div>
                       </div>
-                      <Separator className="my-4" />
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div className="p-3 bg-muted rounded-lg">
-                          <div className="font-medium mb-1">Editor</div>
-                          <div className="text-muted-foreground">Text overlays for images, video editing jobs (trim, split, speed)</div>
+
+                      <Separator />
+
+                      {/* Stage Explanations */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">What Happens at Each Stage</h4>
+                        
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="p-4 bg-yellow-50 dark:bg-yellow-950/50 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="h-5 w-5 text-yellow-600" />
+                              <span className="font-semibold text-yellow-700 dark:text-yellow-300">Pending</span>
+                            </div>
+                            <ul className="text-sm space-y-1 text-yellow-700 dark:text-yellow-400">
+                              <li>• Content just generated by AI</li>
+                              <li>• Waiting for your review</li>
+                              <li>• Can be edited, deleted, or approved</li>
+                              <li>• Auto-generated assets attached</li>
+                            </ul>
+                          </div>
+
+                          <div className="p-4 bg-green-50 dark:bg-green-950/50 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileCheck className="h-5 w-5 text-green-600" />
+                              <span className="font-semibold text-green-700 dark:text-green-300">Approved</span>
+                            </div>
+                            <ul className="text-sm space-y-1 text-green-700 dark:text-green-400">
+                              <li>• You've confirmed the content is good</li>
+                              <li>• Can add voiceover, images, video</li>
+                              <li>• Ready for editing or merging</li>
+                              <li>• Skip to Ready to Post if complete</li>
+                            </ul>
+                          </div>
+
+                          <div className="p-4 bg-purple-50 dark:bg-purple-950/50 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Edit className="h-5 w-5 text-purple-600" />
+                              <span className="font-semibold text-purple-700 dark:text-purple-300">Editor</span>
+                            </div>
+                            <ul className="text-sm space-y-1 text-purple-700 dark:text-purple-400">
+                              <li>• Add text overlays to images</li>
+                              <li>• Trim, split, or speed up videos</li>
+                              <li>• Apply filters and effects</li>
+                              <li>• Quick single-asset edits</li>
+                            </ul>
+                          </div>
+
+                          <div className="p-4 bg-orange-50 dark:bg-orange-950/50 rounded-lg border border-orange-200 dark:border-orange-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Merge className="h-5 w-5 text-orange-600" />
+                              <span className="font-semibold text-orange-700 dark:text-orange-300">Edit & Merge</span>
+                            </div>
+                            <ul className="text-sm space-y-1 text-orange-700 dark:text-orange-400">
+                              <li>• Combine multiple video clips</li>
+                              <li>• Add voiceover audio track</li>
+                              <li>• Add background music</li>
+                              <li>• Finalize video with all assets</li>
+                            </ul>
+                          </div>
                         </div>
-                        <div className="p-3 bg-muted rounded-lg">
-                          <div className="font-medium mb-1">Edit & Merge</div>
-                          <div className="text-muted-foreground">Combine clips, add voiceover, music, finalize video</div>
+
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Send className="h-5 w-5 text-blue-600" />
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">Ready to Post</span>
+                          </div>
+                          <ul className="text-sm space-y-1 text-blue-700 dark:text-blue-400">
+                            <li>• Final content ready for publishing</li>
+                            <li>• Schedule for future posting OR publish immediately</li>
+                            <li>• Select target platforms (YouTube, TikTok, Instagram, etc.)</li>
+                            <li>• Add final caption, hashtags, and metadata</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Reference Flow */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-primary" />
+                        Quick Reference: Content Paths
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3 text-sm">
+                        <div className="p-3 bg-muted rounded-lg flex items-center gap-3 flex-wrap">
+                          <span className="font-medium min-w-[100px]">Simple Image:</span>
+                          <Badge variant="outline">Pending</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-green-600">Approved</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-blue-600">Ready to Post</Badge>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg flex items-center gap-3 flex-wrap">
+                          <span className="font-medium min-w-[100px]">Image + Text:</span>
+                          <Badge variant="outline">Pending</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-green-600">Approved</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-purple-600">Editor</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-blue-600">Ready to Post</Badge>
+                        </div>
+                        <div className="p-3 bg-muted rounded-lg flex items-center gap-3 flex-wrap">
+                          <span className="font-medium min-w-[100px]">Full Video:</span>
+                          <Badge variant="outline">Pending</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-green-600">Approved</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-orange-600">Edit & Merge</Badge>
+                          <ArrowRight className="h-4 w-4" />
+                          <Badge className="bg-blue-600">Ready to Post</Badge>
                         </div>
                       </div>
                     </CardContent>
@@ -752,11 +949,88 @@ export default function HowTo() {
                           </div>
                         </div>
                         <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-                          <div className="font-medium text-blue-700 dark:text-blue-300 mb-1">Free Tier Users</div>
+                          <div className="font-medium text-blue-700 dark:text-blue-300 mb-1">Free & Core Tier Users</div>
                           <div className="text-blue-600 dark:text-blue-400">
-                            You need to add your own API keys to use AI features. See the table below for where to get them.
+                            Add your own API keys to unlock most features at your own cost. See below for details.
                           </div>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Feature to API Mapping */}
+                  <Card className="border-2 border-primary/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        Which APIs Power Which Features?
+                      </CardTitle>
+                      <CardDescription>
+                        Understand exactly what each API key unlocks for your content creation
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-green-500" />
+                            OpenAI API Key (Most Important)
+                          </div>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Scripts & captions generation</li>
+                            <li>• Content analysis & comparison</li>
+                            <li>• Brand brief creation from URLs</li>
+                            <li>• Blog post generation</li>
+                            <li>• DALL-E 3 image generation</li>
+                            <li>• GPT-Image-1 (editing & variations)</li>
+                            <li>• Sora 2 video generation</li>
+                            <li>• OpenAI TTS (budget voice)</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Mic className="h-4 w-4 text-purple-500" />
+                            ElevenLabs API Key
+                          </div>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Premium voice generation</li>
+                            <li>• Voice cloning (Creator Studio)</li>
+                            <li>• Multiple voice options</li>
+                            <li>• Higher quality audio output</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Video className="h-4 w-4 text-orange-500" />
+                            A2E API Key
+                          </div>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Avatar video generation</li>
+                            <li>• Lip-sync videos</li>
+                            <li>• Custom avatar creation</li>
+                            <li>• AI image generation</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Film className="h-4 w-4 text-blue-500" />
+                            Fal.ai API Key
+                          </div>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• AI video generation (backup)</li>
+                            <li>• Fast image generation</li>
+                            <li>• Various art styles</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="font-medium text-green-700 dark:text-green-300">No API Key Needed</span>
+                        </div>
+                        <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                          Pexels (stock photos/videos), YouTube publishing (OAuth), Video to Clips (built-in)
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -785,7 +1059,7 @@ export default function HowTo() {
                           <tbody>
                             <ApiRow
                               service="OpenAI"
-                              usedFor="Scripts, captions, analysis"
+                              usedFor="Scripts, captions, analysis, DALL-E, GPT-Image-1, Sora 2, TTS"
                               freeTier="No (min $5)"
                               link="https://platform.openai.com"
                             />
@@ -797,9 +1071,15 @@ export default function HowTo() {
                             />
                             <ApiRow
                               service="ElevenLabs"
-                              usedFor="Voice generation"
+                              usedFor="Premium voice generation"
                               freeTier="Yes (10k chars/mo)"
                               link="https://elevenlabs.io"
+                            />
+                            <ApiRow
+                              service="OpenAI TTS"
+                              usedFor="Budget voice (5-10× cheaper)"
+                              freeTier="Uses OpenAI credit"
+                              link="https://platform.openai.com"
                             />
                             <ApiRow
                               service="A2E"
@@ -809,8 +1089,20 @@ export default function HowTo() {
                             />
                             <ApiRow
                               service="DALL-E 3"
-                              usedFor="Image generation"
+                              usedFor="High-quality images"
                               freeTier="No ($0.04/image)"
+                              link="https://platform.openai.com"
+                            />
+                            <ApiRow
+                              service="GPT-Image-1"
+                              usedFor="Image editing, variations (faster)"
+                              freeTier="Uses OpenAI credit"
+                              link="https://platform.openai.com"
+                            />
+                            <ApiRow
+                              service="Sora 2"
+                              usedFor="Text-to-video, image-to-video"
+                              freeTier="Uses OpenAI credit"
                               link="https://platform.openai.com"
                             />
                             <ApiRow
@@ -914,10 +1206,53 @@ export default function HowTo() {
             <TabsContent value="setup">
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
+                  {/* Quick Start for Free Users */}
+                  <Card className="border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Rocket className="h-5 w-5 text-green-500" />
+                        Quick Start Guide for Free Users
+                      </CardTitle>
+                      <CardDescription>Unlock most features with your own API keys - no subscription required!</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm">
+                          Free users can access nearly all AI features by adding their own API keys. Here's what you need to get started:
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="font-medium mb-2 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              Minimum Setup (Scripts + Images)
+                            </div>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• <strong>OpenAI API Key</strong> - Scripts, captions, analysis</li>
+                              <li>• Cost: ~$5 minimum credit to start</li>
+                              <li>• Unlocks: All text generation features</li>
+                            </ul>
+                          </div>
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="font-medium mb-2 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              Full Setup (All Features)
+                            </div>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• <strong>+ ElevenLabs</strong> - Voice generation</li>
+                              <li>• <strong>+ A2E</strong> - Avatar videos</li>
+                              <li>• <strong>+ Fal.ai</strong> - AI videos/images</li>
+                              <li>• Pexels is always FREE!</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card className="border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Zap className="h-5 w-5 text-blue-500" />
+                        <Crown className="h-5 w-5 text-blue-500" />
                         Premium & Pro Users
                       </CardTitle>
                       <CardDescription>You don't need to add any API keys!</CardDescription>
@@ -933,18 +1268,23 @@ export default function HowTo() {
                           <Badge variant="secondary" className="justify-center py-1">ElevenLabs</Badge>
                           <Badge variant="secondary" className="justify-center py-1">A2E Avatars</Badge>
                           <Badge variant="secondary" className="justify-center py-1">DALL-E</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">Sora 2</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">GPT-Image-1</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">OpenAI TTS</Badge>
+                          <Badge variant="secondary" className="justify-center py-1">Fal.ai</Badge>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
+                  {/* API Key Setup Guide */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Free Users: How to Add Your API Keys
+                        <Key className="h-5 w-5" />
+                        How to Add Your API Keys
                       </CardTitle>
-                      <CardDescription>Two easy ways to configure your own API keys</CardDescription>
+                      <CardDescription>Step-by-step guide for each API service</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-6">
@@ -955,11 +1295,11 @@ export default function HowTo() {
                           </div>
                           <ol className="space-y-2 text-sm text-muted-foreground ml-8">
                             <li>1. Go to <strong>AI Engines</strong> in the sidebar</li>
-                            <li>2. Find the engine you want to configure (OpenAI, ElevenLabs, etc.)</li>
-                            <li>3. Click the <strong>"Configure"</strong> button next to it</li>
+                            <li>2. Find the engine you want to configure</li>
+                            <li>3. Click the <strong>"Configure"</strong> button</li>
                             <li>4. Paste your API key in the dialog</li>
                             <li>5. Click <strong>"Save Key"</strong></li>
-                            <li>6. The engine will show a green checkmark when configured</li>
+                            <li>6. Green checkmark = configured!</li>
                           </ol>
                         </div>
 
@@ -969,16 +1309,138 @@ export default function HowTo() {
                             Option B: From Settings Page
                           </div>
                           <ol className="space-y-2 text-sm text-muted-foreground ml-8">
-                            <li>1. Go to <strong>Settings</strong> (gear icon in sidebar)</li>
+                            <li>1. Go to <strong>Settings</strong> (gear icon)</li>
                             <li>2. Scroll to <strong>AI Engines</strong> section</li>
-                            <li>3. Enter your API keys in the respective fields</li>
-                            <li>4. Click <strong>Save</strong> at the bottom</li>
+                            <li>3. Enter your API keys</li>
+                            <li>4. Click <strong>Save</strong></li>
                           </ol>
+                        </div>
+
+                        <Separator />
+
+                        {/* Individual API Key Instructions */}
+                        <div className="space-y-4">
+                          <h4 className="font-semibold">Where to Get Each API Key</h4>
+                          
+                          <div className="grid gap-4">
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">OpenAI (Required)</span>
+                                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
+                                  Get Key <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">Powers: Scripts, captions, analysis, GPT-Image-1, DALL-E 3, OpenAI TTS, Sora 2</p>
+                              <ol className="text-xs text-muted-foreground space-y-1">
+                                <li>1. Sign up at platform.openai.com</li>
+                                <li>2. Go to API Keys → Create new secret key</li>
+                                <li>3. Copy key (starts with "sk-")</li>
+                                <li>4. Add $5+ credit under Billing</li>
+                              </ol>
+                            </div>
+
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">ElevenLabs</span>
+                                <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
+                                  Get Key <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">Powers: Premium voice generation (10,000 chars free/month)</p>
+                              <ol className="text-xs text-muted-foreground space-y-1">
+                                <li>1. Create free account at elevenlabs.io</li>
+                                <li>2. Go to Profile → API Keys</li>
+                                <li>3. Copy your API key</li>
+                              </ol>
+                            </div>
+
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">A2E (Audio to Expression)</span>
+                                <span className="text-sm text-muted-foreground">Contact A2E for key</span>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">Powers: Avatar videos, lip-sync, AI images</p>
+                              <ol className="text-xs text-muted-foreground space-y-1">
+                                <li>1. Request access from A2E</li>
+                                <li>2. Trial credits available</li>
+                                <li>3. Add key in AI Engines page</li>
+                              </ol>
+                            </div>
+
+                            <div className="p-4 border rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">Fal.ai</span>
+                                <a href="https://fal.ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1 text-sm">
+                                  Get Key <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-2">Powers: AI video generation, fast images ($1 free credit)</p>
+                              <ol className="text-xs text-muted-foreground space-y-1">
+                                <li>1. Sign up at fal.ai</li>
+                                <li>2. Go to Dashboard → API Keys</li>
+                                <li>3. Create and copy key</li>
+                              </ol>
+                            </div>
+
+                            <div className="p-4 border rounded-lg border-green-500 bg-green-50 dark:bg-green-950">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-green-700 dark:text-green-300">Pexels</span>
+                                <Badge className="bg-green-600">Always FREE</Badge>
+                              </div>
+                              <p className="text-sm text-green-600 dark:text-green-400">No API key needed! Stock photos and B-roll videos are pre-configured and free for all users.</p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
+                  {/* Connect Social Accounts */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Link className="h-5 w-5" />
+                        Connect Social Accounts
+                      </CardTitle>
+                      <CardDescription>Step-by-step guide for each platform</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Youtube className="h-5 w-5 text-red-500" />
+                            YouTube
+                          </div>
+                          <ol className="text-sm text-muted-foreground space-y-1">
+                            <li>1. Go to <strong>Channels</strong> in the sidebar</li>
+                            <li>2. Click <strong>Connect YouTube</strong></li>
+                            <li>3. Sign in with your Google account</li>
+                            <li>4. Grant permission to manage your channel</li>
+                            <li>5. Your channel appears in connected accounts</li>
+                          </ol>
+                        </div>
+
+                        <div className="p-4 border rounded-lg">
+                          <div className="font-medium mb-2 flex items-center gap-2">
+                            <Globe className="h-5 w-5" />
+                            Other Platforms (TikTok, Instagram, X, LinkedIn, etc.)
+                          </div>
+                          <ol className="text-sm text-muted-foreground space-y-1">
+                            <li>1. Go to <strong>Channels</strong> in the sidebar</li>
+                            <li>2. Click <strong>Connect</strong> next to the platform</li>
+                            <li>3. Authorize SocialCommand to post on your behalf</li>
+                            <li>4. Follow the platform-specific OAuth flow</li>
+                            <li>5. Account appears in your connected list</li>
+                          </ol>
+                          <div className="mt-3 p-3 bg-muted rounded text-xs">
+                            <strong>Note:</strong> Channel limits vary by tier. Free: 0, Core: 1, Premium: 6, Pro: 8, Studio: 10
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Start Checklist */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Quick Start Checklist</CardTitle>
@@ -987,8 +1449,9 @@ export default function HowTo() {
                     <CardContent>
                       <div className="space-y-3">
                         <ChecklistItem text="Create an account (email or Google)" />
-                        <ChecklistItem text="Add OpenAI or Claude API key (for scripts & captions)" />
-                        <ChecklistItem text="Add ElevenLabs API key (for voiceovers)" />
+                        <ChecklistItem text="Add OpenAI API key (required for scripts & captions)" />
+                        <ChecklistItem text="Add ElevenLabs API key (for premium voiceovers)" />
+                        <ChecklistItem text="OR add OpenAI API key with TTS access (budget voice option)" />
                         <ChecklistItem text="Create your first Brand Brief" />
                         <ChecklistItem text="Generate your first piece of content!" />
                       </div>
@@ -998,36 +1461,6 @@ export default function HowTo() {
                           Pexels stock photos and B-roll videos are always free with no API key needed!
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Connect YouTube Channel</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ol className="space-y-3">
-                        <li className="flex gap-3">
-                          <span className="font-bold">1.</span>
-                          <span>Go to <strong>Channels</strong> in the sidebar</span>
-                        </li>
-                        <li className="flex gap-3">
-                          <span className="font-bold">2.</span>
-                          <span>Click <strong>Connect YouTube</strong></span>
-                        </li>
-                        <li className="flex gap-3">
-                          <span className="font-bold">3.</span>
-                          <span>Sign in with your Google account</span>
-                        </li>
-                        <li className="flex gap-3">
-                          <span className="font-bold">4.</span>
-                          <span>Grant permission to manage your YouTube channel</span>
-                        </li>
-                        <li className="flex gap-3">
-                          <span className="font-bold">5.</span>
-                          <span>Your channel will appear in the connected accounts list</span>
-                        </li>
-                      </ol>
                     </CardContent>
                   </Card>
                 </div>

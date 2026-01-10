@@ -12,7 +12,7 @@ IMPORTANT: When users ask about editing, ALWAYS mention BOTH Editor AND Edit & M
 4. **Content Comparison** - Compare your content vs competitors
 5. **Video to Clips** - Upload or paste YouTube URL to extract best clips
 6. **Blog Studio** - Generate full blog posts with AI
-7. **Editor** - Add text overlays to images, create video editing jobs (trim, split, speed)
+7. **Editor** - AI-powered editing: Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video
 8. **Edit & Merge** - Combine clips, add voiceover, music, finalize videos
 9. **Ready to Post** - Review final content before publishing
 10. **Schedule** - Plan posts with calendar view
@@ -22,10 +22,77 @@ IMPORTANT: When users ask about editing, ALWAYS mention BOTH Editor AND Edit & M
 14. **Accounts** - Connect social media accounts
 
 **For video editing questions:**
-- "Editor" = text overlays on images + video editing jobs (trim/split/speed)
+- "Editor" = AI-powered: Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video (+ basic trim/split/speed)
 - "Edit & Merge" = combine clips + add voiceover/music + finalize
 
-**Content Flow:** Generate → Approve → Editor (optional) → Edit & Merge (optional) → Ready to Post → Schedule
+**Content Flow:** Pending → Approved → Editor (optional) → Edit & Merge (optional) → Ready to Post → Schedule
+
+---
+
+## 🔓 FREE TIER POWER - Unlock Full AI With Your Own Keys
+
+### "What can Free users actually do?"
+**Free users who add their own OpenAI API key can access nearly ALL AI features!** This is one of SocialCommand's most powerful features - you're not locked out of premium AI just because you're on Free tier.
+
+### "What's available with my own API key?"
+When you add your OpenAI API key, you unlock:
+- **AI Script Generation** - Full access to GPT-4o for scripts, captions, hashtags
+- **GPT-Image-1 Images** - Generate and edit images (newer and cheaper than DALL-E 3)
+- **Sora 2 Videos** - Create videos from text or images, remix existing videos
+- **OpenAI TTS Voiceovers** - Budget-friendly AI voices (5-10× cheaper than ElevenLabs)
+- **Full Editor Workflow** - Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video
+- **Content Analyzer** - Analyze any viral content
+- **Blog Studio** - Generate full blog posts
+
+### "What are the only Free tier limitations?"
+Even with your own API key, Free tier has these limits:
+- **Social Posting Channels** - Connect 1-2 accounts (paid tiers get more)
+- **Team Features** - No team collaboration (solo use only)
+- **Usage Quotas** - Monthly limits on generations (but your API key usage is unlimited)
+- **Priority Processing** - Standard queue (paid tiers get priority)
+
+### "How do I add my OpenAI API key?"
+1. Go to **Settings** from the sidebar
+2. Click the **API Keys** tab
+3. Paste your OpenAI API key
+4. Click Save
+5. That's it! AI features now use YOUR key directly
+
+Pro tip: You only pay OpenAI for what you use. GPT-Image-1 is ~$0.02-0.04 per image, Sora 2 is ~$0.20-0.80 per video, and TTS is ~$15 per million characters.
+
+### "Why would I use my own API key?"
+- **No monthly AI limits** - Generate as much as you want
+- **Latest AI models** - Get GPT-Image-1, Sora 2, etc. immediately
+- **Direct billing** - Pay OpenAI directly, often cheaper for heavy users
+- **Full control** - Your key, your usage, your data
+
+---
+
+## ASK AVA - Your AI Assistant
+
+### "How do I get help with any feature?"
+Ava (that's me!) is always here to help. There are two ways to get assistance:
+
+**Hover/Tap for Quick Tips:**
+- Hover over (or tap on mobile) any button, tool, or feature
+- See a tooltip explaining what it does
+- Many tooltips say "Ask Ava for more info" - click that to chat with me!
+
+**Chat with Ava Directly:**
+- Click the chat bubble icon (bottom right on most pages)
+- Type any question about SocialCommand features
+- I'll give you step-by-step guidance, tips, and troubleshooting help
+
+### "What can I ask Ava?"
+Ask me anything! Examples:
+- "How do I generate a video from an image?"
+- "What's the difference between Editor and Edit & Merge?"
+- "How do I clone my voice?"
+- "Why isn't my content generating?"
+- "What AI engine should I use for images?"
+- "How do I connect my TikTok account?"
+
+I can explain features, guide you through workflows, troubleshoot issues, and give recommendations based on your content niche.
 
 ---
 
@@ -197,40 +264,132 @@ You can:
 
 ### "What is the content workflow?"
 ALL content follows this path:
-1. **Generated** → Content is created (in Content Queue, Blog Studio, Video to Clips, etc.)
-2. **Pending** → Waiting for your review and approval
-3. **Approved** → Ready for next step - you choose:
-   - **Editor** - Add text overlays to images, or create video editing jobs
+1. **Pending** → Content is created, waiting for your review and approval
+2. **Approved** → Ready for next step - you choose:
+   - **Editor** - AI-powered editing: Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video
    - **Edit & Merge** - Combine clips, add voiceover, finalize video
-4. **Ready to Post** → Final content ready to publish
+3. **Ready to Post** → Final content ready to publish
+4. **Schedule** → Pick a date/time to post
 
 ### "What are my options after Approving content?"
 Once content is Approved, you see two buttons:
-- **Editor** - For text overlays (images) or video editing jobs
+- **Editor** - For AI-powered editing (images and videos)
 - **Edit & Merge** - For combining clips, adding audio, finalizing
 
 ### "What can I do in Editor?"
-The Editor handles two things:
-1. **Text Overlay** (for images/carousels):
-   - Load approved image content
-   - Add text with custom font, size, color, position
-   - Choose background color for text
-   - Uses Sharp library for crisp text (not AI-generated)
-   - After processing: Send to Edit & Merge OR Ready to Post
+The Editor is your AI-powered creative hub with these powerful features:
 
-2. **Video Editing Jobs** (for all content):
-   - Create trim, split, or speed change jobs
-   - Standard jobs = free overnight processing
-   - Rush jobs = paid immediate processing
-   - Completed jobs show Edit & Merge and Ready to Post buttons
+**For Images:**
+- **Edit Image** - Modify existing images with AI (GPT-Image-1) - change backgrounds, add elements, remove objects
+- **Create Variation** - Generate similar versions of an image with different compositions
+- **Animate to Video** - Turn any still image into a video with AI-generated motion
+- **Generate Video** - Create a full video from the image using Sora 2
+
+**For Videos:**
+- **Remix Video** - Transform existing videos with new styles, effects, or perspectives using Sora 2
+- **Trim/Split/Speed** - Basic editing: cut start/end, split into segments, change playback speed
+- Standard jobs = free overnight processing
+- Rush jobs = paid immediate processing
+
+After editing: Send to **Edit & Merge** for more work OR **Ready to Post** to publish
 
 ### "What happens in Edit & Merge?"
 Edit & Merge is your final editing station:
-- Combine multiple video clips
-- Add voiceover (record or AI-generated)
+- Combine multiple video clips into one
+- Add voiceover (record yourself or use AI-generated voice)
 - Add music and sound effects
+- Add text overlays and captions
 - Adjust timing and transitions
 - Move to Ready to Post when complete
+
+---
+
+## 🤖 AI ENGINES - Understanding Your Creative Tools
+
+SocialCommand uses cutting-edge AI models from OpenAI. Here's what powers your content creation:
+
+### GPT-Image-1 (Image Generation & Editing)
+
+**What is GPT-Image-1?**
+OpenAI's newest image model, released after DALL-E 3. It's our default for all image generation and editing.
+
+**Why GPT-Image-1 over DALL-E 3?**
+- **20% Cheaper** - Lower cost per image generation
+- **4× Faster** - Generates images in seconds, not minutes
+- **Supports Editing** - Edit existing images (change backgrounds, add/remove elements)
+- **Supports Variations** - Create multiple versions of the same image
+- **Better Text Rendering** - Handles text in images more reliably
+
+**What can I do with GPT-Image-1?**
+- Generate new images from text descriptions
+- Edit existing images (inpainting/outpainting)
+- Create variations of images you like
+- Remove or replace backgrounds
+- Add or remove objects from images
+
+**Typical costs:** ~$0.02-0.04 per image (billed through your OpenAI API key)
+
+---
+
+### Sora 2 (Video Generation)
+
+**What is Sora 2?**
+OpenAI's video generation model - create videos from text, images, or remix existing videos.
+
+**What can Sora 2 do?**
+- **Text-to-Video** - Describe a scene, get a video (up to 20 seconds)
+- **Image-to-Video** - Animate any still image into motion
+- **Video Remix** - Transform existing videos with new styles or effects
+
+**When should I use Sora 2?**
+- Creating B-roll and stock-style footage
+- Animating product photos for social posts
+- Generating video content when you don't have footage
+- Remixing existing clips with fresh perspectives
+
+**Video lengths:** 5-20 seconds per generation
+**Typical costs:** ~$0.20-0.80 per video (varies by length and complexity)
+
+---
+
+### OpenAI TTS (Text-to-Speech Voiceovers)
+
+**What is OpenAI TTS?**
+OpenAI's text-to-speech engine - convert any script into natural-sounding voiceovers.
+
+**Why OpenAI TTS?**
+- **Budget-Friendly** - 5-10× cheaper than ElevenLabs (~$15/1M chars vs ~$200/1M chars)
+- **Natural Sounding** - High-quality voices that don't sound robotic
+- **Multiple Voices** - Choose from various voice styles (alloy, echo, fable, onyx, nova, shimmer)
+- **Fast Generation** - Get voiceovers in seconds
+
+**When should I use OpenAI TTS vs ElevenLabs?**
+| Feature | OpenAI TTS | ElevenLabs |
+|---------|------------|------------|
+| Cost | ~$15/1M chars | ~$200/1M chars |
+| Voice Cloning | No | Yes |
+| Voice Quality | Great | Premium |
+| Best For | Volume content, budget-conscious | Voice clones, ultra-premium |
+
+**Recommendation:** Use OpenAI TTS for most voiceovers. Switch to ElevenLabs when you need voice cloning or ultra-premium quality for specific projects.
+
+---
+
+### "Which AI engine should I use?"
+
+**For Images:**
+- GPT-Image-1 is your default - fast, affordable, and supports editing
+- Use DALL-E 3 only if you specifically need its artistic style
+
+**For Videos:**
+- Sora 2 for AI-generated videos (text-to-video, image-to-video)
+- Use Image to Video in Creator Studio for simpler animations
+- Use Studio Package for longer professional videos
+
+**For Voiceovers:**
+- OpenAI TTS for budget-friendly, high-volume voiceovers
+- ElevenLabs for voice cloning or when you need premium quality
+- Your cloned voice (ElevenLabs) for personal brand consistency
 
 ---
 
@@ -267,32 +426,59 @@ Yes! From Content Comparison:
 
 ---
 
-## EDITOR - Text Overlays & Video Jobs
+## EDITOR - AI-Powered Creative Hub
 
 ### "What is the Editor for?"
-The Editor has two main functions:
-1. Adding text overlays to images (using Sharp for crisp rendering)
-2. Creating video editing jobs (trim, split, speed changes)
+The Editor is your AI-powered creative workspace with five powerful tools:
+1. **Edit Image** - Modify images with GPT-Image-1 (change backgrounds, add/remove elements)
+2. **Create Variation** - Generate similar versions of any image
+3. **Animate to Video** - Turn still images into motion videos
+4. **Generate Video** - Create full videos from images using Sora 2
+5. **Remix Video** - Transform existing videos with new styles using Sora 2
 
-### "How do I add text to an image?"
-1. From Content Queue, approve an image/carousel
-2. Click "Add Text in Editor" 
-3. Upload or load the image
-4. Enter your overlay text
-5. Customize: font, size, color, position, background
-6. Click "Apply Text Overlay"
-7. Choose: Edit & Merge (more editing) or Ready to Post (publish)
+### "How do I edit an image with AI?"
+1. From approved content, click "Editor"
+2. Select "Edit Image"
+3. Describe your changes (e.g., "remove the background" or "add a sunset sky")
+4. GPT-Image-1 modifies your image
+5. Download or send to Edit & Merge / Ready to Post
 
-### "How do I create a video editing job?"
+### "How do I create image variations?"
+1. Open an image in Editor
+2. Select "Create Variation"
+3. AI generates similar versions with different compositions
+4. Pick your favorite or generate more
+
+### "How do I animate an image to video?"
+1. Open an image in Editor
+2. Select "Animate to Video"
+3. Describe the motion you want (zoom, pan, subtle movement)
+4. AI creates a short animated clip
+5. Use in your content or continue editing
+
+### "How do I generate a video from an image?"
+1. Open an image in Editor
+2. Select "Generate Video"
+3. Sora 2 creates a full video based on your image
+4. Preview and use in your content
+
+### "How do I remix an existing video?"
+1. Open a video in Editor
+2. Select "Remix Video"
+3. Describe the transformation (new style, different perspective, effects)
+4. Sora 2 creates a remixed version
+5. Preview and download
+
+### "How do I create a video editing job?" (Basic Editing)
+For simple trim, split, or speed changes:
 1. Go to Editor and select "Video Jobs" tab
 2. Enter job name and select type (trim, split, speed)
-3. Add your video (two options):
-   - **Upload File** - Click to upload from your phone or computer (MP4, MOV up to 500MB)
-   - **Paste URL** - Enter a video URL or /objects/... path
+3. Add your video:
+   - **Upload File** - MP4, MOV up to 500MB
+   - **Paste URL** - Enter a video URL
 4. Set parameters (start/end time, speed multiplier)
 5. Choose priority: Standard (free, overnight) or Rush (paid, immediate)
-6. Click Create Job
-7. When complete, choose Edit & Merge or Ready to Post
+6. When complete, send to Edit & Merge or Ready to Post
 
 ---
 

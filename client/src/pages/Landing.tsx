@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
-import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare, Star, Check, Type } from "lucide-react";
+import { Zap, Calendar, Sparkles, Video, Mic, Image, FileText, Headphones, Scissors, Wand2, Film, UserCircle, Languages, Clapperboard, Play, MessageSquare, Star, Check, Type, Key, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -39,10 +39,10 @@ export default function Landing() {
             Social<span className="text-purple-400">Command</span><span className="text-blue-400">Flow</span>
           </h1>
           <p className="text-xl md:text-2xl font-semibold text-white mb-2">
-            Turn AI Into Viral Content That Posts Itself
+            Start FREE with Your Own API Keys
           </p>
           <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto px-2">
-            Generate scripts, voiceovers, avatar videos, and images—then auto-post to 10 social platforms. All from one dashboard.
+            Unlock full AI capabilities—scripts, images, videos, voiceovers—without a subscription. Bring your own OpenAI key and create unlimited content.
           </p>
         </div>
 
@@ -57,6 +57,57 @@ export default function Landing() {
             <Play className="h-5 w-5" />
             Watch How It Works
           </a>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-10 px-2">
+          <div className="bg-gradient-to-r from-green-600/20 via-emerald-600/20 to-teal-600/20 border-2 border-green-500/40 rounded-2xl p-5 md:p-6">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Key className="h-6 w-6 text-green-400" />
+              <h2 className="text-xl md:text-2xl font-bold text-white">FREE Tier Power</h2>
+              <span className="bg-green-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">BYOK</span>
+            </div>
+            <p className="text-center text-gray-300 text-sm md:text-base mb-5">
+              Bring your own OpenAI API key and unlock premium AI features—no subscription required
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+                <FileText className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                <p className="text-white text-xs font-medium">AI Scripts & Captions</p>
+                <p className="text-gray-400 text-[10px]">OpenAI GPT-4o</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+                <Image className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                <p className="text-white text-xs font-medium">GPT-Image-1</p>
+                <p className="text-gray-400 text-[10px]">20% cheaper than DALL-E 3</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+                <Video className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                <p className="text-white text-xs font-medium">Sora 2 Video</p>
+                <p className="text-gray-400 text-[10px]">Text & image to video</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+                <Mic className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                <p className="text-white text-xs font-medium">OpenAI TTS Voice</p>
+                <p className="text-gray-400 text-[10px]">5-10× cheaper than ElevenLabs</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
+                <Scissors className="h-5 w-5 text-green-400 mx-auto mb-1" />
+                <p className="text-white text-xs font-medium">Full Editor Workflow</p>
+                <p className="text-gray-400 text-[10px]">Edit, merge & export</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-gray-300">
+              <span className="bg-white/10 px-2 py-1 rounded">Pending</span>
+              <ArrowRight className="h-3 w-3 text-green-400" />
+              <span className="bg-white/10 px-2 py-1 rounded">Approved</span>
+              <ArrowRight className="h-3 w-3 text-green-400" />
+              <span className="bg-white/10 px-2 py-1 rounded">Editor</span>
+              <ArrowRight className="h-3 w-3 text-green-400" />
+              <span className="bg-white/10 px-2 py-1 rounded">Edit & Merge</span>
+              <ArrowRight className="h-3 w-3 text-green-400" />
+              <span className="bg-green-500/20 border border-green-500/30 px-2 py-1 rounded text-green-400">Ready to Post</span>
+            </div>
+          </div>
         </div>
 
         <div id="how-it-works" className="max-w-6xl mx-auto mb-12 md:mb-16 pt-8">
@@ -202,15 +253,22 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto mb-10">
           <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-6">Simple Pricing</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+            <div className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 border-2 border-green-500/40 rounded-xl p-4 text-center relative">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-green-500 text-black text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <Key className="h-3 w-3" /> BYOK
+              </div>
               <h3 className="text-sm font-bold text-white mb-1">Free</h3>
               <p className="text-2xl font-bold text-white mb-1">£0</p>
-              <p className="text-gray-400 text-[10px] mb-3">Try it out</p>
+              <p className="text-gray-400 text-[10px] mb-3">Your own API keys</p>
               <ul className="text-left text-xs text-gray-300 space-y-1">
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Scripts (own API)</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> DALL-E images (own API)</li>
-                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-gray-500 flex-shrink-0" /> No social posting</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> AI Scripts & Captions</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> GPT-Image-1 Images</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Sora 2 Video</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> OpenAI TTS Voice</li>
+                <li className="flex items-center gap-1"><Check className="h-3 w-3 text-green-400 flex-shrink-0" /> Full Editor workflow</li>
+                <li className="flex items-center gap-1 text-gray-500"><Check className="h-3 w-3 text-gray-500 flex-shrink-0" /> No social posting</li>
               </ul>
+              <p className="text-[9px] text-gray-500 mt-2 border-t border-white/10 pt-2">Upgrade adds: Social posting, quotas, team features</p>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
               <h3 className="text-sm font-bold text-white mb-1">Core</h3>
