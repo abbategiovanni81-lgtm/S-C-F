@@ -54,3 +54,30 @@ Preferred communication style: Simple, everyday language.
 
 ### Cloud Storage
 -   **Replit App Storage (Google Cloud Storage)**: For all file uploads (images, video clips).
+
+## Pending Project Plan
+
+### Free Tier Monthly Allowances
+- **Feature**: Give free users 1 Content Analysis and 1 Content Comparison per month
+- **Implementation**:
+  1. Add `freeAnalysisUsed`, `freeComparisonUsed`, `freeUsageResetDate` fields to user table
+  2. Backend check before analysis/comparison API calls for free users
+  3. Monthly reset logic when `freeUsageResetDate` < current month
+  4. Increment counters on successful use (free users only)
+  5. Frontend UI: show "1/1 used" badge, disable when exhausted, show upgrade prompt
+
+## Tier Feature Access (Confirmed)
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Content Queue (scripts/captions/images) | ✓ (own OpenAI) | ✓ | ✓ |
+| Brand Briefs | 1 | Unlimited | Unlimited |
+| Editor | ✗ | ✓ | ✓ |
+| Edit & Merge | ✗ | ✓ | ✓ |
+| Content Analysis | ✗ | ✓ | ✓ |
+| Content Comparison | ✗ | ✓ | ✓ |
+| Video to Clips | ✗ | ✓ | ✓ |
+| Blog Studio | ✗ | ✓ | ✓ |
+| Social Listening | ✗ | ✓ (BYOK) | ✓ |
+| Social Posting | ✗ | 1 channel | 6-10 channels |
+| API Keys | OpenAI only | All (BYOK) | Platform included |
