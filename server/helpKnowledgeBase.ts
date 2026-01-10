@@ -334,18 +334,20 @@ OpenAI's newest image model, released after DALL-E 3. It's our default for all i
 ### Sora 2 (Video Generation)
 
 **What is Sora 2?**
-OpenAI's video generation model - create videos from text, images, or remix existing videos.
+OpenAI's video generation model - create videos from text, images, or remix Sora-generated videos.
 
 **What can Sora 2 do?**
 - **Text-to-Video** - Describe a scene, get a video (up to 20 seconds)
 - **Image-to-Video** - Animate any still image into motion
-- **Video Remix** - Transform existing videos with new styles or effects
+- **Video Remix** - Transform Sora-generated videos with new styles or effects
+
+**Important Remix Limitation:** Remix ONLY works with Sora-generated videos (requires a Sora video ID). You cannot remix arbitrary video files, MP4 uploads, or YouTube clips. You must first generate a video with Sora, then use that video's ID to remix it.
 
 **When should I use Sora 2?**
 - Creating B-roll and stock-style footage
 - Animating product photos for social posts
 - Generating video content when you don't have footage
-- Remixing existing clips with fresh perspectives
+- Generating a video and then remixing it with fresh perspectives
 
 **Video lengths:** 5-20 seconds per generation
 **Typical costs:** ~$0.20-0.80 per video (varies by length and complexity)
@@ -463,11 +465,23 @@ The Editor is your AI-powered creative workspace with five powerful tools:
 4. Preview and use in your content
 
 ### "How do I remix an existing video?"
-1. Open a video in Editor
-2. Select "Remix Video"
-3. Describe the transformation (new style, different perspective, effects)
-4. Sora 2 creates a remixed version
-5. Preview and download
+**Important:** Remix only works with Sora-generated videos. You need a Sora video ID from a video you generated in the current session.
+
+Step-by-step:
+1. Go to Editor and select the Video tab
+2. First, generate a video using "Generate from Text" (this creates a Sora video ID)
+3. Once generated, the video ID appears and you can select "Remix Video"
+4. Describe the transformation (new style, different perspective, effects)
+5. Sora 2 creates a remixed version using that video ID
+6. Preview and download
+
+**What Remix can do:**
+- Add cinematic effects
+- Change pacing (slow motion, speed up)
+- Alter visual style
+- Extend the video
+
+**Limitation:** You cannot remix arbitrary video files (MP4s, URLs, or uploaded videos). Only Sora-generated videos can be remixed because OpenAI requires the original Sora video ID.
 
 ### "How do I create a video editing job?" (Basic Editing)
 For simple trim, split, or speed changes:
