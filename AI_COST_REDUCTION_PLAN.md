@@ -443,6 +443,77 @@ Additional 15-25% savings possible on top of Phase 2.
 
 ---
 
+### Creatify UGC Integration (Studio Tier)
+
+**Status:** Not implemented
+**Tier:** Studio exclusive (or premium add-on)
+**Pricing:** $99/mo (500 credits) or $299/mo (2000 credits) - platform cost
+**Effort:** ~1 week
+
+#### Capabilities
+- 1500+ UGC-style avatars with lip-sync
+- URL-to-Video (paste product page → get video ad)
+- AI Scripts generation
+- Text-to-Speech
+- AI Shorts (TikTok/Reels optimized)
+- Custom templates
+
+#### Credit Costs
+| Feature | Credits |
+|---------|---------|
+| AI Avatar | 5 per 30 sec |
+| URL-to-Video | 5 per 30 sec |
+| AI Scripts | 1 |
+| TTS | 1 per 30 sec |
+| AI Shorts | 5 per 30 sec |
+
+#### Implementation
+- [ ] Add Creatify API service layer (`server/creatify.ts`)
+- [ ] Avatar selection UI in Creator Studio
+- [ ] Video preview and download integration
+- [ ] Credit tracking for Studio users
+
+**API Docs:** https://docs.creatify.ai/
+
+---
+
+### HeyGen UGC Integration (Studio Tier)
+
+**Status:** Not implemented (tested - quality great)
+**Tier:** Studio exclusive (or premium add-on)
+**Pricing:** $99/mo (100 credits) or $330/mo (660 credits) - platform cost
+**Effort:** ~1 week
+
+#### Capabilities
+- 1100+ avatars (professional and UGC styles)
+- Video Translation API (175+ languages with lip-sync)
+- Interactive Avatar (live streaming)
+- Photo-to-Avatar (custom avatar creation)
+- ElevenLabs voice clone import (native integration)
+
+#### Credit Costs
+| Feature | Credits |
+|---------|---------|
+| Avatar video | 1 per minute |
+| Interactive Avatar | 5 min streaming per credit |
+| Video Translation | 1 per 20 sec |
+
+#### Why HeyGen (vs Creatify)
+- Better credit value at scale ($0.50/credit on Scale plan)
+- Video translation for global/multilingual content
+- Native ElevenLabs integration
+- Higher quality avatars (tested)
+
+#### Implementation
+- [ ] Add HeyGen API service layer (`server/heygen.ts`)
+- [ ] Avatar selection UI in Creator Studio
+- [ ] Video translation option for existing content
+- [ ] Credit tracking for Studio users
+
+**API Docs:** https://docs.heygen.com/
+
+---
+
 ### Trending Topics Enhancement (Google Trends + Reddit)
 
 **Status:** Not implemented
