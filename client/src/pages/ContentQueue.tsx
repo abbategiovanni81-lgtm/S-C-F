@@ -30,6 +30,9 @@ export default function ContentQueue() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lipSyncVideoRef = useRef<HTMLInputElement>(null);
   
+  // Free tier: limited workflow (skip Editor/Edit & Merge, go directly to Ready to Post)
+  const isFreeUser = !tier || tier === "free";
+  
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState("");
   
@@ -2872,27 +2875,51 @@ export default function ContentQueue() {
             <div className="pt-4 space-y-3 border-t mt-4">
               <p className="text-xs font-medium text-muted-foreground">Actions</p>
               
-              {/* Next Step Options - ALL content types get BOTH options */}
-              <div className="flex gap-2">
-                {/* Editor: Text overlay for images, video editing for videos */}
-                <Link href={`/editor/${content.id}`} className="flex-1">
-                  <ResponsiveTooltip content="Open editor">
-                    <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
-                      <Type className="w-4 h-4" />
-                      {isImage ? "Add Text in Editor" : "Editor"}
-                    </Button>
-                  </ResponsiveTooltip>
-                </Link>
-                {/* ALL CONTENT: Go to Edit & Merge */}
-                <Link href={`/edit-merge/${content.id}`} className="flex-1">
-                  <ResponsiveTooltip content="Edit and merge">
-                    <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
-                      <Scissors className="w-4 h-4" />
-                      Edit & Merge
-                    </Button>
-                  </ResponsiveTooltip>
-                </Link>
-              </div>
+              {/* Next Step Options - FREE tier skips Editor/Edit & Merge */}
+              {isFreeUser ? (
+                <div className="space-y-2">
+                  <Button 
+                    className="w-full gap-2" 
+                    variant="default"
+                    onClick={() => markReadyMutation.mutate(content.id)}
+                    disabled={markingReadyId === content.id}
+                    data-testid={`button-ready-to-post-${content.id}`}
+                  >
+                    {markingReadyId === content.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <ArrowRight className="w-4 h-4" />
+                        Send to Ready to Post
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Upgrade to Core (£9.99/mo) for Editor & Edit/Merge tools
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {/* Editor: Text overlay for images, video editing for videos */}
+                  <Link href={`/editor/${content.id}`} className="flex-1">
+                    <ResponsiveTooltip content="Open editor">
+                      <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
+                        <Type className="w-4 h-4" />
+                        {isImage ? "Add Text in Editor" : "Editor"}
+                      </Button>
+                    </ResponsiveTooltip>
+                  </Link>
+                  {/* ALL CONTENT: Go to Edit & Merge */}
+                  <Link href={`/edit-merge/${content.id}`} className="flex-1">
+                    <ResponsiveTooltip content="Edit and merge">
+                      <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
+                        <Scissors className="w-4 h-4" />
+                        Edit & Merge
+                      </Button>
+                    </ResponsiveTooltip>
+                  </Link>
+                </div>
+              )}
               
               {/* IMAGE/CAROUSEL: Upload or Generate Image - Hidden in collapsible */}
               {isImage && (
@@ -3264,7 +3291,7 @@ export default function ContentQueue() {
           </div>
         )}
 
-        {/* Legacy content without format prompts - direct to Edit & Merge */}
+        {/* Legacy content without format prompts - direct to Edit & Merge (or Ready for Free users) */}
         {content.status === "approved" && 
          !(content.generationMetadata as any)?.manuallyReady &&
          !(content.generationMetadata as any)?.imagePrompts &&
@@ -3274,20 +3301,24 @@ export default function ContentQueue() {
          !(content.generationMetadata as any)?.videoPrompts && (
           <div className="pt-4 space-y-3 border-t mt-4">
             <p className="text-xs text-muted-foreground">
-              Legacy content - use Edit & Merge to add images or video clips, or move directly to Ready to Post.
+              {isFreeUser 
+                ? "Move this content directly to Ready to Post for download."
+                : "Legacy content - use Edit & Merge to add images or video clips, or move directly to Ready to Post."}
             </p>
-            <Link href={`/edit-merge/${content.id}`}>
-              <ResponsiveTooltip content="Edit and merge">
-                <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
-                  <Scissors className="w-4 h-4" />
-                  Go to Edit & Merge
-                </Button>
-              </ResponsiveTooltip>
-            </Link>
+            {!isFreeUser && (
+              <Link href={`/edit-merge/${content.id}`}>
+                <ResponsiveTooltip content="Edit and merge">
+                  <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
+                    <Scissors className="w-4 h-4" />
+                    Go to Edit & Merge
+                  </Button>
+                </ResponsiveTooltip>
+              </Link>
+            )}
             <ResponsiveTooltip content="Move to ready">
               <Button
                 className="w-full gap-2"
-                variant="outline"
+                variant={isFreeUser ? "default" : "outline"}
                 onClick={() => markReadyMutation.mutate(content.id)}
                 disabled={markingReadyId === content.id}
                 data-testid={`button-mark-ready-legacy-${content.id}`}
@@ -3297,7 +3328,7 @@ export default function ContentQueue() {
                 ) : (
                   <>
                     <ArrowRight className="w-4 h-4" />
-                    Move to Ready to Post
+                    {isFreeUser ? "Send to Ready to Post" : "Move to Ready to Post"}
                   </>
                 )}
               </Button>

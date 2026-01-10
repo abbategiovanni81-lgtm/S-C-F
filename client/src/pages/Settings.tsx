@@ -18,6 +18,9 @@ export default function Settings() {
   const { user, logout, hasFullAccess, tier } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Free tier: only OpenAI API key allowed
+  const isFreeUser = !tier || tier === "free";
 
   const [openaiKey, setOpenaiKey] = useState("");
   const [anthropicKey, setAnthropicKey] = useState("");
@@ -367,7 +370,9 @@ export default function Settings() {
                     <CardDescription>
                       {hasFullAccess 
                         ? "As a premium user, you can use platform keys or add your own."
-                        : "Add your own API keys to use AI features on the free plan."
+                        : isFreeUser
+                          ? "Free tier: Add your OpenAI API key to generate content. Upgrade to Core for more APIs."
+                          : "Add your own API keys to use AI features with your Core subscription."
                       }
                     </CardDescription>
                   </div>
@@ -375,6 +380,12 @@ export default function Settings() {
                     <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500">
                       <Crown className="h-3 w-3 mr-1" />
                       {tier === "pro" ? "Pro" : "Premium"}
+                    </Badge>
+                  )}
+                  {tier === "core" && (
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500">
+                      <Key className="h-3 w-3 mr-1" />
+                      BYOK
                     </Badge>
                   )}
                 </div>
@@ -404,96 +415,117 @@ export default function Settings() {
                       />
                       <p className="text-xs text-muted-foreground">For content generation and DALL-E images</p>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Anthropic API Key (Claude)</Label>
-                        {userApiKeys?.hasAnthropic && (
-                          <Badge variant="outline" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" /> Saved
-                          </Badge>
-                        )}
+                    {/* Non-OpenAI keys: hidden for free users */}
+                    {isFreeUser ? (
+                      <div className="p-4 border rounded-lg bg-muted/50 space-y-2">
+                        <p className="text-sm font-medium">More APIs available with Core (£9.99/mo)</p>
+                        <p className="text-xs text-muted-foreground">
+                          Upgrade to Core to add ElevenLabs, A2E, Fal.ai, Anthropic, and more API keys for video, voiceover, and advanced AI features.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => window.location.href = "/settings?tab=subscription"}
+                        >
+                          <Crown className="w-4 h-4" />
+                          View Upgrade Options
+                        </Button>
                       </div>
-                      <Input 
-                        type="password" 
-                        placeholder={userApiKeys?.hasAnthropic ? "••••••••••••" : "sk-ant-..."} 
-                        value={anthropicKey}
-                        onChange={(e) => setAnthropicKey(e.target.value)}
-                        data-testid="input-anthropic-key" 
-                      />
-                      <p className="text-xs text-muted-foreground">Alternative to OpenAI - for content generation with Claude</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>ElevenLabs API Key</Label>
-                        {userApiKeys?.hasElevenlabs && (
-                          <Badge variant="outline" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" /> Saved
-                          </Badge>
-                        )}
-                      </div>
-                      <Input 
-                        type="password" 
-                        placeholder={userApiKeys?.hasElevenlabs ? "••••••••••••" : "Your ElevenLabs key"} 
-                        value={elevenlabsKey}
-                        onChange={(e) => setElevenlabsKey(e.target.value)}
-                        data-testid="input-elevenlabs-key" 
-                      />
-                      <p className="text-xs text-muted-foreground">For AI voice generation</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>A2E API Key</Label>
-                        {userApiKeys?.hasA2e && (
-                          <Badge variant="outline" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" /> Saved
-                          </Badge>
-                        )}
-                      </div>
-                      <Input 
-                        type="password" 
-                        placeholder={userApiKeys?.hasA2e ? "••••••••••••" : "Your A2E key"}
-                        value={a2eKey}
-                        onChange={(e) => setA2eKey(e.target.value)}
-                        data-testid="input-a2e-key" 
-                      />
-                      <p className="text-xs text-muted-foreground">For avatar video generation</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Fal.ai API Key</Label>
-                        {userApiKeys?.hasFal && (
-                          <Badge variant="outline" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" /> Saved
-                          </Badge>
-                        )}
-                      </div>
-                      <Input 
-                        type="password" 
-                        placeholder={userApiKeys?.hasFal ? "••••••••••••" : "Your Fal.ai key"}
-                        value={falKey}
-                        onChange={(e) => setFalKey(e.target.value)}
-                        data-testid="input-fal-key" 
-                      />
-                      <p className="text-xs text-muted-foreground">For AI video and image generation</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Pexels API Key</Label>
-                        {userApiKeys?.hasPexels && (
-                          <Badge variant="outline" className="text-xs">
-                            <Check className="h-3 w-3 mr-1" /> Saved
-                          </Badge>
-                        )}
-                      </div>
-                      <Input 
-                        type="password" 
-                        placeholder={userApiKeys?.hasPexels ? "••••••••••••" : "Your Pexels key"}
-                        value={pexelsKey}
-                        onChange={(e) => setPexelsKey(e.target.value)}
-                        data-testid="input-pexels-key" 
-                      />
-                      <p className="text-xs text-muted-foreground">For B-Roll stock footage</p>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Anthropic API Key (Claude)</Label>
+                            {userApiKeys?.hasAnthropic && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasAnthropic ? "••••••••••••" : "sk-ant-..."} 
+                            value={anthropicKey}
+                            onChange={(e) => setAnthropicKey(e.target.value)}
+                            data-testid="input-anthropic-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">Alternative to OpenAI - for content generation with Claude</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>ElevenLabs API Key</Label>
+                            {userApiKeys?.hasElevenlabs && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasElevenlabs ? "••••••••••••" : "Your ElevenLabs key"} 
+                            value={elevenlabsKey}
+                            onChange={(e) => setElevenlabsKey(e.target.value)}
+                            data-testid="input-elevenlabs-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For AI voice generation</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>A2E API Key</Label>
+                            {userApiKeys?.hasA2e && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasA2e ? "••••••••••••" : "Your A2E key"}
+                            value={a2eKey}
+                            onChange={(e) => setA2eKey(e.target.value)}
+                            data-testid="input-a2e-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For avatar video generation</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Fal.ai API Key</Label>
+                            {userApiKeys?.hasFal && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasFal ? "••••••••••••" : "Your Fal.ai key"}
+                            value={falKey}
+                            onChange={(e) => setFalKey(e.target.value)}
+                            data-testid="input-fal-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For AI video and image generation</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Pexels API Key</Label>
+                            {userApiKeys?.hasPexels && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasPexels ? "••••••••••••" : "Your Pexels key"}
+                            value={pexelsKey}
+                            onChange={(e) => setPexelsKey(e.target.value)}
+                            data-testid="input-pexels-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For B-Roll stock footage</p>
+                        </div>
+                      </>
+                    )}
                     <ResponsiveTooltip content="Save your changes">
                       <Button 
                         onClick={handleSaveKeys}

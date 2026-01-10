@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock, Image as ImageIcon, LayoutGrid, Archive, Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Download, CheckCircle, Video, Mic, ExternalLink, Loader2, Instagram, Youtube, Upload, Calendar, Clock, Image as ImageIcon, LayoutGrid, Archive, Trash2, Crown } from "lucide-react";
 import { format, addMinutes, addDays, isAfter, isBefore } from "date-fns";
 import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -55,7 +56,11 @@ const downloadImageAsBlob = async (url: string, filename: string) => {
 export default function ReadyToPost() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { tier } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Free tier: download only (no social posting)
+  const isFreeUser = !tier || tier === "free";
   const [filterBrief, setFilterBrief] = useState<string>("all");
   
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
@@ -589,7 +594,8 @@ export default function ReadyToPost() {
 
           {showMarkAsPosted && content.status !== "posted" && (
             <div className="pt-2 border-t space-y-2">
-              {hasVideo && (
+              {/* Social posting options - only for paid users */}
+              {!isFreeUser && hasVideo && (
                 <div>
                   {hasYouTubeAccounts ? (
                     <ResponsiveTooltip content="Publish to platform">
@@ -617,7 +623,18 @@ export default function ReadyToPost() {
                   )}
                 </div>
               )}
-              <ResponsiveTooltip content="Mark as complete">
+              
+              {/* Free tier: show upgrade hint but still allow marking as posted */}
+              {isFreeUser && (
+                <div className="text-center py-1">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Download content above, then upload manually. Upgrade to Core (£9.99/mo) for direct posting.
+                  </p>
+                </div>
+              )}
+              
+              {/* Mark as Posted button - available to ALL users */}
+              <ResponsiveTooltip content="Mark as complete after manual upload">
                 <Button
                   variant="outline"
                   onClick={() => markAsPostedMutation.mutate(content.id)}

@@ -34,7 +34,8 @@ import {
   FileCheck,
   Link,
   Volume2,
-  Wand2
+  Wand2,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -1207,41 +1208,93 @@ export default function HowTo() {
               <ScrollArea className="h-[calc(100vh-220px)]">
                 <div className="space-y-6 pr-4">
                   {/* Quick Start for Free Users */}
-                  <Card className="border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+                  <Card className="border-2 border-gray-500/30 bg-gradient-to-br from-gray-500/5 to-slate-500/5">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-green-500" />
-                        Quick Start Guide for Free Users
+                        <Rocket className="h-5 w-5 text-gray-500" />
+                        Free Tier - Try Before You Subscribe
                       </CardTitle>
-                      <CardDescription>Unlock most features with your own API keys - no subscription required!</CardDescription>
+                      <CardDescription>Limited features to test the platform</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         <p className="text-sm">
-                          Free users can access nearly all AI features by adding their own API keys. Here's what you need to get started:
+                          Free tier gives you a taste of what SocialCommandFlow can do:
                         </p>
                         <div className="grid md:grid-cols-2 gap-4">
                           <div className="p-4 border rounded-lg bg-background">
                             <div className="font-medium mb-2 flex items-center gap-2">
                               <CheckCircle className="h-4 w-4 text-green-500" />
-                              Minimum Setup (Scripts + Images)
+                              What's Included
                             </div>
                             <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• <strong>OpenAI API Key</strong> - Scripts, captions, analysis</li>
-                              <li>• Cost: ~$5 minimum credit to start</li>
-                              <li>• Unlocks: All text generation features</li>
+                              <li>• <strong>1 OpenAI API key</strong> only</li>
+                              <li>• <strong>1 brand brief</strong> limit</li>
+                              <li>• AI scripts, captions, hashtags</li>
+                              <li>• GPT-Image-1 image generation</li>
+                              <li>• Download content to your device</li>
+                            </ul>
+                          </div>
+                          <div className="p-4 border rounded-lg bg-background border-orange-500/30">
+                            <div className="font-medium mb-2 flex items-center gap-2 text-orange-600">
+                              <AlertCircle className="h-4 w-4" />
+                              Not Included in Free
+                            </div>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• Video generation (Sora, A2E, Fal.ai)</li>
+                              <li>• Voiceover generation</li>
+                              <li>• Editor & Edit/Merge tools</li>
+                              <li>• Social media posting</li>
+                              <li>• Other API keys</li>
+                            </ul>
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Upgrade to <strong>Core (£9.99/mo)</strong> to unlock full BYOK capabilities and 1 social channel.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Core Tier - BYOK */}
+                  <Card className="border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 to-emerald-500/5">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Key className="h-5 w-5 text-green-500" />
+                        Core Tier (£9.99/mo) - Bring Your Own Keys
+                      </CardTitle>
+                      <CardDescription>Full BYOK access with all API integrations</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm">
+                          Core subscribers can connect ALL their own API keys and access the full suite of AI tools:
+                        </p>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          <div className="p-4 border rounded-lg bg-background">
+                            <div className="font-medium mb-2 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              API Keys You Can Add
+                            </div>
+                            <ul className="text-sm text-muted-foreground space-y-1">
+                              <li>• <strong>OpenAI</strong> - Scripts, images, TTS, Sora 2</li>
+                              <li>• <strong>ElevenLabs</strong> - Voice generation</li>
+                              <li>• <strong>A2E</strong> - Avatar & scene videos</li>
+                              <li>• <strong>Fal.ai</strong> - AI video/image generation</li>
+                              <li>• <strong>Pexels</strong> - Stock images (FREE)</li>
                             </ul>
                           </div>
                           <div className="p-4 border rounded-lg bg-background">
                             <div className="font-medium mb-2 flex items-center gap-2">
                               <CheckCircle className="h-4 w-4 text-green-500" />
-                              Full Setup (All Features)
+                              Full Features Unlocked
                             </div>
                             <ul className="text-sm text-muted-foreground space-y-1">
-                              <li>• <strong>+ ElevenLabs</strong> - Voice generation</li>
-                              <li>• <strong>+ A2E</strong> - Avatar videos</li>
-                              <li>• <strong>+ Fal.ai</strong> - AI videos/images</li>
-                              <li>• Pexels is always FREE!</li>
+                              <li>• Full Editor workflow</li>
+                              <li>• Edit & Merge tools</li>
+                              <li>• Video generation (Sora 2, A2E, Fal.ai)</li>
+                              <li>• Voiceover generation</li>
+                              <li>• 1 social channel for posting</li>
                             </ul>
                           </div>
                         </div>

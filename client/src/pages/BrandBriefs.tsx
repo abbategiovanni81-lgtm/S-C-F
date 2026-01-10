@@ -36,7 +36,10 @@ const DEMO_USER_ID = "demo-user";
 export default function BrandBriefs() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { hasFullAccess, user } = useAuth();
+  const { hasFullAccess, user, tier } = useAuth();
+  
+  // Free tier: limited to 1 brand brief
+  const isFreeUser = !tier || tier === "free";
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [generatingForBrief, setGeneratingForBrief] = useState<string | null>(null);
@@ -457,13 +460,22 @@ export default function BrandBriefs() {
       <div className="flex items-center justify-between mb-6">
         <p className="text-muted-foreground">
           Create brand profiles to generate consistent, on-brand content across all platforms.
+          {isFreeUser && briefs.length >= 1 && (
+            <span className="block text-xs text-orange-600 mt-1">
+              Free tier: 1 brand brief limit. Upgrade to Core for more.
+            </span>
+          )}
         </p>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetFormFields(); }}>
           <DialogTrigger asChild>
-            <ResponsiveTooltip content="Create a brand profile">
-              <Button data-testid="button-create-brief">
+            <ResponsiveTooltip content={isFreeUser && briefs.length >= 1 ? "Upgrade to create more briefs" : "Create a brand profile"}>
+              <Button 
+                data-testid="button-create-brief"
+                disabled={isFreeUser && briefs.length >= 1}
+                variant={isFreeUser && briefs.length >= 1 ? "outline" : "default"}
+              >
                 <Plus className="w-4 h-4 mr-2" />
-                New Brand Brief
+                {isFreeUser && briefs.length >= 1 ? "Upgrade for More" : "New Brand Brief"}
               </Button>
             </ResponsiveTooltip>
           </DialogTrigger>

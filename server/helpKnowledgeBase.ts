@@ -29,42 +29,67 @@ IMPORTANT: When users ask about editing, ALWAYS mention BOTH Editor AND Edit & M
 
 ---
 
-## 🔓 FREE TIER POWER - Unlock Full AI With Your Own Keys
+## 📋 SUBSCRIPTION TIERS
 
-### "What can Free users actually do?"
-**Free users who add their own OpenAI API key can access nearly ALL AI features!** This is one of SocialCommand's most powerful features - you're not locked out of premium AI just because you're on Free tier.
+### "What does each tier include?"
 
-### "What's available with my own API key?"
-When you add your OpenAI API key, you unlock:
-- **AI Script Generation** - Full access to GPT-4o for scripts, captions, hashtags
-- **GPT-Image-1 Images** - Generate and edit images (newer and cheaper than DALL-E 3)
-- **Sora 2 Videos** - Create videos from text or images, remix existing videos
-- **OpenAI TTS Voiceovers** - Budget-friendly AI voices (5-10× cheaper than ElevenLabs)
-- **Full Editor Workflow** - Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video
-- **Content Analyzer** - Analyze any viral content
-- **Blog Studio** - Generate full blog posts
+**FREE (£0)**
+- 1 OpenAI API key only
+- 1 brand brief limit
+- Generate scripts, captions, hashtags (GPT-4o)
+- Generate images (GPT-Image-1)
+- Simplified workflow: Approved → Ready to Post (skip Editor/Edit & Merge)
+- Download content only (no social posting)
+- Good for trying out the platform
 
-### "What are the only Free tier limitations?"
-Even with your own API key, Free tier has these limits:
-- **Social Posting Channels** - Connect 1-2 accounts (paid tiers get more)
-- **Team Features** - No team collaboration (solo use only)
-- **Usage Quotas** - Monthly limits on generations (but your API key usage is unlimited)
-- **Priority Processing** - Standard queue (paid tiers get priority)
+**CORE (£9.99/mo) - BYOK (Bring Your Own Keys)**
+- Connect ALL your own API keys (OpenAI, ElevenLabs, A2E, Fal.ai, etc.)
+- Full Editor access (Edit Image, Create Variation, Animate to Video, Generate Video, Remix Video)
+- Full Edit & Merge access (combine clips, add voiceover, music)
+- Video generation (Sora 2, A2E, Fal.ai)
+- Voiceover generation (ElevenLabs, OpenAI TTS)
+- 1 social media channel for direct posting
+- 1 content comparison/month
 
-### "How do I add my OpenAI API key?"
+**PREMIUM (£29.99/mo)**
+- All Core features PLUS included AI quotas
+- 6 social channels
+- 5 brand briefs
+- 30 min voiceover, 20 videos, 180 images
+- 150 lipsync, 5 avatars
+- Unlimited comparisons
+
+**PRO (£49.99/mo)**
+- All Premium features with higher quotas
+- 8 social channels
+- 10 brand briefs
+- 75 min voiceover, 45 videos, 500 images
+- 400 lipsync, 10 avatars
+- 4 team logins
+
+**STUDIO (£99.99/mo)**
+- Everything included
+- All 10 social channels
+- 90 min voiceover, 60 videos, 500 images
+- 450 lipsync, 15 avatars
+- Creator Studio included (Voice Clone, Face Swap, AI Dubbing, etc.)
+- Long form video engine (Steve AI)
+- Getty Images library
+- Priority support
+- 6 team logins
+
+### "How do I add my API keys?" (CORE tier and above)
 1. Go to **Settings** from the sidebar
 2. Click the **API Keys** tab
-3. Paste your OpenAI API key
+3. Add your keys (OpenAI, ElevenLabs, A2E, Fal.ai, etc.)
 4. Click Save
-5. That's it! AI features now use YOUR key directly
+5. AI features now use YOUR keys directly
 
-Pro tip: You only pay OpenAI for what you use. GPT-Image-1 is ~$0.02-0.04 per image, Sora 2 is ~$0.20-0.80 per video, and TTS is ~$15 per million characters.
-
-### "Why would I use my own API key?"
-- **No monthly AI limits** - Generate as much as you want
-- **Latest AI models** - Get GPT-Image-1, Sora 2, etc. immediately
-- **Direct billing** - Pay OpenAI directly, often cheaper for heavy users
-- **Full control** - Your key, your usage, your data
+### "Why bring my own API keys?"
+- **No monthly AI limits** - Generate as much as you want (using your keys)
+- **Latest AI models** - Access GPT-Image-1, Sora 2, etc. immediately
+- **Direct billing** - Pay providers directly, often cheaper for heavy users
+- **Full control** - Your keys, your usage, your data
 
 ---
 
