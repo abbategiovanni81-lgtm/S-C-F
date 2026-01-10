@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
+import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, editImage, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -32,6 +32,8 @@ import os from "os";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { processVideoForClips, extractAndUploadClip } from "./videoProcessing";
+import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, createSoraImageToVideo, remixSoraVideo } from "./soraService";
+import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -1254,9 +1256,11 @@ Provide analysis in this JSON structure:
         const baseEngines: any = {
           openai: { configured: true, name: "OpenAI GPT-4" },
           anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
-          dalle: { configured: isDalleConfigured(), name: "DALL-E 3 Images" },
+          dalle: { configured: isDalleConfigured(), name: "GPT-Image-1" },
+          sora: { configured: isSoraConfigured(), name: "Sora 2 Video" },
+          openaiTts: { configured: isOpenAITTSConfigured(), name: "OpenAI TTS (Budget)" },
           a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
-          elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice" },
+          elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice (Premium)" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
           pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
           steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
@@ -1274,7 +1278,9 @@ Provide analysis in this JSON structure:
         res.json({
           openai: { configured: !!keys?.openaiKey, name: "OpenAI GPT-4" },
           anthropic: { configured: !!keys?.anthropicKey, name: "Claude (Anthropic)" },
-          dalle: { configured: !!keys?.openaiKey, name: "DALL-E 3 Images" },
+          dalle: { configured: !!keys?.openaiKey, name: "GPT-Image-1" },
+          sora: { configured: !!keys?.openaiKey, name: "Sora 2 Video" },
+          openaiTts: { configured: !!keys?.openaiKey, name: "OpenAI TTS (Budget)" },
           a2e: { configured: !!keys?.a2eKey, name: "A2E Avatar Video & Images" },
           elevenlabs: { configured: !!keys?.elevenlabsKey, name: "ElevenLabs Voice" },
           fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
@@ -2118,25 +2124,26 @@ Provide analysis in this JSON structure:
         }
       }
       
-      // Map aspect ratio to DALL-E size
-      let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
-      if (req.body.aspectRatio === "landscape" || req.body.aspectRatio === "16:9") dalleSize = "1792x1024";
-      else if (req.body.aspectRatio === "portrait" || req.body.aspectRatio === "9:16" || req.body.aspectRatio === "4:5" || req.body.aspectRatio === "5:4") dalleSize = "1024x1792";
+      // Map aspect ratio to GPT-Image size
+      let gptImageSize: "1024x1024" | "1536x1024" | "1024x1536" = "1024x1024";
+      if (req.body.aspectRatio === "landscape" || req.body.aspectRatio === "16:9") gptImageSize = "1536x1024";
+      else if (req.body.aspectRatio === "portrait" || req.body.aspectRatio === "9:16" || req.body.aspectRatio === "4:5" || req.body.aspectRatio === "5:4") gptImageSize = "1024x1536";
       
       const result = await generateDalleImage({ 
         prompt, 
-        size: size || dalleSize, 
-        quality: quality || "standard",
-        style: style || "vivid"
+        size: size || gptImageSize, 
+        quality: quality || "medium"
       });
       
-      // DALL-E URLs expire, so download and save locally
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded DALL-E image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download DALL-E image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved GPT-Image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save GPT-Image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
@@ -2148,6 +2155,63 @@ Provide analysis in this JSON structure:
       }
       
       res.json({ imageUrl: localImageUrl, revisedPrompt: result.revisedPrompt });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GPT-Image Edit API - Modify existing images with AI instructions
+  app.post("/api/dalle/edit-image", async (req, res) => {
+    try {
+      const { imageBase64, prompt, size, quality } = req.body;
+      if (!imageBase64 || !prompt) {
+        return res.status(400).json({ error: "imageBase64 and prompt are required" });
+      }
+
+      if (!isDalleConfigured()) {
+        return res.status(400).json({ error: "GPT-Image not configured" });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "dalleImages", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await editImage({ imageBase64, prompt, size, quality });
+
+      let localImageUrl = result.imageUrl;
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved edited image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save edited image:", saveError);
+        }
+      }
+
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "dalleImages", 1);
+        }
+      }
+
+      res.json({ imageUrl: localImageUrl });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -2195,13 +2259,15 @@ Provide analysis in this JSON structure:
         aspectRatio: normalizedAspect,
       });
       
-      // DALL-E URLs expire, so download and save locally
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded carousel image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download carousel image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved carousel image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save carousel image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
@@ -2275,13 +2341,15 @@ Provide analysis in this JSON structure:
         aspectRatio: normalizedAspect,
       });
       
-      // DALL-E URLs expire, so download and save locally
+      // GPT-Image returns base64, save to cloud storage for persistence
       let localImageUrl = result.imageUrl;
-      try {
-        localImageUrl = await downloadAndSaveMedia(result.imageUrl, "image");
-        console.log(`Downloaded carousel image to ${localImageUrl}`);
-      } catch (downloadError) {
-        console.error("Failed to download carousel image:", downloadError);
+      if (result.base64Data) {
+        try {
+          localImageUrl = await saveBase64Media(result.base64Data, "image");
+          console.log(`Saved carousel image to ${localImageUrl}`);
+        } catch (saveError) {
+          console.error("Failed to save carousel image:", saveError);
+        }
       }
 
       // Increment usage after successful generation
@@ -3077,6 +3145,214 @@ Provide analysis in this JSON structure:
         const [user] = await db.select().from(users).where(eq(users.id, userId));
         if (user && (user.tier === "premium" || user.tier === "pro")) {
           await incrementUsage(userId, "voiceovers", 1);
+        }
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // OpenAI TTS - Budget voice option (5-10x cheaper than ElevenLabs)
+  app.get("/api/openai-tts/status", async (req, res) => {
+    res.json({ configured: isOpenAITTSConfigured() });
+  });
+
+  app.get("/api/openai-tts/voices", async (req, res) => {
+    res.json({ voices: OPENAI_VOICES });
+  });
+
+  app.post("/api/openai-tts/voiceover", async (req, res) => {
+    try {
+      const { text, voice, model, speed } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "text is required" });
+      }
+
+      if (!isOpenAITTSConfigured()) {
+        return res.status(400).json({ error: "OpenAI TTS not configured" });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "voiceovers", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await generateOpenAIVoiceover({ text, voice, model, speed });
+
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "voiceovers", 1);
+        }
+      }
+
+      res.json({ audioUrl: result.audioUrl });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Sora 2 Video Generation - OpenAI's video model
+  app.get("/api/sora/status", async (req, res) => {
+    res.json({ configured: isSoraConfigured() });
+  });
+
+  app.post("/api/sora/generate", async (req, res) => {
+    try {
+      const { prompt, duration, size, model } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      if (!isSoraConfigured()) {
+        return res.status(400).json({ error: "Sora video generation not configured" });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "a2eVideos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await createSoraVideo({ prompt, duration, size, model });
+
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "a2eVideos", 1);
+        }
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/sora/status/:videoId", async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      const result = await getSoraVideoStatus(videoId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/sora/image-to-video", async (req, res) => {
+    try {
+      const { prompt, imageUrl, duration, size } = req.body;
+      if (!prompt || !imageUrl) {
+        return res.status(400).json({ error: "prompt and imageUrl are required" });
+      }
+
+      if (!isSoraConfigured()) {
+        return res.status(400).json({ error: "Sora video generation not configured" });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "a2eVideos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await createSoraImageToVideo({ prompt, imageUrl, duration, size });
+
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "a2eVideos", 1);
+        }
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/sora/remix", async (req, res) => {
+    try {
+      const { videoId, prompt } = req.body;
+      if (!videoId || !prompt) {
+        return res.status(400).json({ error: "videoId and prompt are required" });
+      }
+
+      if (!isSoraConfigured()) {
+        return res.status(400).json({ error: "Sora video generation not configured" });
+      }
+
+      const userId = (req.user as any)?.id;
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          try {
+            await assertQuota(userId, "a2eVideos", 1);
+          } catch (error) {
+            if (error instanceof QuotaExceededError) {
+              return res.status(429).json({ 
+                error: error.message, 
+                quotaExceeded: true,
+                usageType: error.usageType,
+                quota: error.quota 
+              });
+            }
+            throw error;
+          }
+        }
+      }
+
+      const result = await remixSoraVideo(videoId, prompt);
+
+      if (userId) {
+        const [user] = await db.select().from(users).where(eq(users.id, userId));
+        if (user && (user.tier === "premium" || user.tier === "pro")) {
+          await incrementUsage(userId, "a2eVideos", 1);
         }
       }
 
