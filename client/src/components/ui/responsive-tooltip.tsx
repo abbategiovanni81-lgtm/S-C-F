@@ -17,37 +17,61 @@ interface ResponsiveTooltipProps {
 export function ResponsiveTooltip({ content, children, side = "top" }: ResponsiveTooltipProps) {
   const [open, setOpen] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const longPressTriggeredRef = React.useRef(false)
+  const isTouchDeviceRef = React.useRef(false)
   const fullContent = `${content} - ask Ava for more info`
 
   const handleTouchStart = () => {
+    isTouchDeviceRef.current = true
+    longPressTriggeredRef.current = false
     timeoutRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true
       setOpen(true)
-    }, 500)
+    }, 400)
   }
 
   const handleTouchEnd = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
-    setTimeout(() => setOpen(false), 2000)
+    if (longPressTriggeredRef.current) {
+      setTimeout(() => setOpen(false), 2500)
+    }
   }
 
-  const handleClick = (e: React.MouseEvent) => {
-    if ('ontouchstart' in window) {
-      setOpen(!open)
-      if (!open) {
-        setTimeout(() => setOpen(false), 3000)
+  const handleTouchCancel = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }
+
+  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isTouchDeviceRef.current) {
+      if (longPressTriggeredRef.current) {
+        e.preventDefault()
+        e.stopPropagation()
+        longPressTriggeredRef.current = false
+        return
       }
+      setOpen(true)
+      setTimeout(() => setOpen(false), 2500)
     }
   }
 
   return (
     <TooltipProvider delayDuration={300}>
-      <Tooltip open={open} onOpenChange={setOpen}>
+      <Tooltip open={open} onOpenChange={(newOpen) => {
+        if (!isTouchDeviceRef.current) {
+          setOpen(newOpen)
+        }
+      }}>
         <TooltipTrigger asChild>
           <span
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
             onClick={handleClick}
             className="inline-flex"
           >
