@@ -116,8 +116,8 @@ export default function ContentQueue() {
   // Image style for DALL-E (vivid vs natural)
   const [imageStyle, setImageStyle] = useState<"photorealistic" | "illustrated" | "minimalist">("photorealistic");
 
-  // Video engine selection (A2E vs Fal.ai vs Studio Package)
-  const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai">("a2e-scene");
+  // Video engine selection (A2E vs Fal.ai vs Studio Package vs Sora)
+  const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai" | "sora">("sora");
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
   const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("dalle");
   // Studio Package specific settings
@@ -1113,6 +1113,51 @@ export default function ContentQueue() {
         
         toast({ title: `Scene ${sceneNumber} generating with Studio Package...`, description: "This may take several minutes for longer videos." });
         pollSteveAISceneVideoStatus(contentId, sceneNumber, data.requestId);
+      } else if (videoEngine === "sora" && aiEngines?.sora?.configured) {
+        // Sora 2 video generation (text-to-video)
+        const res = await fetch("/api/sora/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            prompt, 
+            duration: 10,
+            size: aspectRatio === "9:16" ? "1080x1920" : "1920x1080"
+          }),
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to start Sora video generation");
+        }
+        
+        const data = await res.json();
+        setSceneVideos(prev => ({
+          ...prev,
+          [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "processing", requestId: data.videoId } }
+        }));
+        
+        // Save request ID to database for polling resume
+        try {
+          const contentRes = await fetch(`/api/content/${contentId}`);
+          if (contentRes.ok) {
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            const sceneRequests = existingMetadata.sceneRequests || {};
+            sceneRequests[sceneNumber] = { requestId: data.videoId, status: "processing", engine: "sora" };
+            await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { ...existingMetadata, sceneRequests }
+              }),
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save scene request:", e);
+        }
+        
+        toast({ title: `Scene ${sceneNumber} generating with Sora 2...`, description: "This may take a minute or two." });
+        pollSoraSceneVideoStatus(contentId, sceneNumber, data.videoId);
       } else if (videoEngine === "a2e-scene" && aiEngines?.a2e?.configured) {
         // A2E scene video generation (text-to-image → image-to-video)
         const res = await fetch("/api/a2e/generate-scene-video", {
@@ -1271,6 +1316,67 @@ export default function ContentQueue() {
     poll();
   };
 
+  // Sora 2 polling function
+  const pollSoraSceneVideoStatus = async (contentId: string, sceneNumber: number, videoId: string) => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/sora/status/${videoId}`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        if (data.status === "completed" && data.videoUrl) {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "completed", videoUrl: data.videoUrl, requestId: videoId } }
+          }));
+          
+          // Save to database
+          try {
+            const contentRes = await fetch(`/api/content/${contentId}`);
+            if (contentRes.ok) {
+              const content = await contentRes.json();
+              const existingMetadata = content?.generationMetadata || {};
+              const existingClips = existingMetadata.generatedClips || [];
+              const updatedClips = existingClips.filter((c: any) => c.sceneNumber !== sceneNumber);
+              updatedClips.push({ sceneNumber, videoUrl: data.videoUrl, requestId: videoId, engine: "sora" });
+              updatedClips.sort((a: any, b: any) => a.sceneNumber - b.sceneNumber);
+              
+              const sceneRequests = existingMetadata.sceneRequests || {};
+              if (sceneRequests[sceneNumber]) {
+                sceneRequests[sceneNumber] = { ...sceneRequests[sceneNumber], status: "completed" };
+              }
+              
+              await fetch(`/api/content/${contentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  generationMetadata: { ...existingMetadata, generatedClips: updatedClips, sceneRequests }
+                }),
+              });
+            }
+          } catch (e) {
+            console.error("Failed to save Sora scene video:", e);
+          }
+          
+          toast({ title: `Scene ${sceneNumber} complete!`, description: "Sora 2 video generated successfully." });
+          invalidateContentQueries();
+        } else if (data.status === "failed") {
+          setSceneVideos(prev => ({
+            ...prev,
+            [contentId]: { ...(prev[contentId] || {}), [sceneNumber]: { status: "failed", requestId: videoId } }
+          }));
+          toast({ title: `Scene ${sceneNumber} failed`, description: data.error || "Sora video generation failed", variant: "destructive" });
+        } else {
+          // Still processing - poll again in 5 seconds
+          setTimeout(poll, 5000);
+        }
+      } catch {
+        setTimeout(poll, 5000);
+      }
+    };
+    poll();
+  };
+
   // Studio Package polling function
   const pollSteveAISceneVideoStatus = async (contentId: string, sceneNumber: number, requestId: string) => {
     const poll = async () => {
@@ -1366,10 +1472,12 @@ export default function ContentQueue() {
               [content.id]: { ...(prev[content.id] || {}), [sceneNumber]: { status: "processing", requestId: reqData.requestId } }
             }));
             // Use the correct polling function based on engine
-            if (reqData.engine === "a2e") {
-              pollA2ESceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            if (reqData.engine === "a2e" || reqData.engine === "a2e-scene") {
+              pollA2ESceneVideoStatus(content.id, sceneNumber, reqData.requestId, reqData.engine === "a2e-scene");
             } else if (reqData.engine === "steveai") {
               pollSteveAISceneVideoStatus(content.id, sceneNumber, reqData.requestId);
+            } else if (reqData.engine === "sora") {
+              pollSoraSceneVideoStatus(content.id, sceneNumber, reqData.requestId);
             } else {
               pollSceneVideoStatus(content.id, sceneNumber, reqData.requestId);
             }
@@ -2043,11 +2151,16 @@ export default function ContentQueue() {
                   <div className="flex items-center gap-4 flex-wrap">
                     <div className="flex items-center gap-2">
                       <Label className="text-xs font-medium">Video Engine:</Label>
-                      <Select value={videoEngine} onValueChange={(v: "a2e-avatar" | "a2e-scene" | "fal" | "steveai") => setVideoEngine(v)}>
+                      <Select value={videoEngine} onValueChange={(v: "a2e-avatar" | "a2e-scene" | "fal" | "steveai" | "sora") => setVideoEngine(v)}>
                         <SelectTrigger className="w-44 h-8 text-xs" data-testid="select-video-engine">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="sora" disabled={!aiEngines?.sora?.configured}>
+                            <span className="flex items-center gap-2">
+                              Sora 2 (OpenAI) {!aiEngines?.sora?.configured && "(Not configured)"}
+                            </span>
+                          </SelectItem>
                           <SelectItem value="a2e-scene" disabled={!aiEngines?.a2e?.configured}>
                             <span className="flex items-center gap-2">
                               A2E Scene Video {!aiEngines?.a2e?.configured && "(Not configured)"}
@@ -2115,7 +2228,9 @@ export default function ContentQueue() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {videoEngine === "a2e-avatar" 
+                    {videoEngine === "sora"
+                      ? "Sora 2 (OpenAI) generates high-quality AI videos from text prompts. 5-20 seconds per clip."
+                      : videoEngine === "a2e-avatar" 
                       ? "A2E Avatar creates realistic talking head videos with lip-sync from your script." 
                       : videoEngine === "a2e-scene"
                       ? "A2E Scene generates AI images from your prompt, then animates them into video."
