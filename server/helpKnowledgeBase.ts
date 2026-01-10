@@ -1104,6 +1104,33 @@ Platform recommendations:
 5. Test different hooks and formats
 6. Use trending topics in your niche
 
+### "How do I grow my Instagram page?" / "Instagram growth tips" / "Instagram advice"
+Here's a proven Instagram growth roadmap:
+
+**Profile Optimization:**
+1. Optimize your profile for SEO - include keywords in your name, bio, and username
+2. Enhance your profile picture professionally (use tools like PFP Maker)
+3. Select a consistent color scheme and apply it to all posts, profile picture, and highlights
+4. Stick to ONE niche - avoid posting across multiple niches
+
+**Content Strategy:**
+5. Repurpose or recreate content that has performed well
+6. Ensure your posts are attention-grabbing - use templates for consistency
+7. If Reels aren't your preference, singles and carousels have good reach too
+8. Maintain quality across ALL formats you create
+9. Pay attention to the Explore page and discover trending content
+
+**Engagement & Growth:**
+10. Follow 10-30 niche-related top accounts
+11. Be the FIRST to comment on top posts - turn on post notifications
+12. Engage with similar accounts actively, be authentic, avoid spamming
+
+**Stories Strategy:**
+13. Regularly post Stories to foster trust and engagement
+14. Avoid merely sharing posts to Stories - experiment with different strategies (polls, questions, behind-the-scenes)
+
+Key insight: Consistency + niche focus + genuine engagement = growth. Don't try to be everywhere - master one niche first.
+
 ---
 
 ## ABOUT SOCIALCOMMAND
