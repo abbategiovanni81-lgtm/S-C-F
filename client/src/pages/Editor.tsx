@@ -17,8 +17,10 @@ import {
   Type, Image as ImageIcon, Video, Clock, Loader2, Upload, 
   Trash2, Download, RefreshCw, Scissors, Zap, Moon, CheckCircle,
   XCircle, AlertCircle, Play, Pause, ArrowRight, Send,
-  ChevronLeft, ChevronRight, Bold, Italic, Underline, Move
+  ChevronLeft, ChevronRight, Bold, Italic, Underline, Move,
+  Wand2, Sparkles, Film, Shuffle, PenTool
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import type { EditJob, GeneratedContent } from "@shared/schema";
 
 const POSITIONS = [
@@ -125,6 +127,14 @@ export default function Editor() {
   const [videoSourceMode, setVideoSourceMode] = useState<"upload" | "url">("upload");
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadedVideoName, setUploadedVideoName] = useState<string | null>(null);
+
+  // AI Actions state
+  const [aiActionLoading, setAiActionLoading] = useState<string | null>(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [animatePrompt, setAnimatePrompt] = useState("");
+  const [videoGeneratePrompt, setVideoGeneratePrompt] = useState("");
+  const [remixPrompt, setRemixPrompt] = useState("");
+  const [lastGeneratedVideoId, setLastGeneratedVideoId] = useState<string | null>(null);
 
   // Fetch edit jobs
   const { data: editJobs = [], isLoading: jobsLoading } = useQuery<EditJob[]>({
@@ -550,6 +560,184 @@ export default function Editor() {
     });
   };
 
+  // AI Action handlers
+  const handleEditImage = async () => {
+    if (!imagePreview || !editPrompt) {
+      toast({ title: "Please select an image and enter edit instructions", variant: "destructive" });
+      return;
+    }
+    setAiActionLoading("edit");
+    try {
+      const imageBase64 = imagePreview.startsWith("data:") 
+        ? imagePreview.split(",")[1] 
+        : await fetchImageAsBase64(imagePreview);
+      
+      const res = await fetch("/api/dalle/edit-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageBase64, prompt: editPrompt }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      setImagePreview(data.imageUrl);
+      setOutputUrl(data.imageUrl);
+      toast({ title: "Image edited successfully!" });
+    } catch (error: any) {
+      toast({ title: "Edit failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiActionLoading(null);
+    }
+  };
+
+  const handleCreateVariation = async () => {
+    if (!imagePreview) {
+      toast({ title: "Please select an image first", variant: "destructive" });
+      return;
+    }
+    setAiActionLoading("variation");
+    try {
+      const prompt = sourceContent?.generationMetadata 
+        ? (sourceContent.generationMetadata as any).imagePrompts?.prompt || "Generate a similar image"
+        : "Generate a similar image with the same style and composition";
+      
+      const res = await fetch("/api/dalle/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt, quality: "medium" }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      setImagePreview(data.imageUrl);
+      setOutputUrl(data.imageUrl);
+      toast({ title: "Variation created!" });
+    } catch (error: any) {
+      toast({ title: "Variation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiActionLoading(null);
+    }
+  };
+
+  const handleAnimateToVideo = async () => {
+    if (!imagePreview) {
+      toast({ title: "Please select an image first", variant: "destructive" });
+      return;
+    }
+    setAiActionLoading("animate");
+    try {
+      const imageUrl = imagePreview.startsWith("data:") 
+        ? await uploadBase64Image(imagePreview)
+        : imagePreview;
+      
+      const res = await fetch("/api/sora/image-to-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ 
+          prompt: animatePrompt || "Subtle cinematic motion with gentle movement", 
+          imageUrl,
+          duration: 4 
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      toast({ 
+        title: "Video generation started!", 
+        description: `Video ID: ${data.videoId}. Check Video tab for status.` 
+      });
+    } catch (error: any) {
+      toast({ title: "Animation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiActionLoading(null);
+    }
+  };
+
+  const handleGenerateVideo = async () => {
+    if (!videoGeneratePrompt) {
+      toast({ title: "Please enter a video description", variant: "destructive" });
+      return;
+    }
+    setAiActionLoading("generate-video");
+    try {
+      const res = await fetch("/api/sora/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt: videoGeneratePrompt, duration: 4 }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      setLastGeneratedVideoId(data.videoId);
+      toast({ 
+        title: "Video generation started!", 
+        description: `Video ID: ${data.videoId}. You can now use this ID to remix the video.` 
+      });
+    } catch (error: any) {
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiActionLoading(null);
+    }
+  };
+
+  const handleRemixVideo = async () => {
+    if (!lastGeneratedVideoId) {
+      toast({ title: "Generate a video first to get a video ID for remixing", variant: "destructive" });
+      return;
+    }
+    if (!remixPrompt) {
+      toast({ title: "Please enter remix instructions", variant: "destructive" });
+      return;
+    }
+    setAiActionLoading("remix");
+    try {
+      const res = await fetch("/api/sora/remix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ videoId: lastGeneratedVideoId, prompt: remixPrompt }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      setLastGeneratedVideoId(data.videoId);
+      toast({ 
+        title: "Remix started!", 
+        description: `New Video ID: ${data.videoId}` 
+      });
+    } catch (error: any) {
+      toast({ title: "Remix failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiActionLoading(null);
+    }
+  };
+
+  // Helper to fetch image as base64
+  const fetchImageAsBase64 = async (url: string): Promise<string> => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Helper to upload base64 image and get URL
+  const uploadBase64Image = async (dataUri: string): Promise<string> => {
+    const base64 = dataUri.split(",")[1];
+    const blob = new Blob([Uint8Array.from(atob(base64), c => c.charCodeAt(0))], { type: "image/png" });
+    const formData = new FormData();
+    formData.append("file", blob, "image.png");
+    const res = await fetch("/api/upload", { method: "POST", body: formData, credentials: "include" });
+    if (!res.ok) throw new Error("Upload failed");
+    const data = await res.json();
+    return data.url;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -575,33 +763,134 @@ export default function Editor() {
           </div>
         </div>
 
-        <Tabs defaultValue="text-overlay" className="space-y-6">
+        <Tabs defaultValue="image" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="text-overlay" data-testid="tab-text-overlay">
-              <Type className="w-4 h-4 mr-2" /> Text on Image
+            <TabsTrigger value="image" data-testid="tab-image">
+              <ImageIcon className="w-4 h-4 mr-2" /> Image
             </TabsTrigger>
-            <TabsTrigger value="video-jobs" data-testid="tab-video-jobs">
-              <Video className="w-4 h-4 mr-2" /> Video Jobs
+            <TabsTrigger value="video" data-testid="tab-video">
+              <Video className="w-4 h-4 mr-2" /> Video
             </TabsTrigger>
             <TabsTrigger value="job-queue" data-testid="tab-job-queue">
               <Clock className="w-4 h-4 mr-2" /> Job Queue ({editJobs.length})
             </TabsTrigger>
           </TabsList>
 
-          {/* Text on Image Tab */}
-          <TabsContent value="text-overlay" className="space-y-6">
+          {/* Image Tab */}
+          <TabsContent value="image" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Controls */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Type className="w-5 h-5" /> Text Overlay Settings
+                    <ImageIcon className="w-5 h-5" /> Image Editor
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <Label>Upload Image</Label>
-                    <input
+                  {/* AI Actions Section */}
+                  <div className="border rounded-lg p-4 bg-gradient-to-r from-purple-500/5 to-blue-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-purple-500" />
+                      <span className="font-medium text-sm">AI Actions</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById("edit-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
+                        disabled={!imagePreview || aiActionLoading !== null}
+                        className="flex flex-col h-auto py-2"
+                        data-testid="button-edit-image"
+                      >
+                        <PenTool className="w-4 h-4 mb-1" />
+                        <span className="text-xs">Edit Image</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateVariation}
+                        disabled={!imagePreview || aiActionLoading !== null}
+                        className="flex flex-col h-auto py-2"
+                        data-testid="button-create-variation"
+                      >
+                        {aiActionLoading === "variation" ? (
+                          <Loader2 className="w-4 h-4 mb-1 animate-spin" />
+                        ) : (
+                          <Shuffle className="w-4 h-4 mb-1" />
+                        )}
+                        <span className="text-xs">Variation</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById("animate-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
+                        disabled={!imagePreview || aiActionLoading !== null}
+                        className="flex flex-col h-auto py-2"
+                        data-testid="button-animate-video"
+                      >
+                        <Film className="w-4 h-4 mb-1" />
+                        <span className="text-xs">Animate</span>
+                      </Button>
+                    </div>
+                    
+                    {/* Edit Image Section */}
+                    <div id="edit-prompt-section" className="space-y-2 mb-3">
+                      <Label className="text-xs">Edit Instructions</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={editPrompt}
+                          onChange={(e) => setEditPrompt(e.target.value)}
+                          placeholder="e.g., Remove background, add sunset lighting..."
+                          className="text-sm"
+                          data-testid="input-edit-prompt"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleEditImage}
+                          disabled={!imagePreview || !editPrompt || aiActionLoading !== null}
+                          data-testid="button-apply-edit"
+                        >
+                          {aiActionLoading === "edit" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Animate Section */}
+                    <div id="animate-prompt-section" className="space-y-2">
+                      <Label className="text-xs">Animation Description (optional)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={animatePrompt}
+                          onChange={(e) => setAnimatePrompt(e.target.value)}
+                          placeholder="e.g., Gentle camera pan, subtle motion..."
+                          className="text-sm"
+                          data-testid="input-animate-prompt"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleAnimateToVideo}
+                          disabled={!imagePreview || aiActionLoading !== null}
+                          data-testid="button-apply-animate"
+                        >
+                          {aiActionLoading === "animate" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manual Adjustments Accordion */}
+                  <Accordion type="single" collapsible defaultValue="text-overlay">
+                    <AccordionItem value="text-overlay">
+                      <AccordionTrigger className="text-sm">
+                        <div className="flex items-center gap-2">
+                          <Type className="w-4 h-4" />
+                          Text Overlay
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="space-y-4 pt-2">
+                        <div>
+                          <Label>Upload Image</Label>
+                          <input
                       ref={imageInputRef}
                       type="file"
                       accept="image/*"
@@ -815,18 +1104,21 @@ export default function Editor() {
                     </div>
                   )}
 
-                  <Button
-                    onClick={handleTextOverlay}
-                    disabled={(!selectedImage && !imagePreview) || processing}
-                    className="w-full"
-                    data-testid="button-apply-text"
-                  >
-                    {processing ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                    ) : (
-                      <><Type className="w-4 h-4 mr-2" /> Apply Text Overlay</>
-                    )}
-                  </Button>
+                        <Button
+                          onClick={handleTextOverlay}
+                          disabled={(!selectedImage && !imagePreview) || processing}
+                          className="w-full"
+                          data-testid="button-apply-text"
+                        >
+                          {processing ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                          ) : (
+                            <><Type className="w-4 h-4 mr-2" /> Apply Text Overlay</>
+                          )}
+                        </Button>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </CardContent>
               </Card>
 
@@ -1049,12 +1341,90 @@ export default function Editor() {
             </div>
           </TabsContent>
 
-          {/* Video Jobs Tab */}
-          <TabsContent value="video-jobs" className="space-y-6">
+          {/* Video Tab */}
+          <TabsContent value="video" className="space-y-6">
+            {/* AI Actions Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Video className="w-5 h-5" /> Create Video Edit Job
+                  <Sparkles className="w-5 h-5 text-purple-500" /> AI Video Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Generate from Text */}
+                  <div className="border rounded-lg p-4 bg-gradient-to-r from-purple-500/5 to-blue-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Film className="w-4 h-4 text-purple-500" />
+                      <span className="font-medium text-sm">Generate from Text</span>
+                    </div>
+                    <Textarea
+                      value={videoGeneratePrompt}
+                      onChange={(e) => setVideoGeneratePrompt(e.target.value)}
+                      placeholder="Describe the video you want to create..."
+                      rows={3}
+                      className="mb-3"
+                      data-testid="input-video-generate-prompt"
+                    />
+                    <Button
+                      onClick={handleGenerateVideo}
+                      disabled={!videoGeneratePrompt || aiActionLoading !== null}
+                      className="w-full"
+                      data-testid="button-generate-video"
+                    >
+                      {aiActionLoading === "generate-video" ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                      ) : (
+                        <><Wand2 className="w-4 h-4 mr-2" /> Generate Video</>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Remix Clip */}
+                  <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-500/5 to-cyan-500/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Shuffle className="w-4 h-4 text-blue-500" />
+                      <span className="font-medium text-sm">Remix AI-Generated Video</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-3 p-2 bg-muted/50 rounded">
+                      Remix videos created with "Generate from Text". First generate a video, then use the video ID to remix it.
+                    </div>
+                    <Input
+                      value={remixPrompt}
+                      onChange={(e) => setRemixPrompt(e.target.value)}
+                      placeholder="e.g., Make it more cinematic, add slow motion..."
+                      className="mb-3"
+                      data-testid="input-remix-prompt"
+                    />
+                    <Button
+                      onClick={handleRemixVideo}
+                      disabled={!lastGeneratedVideoId || !remixPrompt || aiActionLoading !== null}
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-remix-video"
+                    >
+                      {aiActionLoading === "remix" ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Remixing...</>
+                      ) : (
+                        <><Shuffle className="w-4 h-4 mr-2" /> Remix Video</>
+                      )}
+                    </Button>
+                    {lastGeneratedVideoId && (
+                      <p className="text-xs text-green-600 mt-2">Ready to remix: {lastGeneratedVideoId}</p>
+                    )}
+                    {!lastGeneratedVideoId && (
+                      <p className="text-xs text-muted-foreground mt-2">Generate a video first to enable remixing</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Manual Video Jobs Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Video className="w-5 h-5" /> Manual Video Edit Jobs
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
