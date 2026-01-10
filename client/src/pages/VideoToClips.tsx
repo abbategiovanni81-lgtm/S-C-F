@@ -236,6 +236,11 @@ export default function VideoToClips() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("video/")) {
+      toast({ title: "Invalid file", description: "Please upload a video file", variant: "destructive" });
+      return;
+    }
+
     setUploadedVideo(file);
     setShowSuggestionsModal(true);
   };
@@ -328,6 +333,7 @@ export default function VideoToClips() {
                       <input
                         ref={fileInputRef}
                         type="file"
+                        accept="video/*"
                         className="hidden"
                         onChange={handleFileSelect}
                         data-testid="video-input"
