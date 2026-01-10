@@ -236,8 +236,13 @@ export default function VideoToClips() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("video/")) {
-      toast({ title: "Invalid file", description: "Please upload a video file", variant: "destructive" });
+    const validExtensions = ['.mp4', '.mov', '.avi', '.webm', '.m4v', '.mkv'];
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+    const hasValidMimeType = file.type.startsWith("video/") || file.type === "application/octet-stream" || file.type === "";
+    
+    if (!hasValidExtension && !hasValidMimeType) {
+      toast({ title: "Invalid file", description: "Please upload a video file (MP4, MOV, AVI, WebM)", variant: "destructive" });
       return;
     }
 
@@ -333,7 +338,7 @@ export default function VideoToClips() {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,.mp4,.mov,.avi,.webm"
+                        accept=".mp4,.mov,.avi,.webm,.m4v"
                         className="hidden"
                         onChange={handleFileSelect}
                         data-testid="video-input"
