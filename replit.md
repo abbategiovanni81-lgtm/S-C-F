@@ -66,6 +66,18 @@ Preferred communication style: Simple, everyday language.
   4. Increment counters on successful use (free users only)
   5. Frontend UI: show "1/1 used" badge, disable when exhausted, show upgrade prompt
 
+### Creatify UGC Integration (Studio Tier)
+- **Feature**: Integrate Creatify API for UGC-style avatar videos
+- **Tier**: Studio exclusive (or premium add-on)
+- **Capabilities**: 1500+ UGC avatars, URL-to-Video, AI Scripts, TTS, AI Shorts
+- **Pricing**: $99/mo (500 credits) or $299/mo (2000 credits) - platform cost
+- **Implementation**:
+  1. Add Creatify API service layer (~2 days)
+  2. Avatar selection UI in Creator Studio (~2 days)
+  3. Video preview and download integration (~1 day)
+  4. Credit tracking for Studio users (~1 day)
+- **Estimated effort**: ~1 week
+
 ## Tier Feature Access (Confirmed)
 
 | Feature | Free | Core | Premium+ |
