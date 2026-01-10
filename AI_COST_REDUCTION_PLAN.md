@@ -900,6 +900,97 @@ wealth-money-mistakes-v4.mp4  (minimalist)
 
 ---
 
+### Visual Editor Upgrade (TikTok-Style)
+
+**Status:** Not implemented
+**Cost:** Development time only
+**Effort:** ~2-3 weeks
+
+#### Overview
+
+Transform the current Editor from basic snip/text functionality to a full TikTok-style visual editor with timeline, layers, and drag-and-drop editing.
+
+#### Core Features
+
+| Feature | Current State | Target State |
+|---------|---------------|--------------|
+| Timeline | ❌ None | ✅ Visual timeline with scrubber |
+| Layers | ❌ None | ✅ Video, text, stickers, audio layers |
+| Text boxes | Basic overlay | Animated text with timing |
+| Effects | ❌ None | ✅ Transitions, filters, speed control |
+| Preview | Static | ✅ Real-time playback |
+| Trimming | Basic snip | ✅ Visual trim with handles |
+
+#### UI Components Needed
+
+1. **Timeline Component**
+   - Horizontal scrollable track
+   - Zoom in/out controls
+   - Playhead scrubber
+   - Layer rows (video, audio, text, stickers)
+
+2. **Layer System**
+   - Drag to reorder
+   - Lock/unlock layers
+   - Visibility toggle
+   - Opacity control
+
+3. **Text Editor**
+   - Font selection (10+ fonts)
+   - Text animations (fade, slide, typewriter, bounce)
+   - Timing controls (start/end time)
+   - Position/rotation handles
+   - Color + shadow options
+
+4. **Effects Panel**
+   - Transitions (cut, fade, slide, zoom)
+   - Speed control (0.5x, 1x, 1.5x, 2x)
+   - Filters (vintage, B&W, vibrant, etc.)
+   - Audio fade in/out
+
+5. **Sticker/Emoji Library**
+   - Trending stickers
+   - Emoji picker
+   - GIF integration (optional)
+
+#### Tech Stack Options
+
+| Library | Pros | Cons |
+|---------|------|------|
+| Fabric.js | Canvas-based, layer support | Learning curve |
+| Remotion | React-native, composable | Heavy bundle |
+| ffmpeg.wasm | Browser-side processing | Performance limits |
+| Custom + FFmpeg server | Full control | More dev work |
+
+#### Implementation Phases
+
+**Phase 1: Timeline + Text (1 week)**
+- [ ] Timeline component with playhead
+- [ ] Text layer with timing
+- [ ] Basic text animations
+- [ ] Real-time preview
+
+**Phase 2: Effects + Transitions (1 week)**
+- [ ] Transition library
+- [ ] Speed control
+- [ ] Filter presets
+- [ ] Audio fade controls
+
+**Phase 3: Polish + UX (1 week)**
+- [ ] Sticker library
+- [ ] Keyboard shortcuts
+- [ ] Undo/redo
+- [ ] Mobile-responsive layout
+- [ ] Export quality options
+
+#### Estimated Tier Impact
+
+- Editor unlock stays at Core+ (no change)
+- Visual editor differentiates from free download-only workflow
+- Competes with CapCut, InShot, TikTok native editor
+
+---
+
 ### Optional Enhancements
 
 - [ ] Anthropic/Claude as alternative to OpenAI (requires `ANTHROPIC_API_KEY`)
