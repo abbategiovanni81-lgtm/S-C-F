@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { 
   Sparkles, 
   Mic, 
@@ -76,14 +77,16 @@ export default function HowTo() {
                       </div>
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => setLocation("/subscription")}
-                    className="gap-2 whitespace-nowrap"
-                    data-testid="button-upgrade-cta"
-                  >
-                    <Crown className="h-4 w-4" />
-                    Upgrade Now
-                  </Button>
+                  <ResponsiveTooltip content="View plans">
+                    <Button 
+                      onClick={() => setLocation("/subscription")}
+                      className="gap-2 whitespace-nowrap"
+                      data-testid="button-upgrade-cta"
+                    >
+                      <Crown className="h-4 w-4" />
+                      Upgrade Now
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               </CardContent>
             </Card>
@@ -117,14 +120,16 @@ export default function HowTo() {
                               </p>
                             </div>
                           </div>
-                          <Button 
-                            onClick={() => setLocation("/subscription")}
-                            className="gap-2 w-full"
-                            data-testid="button-upgrade-features"
-                          >
-                            <Crown className="h-4 w-4" />
-                            Upgrade Now
-                          </Button>
+                          <ResponsiveTooltip content="View plans">
+                            <Button 
+                              onClick={() => setLocation("/subscription")}
+                              className="gap-2 w-full"
+                              data-testid="button-upgrade-features"
+                            >
+                              <Crown className="h-4 w-4" />
+                              Upgrade Now
+                            </Button>
+                          </ResponsiveTooltip>
                         </div>
                       </CardContent>
                     </Card>

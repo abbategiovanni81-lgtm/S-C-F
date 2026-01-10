@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { 
   FileText, Wand2, Loader2, Save, Send, Image as ImageIcon, 
@@ -168,9 +169,11 @@ export default function BlogStudio() {
       <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/content-queue")}>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </Button>
+            <ResponsiveTooltip content="Back to queue">
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/content-queue")}>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+              </Button>
+            </ResponsiveTooltip>
             <div>
               <h1 className="text-3xl font-bold" data-testid="text-page-title">Blog Studio</h1>
               <p className="text-muted-foreground">Create AI-generated blog posts for your brand</p>
@@ -226,18 +229,20 @@ export default function BlogStudio() {
                 </Badge>
               )}
 
-              <Button
-                onClick={handleGenerate}
-                disabled={generateBlogMutation.isPending || !selectedBriefId || !topic}
-                className="w-full"
-                data-testid="button-generate"
-              >
-                {generateBlogMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-                ) : (
-                  <><Wand2 className="w-4 h-4 mr-2" /> Generate Blog with AI</>
-                )}
-              </Button>
+              <ResponsiveTooltip content="Generate with AI">
+                <Button
+                  onClick={handleGenerate}
+                  disabled={generateBlogMutation.isPending || !selectedBriefId || !topic}
+                  className="w-full"
+                  data-testid="button-generate"
+                >
+                  {generateBlogMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                  ) : (
+                    <><Wand2 className="w-4 h-4 mr-2" /> Generate Blog with AI</>
+                  )}
+                </Button>
+              </ResponsiveTooltip>
             </CardContent>
           </Card>
 
@@ -352,28 +357,34 @@ export default function BlogStudio() {
               </div>
 
               <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setLocation("/content-queue")}
-                  data-testid="button-cancel"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => saveBlogMutation.mutate({ status: "draft" })}
-                  disabled={!blogTitle || saveBlogMutation.isPending}
-                  data-testid="button-save-draft"
-                >
-                  <Save className="w-4 h-4 mr-2" /> Save as Draft
-                </Button>
-                <Button
-                  onClick={() => saveBlogMutation.mutate({ status: "ready" })}
-                  disabled={!blogTitle || !blogBody || saveBlogMutation.isPending}
-                  data-testid="button-create-post"
-                >
-                  <Send className="w-4 h-4 mr-2" /> Create Post
-                </Button>
+                <ResponsiveTooltip content="Discard changes">
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/content-queue")}
+                    data-testid="button-cancel"
+                  >
+                    Cancel
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Save as draft">
+                  <Button
+                    variant="secondary"
+                    onClick={() => saveBlogMutation.mutate({ status: "draft" })}
+                    disabled={!blogTitle || saveBlogMutation.isPending}
+                    data-testid="button-save-draft"
+                  >
+                    <Save className="w-4 h-4 mr-2" /> Save as Draft
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Create and publish">
+                  <Button
+                    onClick={() => saveBlogMutation.mutate({ status: "ready" })}
+                    disabled={!blogTitle || !blogBody || saveBlogMutation.isPending}
+                    data-testid="button-create-post"
+                  >
+                    <Send className="w-4 h-4 mr-2" /> Create Post
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </CardContent>
           </Card>

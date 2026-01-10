@@ -21,6 +21,7 @@ import {
   Wand2, Sparkles, Film, Shuffle, PenTool
 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import type { EditJob, GeneratedContent } from "@shared/schema";
 
 const POSITIONS = [
@@ -794,43 +795,49 @@ export default function Editor() {
                       <span className="font-medium text-sm">AI Actions</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => document.getElementById("edit-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
-                        disabled={!imagePreview || aiActionLoading !== null}
-                        className="flex flex-col h-auto py-2"
-                        data-testid="button-edit-image"
-                      >
-                        <PenTool className="w-4 h-4 mb-1" />
-                        <span className="text-xs">Edit Image</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCreateVariation}
-                        disabled={!imagePreview || aiActionLoading !== null}
-                        className="flex flex-col h-auto py-2"
-                        data-testid="button-create-variation"
-                      >
-                        {aiActionLoading === "variation" ? (
-                          <Loader2 className="w-4 h-4 mb-1 animate-spin" />
-                        ) : (
-                          <Shuffle className="w-4 h-4 mb-1" />
-                        )}
-                        <span className="text-xs">Variation</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => document.getElementById("animate-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
-                        disabled={!imagePreview || aiActionLoading !== null}
-                        className="flex flex-col h-auto py-2"
-                        data-testid="button-animate-video"
-                      >
-                        <Film className="w-4 h-4 mb-1" />
-                        <span className="text-xs">Animate</span>
-                      </Button>
+                      <ResponsiveTooltip content="Edit with AI">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById("edit-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
+                          disabled={!imagePreview || aiActionLoading !== null}
+                          className="flex flex-col h-auto py-2"
+                          data-testid="button-edit-image"
+                        >
+                          <PenTool className="w-4 h-4 mb-1" />
+                          <span className="text-xs">Edit Image</span>
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Create variation">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCreateVariation}
+                          disabled={!imagePreview || aiActionLoading !== null}
+                          className="flex flex-col h-auto py-2"
+                          data-testid="button-create-variation"
+                        >
+                          {aiActionLoading === "variation" ? (
+                            <Loader2 className="w-4 h-4 mb-1 animate-spin" />
+                          ) : (
+                            <Shuffle className="w-4 h-4 mb-1" />
+                          )}
+                          <span className="text-xs">Variation</span>
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Animate to video">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById("animate-prompt-section")?.scrollIntoView({ behavior: "smooth" })}
+                          disabled={!imagePreview || aiActionLoading !== null}
+                          className="flex flex-col h-auto py-2"
+                          data-testid="button-animate-video"
+                        >
+                          <Film className="w-4 h-4 mb-1" />
+                          <span className="text-xs">Animate</span>
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                     
                     {/* Edit Image Section */}
@@ -844,14 +851,16 @@ export default function Editor() {
                           className="text-sm"
                           data-testid="input-edit-prompt"
                         />
-                        <Button
-                          size="sm"
-                          onClick={handleEditImage}
-                          disabled={!imagePreview || !editPrompt || aiActionLoading !== null}
-                          data-testid="button-apply-edit"
-                        >
-                          {aiActionLoading === "edit" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                        </Button>
+                        <ResponsiveTooltip content="Apply changes">
+                          <Button
+                            size="sm"
+                            onClick={handleEditImage}
+                            disabled={!imagePreview || !editPrompt || aiActionLoading !== null}
+                            data-testid="button-apply-edit"
+                          >
+                            {aiActionLoading === "edit" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                     </div>
 
@@ -866,14 +875,16 @@ export default function Editor() {
                           className="text-sm"
                           data-testid="input-animate-prompt"
                         />
-                        <Button
-                          size="sm"
-                          onClick={handleAnimateToVideo}
-                          disabled={!imagePreview || aiActionLoading !== null}
-                          data-testid="button-apply-animate"
-                        >
-                          {aiActionLoading === "animate" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
-                        </Button>
+                        <ResponsiveTooltip content="Animate image">
+                          <Button
+                            size="sm"
+                            onClick={handleAnimateToVideo}
+                            disabled={!imagePreview || aiActionLoading !== null}
+                            data-testid="button-apply-animate"
+                          >
+                            {aiActionLoading === "animate" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Film className="w-4 h-4" />}
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                     </div>
                   </div>
@@ -897,15 +908,17 @@ export default function Editor() {
                       onChange={handleImageSelect}
                       className="hidden"
                     />
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => imageInputRef.current?.click()}
-                      data-testid="button-upload-image"
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      {selectedImage ? selectedImage.name : "Choose Image"}
-                    </Button>
+                    <ResponsiveTooltip content="Upload image">
+                      <Button
+                        variant="outline"
+                        className="w-full mt-2"
+                        onClick={() => imageInputRef.current?.click()}
+                        data-testid="button-upload-image"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {selectedImage ? selectedImage.name : "Choose Image"}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
 
                   <div>
@@ -945,55 +958,65 @@ export default function Editor() {
                   <div>
                     <Label className="mb-2 block">Text Styles</Label>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant={isBold ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setIsBold(!isBold)}
-                        data-testid="button-bold"
-                      >
-                        <Bold className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={isItalic ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setIsItalic(!isItalic)}
-                        data-testid="button-italic"
-                      >
-                        <Italic className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={isUnderline ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setIsUnderline(!isUnderline)}
-                        data-testid="button-underline"
-                      >
-                        <Underline className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={hasStroke ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setHasStroke(!hasStroke)}
-                        className="gap-1"
-                        data-testid="button-stroke"
-                      >
-                        <span className="text-xs font-bold" style={{ WebkitTextStroke: "1px currentColor" }}>A</span>
-                        <span className="text-xs">Stroke</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={hasShadow ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setHasShadow(!hasShadow)}
-                        className="gap-1"
-                        data-testid="button-shadow"
-                      >
-                        <span className="text-xs" style={{ textShadow: "2px 2px 2px rgba(0,0,0,0.5)" }}>A</span>
-                        <span className="text-xs">Shadow</span>
-                      </Button>
+                      <ResponsiveTooltip content="Bold text">
+                        <Button
+                          type="button"
+                          variant={isBold ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsBold(!isBold)}
+                          data-testid="button-bold"
+                        >
+                          <Bold className="w-4 h-4" />
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Italic text">
+                        <Button
+                          type="button"
+                          variant={isItalic ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsItalic(!isItalic)}
+                          data-testid="button-italic"
+                        >
+                          <Italic className="w-4 h-4" />
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Underline text">
+                        <Button
+                          type="button"
+                          variant={isUnderline ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsUnderline(!isUnderline)}
+                          data-testid="button-underline"
+                        >
+                          <Underline className="w-4 h-4" />
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Text stroke">
+                        <Button
+                          type="button"
+                          variant={hasStroke ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setHasStroke(!hasStroke)}
+                          className="gap-1"
+                          data-testid="button-stroke"
+                        >
+                          <span className="text-xs font-bold" style={{ WebkitTextStroke: "1px currentColor" }}>A</span>
+                          <span className="text-xs">Stroke</span>
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Text shadow">
+                        <Button
+                          type="button"
+                          variant={hasShadow ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setHasShadow(!hasShadow)}
+                          className="gap-1"
+                          data-testid="button-shadow"
+                        >
+                          <span className="text-xs" style={{ textShadow: "2px 2px 2px rgba(0,0,0,0.5)" }}>A</span>
+                          <span className="text-xs">Shadow</span>
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </div>
 
@@ -1104,18 +1127,20 @@ export default function Editor() {
                     </div>
                   )}
 
-                        <Button
-                          onClick={handleTextOverlay}
-                          disabled={(!selectedImage && !imagePreview) || processing}
-                          className="w-full"
-                          data-testid="button-apply-text"
-                        >
-                          {processing ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-                          ) : (
-                            <><Type className="w-4 h-4 mr-2" /> Apply Text Overlay</>
-                          )}
-                        </Button>
+                        <ResponsiveTooltip content="Apply changes">
+                          <Button
+                            onClick={handleTextOverlay}
+                            disabled={(!selectedImage && !imagePreview) || processing}
+                            className="w-full"
+                            data-testid="button-apply-text"
+                          >
+                            {processing ? (
+                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                            ) : (
+                              <><Type className="w-4 h-4 mr-2" /> Apply Text Overlay</>
+                            )}
+                          </Button>
+                        </ResponsiveTooltip>
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
@@ -1131,27 +1156,31 @@ export default function Editor() {
                     </div>
                     {carouselImages.length > 1 && (
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handlePrevImage}
-                          disabled={currentImageIndex === 0}
-                          data-testid="button-prev-slide"
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </Button>
+                        <ResponsiveTooltip content="Previous slide">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handlePrevImage}
+                            disabled={currentImageIndex === 0}
+                            data-testid="button-prev-slide"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                        </ResponsiveTooltip>
                         <span className="text-sm font-normal min-w-[60px] text-center">
                           {currentImageIndex + 1} / {carouselImages.length}
                         </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleNextImage}
-                          disabled={currentImageIndex === carouselImages.length - 1}
-                          data-testid="button-next-slide"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
+                        <ResponsiveTooltip content="Next slide">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleNextImage}
+                            disabled={currentImageIndex === carouselImages.length - 1}
+                            data-testid="button-next-slide"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                     )}
                   </CardTitle>
@@ -1299,39 +1328,47 @@ export default function Editor() {
                   {outputUrl && (
                     <div className="mt-4 space-y-3">
                       <div className="flex gap-2">
-                        <Button asChild className="flex-1" data-testid="button-download-image">
-                          <a href={outputUrl} download>
-                            <Download className="w-4 h-4 mr-2" /> Download
-                          </a>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setOutputUrl(null)}
-                          data-testid="button-reset-preview"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </Button>
+                        <ResponsiveTooltip content="Download image">
+                          <Button asChild className="flex-1" data-testid="button-download-image">
+                            <a href={outputUrl} download>
+                              <Download className="w-4 h-4 mr-2" /> Download
+                            </a>
+                          </Button>
+                        </ResponsiveTooltip>
+                        <ResponsiveTooltip content="Reset preview">
+                          <Button
+                            variant="outline"
+                            onClick={() => setOutputUrl(null)}
+                            data-testid="button-reset-preview"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                       
                       {/* Destination options */}
                       <div className="border-t pt-3 space-y-2">
                         <p className="text-sm font-medium text-muted-foreground">Send to next step:</p>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={handleSendToEditMerge}
-                            data-testid="button-send-to-edit-merge"
-                          >
-                            <Scissors className="w-4 h-4 mr-2" /> Edit & Merge
-                          </Button>
-                          <Button
-                            className="flex-1"
-                            onClick={handleSendToReadyToPost}
-                            data-testid="button-send-to-ready"
-                          >
-                            <Send className="w-4 h-4 mr-2" /> Ready to Post
-                          </Button>
+                          <ResponsiveTooltip content="Go to Edit & Merge">
+                            <Button
+                              variant="outline"
+                              className="flex-1"
+                              onClick={handleSendToEditMerge}
+                              data-testid="button-send-to-edit-merge"
+                            >
+                              <Scissors className="w-4 h-4 mr-2" /> Edit & Merge
+                            </Button>
+                          </ResponsiveTooltip>
+                          <ResponsiveTooltip content="Send to Ready">
+                            <Button
+                              className="flex-1"
+                              onClick={handleSendToReadyToPost}
+                              data-testid="button-send-to-ready"
+                            >
+                              <Send className="w-4 h-4 mr-2" /> Ready to Post
+                            </Button>
+                          </ResponsiveTooltip>
                         </div>
                       </div>
                     </div>
@@ -1366,18 +1403,20 @@ export default function Editor() {
                       className="mb-3"
                       data-testid="input-video-generate-prompt"
                     />
-                    <Button
-                      onClick={handleGenerateVideo}
-                      disabled={!videoGeneratePrompt || aiActionLoading !== null}
-                      className="w-full"
-                      data-testid="button-generate-video"
-                    >
-                      {aiActionLoading === "generate-video" ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-                      ) : (
-                        <><Wand2 className="w-4 h-4 mr-2" /> Generate Video</>
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Generate video">
+                      <Button
+                        onClick={handleGenerateVideo}
+                        disabled={!videoGeneratePrompt || aiActionLoading !== null}
+                        className="w-full"
+                        data-testid="button-generate-video"
+                      >
+                        {aiActionLoading === "generate-video" ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+                        ) : (
+                          <><Wand2 className="w-4 h-4 mr-2" /> Generate Video</>
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
 
                   {/* Remix Clip */}
@@ -1396,19 +1435,21 @@ export default function Editor() {
                       className="mb-3"
                       data-testid="input-remix-prompt"
                     />
-                    <Button
-                      onClick={handleRemixVideo}
-                      disabled={!lastGeneratedVideoId || !remixPrompt || aiActionLoading !== null}
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-remix-video"
-                    >
-                      {aiActionLoading === "remix" ? (
-                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Remixing...</>
-                      ) : (
-                        <><Shuffle className="w-4 h-4 mr-2" /> Remix Video</>
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Remix video">
+                      <Button
+                        onClick={handleRemixVideo}
+                        disabled={!lastGeneratedVideoId || !remixPrompt || aiActionLoading !== null}
+                        variant="outline"
+                        className="w-full"
+                        data-testid="button-remix-video"
+                      >
+                        {aiActionLoading === "remix" ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Remixing...</>
+                        ) : (
+                          <><Shuffle className="w-4 h-4 mr-2" /> Remix Video</>
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                     {lastGeneratedVideoId && (
                       <p className="text-xs text-green-600 mt-2">Ready to remix: {lastGeneratedVideoId}</p>
                     )}
@@ -1460,24 +1501,28 @@ export default function Editor() {
                 <div>
                   <Label>Source Video</Label>
                   <div className="flex gap-2 mt-2 mb-3">
-                    <Button
-                      type="button"
-                      variant={videoSourceMode === "upload" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setVideoSourceMode("upload")}
-                      data-testid="button-source-upload"
-                    >
-                      <Upload className="w-4 h-4 mr-2" /> Upload File
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={videoSourceMode === "url" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setVideoSourceMode("url")}
-                      data-testid="button-source-url"
-                    >
-                      <Video className="w-4 h-4 mr-2" /> Paste URL
-                    </Button>
+                    <ResponsiveTooltip content="Upload file">
+                      <Button
+                        type="button"
+                        variant={videoSourceMode === "upload" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setVideoSourceMode("upload")}
+                        data-testid="button-source-upload"
+                      >
+                        <Upload className="w-4 h-4 mr-2" /> Upload File
+                      </Button>
+                    </ResponsiveTooltip>
+                    <ResponsiveTooltip content="Paste video URL">
+                      <Button
+                        type="button"
+                        variant={videoSourceMode === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setVideoSourceMode("url")}
+                        data-testid="button-source-url"
+                      >
+                        <Video className="w-4 h-4 mr-2" /> Paste URL
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
 
                   {videoSourceMode === "upload" ? (
@@ -1489,34 +1534,38 @@ export default function Editor() {
                         onChange={handleVideoFileSelect}
                         className="hidden"
                       />
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => videoInputRef.current?.click()}
-                        disabled={uploadingVideo}
-                        data-testid="button-upload-video"
-                      >
-                        {uploadingVideo ? (
-                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
-                        ) : uploadedVideoName ? (
-                          <><CheckCircle className="w-4 h-4 mr-2 text-green-500" /> {uploadedVideoName}</>
-                        ) : (
-                          <><Upload className="w-4 h-4 mr-2" /> Choose Video (MP4, MOV - up to 500MB)</>
-                        )}
-                      </Button>
-                      {uploadedVideoName && (
+                      <ResponsiveTooltip content="Upload video">
                         <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => {
-                            setUploadedVideoName(null);
-                            setVideoSourceUrl("");
-                          }}
-                          data-testid="button-clear-video"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={uploadingVideo}
+                          data-testid="button-upload-video"
                         >
-                          <Trash2 className="w-4 h-4 mr-1" /> Clear
+                          {uploadingVideo ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+                          ) : uploadedVideoName ? (
+                            <><CheckCircle className="w-4 h-4 mr-2 text-green-500" /> {uploadedVideoName}</>
+                          ) : (
+                            <><Upload className="w-4 h-4 mr-2" /> Choose Video (MP4, MOV - up to 500MB)</>
+                          )}
                         </Button>
+                      </ResponsiveTooltip>
+                      {uploadedVideoName && (
+                        <ResponsiveTooltip content="Clear video">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => {
+                              setUploadedVideoName(null);
+                              setVideoSourceUrl("");
+                            }}
+                            data-testid="button-clear-video"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" /> Clear
+                          </Button>
+                        </ResponsiveTooltip>
                       )}
                     </div>
                   ) : (
@@ -1601,18 +1650,20 @@ export default function Editor() {
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleCreateVideoJob}
-                  disabled={createJobMutation.isPending}
-                  className="w-full"
-                  data-testid="button-create-job"
-                >
-                  {createJobMutation.isPending ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating...</>
-                  ) : (
-                    <><Video className="w-4 h-4 mr-2" /> Create Edit Job</>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Create new job">
+                  <Button
+                    onClick={handleCreateVideoJob}
+                    disabled={createJobMutation.isPending}
+                    className="w-full"
+                    data-testid="button-create-job"
+                  >
+                    {createJobMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating...</>
+                    ) : (
+                      <><Video className="w-4 h-4 mr-2" /> Create Edit Job</>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1625,14 +1676,16 @@ export default function Editor() {
                   <span className="flex items-center gap-2">
                     <Clock className="w-5 h-5" /> Edit Job Queue
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/edit-jobs"] })}
-                    data-testid="button-refresh-jobs"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-                  </Button>
+                  <ResponsiveTooltip content="Refresh jobs">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/edit-jobs"] })}
+                      data-testid="button-refresh-jobs"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+                    </Button>
+                  </ResponsiveTooltip>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1683,38 +1736,48 @@ export default function Editor() {
                         <div className="flex items-center gap-2">
                           {job.status === "completed" && job.outputUrl && (
                             <>
+                              <ResponsiveTooltip content="Download">
+                                <Button asChild size="sm" variant="outline">
+                                  <a href={job.outputUrl} download>
+                                    <Download className="w-4 h-4" />
+                                  </a>
+                                </Button>
+                              </ResponsiveTooltip>
+                              <Link href="/edit-merge">
+                                <ResponsiveTooltip content="Edit & Merge">
+                                  <Button size="sm" variant="outline" data-testid={`button-job-edit-merge-${job.id}`}>
+                                    <Scissors className="w-4 h-4 mr-1" /> Edit & Merge
+                                  </Button>
+                                </ResponsiveTooltip>
+                              </Link>
+                              <Link href="/ready-to-post">
+                                <ResponsiveTooltip content="Ready to Post">
+                                  <Button size="sm" data-testid={`button-job-ready-${job.id}`}>
+                                    <Send className="w-4 h-4 mr-1" /> Ready to Post
+                                  </Button>
+                                </ResponsiveTooltip>
+                              </Link>
+                            </>
+                          )}
+                          {job.status !== "completed" && job.outputUrl && (
+                            <ResponsiveTooltip content="Download">
                               <Button asChild size="sm" variant="outline">
                                 <a href={job.outputUrl} download>
                                   <Download className="w-4 h-4" />
                                 </a>
                               </Button>
-                              <Link href="/edit-merge">
-                                <Button size="sm" variant="outline" data-testid={`button-job-edit-merge-${job.id}`}>
-                                  <Scissors className="w-4 h-4 mr-1" /> Edit & Merge
-                                </Button>
-                              </Link>
-                              <Link href="/ready-to-post">
-                                <Button size="sm" data-testid={`button-job-ready-${job.id}`}>
-                                  <Send className="w-4 h-4 mr-1" /> Ready to Post
-                                </Button>
-                              </Link>
-                            </>
+                            </ResponsiveTooltip>
                           )}
-                          {job.status !== "completed" && job.outputUrl && (
-                            <Button asChild size="sm" variant="outline">
-                              <a href={job.outputUrl} download>
-                                <Download className="w-4 h-4" />
-                              </a>
+                          <ResponsiveTooltip content="Delete job">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteJobMutation.mutate(job.id)}
+                              data-testid={`button-delete-job-${job.id}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => deleteJobMutation.mutate(job.id)}
-                            data-testid={`button-delete-job-${job.id}`}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
+                          </ResponsiveTooltip>
                         </div>
                       </div>
                     ))}

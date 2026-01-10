@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Shield, Users, Crown, User, Loader2, FileText, Video, Image, Mic, Calendar, Link2, DollarSign, Plus, Pencil, Trash2, Eye, Globe } from "lucide-react";
@@ -439,9 +440,11 @@ export default function Admin() {
                 if (!open) resetBlogForm();
               }}>
                 <DialogTrigger asChild>
-                  <Button size="sm" data-testid="button-new-blog">
-                    <Plus className="h-4 w-4 mr-2" /> New Blog
-                  </Button>
+                  <ResponsiveTooltip content="Create new blog">
+                    <Button size="sm" data-testid="button-new-blog">
+                      <Plus className="h-4 w-4 mr-2" /> New Blog
+                    </Button>
+                  </ResponsiveTooltip>
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
@@ -561,15 +564,19 @@ export default function Admin() {
                         </Select>
                       </div>
                       <div className="flex gap-2 pt-6">
-                        <Button variant="outline" onClick={() => setBlogDialogOpen(false)}>Cancel</Button>
-                        <Button 
-                          onClick={handleSaveBlog}
-                          disabled={!blogForm.title || !blogForm.slug || !blogForm.body || saveBlogMutation.isPending}
-                          data-testid="button-save-blog"
-                        >
-                          {saveBlogMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                          {editingBlog ? "Update Blog" : "Create Blog"}
-                        </Button>
+                        <ResponsiveTooltip content="Discard changes">
+                          <Button variant="outline" onClick={() => setBlogDialogOpen(false)}>Cancel</Button>
+                        </ResponsiveTooltip>
+                        <ResponsiveTooltip content="Save blog post">
+                          <Button 
+                            onClick={handleSaveBlog}
+                            disabled={!blogForm.title || !blogForm.slug || !blogForm.body || saveBlogMutation.isPending}
+                            data-testid="button-save-blog"
+                          >
+                            {saveBlogMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {editingBlog ? "Update Blog" : "Create Blog"}
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                     </div>
                   </div>
@@ -606,38 +613,44 @@ export default function Admin() {
                     </div>
                     <div className="flex items-center gap-2">
                       {blog.status === "published" && (
+                        <ResponsiveTooltip content="View blog post">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(`/blog/${blog.slug}`, "_blank")}
+                            title="View"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </ResponsiveTooltip>
+                      )}
+                      <ResponsiveTooltip content="Edit blog post">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(`/blog/${blog.slug}`, "_blank")}
-                          title="View"
+                          onClick={() => openEditBlog(blog)}
+                          title="Edit"
+                          data-testid={`button-edit-blog-${blog.id}`}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditBlog(blog)}
-                        title="Edit"
-                        data-testid={`button-edit-blog-${blog.id}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this blog?")) {
-                            deleteBlogMutation.mutate(blog.id);
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                        title="Delete"
-                        data-testid={`button-delete-blog-${blog.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Delete blog post">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm("Are you sure you want to delete this blog?")) {
+                              deleteBlogMutation.mutate(blog.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-700"
+                          title="Delete"
+                          data-testid={`button-delete-blog-${blog.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </div>
                 ))}

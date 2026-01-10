@@ -7,6 +7,7 @@ import { X, Send, Loader2, User } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import avaAvatar from "@assets/generated_images/hybrid_ai_human_avatar.png";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 interface Message {
   role: "user" | "assistant";
@@ -113,13 +114,15 @@ export function HelpChatbot() {
   return (
     <>
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 overflow-hidden border-2 border-primary hover:scale-105 transition-transform"
-          data-testid="button-open-help-chat"
-        >
-          <img src={avaAvatar} alt="Ask Ava" className="w-full h-full object-cover" />
-        </button>
+        <ResponsiveTooltip content="Chat with Ava">
+          <button
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 overflow-hidden border-2 border-primary hover:scale-105 transition-transform"
+            data-testid="button-open-help-chat"
+          >
+            <img src={avaAvatar} alt="Ask Ava" className="w-full h-full object-cover" />
+          </button>
+        </ResponsiveTooltip>
       )}
 
       {isOpen && (
@@ -129,15 +132,17 @@ export function HelpChatbot() {
               <img src={avaAvatar} alt="Ava" className="h-7 w-7 rounded-full object-cover" />
               Ask Ava
             </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/10"
-              onClick={() => setIsOpen(false)}
-              data-testid="button-close-help-chat"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <ResponsiveTooltip content="Close chat">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/10"
+                onClick={() => setIsOpen(false)}
+                data-testid="button-close-help-chat"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </ResponsiveTooltip>
           </CardHeader>
 
           <ScrollArea className="flex-1 p-4" ref={scrollRef}>
@@ -194,14 +199,16 @@ export function HelpChatbot() {
                 disabled={chatMutation.isPending}
                 data-testid="input-help-chat"
               />
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || chatMutation.isPending}
-                size="icon"
-                data-testid="button-send-help-chat"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              <ResponsiveTooltip content="Send message">
+                <Button
+                  onClick={handleSend}
+                  disabled={!input.trim() || chatMutation.isPending}
+                  size="icon"
+                  data-testid="button-send-help-chat"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </CardContent>
         </Card>

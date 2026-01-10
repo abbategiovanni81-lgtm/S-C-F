@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 interface UpgradePromptProps {
   feature: string;
@@ -75,17 +76,19 @@ export function UpgradePrompt({ feature, open, onOpenChange }: UpgradePromptProp
             <p className="text-sm text-muted-foreground mb-3">
               You can use your own API keys to access this feature. Go to Settings to add your keys.
             </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                onOpenChange(false);
-                window.location.href = "/settings";
-              }}
-              data-testid="button-go-to-settings"
-            >
-              Add Your API Keys
-            </Button>
+            <ResponsiveTooltip content="Configure API keys">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  onOpenChange(false);
+                  window.location.href = "/settings";
+                }}
+                data-testid="button-go-to-settings"
+              >
+                Add Your API Keys
+              </Button>
+            </ResponsiveTooltip>
           </div>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -108,20 +111,22 @@ export function UpgradePrompt({ feature, open, onOpenChange }: UpgradePromptProp
                 </span>
               )}
             </p>
-            <Button
-              className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-              onClick={handleUpgrade}
-              disabled={loading}
-              data-testid="button-upgrade-premium"
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-              ) : monthlyPrice?.price_id ? (
-                "Subscribe Now"
-              ) : (
-                "Contact for Premium Access"
-              )}
-            </Button>
+            <ResponsiveTooltip content="Get premium access">
+              <Button
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                onClick={handleUpgrade}
+                disabled={loading}
+                data-testid="button-upgrade-premium"
+              >
+                {loading ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
+                ) : monthlyPrice?.price_id ? (
+                  "Subscribe Now"
+                ) : (
+                  "Contact for Premium Access"
+                )}
+              </Button>
+            </ResponsiveTooltip>
           </div>
         </div>
       </DialogContent>
@@ -147,15 +152,17 @@ export function UpgradeBanner({ className }: UpgradeBannerProps) {
               Add your own API keys in Settings to use AI features, or upgrade to Premium for full access.
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0"
-            onClick={() => window.location.href = "/settings"}
-            data-testid="button-banner-settings"
-          >
-            Settings
-          </Button>
+          <ResponsiveTooltip content="View settings">
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => window.location.href = "/settings"}
+              data-testid="button-banner-settings"
+            >
+              Settings
+            </Button>
+          </ResponsiveTooltip>
         </div>
       </CardContent>
     </Card>

@@ -4,6 +4,7 @@ import { BarChart3, Calendar, Activity, FileText } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { BrandBrief, GeneratedContent, SocialAccount } from "@shared/schema";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -158,15 +159,21 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <Link href="/brand-briefs" className="block w-full p-3 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors" data-testid="button-new-brief">
-                + New Brand Brief
-              </Link>
-              <Link href="/content-queue" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-review-content">
-                Review Content
-              </Link>
-              <Link href="/accounts" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-connect-account">
-                Connect Account
-              </Link>
+              <ResponsiveTooltip content="Define your brand voice">
+                <Link href="/brand-briefs" className="block w-full p-3 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors" data-testid="button-new-brief">
+                  + New Brand Brief
+                </Link>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Approve pending content">
+                <Link href="/content-queue" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-review-content">
+                  Review Content
+                </Link>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Link social platforms">
+                <Link href="/accounts" className="block w-full p-3 rounded-lg bg-secondary text-secondary-foreground text-center font-medium hover:bg-secondary/80 transition-colors" data-testid="button-connect-account">
+                  Connect Account
+                </Link>
+              </ResponsiveTooltip>
             </div>
           </CardContent>
         </Card>

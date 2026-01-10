@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -365,18 +366,20 @@ export default function VideoToClips() {
                             disabled={urlMutation.isPending}
                             data-testid="input-video-url"
                           />
-                          <Button
-                            onClick={handleUrlSubmit}
-                            disabled={urlMutation.isPending || !urlInput.trim()}
-                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                            data-testid="button-process-url"
-                          >
-                            {urlMutation.isPending ? (
-                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Downloading...</>
-                            ) : (
-                              <><Sparkles className="w-4 h-4 mr-2" />Process</>
-                            )}
-                          </Button>
+                          <ResponsiveTooltip content="Process video URL">
+                            <Button
+                              onClick={handleUrlSubmit}
+                              disabled={urlMutation.isPending || !urlInput.trim()}
+                              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                              data-testid="button-process-url"
+                            >
+                              {urlMutation.isPending ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Downloading...</>
+                              ) : (
+                                <><Sparkles className="w-4 h-4 mr-2" />Process</>
+                              )}
+                            </Button>
+                          </ResponsiveTooltip>
                         </div>
                         
                         <p className="text-xs text-slate-500">
@@ -393,17 +396,19 @@ export default function VideoToClips() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-white">Generated Clips ({generatedClips.length})</h2>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setGeneratedClips([]);
-                  setUploadedVideo(null);
-                  setVideoUrl(null);
-                }}
-                data-testid="button-new-video"
-              >
-                Upload New Video
-              </Button>
+              <ResponsiveTooltip content="Start over">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setGeneratedClips([]);
+                    setUploadedVideo(null);
+                    setVideoUrl(null);
+                  }}
+                  data-testid="button-new-video"
+                >
+                  Upload New Video
+                </Button>
+              </ResponsiveTooltip>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -437,26 +442,30 @@ export default function VideoToClips() {
                     <h4 className="font-medium text-white mb-2 line-clamp-2">{clip.title}</h4>
                     <p className="text-sm text-slate-400 line-clamp-2 mb-3">{clip.transcript}</p>
                     <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1" 
-                        onClick={() => handleDownload(clip)}
-                        disabled={!clip.videoUrl}
-                        data-testid={`button-download-${clip.id}`}
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        Download
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 bg-purple-600 hover:bg-purple-700" 
-                        onClick={() => openEditModal(clip)}
-                        data-testid={`button-queue-${clip.id}`}
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit & Queue
-                      </Button>
+                      <ResponsiveTooltip content="Download clip">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1" 
+                          onClick={() => handleDownload(clip)}
+                          disabled={!clip.videoUrl}
+                          data-testid={`button-download-${clip.id}`}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          Download
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Edit and queue">
+                        <Button 
+                          size="sm" 
+                          className="flex-1 bg-purple-600 hover:bg-purple-700" 
+                          onClick={() => openEditModal(clip)}
+                          data-testid={`button-queue-${clip.id}`}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Edit & Queue
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </CardContent>
                 </Card>
@@ -527,15 +536,17 @@ export default function VideoToClips() {
                 </p>
               </div>
 
-              <Button
-                onClick={handleGenerateClips}
-                disabled={processMutation.isPending}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                data-testid="button-generate-clips"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                {processMutation.isPending ? "Generating clips..." : "Generate new clips"}
-              </Button>
+              <ResponsiveTooltip content="AI extract clips">
+                <Button
+                  onClick={handleGenerateClips}
+                  disabled={processMutation.isPending}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  data-testid="button-generate-clips"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {processMutation.isPending ? "Generating clips..." : "Generate new clips"}
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </DialogContent>
         </Dialog>
@@ -559,17 +570,19 @@ export default function VideoToClips() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => generateCaptionMutation.mutate(editingClip.transcript)}
-                    disabled={generateCaptionMutation.isPending}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500"
-                  >
-                    {generateCaptionMutation.isPending ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
-                    ) : (
-                      <><Sparkles className="w-4 h-4 mr-2" />Generate Hook & Caption</>
-                    )}
-                  </Button>
+                  <ResponsiveTooltip content="AI generate caption">
+                    <Button
+                      onClick={() => generateCaptionMutation.mutate(editingClip.transcript)}
+                      disabled={generateCaptionMutation.isPending}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500"
+                    >
+                      {generateCaptionMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
+                      ) : (
+                        <><Sparkles className="w-4 h-4 mr-2" />Generate Hook & Caption</>
+                      )}
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
 
                 <div className="space-y-3">
@@ -605,26 +618,30 @@ export default function VideoToClips() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDownload(editingClip)}
-                    disabled={!editingClip.videoUrl}
-                    className="flex-1"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                  <Button
-                    onClick={handleAddToQueue}
-                    disabled={addToQueueMutation.isPending}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700"
-                  >
-                    {addToQueueMutation.isPending ? (
-                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</>
-                    ) : (
-                      <><Send className="w-4 h-4 mr-2" />Add to Queue</>
-                    )}
-                  </Button>
+                  <ResponsiveTooltip content="Download clip">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDownload(editingClip)}
+                      disabled={!editingClip.videoUrl}
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Add to queue">
+                    <Button
+                      onClick={handleAddToQueue}
+                      disabled={addToQueueMutation.isPending}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    >
+                      {addToQueueMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</>
+                      ) : (
+                        <><Send className="w-4 h-4 mr-2" />Add to Queue</>
+                      )}
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               </div>
             )}

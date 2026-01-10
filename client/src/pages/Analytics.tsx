@@ -3,6 +3,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart3, TrendingUp, Users, Eye, Clock, ThumbsUp, MessageSquare, Share2, Youtube, Loader2, Upload, Image as ImageIcon, Trophy, Calendar, MapPin, Smartphone, Monitor, Tv, Globe, Play, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
@@ -342,24 +343,26 @@ export default function Analytics() {
                 onChange={handleFileSelect}
                 data-testid="input-screenshot-upload"
               />
-              <Button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || !selectedAccountId}
-                className="gap-2"
-                data-testid="button-upload-screenshot"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing {uploadProgress.current}/{uploadProgress.total}...
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-4 h-4" />
-                    Upload Screenshots
-                  </>
-                )}
-              </Button>
+              <ResponsiveTooltip content="Upload analytics images">
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || !selectedAccountId}
+                  className="gap-2"
+                  data-testid="button-upload-screenshot"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing {uploadProgress.current}/{uploadProgress.total}...
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-4 h-4" />
+                      Upload Screenshots
+                    </>
+                  )}
+                </Button>
+              </ResponsiveTooltip>
             </div>
             <div className="flex gap-4 text-center">
               <div className="p-4 bg-background rounded-lg">
@@ -538,10 +541,12 @@ export default function Analytics() {
             Connect your YouTube channel to view real-time analytics including views, subscribers, watch time, and engagement metrics.
           </p>
           <Link href="/accounts">
-            <Button size="lg" data-testid="button-connect-youtube">
-              <Youtube className="w-5 h-5 mr-2" />
-              Connect YouTube Channel
-            </Button>
+            <ResponsiveTooltip content="Link your channel">
+              <Button size="lg" data-testid="button-connect-youtube">
+                <Youtube className="w-5 h-5 mr-2" />
+                Connect YouTube Channel
+              </Button>
+            </ResponsiveTooltip>
           </Link>
         </div>
       ) : (
@@ -574,17 +579,19 @@ export default function Analytics() {
                 <p className="text-sm text-muted-foreground">@{channel.customUrl?.replace("@", "") || channel.channelId}</p>
               </div>
               <div className="ml-auto flex items-center gap-6 text-sm">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleRefreshAllYouTubeData}
-                  disabled={loadingChannel || loadingAnalytics || loadingAdvancedAnalytics}
-                  className="gap-2"
-                  data-testid="button-refresh-youtube"
-                >
-                  <RefreshCw className={`w-4 h-4 ${(loadingChannel || loadingAnalytics) ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+                <ResponsiveTooltip content="Sync latest data">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRefreshAllYouTubeData}
+                    disabled={loadingChannel || loadingAnalytics || loadingAdvancedAnalytics}
+                    className="gap-2"
+                    data-testid="button-refresh-youtube"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${(loadingChannel || loadingAnalytics) ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </ResponsiveTooltip>
                 <div className="text-center">
                   <p className="font-bold text-lg" data-testid="text-subscriber-count">{formatNumber(channel.subscriberCount)}</p>
                   <p className="text-muted-foreground">Subscribers</p>
@@ -678,20 +685,24 @@ export default function Analytics() {
                     This usually means the YouTube account needs to be reconnected with proper permissions, or the channel doesn't have YouTube Analytics API access yet.
                   </p>
                   <div className="flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleRefreshAllYouTubeData}
-                      className="gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Try Refresh
-                    </Button>
-                    <Link href="/accounts">
-                      <Button size="sm" variant="default" className="gap-2 w-full">
-                        <Youtube className="w-4 h-4" />
-                        Reconnect YouTube
+                    <ResponsiveTooltip content="Retry fetching data">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRefreshAllYouTubeData}
+                        className="gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Try Refresh
                       </Button>
+                    </ResponsiveTooltip>
+                    <Link href="/accounts">
+                      <ResponsiveTooltip content="Reauthorize YouTube">
+                        <Button size="sm" variant="default" className="gap-2 w-full">
+                          <Youtube className="w-4 h-4" />
+                          Reconnect YouTube
+                        </Button>
+                      </ResponsiveTooltip>
                     </Link>
                   </div>
                 </div>
@@ -768,11 +779,12 @@ export default function Analytics() {
                   <p className="text-sm text-muted-foreground mb-4">
                     To see traffic sources, device breakdown, geography, and more, you need to grant analytics permissions. Click below to revoke old permissions and reconnect with the required analytics scope.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    data-testid="button-reconnect-youtube"
-                    onClick={async () => {
+                  <ResponsiveTooltip content="Reset permissions">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      data-testid="button-reconnect-youtube"
+                      onClick={async () => {
                       if (!selectedYouTubeAccountId) {
                         toast({
                           title: "Select an account",
@@ -802,9 +814,10 @@ export default function Analytics() {
                       }
                     }}
                   >
-                    <Youtube className="w-4 h-4 mr-2" />
-                    Revoke &amp; Reconnect YouTube
-                  </Button>
+                      <Youtube className="w-4 h-4 mr-2" />
+                      Revoke &amp; Reconnect YouTube
+                    </Button>
+                  </ResponsiveTooltip>
                 </CardContent>
               </Card>
             )}

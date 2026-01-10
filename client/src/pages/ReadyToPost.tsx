@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -461,23 +462,25 @@ export default function ReadyToPost() {
                   <LayoutGrid className="w-4 h-4 text-purple-500" />
                   Carousel Images ({carouselImages.length} slides)
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => {
-                    carouselImages.forEach((slide: any, i: number) => {
-                      setTimeout(() => {
-                        downloadImageAsBlob(slide.imageUrl, `slide-${slide.slideIndex + 1}.png`);
-                      }, i * 500);
-                    });
-                    toast({ title: "Downloading slides...", description: `${carouselImages.length} images will be saved.` });
-                  }}
-                  data-testid={`button-download-all-slides-${content.id}`}
-                >
-                  <Download className="w-4 h-4" />
-                  Download All Slides
-                </Button>
+                <ResponsiveTooltip content="Download asset">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      carouselImages.forEach((slide: any, i: number) => {
+                        setTimeout(() => {
+                          downloadImageAsBlob(slide.imageUrl, `slide-${slide.slideIndex + 1}.png`);
+                        }, i * 500);
+                      });
+                      toast({ title: "Downloading slides...", description: `${carouselImages.length} images will be saved.` });
+                    }}
+                    data-testid={`button-download-all-slides-${content.id}`}
+                  >
+                    <Download className="w-4 h-4" />
+                    Download All Slides
+                  </Button>
+                </ResponsiveTooltip>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {carouselImages.sort((a: any, b: any) => a.slideIndex - b.slideIndex).map((slide: any, i: number) => (
@@ -589,82 +592,92 @@ export default function ReadyToPost() {
               {hasVideo && (
                 <div>
                   {hasYouTubeAccounts ? (
-                    <Button
-                      onClick={() => openPublishDialog(content)}
-                      className="w-full gap-2 bg-red-600 hover:bg-red-700"
-                      data-testid={`button-youtube-publish-${content.id}`}
-                    >
-                      <Youtube className="w-4 h-4" />
-                      Publish to YouTube
-                    </Button>
+                    <ResponsiveTooltip content="Publish to platform">
+                      <Button
+                        onClick={() => openPublishDialog(content)}
+                        className="w-full gap-2 bg-red-600 hover:bg-red-700"
+                        data-testid={`button-youtube-publish-${content.id}`}
+                      >
+                        <Youtube className="w-4 h-4" />
+                        Publish to YouTube
+                      </Button>
+                    </ResponsiveTooltip>
                   ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => window.location.href = "/api/youtube/connect"}
-                      className="w-full gap-2"
-                      data-testid={`button-connect-youtube-${content.id}`}
-                    >
-                      <Youtube className="w-4 h-4" />
-                      Connect YouTube to Publish
-                    </Button>
+                    <ResponsiveTooltip content="Connect YouTube">
+                      <Button
+                        variant="outline"
+                        onClick={() => window.location.href = "/api/youtube/connect"}
+                        className="w-full gap-2"
+                        data-testid={`button-connect-youtube-${content.id}`}
+                      >
+                        <Youtube className="w-4 h-4" />
+                        Connect YouTube to Publish
+                      </Button>
+                    </ResponsiveTooltip>
                   )}
                 </div>
               )}
-              <Button
-                variant="outline"
-                onClick={() => markAsPostedMutation.mutate(content.id)}
-                disabled={markAsPostedMutation.isPending}
-                className="w-full gap-2"
-                data-testid={`button-mark-posted-${content.id}`}
-              >
-                {markAsPostedMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="w-4 h-4" />
-                )}
-                Mark as Posted (Manual Upload)
-              </Button>
+              <ResponsiveTooltip content="Mark as complete">
+                <Button
+                  variant="outline"
+                  onClick={() => markAsPostedMutation.mutate(content.id)}
+                  disabled={markAsPostedMutation.isPending}
+                  className="w-full gap-2"
+                  data-testid={`button-mark-posted-${content.id}`}
+                >
+                  {markAsPostedMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  Mark as Posted (Manual Upload)
+                </Button>
+              </ResponsiveTooltip>
             </div>
           )}
 
           {/* Archive and Delete buttons */}
           <div className="flex gap-2 mt-3 pt-3 border-t">
             {content.status === "posted" && (
+              <ResponsiveTooltip content="Archive this post">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => archiveMutation.mutate(content.id)}
+                  disabled={archiveMutation.isPending}
+                  data-testid={`button-archive-${content.id}`}
+                >
+                  {archiveMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Archive className="w-4 h-4" />
+                  )}
+                  Archive
+                </Button>
+              </ResponsiveTooltip>
+            )}
+            <ResponsiveTooltip content="Delete permanently">
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1 gap-2"
-                onClick={() => archiveMutation.mutate(content.id)}
-                disabled={archiveMutation.isPending}
-                data-testid={`button-archive-${content.id}`}
+                className={`${content.status === "posted" ? "flex-1" : "w-full"} gap-2 text-destructive hover:text-destructive`}
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                    deleteMutation.mutate(content.id);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-${content.id}`}
               >
-                {archiveMutation.isPending ? (
+                {deleteMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Archive className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" />
                 )}
-                Archive
+                Delete
               </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className={`${content.status === "posted" ? "flex-1" : "w-full"} gap-2 text-destructive hover:text-destructive`}
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
-                  deleteMutation.mutate(content.id);
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              data-testid={`button-delete-${content.id}`}
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4" />
-              )}
-              Delete
-            </Button>
+            </ResponsiveTooltip>
           </div>
         </CardContent>
       </Card>
@@ -981,29 +994,31 @@ export default function ReadyToPost() {
             >
               Cancel
             </Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700"
-              onClick={handlePublish}
-              disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile) || (scheduleEnabled && !isScheduleValid())}
-              data-testid="button-confirm-publish"
-            >
-              {uploadMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {scheduleEnabled ? "Scheduling..." : "Uploading..."}
-                </>
-              ) : scheduleEnabled ? (
-                <>
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Schedule Upload
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Publish to YouTube
-                </>
-              )}
-            </Button>
+            <ResponsiveTooltip content={scheduleEnabled ? "Schedule post" : "Upload video"}>
+              <Button
+                className="bg-red-600 hover:bg-red-700"
+                onClick={handlePublish}
+                disabled={uploadMutation.isPending || (!useGeneratedVideo && !selectedVideoFile) || (scheduleEnabled && !isScheduleValid())}
+                data-testid="button-confirm-publish"
+              >
+                {uploadMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {scheduleEnabled ? "Scheduling..." : "Uploading..."}
+                  </>
+                ) : scheduleEnabled ? (
+                  <>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Schedule Upload
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Publish to YouTube
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>

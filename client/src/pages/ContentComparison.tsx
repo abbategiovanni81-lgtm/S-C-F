@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -294,14 +295,16 @@ export default function ContentComparison() {
                         onChange={(e) => setYourUrl(e.target.value)}
                         data-testid="input-your-url"
                       />
-                      <Button
-                        variant="outline"
-                        onClick={() => fetchContentMetaMutation.mutate({ url: yourUrl, side: "your" })}
-                        disabled={!yourUrl || fetchContentMetaMutation.isPending}
-                        data-testid="button-fetch-your-meta"
-                      >
-                        {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                      </Button>
+                      <ResponsiveTooltip content="Fetch metadata">
+                        <Button
+                          variant="outline"
+                          onClick={() => fetchContentMetaMutation.mutate({ url: yourUrl, side: "your" })}
+                          disabled={!yourUrl || fetchContentMetaMutation.isPending}
+                          data-testid="button-fetch-your-meta"
+                        >
+                          {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </div>
                   
@@ -380,14 +383,16 @@ export default function ContentComparison() {
                     onChange={(e) => setCompetitorUrl(e.target.value)}
                     data-testid="input-competitor-url"
                   />
-                  <Button
-                    variant="outline"
-                    onClick={() => fetchContentMetaMutation.mutate({ url: competitorUrl, side: "competitor" })}
-                    disabled={!competitorUrl || fetchContentMetaMutation.isPending}
-                    data-testid="button-fetch-competitor-meta"
-                  >
-                    {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                  </Button>
+                  <ResponsiveTooltip content="Fetch metadata">
+                    <Button
+                      variant="outline"
+                      onClick={() => fetchContentMetaMutation.mutate({ url: competitorUrl, side: "competitor" })}
+                      disabled={!competitorUrl || fetchContentMetaMutation.isPending}
+                      data-testid="button-fetch-competitor-meta"
+                    >
+                      {fetchContentMetaMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               </div>
               
@@ -451,25 +456,27 @@ export default function ContentComparison() {
         </div>
 
         <div className="flex justify-center">
-          <Button
-            size="lg"
-            onClick={() => compareMutation.mutate()}
-            disabled={!canCompare() || compareMutation.isPending}
-            className="gap-2 px-8"
-            data-testid="button-compare"
-          >
-            {compareMutation.isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <ArrowRight className="w-5 h-5" />
-                Compare Content
-              </>
-            )}
-          </Button>
+          <ResponsiveTooltip content="Compare content">
+            <Button
+              size="lg"
+              onClick={() => compareMutation.mutate()}
+              disabled={!canCompare() || compareMutation.isPending}
+              className="gap-2 px-8"
+              data-testid="button-compare"
+            >
+              {compareMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="w-5 h-5" />
+                  Compare Content
+                </>
+              )}
+            </Button>
+          </ResponsiveTooltip>
         </div>
 
         {comparisonResult && (
@@ -553,16 +560,20 @@ export default function ContentComparison() {
                 </p>
                 <div className="flex gap-3">
                   <Link href="/content-queue">
-                    <Button className="gap-2" data-testid="button-generate-from-comparison">
-                      <Wand2 className="w-4 h-4" />
-                      Generate Video/Image Content
-                    </Button>
+                    <ResponsiveTooltip content="Generate content">
+                      <Button className="gap-2" data-testid="button-generate-from-comparison">
+                        <Wand2 className="w-4 h-4" />
+                        Generate Video/Image Content
+                      </Button>
+                    </ResponsiveTooltip>
                   </Link>
                   <Link href="/blog-studio">
-                    <Button variant="outline" className="gap-2" data-testid="button-blog-from-comparison">
-                      <BookOpen className="w-4 h-4" />
-                      Create Blog Post
-                    </Button>
+                    <ResponsiveTooltip content="Create blog post">
+                      <Button variant="outline" className="gap-2" data-testid="button-blog-from-comparison">
+                        <BookOpen className="w-4 h-4" />
+                        Create Blog Post
+                      </Button>
+                    </ResponsiveTooltip>
                   </Link>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, MessageSquare, TrendingUp, Plus, Send, RefreshCw, ExternalLink, ThumbsUp, ThumbsDown, Copy, Sparkles, Flame, Radar, AlertCircle, Link2, Youtube, Target, ArrowUpDown, Search, Zap, CheckCircle2, Circle, ChevronRight, MessageCircle, Trash2 } from "lucide-react";
@@ -365,10 +366,12 @@ export default function SocialListening() {
             <h1 className="text-3xl font-bold font-display" data-testid="text-page-title">Social Listening</h1>
             <p className="text-muted-foreground mt-1">Find engagement opportunities across social media</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] })} data-testid="button-refresh">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <ResponsiveTooltip content="Refresh feed">
+            <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] })} data-testid="button-refresh">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </ResponsiveTooltip>
         </div>
 
         {/* Quick Scan Section - Primary User Action */}
@@ -407,24 +410,26 @@ export default function SocialListening() {
                       data-testid="input-quick-keywords"
                     />
                   </div>
-                  <Button 
-                    onClick={handleQuickScan}
-                    disabled={!quickKeywords.trim() || quickPlatforms.length === 0 || quickScanMutation.isPending}
-                    className="h-11 px-6"
-                    data-testid="button-quick-scan"
-                  >
-                    {quickScanMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Scanning...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        Scan Now
-                      </>
-                    )}
-                  </Button>
+                  <ResponsiveTooltip content="Find engagement posts">
+                    <Button 
+                      onClick={handleQuickScan}
+                      disabled={!quickKeywords.trim() || quickPlatforms.length === 0 || quickScanMutation.isPending}
+                      className="h-11 px-6"
+                      data-testid="button-quick-scan"
+                    >
+                      {quickScanMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Scanning...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Scan Now
+                        </>
+                      )}
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-muted-foreground">Scan on:</span>
@@ -462,10 +467,12 @@ export default function SocialListening() {
         <div className="flex gap-3 flex-wrap">
           <Dialog open={urlScrapeDialogOpen} onOpenChange={setUrlScrapeDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" data-testid="button-scrape-url">
-                  <Link2 className="w-4 h-4 mr-2" />
-                  Scrape Viral URL
-                </Button>
+                <ResponsiveTooltip content="Extract viral comments">
+                  <Button variant="outline" data-testid="button-scrape-url">
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Scrape Viral URL
+                  </Button>
+                </ResponsiveTooltip>
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -530,42 +537,46 @@ export default function SocialListening() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        if (viralUrl) {
-                          urlScrapeMutation.mutate({ 
-                            url: viralUrl, 
-                            maxComments,
-                            briefId: scanBriefId || undefined 
-                          });
-                        }
-                      }}
-                      disabled={!viralUrl || urlScrapeMutation.isPending}
-                      data-testid="button-start-scrape"
-                    >
-                      {urlScrapeMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Scraping comments... (may take 1-2 minutes)
-                        </>
-                      ) : (
-                        <>
-                          <Target className="w-4 h-4 mr-2" />
-                          Find Engagement Opportunities
-                        </>
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Start comment scrape">
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (viralUrl) {
+                            urlScrapeMutation.mutate({ 
+                              url: viralUrl, 
+                              maxComments,
+                              briefId: scanBriefId || undefined 
+                            });
+                          }
+                        }}
+                        disabled={!viralUrl || urlScrapeMutation.isPending}
+                        data-testid="button-start-scrape"
+                      >
+                        {urlScrapeMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Scraping comments... (may take 1-2 minutes)
+                          </>
+                        ) : (
+                          <>
+                            <Target className="w-4 h-4 mr-2" />
+                            Find Engagement Opportunities
+                          </>
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 )}
               </DialogContent>
             </Dialog>
             <Dialog open={scanDialogOpen} onOpenChange={setScanDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" data-testid="button-brand-scan">
-                  <Radar className="w-4 h-4 mr-2" />
-                  Brand Brief Scan
-                </Button>
+                <ResponsiveTooltip content="Scan with brand keywords">
+                  <Button variant="outline" data-testid="button-brand-scan">
+                    <Radar className="w-4 h-4 mr-2" />
+                    Brand Brief Scan
+                  </Button>
+                </ResponsiveTooltip>
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -621,38 +632,42 @@ export default function SocialListening() {
                         ))}
                       </div>
                     </div>
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        if (scanBriefId && scanPlatforms.length > 0) {
-                          scanMutation.mutate({ briefId: scanBriefId, platforms: scanPlatforms });
-                        }
-                      }}
-                      disabled={!scanBriefId || scanPlatforms.length === 0 || scanMutation.isPending}
-                      data-testid="button-start-scan"
-                    >
-                      {scanMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Scanning... (this may take a few minutes)
-                        </>
-                      ) : (
-                        <>
-                          <Radar className="w-4 h-4 mr-2" />
-                          Start Scan
-                        </>
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Begin platform scan">
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          if (scanBriefId && scanPlatforms.length > 0) {
+                            scanMutation.mutate({ briefId: scanBriefId, platforms: scanPlatforms });
+                          }
+                        }}
+                        disabled={!scanBriefId || scanPlatforms.length === 0 || scanMutation.isPending}
+                        data-testid="button-start-scan"
+                      >
+                        {scanMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Scanning... (this may take a few minutes)
+                          </>
+                        ) : (
+                          <>
+                            <Radar className="w-4 h-4 mr-2" />
+                            Start Scan
+                          </>
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 )}
               </DialogContent>
             </Dialog>
             <Dialog open={addPostOpen} onOpenChange={setAddPostOpen}>
               <DialogTrigger asChild>
-                <Button data-testid="button-add-post">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Post
-                </Button>
+                <ResponsiveTooltip content="Add post manually">
+                  <Button data-testid="button-add-post">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Post
+                  </Button>
+                </ResponsiveTooltip>
               </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -921,27 +936,31 @@ export default function SocialListening() {
                             </div>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setSelectedHit(hit);
-                                setSelectedBrief(hit.briefId || "");
-                                setReplyDialogOpen(true);
-                              }}
-                              data-testid={`button-reply-${hit.id}`}
-                            >
-                              <Sparkles className="w-4 h-4 mr-1" />
-                              AI Reply
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => copyToClipboard(hit.postContent)}
-                              data-testid={`button-copy-${hit.id}`}
-                            >
-                              <Copy className="w-4 h-4 mr-1" />
-                              Copy
-                            </Button>
+                            <ResponsiveTooltip content="Generate AI reply">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedHit(hit);
+                                  setSelectedBrief(hit.briefId || "");
+                                  setReplyDialogOpen(true);
+                                }}
+                                data-testid={`button-reply-${hit.id}`}
+                              >
+                                <Sparkles className="w-4 h-4 mr-1" />
+                                AI Reply
+                              </Button>
+                            </ResponsiveTooltip>
+                            <ResponsiveTooltip content="Copy post text">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => copyToClipboard(hit.postContent)}
+                                data-testid={`button-copy-${hit.id}`}
+                              >
+                                <Copy className="w-4 h-4 mr-1" />
+                                Copy
+                              </Button>
+                            </ResponsiveTooltip>
                             {(() => {
                               // Generate fallback URL for Reddit posts
                               let viewUrl = hit.postUrl || extHit.sourceUrl;
@@ -950,31 +969,35 @@ export default function SocialListening() {
                               }
                               if (!viewUrl) return null;
                               return (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={() => window.open(viewUrl!, "_blank")}
-                                  data-testid={`button-view-${hit.id}`}
-                                >
-                                  <ExternalLink className="w-4 h-4 mr-1" />
-                                  View
-                                </Button>
+                                <ResponsiveTooltip content="Open original post">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={() => window.open(viewUrl!, "_blank")}
+                                    data-testid={`button-view-${hit.id}`}
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-1" />
+                                    View
+                                  </Button>
+                                </ResponsiveTooltip>
                               );
                             })()}
                             {(hit.postUrl || hit.postId) && ["youtube", "reddit", "tiktok", "instagram"].includes(hit.platform.toLowerCase()) && hit.postType !== "comment" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedHitForComments(hit);
-                                  setCommentsDialogFilter(null);
-                                  setCommentsDialogOpen(true);
-                                }}
-                                data-testid={`button-scrape-comments-${hit.id}`}
-                              >
-                                <MessageCircle className="w-4 h-4 mr-1" />
-                                Comments
-                              </Button>
+                              <ResponsiveTooltip content="Scrape post comments">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedHitForComments(hit);
+                                    setCommentsDialogFilter(null);
+                                    setCommentsDialogOpen(true);
+                                  }}
+                                  data-testid={`button-scrape-comments-${hit.id}`}
+                                >
+                                  <MessageCircle className="w-4 h-4 mr-1" />
+                                  Comments
+                                </Button>
+                              </ResponsiveTooltip>
                             )}
                           </div>
                         </div>
@@ -1014,9 +1037,11 @@ export default function SocialListening() {
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-muted-foreground">Your reply ({draft.replyTone} tone):</p>
-                              <Button size="sm" variant="ghost" onClick={() => copyToClipboard(draft.replyContent)}>
-                                <Copy className="w-4 h-4" />
-                              </Button>
+                              <ResponsiveTooltip content="Copy reply">
+                                <Button size="sm" variant="ghost" onClick={() => copyToClipboard(draft.replyContent)}>
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </ResponsiveTooltip>
                             </div>
                             <Textarea
                               value={draft.replyContent}
@@ -1032,39 +1057,47 @@ export default function SocialListening() {
                                 {metadata.alternativeReplies.map((alt, i) => (
                                   <div key={i} className="flex items-start gap-2 text-sm bg-muted/30 rounded p-2">
                                     <span className="flex-1">{alt}</span>
-                                    <Button size="sm" variant="ghost" onClick={() => updateDraftMutation.mutate({ id: draft.id, data: { replyContent: alt } })}>
-                                      Use
-                                    </Button>
+                                    <ResponsiveTooltip content="Use this reply">
+                                      <Button size="sm" variant="ghost" onClick={() => updateDraftMutation.mutate({ id: draft.id, data: { replyContent: alt } })}>
+                                        Use
+                                      </Button>
+                                    </ResponsiveTooltip>
                                   </div>
                                 ))}
                               </div>
                             </div>
                           )}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Button
-                              onClick={() => {
-                                updateDraftMutation.mutate({ id: draft.id, data: { status: "approved" } });
-                                toast({ title: "Reply approved!", description: "Now paste it manually on the platform." });
-                              }}
-                              data-testid={`button-approve-draft-${draft.id}`}
-                            >
-                              <ThumbsUp className="w-4 h-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => updateDraftMutation.mutate({ id: draft.id, data: { status: "rejected" } })}
-                            >
-                              <ThumbsDown className="w-4 h-4 mr-1" />
-                              Reject
-                            </Button>
-                            {originalHit?.postUrl && (
-                              <Button variant="outline" asChild>
-                                <a href={originalHit.postUrl} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="w-4 h-4 mr-1" />
-                                  Open Post
-                                </a>
+                            <ResponsiveTooltip content="Approve this reply">
+                              <Button
+                                onClick={() => {
+                                  updateDraftMutation.mutate({ id: draft.id, data: { status: "approved" } });
+                                  toast({ title: "Reply approved!", description: "Now paste it manually on the platform." });
+                                }}
+                                data-testid={`button-approve-draft-${draft.id}`}
+                              >
+                                <ThumbsUp className="w-4 h-4 mr-1" />
+                                Approve
                               </Button>
+                            </ResponsiveTooltip>
+                            <ResponsiveTooltip content="Discard this draft">
+                              <Button
+                                variant="outline"
+                                onClick={() => updateDraftMutation.mutate({ id: draft.id, data: { status: "rejected" } })}
+                              >
+                                <ThumbsDown className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </ResponsiveTooltip>
+                            {originalHit?.postUrl && (
+                              <ResponsiveTooltip content="View original post">
+                                <Button variant="outline" asChild>
+                                  <a href={originalHit.postUrl} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="w-4 h-4 mr-1" />
+                                    Open Post
+                                  </a>
+                                </Button>
+                              </ResponsiveTooltip>
                             )}
                             {/* Post to YouTube button */}
                             {(() => {
@@ -1086,30 +1119,32 @@ export default function SocialListening() {
                               }
                               
                               return (
-                                <Button
-                                  variant="default"
-                                  className="bg-red-600 hover:bg-red-700"
-                                  onClick={() => {
-                                    setPostingDraftId(draft.id);
-                                    postToYouTubeMutation.mutate({
-                                      draftId: draft.id,
-                                      accountId: youtubeAccounts[0].id,
-                                      text: draft.replyContent,
-                                      videoId,
-                                      postUrl: videoUrl,
-                                      parentCommentId: parentCommentId || undefined,
-                                    });
-                                  }}
-                                  disabled={postToYouTubeMutation.isPending && postingDraftId === draft.id}
-                                  data-testid={`button-post-youtube-${draft.id}`}
-                                >
-                                  {postToYouTubeMutation.isPending && postingDraftId === draft.id ? (
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                  ) : (
-                                    <Youtube className="w-4 h-4 mr-1" />
-                                  )}
-                                  {parentCommentId ? "Reply on YouTube" : "Comment on YouTube"}
-                                </Button>
+                                <ResponsiveTooltip content="Post to YouTube">
+                                  <Button
+                                    variant="default"
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={() => {
+                                      setPostingDraftId(draft.id);
+                                      postToYouTubeMutation.mutate({
+                                        draftId: draft.id,
+                                        accountId: youtubeAccounts[0].id,
+                                        text: draft.replyContent,
+                                        videoId,
+                                        postUrl: videoUrl,
+                                        parentCommentId: parentCommentId || undefined,
+                                      });
+                                    }}
+                                    disabled={postToYouTubeMutation.isPending && postingDraftId === draft.id}
+                                    data-testid={`button-post-youtube-${draft.id}`}
+                                  >
+                                    {postToYouTubeMutation.isPending && postingDraftId === draft.id ? (
+                                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                    ) : (
+                                      <Youtube className="w-4 h-4 mr-1" />
+                                    )}
+                                    {parentCommentId ? "Reply on YouTube" : "Comment on YouTube"}
+                                  </Button>
+                                </ResponsiveTooltip>
                               );
                             })()}
                           </div>
@@ -1223,28 +1258,30 @@ export default function SocialListening() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    if (!checkAIAccess("AI Reply Generation")) return;
-                    if (selectedHit && selectedBrief) {
-                      generateReplyMutation.mutate({
-                        hitId: selectedHit.id,
-                        briefId: selectedBrief,
-                        replyTone,
-                      });
-                    }
-                  }}
-                  disabled={!selectedBrief || generateReplyMutation.isPending}
-                  data-testid="button-generate-reply"
-                >
-                  {generateReplyMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  Generate Reply
-                </Button>
+                <ResponsiveTooltip content="Create AI reply">
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (!checkAIAccess("AI Reply Generation")) return;
+                      if (selectedHit && selectedBrief) {
+                        generateReplyMutation.mutate({
+                          hitId: selectedHit.id,
+                          briefId: selectedBrief,
+                          replyTone,
+                        });
+                      }
+                    }}
+                    disabled={!selectedBrief || generateReplyMutation.isPending}
+                    data-testid="button-generate-reply"
+                  >
+                    {generateReplyMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    Generate Reply
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             )}
           </DialogContent>
@@ -1356,27 +1393,29 @@ export default function SocialListening() {
                   return null;
                 })()}
 
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    scrapeCommentsMutation.mutate(selectedHitForComments.id);
-                  }}
-                  disabled={scrapeCommentsMutation.isPending || !selectedHitForComments.postUrl}
-                >
-                  {scrapeCommentsMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Scraping & Classifying...
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      {hits.filter(h => h.postType === "comment" && (h as any).sourceUrl === selectedHitForComments.postUrl).length > 0 
-                        ? "Scrape More Comments" 
-                        : "Scrape Comments"}
-                    </>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Extract comments">
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      scrapeCommentsMutation.mutate(selectedHitForComments.id);
+                    }}
+                    disabled={scrapeCommentsMutation.isPending || !selectedHitForComments.postUrl}
+                  >
+                    {scrapeCommentsMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Scraping & Classifying...
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        {hits.filter(h => h.postType === "comment" && (h as any).sourceUrl === selectedHitForComments.postUrl).length > 0 
+                          ? "Scrape More Comments" 
+                          : "Scrape Comments"}
+                      </>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
                 {!selectedHitForComments.postUrl && (
                   <p className="text-xs text-destructive text-center">Cannot scrape: No URL available for this post</p>
                 )}

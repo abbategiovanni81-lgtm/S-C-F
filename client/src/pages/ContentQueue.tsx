@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -1901,19 +1902,21 @@ export default function ContentQueue() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground">ElevenLabs Voiceover</p>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => openEditVoiceoverDialog(
-                      content.id,
-                      (content.generationMetadata as any).videoPrompts.voiceoverText,
-                      (content.generationMetadata as any).videoPrompts.voiceStyle
-                    )}
-                    data-testid={`button-edit-voiceover-${content.id}`}
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </Button>
+                  <ResponsiveTooltip content="Edit voiceover">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => openEditVoiceoverDialog(
+                        content.id,
+                        (content.generationMetadata as any).videoPrompts.voiceoverText,
+                        (content.generationMetadata as any).videoPrompts.voiceStyle
+                      )}
+                      data-testid={`button-edit-voiceover-${content.id}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
                 <p className="text-sm bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 whitespace-pre-wrap border border-blue-200 dark:border-blue-800">
                   {(content.generationMetadata as any).videoPrompts.voiceoverText}
@@ -1942,37 +1945,41 @@ export default function ContentQueue() {
                 )}
                 
                 <div className="flex flex-col sm:flex-row gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    variant={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "outline" : "default"}
-                    onClick={() => handleGenerateVoiceover(content)}
-                    disabled={generatingVoiceoverId === content.id}
-                    className="gap-2 w-full sm:w-auto"
-                    data-testid={`button-generate-voiceover-${content.id}`}
-                  >
-                    {generatingVoiceoverId === content.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Mic className="w-4 h-4" />
-                        {generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "Regenerate" : "Generate Voiceover"}
-                      </>
-                    )}
-                  </Button>
+                  <ResponsiveTooltip content="Generate voiceover">
+                    <Button
+                      size="sm"
+                      variant={generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "outline" : "default"}
+                      onClick={() => handleGenerateVoiceover(content)}
+                      disabled={generatingVoiceoverId === content.id}
+                      className="gap-2 w-full sm:w-auto"
+                      data-testid={`button-generate-voiceover-${content.id}`}
+                    >
+                      {generatingVoiceoverId === content.id ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-4 h-4" />
+                          {generatedAudio[content.id] || (content.generationMetadata as any)?.voiceoverAudioUrl ? "Regenerate" : "Generate Voiceover"}
+                        </>
+                      )}
+                    </Button>
+                  </ResponsiveTooltip>
                   
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openLipSyncDialog(content)}
-                    className="gap-2 w-full sm:w-auto"
-                    data-testid={`button-lipsync-${content.id}`}
-                  >
-                    <Film className="w-4 h-4" />
-                    Create Lip-Sync Video
-                  </Button>
+                  <ResponsiveTooltip content="Create lip-sync video">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openLipSyncDialog(content)}
+                      className="gap-2 w-full sm:w-auto"
+                      data-testid={`button-lipsync-${content.id}`}
+                    >
+                      <Film className="w-4 h-4" />
+                      Create Lip-Sync Video
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               </div>
             )}
@@ -1999,26 +2006,28 @@ export default function ContentQueue() {
                   </div>
                 )}
                 
-                <Button
-                  size="sm"
-                  variant={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "outline" : "default"}
-                  onClick={() => openVideoDialog(content)}
-                  disabled={generatingVideoId === content.id || videoRequests[content.id]?.status === "processing"}
-                  className="gap-2 w-full sm:w-auto"
-                  data-testid={`button-generate-video-${content.id}`}
-                >
-                  {generatingVideoId === content.id || videoRequests[content.id]?.status === "processing" ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating Video...
-                    </>
-                  ) : (
-                    <>
-                      <Video className="w-4 h-4" />
-                      {generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "Regenerate Video" : "Generate Video (Fal.ai)"}
-                    </>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Generate video">
+                  <Button
+                    size="sm"
+                    variant={generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "outline" : "default"}
+                    onClick={() => openVideoDialog(content)}
+                    disabled={generatingVideoId === content.id || videoRequests[content.id]?.status === "processing"}
+                    className="gap-2 w-full sm:w-auto"
+                    data-testid={`button-generate-video-${content.id}`}
+                  >
+                    {generatingVideoId === content.id || videoRequests[content.id]?.status === "processing" ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating Video...
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-4 h-4" />
+                        {generatedVideos[content.id] || (content.generationMetadata as any)?.generatedVideoUrl ? "Regenerate Video" : "Generate Video (Fal.ai)"}
+                      </>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             )}
             
@@ -2129,24 +2138,28 @@ export default function ContentQueue() {
                           <Badge variant="outline" className="text-xs">Scene {scene.sceneNumber}</Badge>
                           <div className="flex items-center gap-1">
                             <span className="text-xs text-muted-foreground mr-1">{scene.duration}s</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => openEditSceneDialog(content.id, scene.sceneNumber, scene.sceneDescription, scene.visualPrompt)}
-                              data-testid={`button-edit-scene-${content.id}-${scene.sceneNumber}`}
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteScene(content.id, scene.sceneNumber)}
-                              data-testid={`button-delete-scene-${content.id}-${scene.sceneNumber}`}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            <ResponsiveTooltip content="Edit scene">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => openEditSceneDialog(content.id, scene.sceneNumber, scene.sceneDescription, scene.visualPrompt)}
+                                data-testid={`button-edit-scene-${content.id}-${scene.sceneNumber}`}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                            </ResponsiveTooltip>
+                            <ResponsiveTooltip content="Delete scene">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteScene(content.id, scene.sceneNumber)}
+                                data-testid={`button-delete-scene-${content.id}-${scene.sceneNumber}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </ResponsiveTooltip>
                           </div>
                         </div>
                         <p className="text-sm font-medium mb-1">{scene.sceneDescription}</p>
@@ -2160,26 +2173,28 @@ export default function ContentQueue() {
                           </div>
                         )}
                         
-                        <Button
-                          size="sm"
-                          variant={videoUrl ? "outline" : "default"}
-                          onClick={() => handleGenerateSceneVideo(content.id, scene.sceneNumber, scene.visualPrompt, content.platforms)}
-                          disabled={isGenerating}
-                          className="gap-2 w-full"
-                          data-testid={`button-generate-scene-${content.id}-${scene.sceneNumber}`}
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Video className="w-4 h-4" />
-                              {videoUrl ? "Regenerate" : "Generate"} Scene {scene.sceneNumber}
-                            </>
-                          )}
-                        </Button>
+                        <ResponsiveTooltip content="Generate scene video">
+                          <Button
+                            size="sm"
+                            variant={videoUrl ? "outline" : "default"}
+                            onClick={() => handleGenerateSceneVideo(content.id, scene.sceneNumber, scene.visualPrompt, content.platforms)}
+                            disabled={isGenerating}
+                            className="gap-2 w-full"
+                            data-testid={`button-generate-scene-${content.id}-${scene.sceneNumber}`}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Video className="w-4 h-4" />
+                                {videoUrl ? "Regenerate" : "Generate"} Scene {scene.sceneNumber}
+                              </>
+                            )}
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                     );
                   })}
@@ -2191,18 +2206,20 @@ export default function ContentQueue() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-medium text-muted-foreground">Thumbnail Image Prompt</p>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
-                    onClick={() => openEditThumbnailDialog(
-                      content.id,
-                      (content.generationMetadata as any).videoPrompts.thumbnailPrompt
-                    )}
-                    data-testid={`button-edit-thumbnail-${content.id}`}
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </Button>
+                  <ResponsiveTooltip content="Edit thumbnail">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => openEditThumbnailDialog(
+                        content.id,
+                        (content.generationMetadata as any).videoPrompts.thumbnailPrompt
+                      )}
+                      data-testid={`button-edit-thumbnail-${content.id}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
                 <p className="text-sm bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   {(content.generationMetadata as any).videoPrompts.thumbnailPrompt}
@@ -2239,26 +2256,28 @@ export default function ContentQueue() {
                 })()}
                 
                 {/* Generate Thumbnail Button */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2 w-full sm:w-auto"
-                  onClick={() => handleGenerateThumbnail(content)}
-                  disabled={generatingImageId === content.id}
-                  data-testid={`button-generate-thumbnail-${content.id}`}
-                >
-                  {generatingImageId === content.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="w-4 h-4" />
-                      {(content.generationMetadata as any)?.generatedThumbnailUrl ? "Regenerate" : "Generate"} Thumbnail
-                    </>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Generate thumbnail">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 w-full sm:w-auto"
+                    onClick={() => handleGenerateThumbnail(content)}
+                    disabled={generatingImageId === content.id}
+                    data-testid={`button-generate-thumbnail-${content.id}`}
+                  >
+                    {generatingImageId === content.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="w-4 h-4" />
+                        {(content.generationMetadata as any)?.generatedThumbnailUrl ? "Regenerate" : "Generate"} Thumbnail
+                      </>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             )}
             
@@ -2270,22 +2289,24 @@ export default function ContentQueue() {
                     <li key={i}>{suggestion}</li>
                   ))}
                 </ul>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2 w-full sm:w-auto"
-                  onClick={() => {
-                    const suggestions = (content.generationMetadata as any).videoPrompts.brollSuggestions;
-                    if (suggestions && suggestions.length > 0) {
-                      setBrollSearchQuery(suggestions[0]);
-                    }
-                    setBrollDialogOpen(true);
-                  }}
-                  data-testid={`button-broll-${content.id}`}
-                >
-                  <Clapperboard className="w-4 h-4" />
-                  Find B-Roll Footage (Pexels)
-                </Button>
+                <ResponsiveTooltip content="Find B-roll footage">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 w-full sm:w-auto"
+                    onClick={() => {
+                      const suggestions = (content.generationMetadata as any).videoPrompts.brollSuggestions;
+                      if (suggestions && suggestions.length > 0) {
+                        setBrollSearchQuery(suggestions[0]);
+                      }
+                      setBrollDialogOpen(true);
+                    }}
+                    data-testid={`button-broll-${content.id}`}
+                  >
+                    <Clapperboard className="w-4 h-4" />
+                    Find B-Roll Footage (Pexels)
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             )}
 
@@ -2299,15 +2320,17 @@ export default function ContentQueue() {
                 <ImageIcon className="w-4 h-4" />
                 AI Image Prompts
               </div>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => openEditImageDialog(content.id, (content.generationMetadata as any).imagePrompts)}
-                data-testid={`button-edit-image-${content.id}`}
-              >
-                <Pencil className="w-3 h-3" />
-              </Button>
+              <ResponsiveTooltip content="Edit image prompt">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => openEditImageDialog(content.id, (content.generationMetadata as any).imagePrompts)}
+                  data-testid={`button-edit-image-${content.id}`}
+                >
+                  <Pencil className="w-3 h-3" />
+                </Button>
+              </ResponsiveTooltip>
             </div>
             
             <div className="space-y-2">
@@ -2419,56 +2442,60 @@ export default function ContentQueue() {
                 </select>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  size="sm"
-                  variant={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "outline" : "default"}
-                  className="gap-2"
-                  onClick={() => handleGenerateImage(content)}
-                  disabled={generatingImageId === content.id}
-                  data-testid={`button-generate-image-${content.id}`}
-                >
-                  {generatingImageId === content.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon className="w-4 h-4" />
-                      {generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "Regenerate" : "Generate Image"}
-                    </>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Generate image">
+                  <Button
+                    size="sm"
+                    variant={generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "outline" : "default"}
+                    className="gap-2"
+                    onClick={() => handleGenerateImage(content)}
+                    disabled={generatingImageId === content.id}
+                    data-testid={`button-generate-image-${content.id}`}
+                  >
+                    {generatingImageId === content.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="w-4 h-4" />
+                        {generatedImages[content.id] || (content.generationMetadata as any)?.generatedImageUrl ? "Regenerate" : "Generate Image"}
+                      </>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
                 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = "image/*";
-                    input.onchange = (e) => {
-                      const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file) handleImageUpload(content, file);
-                    };
-                    input.click();
-                  }}
-                  disabled={uploadingImageId === content.id}
-                  data-testid={`button-upload-image-${content.id}`}
-                >
-                  {uploadingImageId === content.id ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4" />
-                      Upload My Image
-                    </>
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Upload image">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = "image/*";
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleImageUpload(content, file);
+                      };
+                      input.click();
+                    }}
+                    disabled={uploadingImageId === content.id}
+                    data-testid={`button-upload-image-${content.id}`}
+                  >
+                    {uploadingImageId === content.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        Upload My Image
+                      </>
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </div>
           </div>
@@ -2506,31 +2533,35 @@ export default function ContentQueue() {
                             Slide {i + 1} {slide.purpose && <span className="text-purple-500">({slide.purpose})</span>}
                           </p>
                           <div className="flex items-center gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => handleRegenerateSingleSlide(content, i)}
-                              disabled={regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i}
-                              data-testid={`button-regenerate-slide-${content.id}-${i}`}
-                              title="Regenerate this slide"
-                            >
-                              {regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-3 h-3" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={() => openEditCarouselSlide(content.id, i, slide)}
-                              data-testid={`button-edit-slide-${content.id}-${i}`}
-                              title="Edit slide prompt"
-                            >
-                              <Pencil className="w-3 h-3" />
-                            </Button>
+                            <ResponsiveTooltip content="Regenerate slide">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => handleRegenerateSingleSlide(content, i)}
+                                disabled={regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i}
+                                data-testid={`button-regenerate-slide-${content.id}-${i}`}
+                                title="Regenerate this slide"
+                              >
+                                {regeneratingSingleSlide?.contentId === content.id && regeneratingSingleSlide?.slideIndex === i ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-3 h-3" />
+                                )}
+                              </Button>
+                            </ResponsiveTooltip>
+                            <ResponsiveTooltip content="Edit slide">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => openEditCarouselSlide(content.id, i, slide)}
+                                data-testid={`button-edit-slide-${content.id}-${i}`}
+                                title="Edit slide prompt"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </Button>
+                            </ResponsiveTooltip>
                           </div>
                         </div>
                         <p className="text-sm mb-1">{slide.imagePrompt}</p>
@@ -2592,25 +2623,27 @@ export default function ContentQueue() {
 
             {/* Only show this button in Pending - Approved uses the collapsible */}
             {content.status !== "approved" && (
-              <Button
-                size="sm"
-                className="gap-2 w-full sm:w-auto"
-                onClick={() => handleGenerateAllCarouselSlides(content)}
-                disabled={generatingCarouselId === content.id}
-                data-testid={`button-generate-carousel-${content.id}`}
-              >
-                {generatingCarouselId === content.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
-                  </>
-                ) : (
-                  <>
-                    <LayoutGrid className="w-4 h-4" />
-                    {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
-                  </>
-                )}
-              </Button>
+              <ResponsiveTooltip content="Generate all slides">
+                <Button
+                  size="sm"
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={() => handleGenerateAllCarouselSlides(content)}
+                  disabled={generatingCarouselId === content.id}
+                  data-testid={`button-generate-carousel-${content.id}`}
+                >
+                  {generatingCarouselId === content.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
+                    </>
+                  ) : (
+                    <>
+                      <LayoutGrid className="w-4 h-4" />
+                      {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
+                    </>
+                  )}
+                </Button>
+              </ResponsiveTooltip>
             )}
           </div>
         )}
@@ -2642,62 +2675,70 @@ export default function ContentQueue() {
 
         {showActions && content.status === "pending" && (
           <div className="flex gap-2 pt-2">
-            <Button
-              className="flex-1"
-              onClick={() => approveMutation.mutate(content.id)}
-              disabled={approveMutation.isPending}
-              data-testid={`button-approve-${content.id}`}
-            >
-              {approveMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Approve
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => openRejectDialog(content)}
-              disabled={rejectMutation.isPending}
-              data-testid={`button-reject-${content.id}`}
-            >
-              {rejectMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <X className="w-4 h-4 mr-2" />
-                  Reject
-                </>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => archiveMutation.mutate(content.id)}
-              disabled={archiveMutation.isPending}
-              data-testid={`button-archive-${content.id}`}
-              title="Archive"
-            >
-              <Archive className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
-                  deleteMutation.mutate(content.id);
-                }
-              }}
-              disabled={deleteMutation.isPending}
-              data-testid={`button-delete-${content.id}`}
-              title="Delete"
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
+            <ResponsiveTooltip content="Approve content">
+              <Button
+                className="flex-1"
+                onClick={() => approveMutation.mutate(content.id)}
+                disabled={approveMutation.isPending}
+                data-testid={`button-approve-${content.id}`}
+              >
+                {approveMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Approve
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Reject content">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => openRejectDialog(content)}
+                disabled={rejectMutation.isPending}
+                data-testid={`button-reject-${content.id}`}
+              >
+                {rejectMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <X className="w-4 h-4 mr-2" />
+                    Reject
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Archive item">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => archiveMutation.mutate(content.id)}
+                disabled={archiveMutation.isPending}
+                data-testid={`button-archive-${content.id}`}
+                title="Archive"
+              >
+                <Archive className="w-4 h-4" />
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Delete item">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                    deleteMutation.mutate(content.id);
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                data-testid={`button-delete-${content.id}`}
+                title="Delete"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </ResponsiveTooltip>
           </div>
         )}
 
@@ -2720,17 +2761,21 @@ export default function ContentQueue() {
               <div className="flex gap-2">
                 {/* Editor: Text overlay for images, video editing for videos */}
                 <Link href={`/editor/${content.id}`} className="flex-1">
-                  <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
-                    <Type className="w-4 h-4" />
-                    {isImage ? "Add Text in Editor" : "Editor"}
-                  </Button>
+                  <ResponsiveTooltip content="Open editor">
+                    <Button className="w-full gap-2" variant="outline" data-testid={`button-editor-${content.id}`}>
+                      <Type className="w-4 h-4" />
+                      {isImage ? "Add Text in Editor" : "Editor"}
+                    </Button>
+                  </ResponsiveTooltip>
                 </Link>
                 {/* ALL CONTENT: Go to Edit & Merge */}
                 <Link href={`/edit-merge/${content.id}`} className="flex-1">
-                  <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
-                    <Scissors className="w-4 h-4" />
-                    Edit & Merge
-                  </Button>
+                  <ResponsiveTooltip content="Edit and merge">
+                    <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-${content.id}`}>
+                      <Scissors className="w-4 h-4" />
+                      Edit & Merge
+                    </Button>
+                  </ResponsiveTooltip>
                 </Link>
               </div>
               
@@ -2820,79 +2865,85 @@ export default function ContentQueue() {
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="flex-1 gap-2"
-                        onClick={() => handleGenerateImage(content)}
-                        disabled={generatingImageId === content.id}
-                        data-testid={`button-generate-image-${content.id}`}
-                      >
-                        {generatingImageId === content.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-4 h-4" />
-                            Generate Image
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Generate image">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="flex-1 gap-2"
+                          onClick={() => handleGenerateImage(content)}
+                          disabled={generatingImageId === content.id}
+                          data-testid={`button-generate-image-${content.id}`}
+                        >
+                          {generatingImageId === content.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="w-4 h-4" />
+                              Generate Image
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                       
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 gap-2"
-                        onClick={() => {
-                          const input = document.createElement("input");
-                          input.type = "file";
-                          input.accept = "image/*";
-                          input.onchange = (e) => {
-                            const file = (e.target as HTMLInputElement).files?.[0];
-                            if (file) handleImageUpload(content, file);
-                          };
-                          input.click();
-                        }}
-                        disabled={uploadingImageId === content.id}
-                        data-testid={`button-upload-image-${content.id}`}
-                      >
-                        {uploadingImageId === content.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4" />
-                            Upload Image
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Upload image">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-2"
+                          onClick={() => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/*";
+                            input.onchange = (e) => {
+                              const file = (e.target as HTMLInputElement).files?.[0];
+                              if (file) handleImageUpload(content, file);
+                            };
+                            input.click();
+                          }}
+                          disabled={uploadingImageId === content.id}
+                          data-testid={`button-upload-image-${content.id}`}
+                        >
+                          {uploadingImageId === content.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              Upload Image
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                     
                     {/* Carousel: Regenerate All Slides button */}
                     {metadata?.carouselPrompts && (
-                      <Button
-                        size="sm"
-                        className="gap-2 w-full mt-2"
-                        onClick={() => handleGenerateAllCarouselSlides(content)}
-                        disabled={generatingCarouselId === content.id}
-                        data-testid={`button-regenerate-carousel-approved-${content.id}`}
-                      >
-                        {generatingCarouselId === content.id ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
-                          </>
-                        ) : (
-                          <>
-                            <LayoutGrid className="w-4 h-4" />
-                            {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Generate all slides">
+                        <Button
+                          size="sm"
+                          className="gap-2 w-full mt-2"
+                          onClick={() => handleGenerateAllCarouselSlides(content)}
+                          disabled={generatingCarouselId === content.id}
+                          data-testid={`button-regenerate-carousel-approved-${content.id}`}
+                        >
+                          {generatingCarouselId === content.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Generating {carouselSlideProgress[content.id]?.current || 0}/{carouselSlideProgress[content.id]?.total || 0}...
+                            </>
+                          ) : (
+                            <>
+                              <LayoutGrid className="w-4 h-4" />
+                              {(content.generationMetadata as any)?.generatedCarouselImages?.length > 0 ? "Regenerate All Slides" : "Generate All Slides"}
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                     )}
                   </CollapsibleContent>
                   
@@ -2997,16 +3048,18 @@ export default function ContentQueue() {
                 
                 if (hasAccount) {
                   return (
-                    <Button
-                      key={`${rawPlatform}-${content.id}`}
-                      className={`${style.bg} text-white text-xs py-1.5`}
-                      size="sm"
-                      onClick={() => openPublishDialog(content, platform)}
-                      data-testid={`button-publish-${platform.toLowerCase()}-${content.id}`}
-                    >
-                      {platform === "YouTube" && <Youtube className="w-3 h-3 mr-1" />}
-                      {rawPlatform}
-                    </Button>
+                    <ResponsiveTooltip key={`tooltip-${rawPlatform}-${content.id}`} content={`Publish to ${platform}`}>
+                      <Button
+                        key={`${rawPlatform}-${content.id}`}
+                        className={`${style.bg} text-white text-xs py-1.5`}
+                        size="sm"
+                        onClick={() => openPublishDialog(content, platform)}
+                        data-testid={`button-publish-${platform.toLowerCase()}-${content.id}`}
+                      >
+                        {platform === "YouTube" && <Youtube className="w-3 h-3 mr-1" />}
+                        {rawPlatform}
+                      </Button>
+                    </ResponsiveTooltip>
                   );
                 } else {
                   const connectUrl = platform === "YouTube" ? "/api/youtube/connect"
@@ -3019,16 +3072,18 @@ export default function ContentQueue() {
                     : platform === "Bluesky" ? "/accounts" 
                     : "/accounts";
                   return (
-                    <Button
-                      key={`${rawPlatform}-${content.id}`}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => window.location.href = connectUrl}
-                      data-testid={`button-connect-${platform.toLowerCase()}-${content.id}`}
-                    >
-                      Connect {platform}
-                    </Button>
+                    <ResponsiveTooltip key={`tooltip-connect-${rawPlatform}-${content.id}`} content={`Connect ${platform}`}>
+                      <Button
+                        key={`${rawPlatform}-${content.id}`}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => window.location.href = connectUrl}
+                        data-testid={`button-connect-${platform.toLowerCase()}-${content.id}`}
+                      >
+                        Connect {platform}
+                      </Button>
+                    </ResponsiveTooltip>
                   );
                 }
               })}
@@ -3036,54 +3091,60 @@ export default function ContentQueue() {
             
             {/* Download button */}
             {(getVideoUrlFromContent(content) || getImageUrlFromContent(content)) && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-2"
-                onClick={() => {
-                  const url = getVideoUrlFromContent(content) || getImageUrlFromContent(content);
-                  if (url) {
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `content-${content.id}`;
-                    link.click();
-                  }
-                }}
-                data-testid={`button-download-${content.id}`}
-              >
-                <Download className="w-3 h-3 mr-2" />
-                Download
-              </Button>
+              <ResponsiveTooltip content="Download file">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-2"
+                  onClick={() => {
+                    const url = getVideoUrlFromContent(content) || getImageUrlFromContent(content);
+                    if (url) {
+                      const link = document.createElement("a");
+                      link.href = url;
+                      link.download = `content-${content.id}`;
+                      link.click();
+                    }
+                  }}
+                  data-testid={`button-download-${content.id}`}
+                >
+                  <Download className="w-3 h-3 mr-2" />
+                  Download
+                </Button>
+              </ResponsiveTooltip>
             )}
             
             {/* Archive and Delete buttons for approved content */}
             <div className="flex gap-2 mt-3 pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => archiveMutation.mutate(content.id)}
-                disabled={archiveMutation.isPending}
-                data-testid={`button-archive-approved-${content.id}`}
-              >
-                <Archive className="w-4 h-4" />
-                Archive
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-2 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
-                    deleteMutation.mutate(content.id);
-                  }
-                }}
-                disabled={deleteMutation.isPending}
-                data-testid={`button-delete-approved-${content.id}`}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </Button>
+              <ResponsiveTooltip content="Archive item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => archiveMutation.mutate(content.id)}
+                  disabled={archiveMutation.isPending}
+                  data-testid={`button-archive-approved-${content.id}`}
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </Button>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Delete item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                      deleteMutation.mutate(content.id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  data-testid={`button-delete-approved-${content.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </div>
         )}
@@ -3101,54 +3162,62 @@ export default function ContentQueue() {
               Legacy content - use Edit & Merge to add images or video clips, or move directly to Ready to Post.
             </p>
             <Link href={`/edit-merge/${content.id}`}>
-              <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
-                <Scissors className="w-4 h-4" />
-                Go to Edit & Merge
-              </Button>
+              <ResponsiveTooltip content="Edit and merge">
+                <Button className="w-full gap-2" variant="default" data-testid={`button-edit-merge-legacy-${content.id}`}>
+                  <Scissors className="w-4 h-4" />
+                  Go to Edit & Merge
+                </Button>
+              </ResponsiveTooltip>
             </Link>
-            <Button
-              className="w-full gap-2"
-              variant="outline"
-              onClick={() => markReadyMutation.mutate(content.id)}
-              disabled={markingReadyId === content.id}
-              data-testid={`button-mark-ready-legacy-${content.id}`}
-            >
-              {markingReadyId === content.id ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <ArrowRight className="w-4 h-4" />
-                  Move to Ready to Post
-                </>
-              )}
-            </Button>
+            <ResponsiveTooltip content="Move to ready">
+              <Button
+                className="w-full gap-2"
+                variant="outline"
+                onClick={() => markReadyMutation.mutate(content.id)}
+                disabled={markingReadyId === content.id}
+                data-testid={`button-mark-ready-legacy-${content.id}`}
+              >
+                {markingReadyId === content.id ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4" />
+                    Move to Ready to Post
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
             <div className="flex gap-2 mt-3 pt-3 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => archiveMutation.mutate(content.id)}
-                disabled={archiveMutation.isPending}
-                data-testid={`button-archive-legacy-${content.id}`}
-              >
-                <Archive className="w-4 h-4" />
-                Archive
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-2 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
-                    deleteMutation.mutate(content.id);
-                  }
-                }}
-                disabled={deleteMutation.isPending}
-                data-testid={`button-delete-legacy-${content.id}`}
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </Button>
+              <ResponsiveTooltip content="Archive item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => archiveMutation.mutate(content.id)}
+                  disabled={archiveMutation.isPending}
+                  data-testid={`button-archive-legacy-${content.id}`}
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </Button>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Delete item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                      deleteMutation.mutate(content.id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  data-testid={`button-delete-legacy-${content.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </div>
         )}
@@ -3158,42 +3227,48 @@ export default function ContentQueue() {
           <div className="pt-4 space-y-3 border-t mt-4">
             <p className="text-xs font-medium text-muted-foreground">Actions</p>
             <div className="flex gap-2">
-              <Button
-                variant="default"
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => approveMutation.mutate(content.id)}
-                disabled={approveMutation.isPending}
-                data-testid={`button-reapprove-${content.id}`}
-              >
-                <Check className="w-4 h-4" />
-                Re-approve
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 gap-2"
-                onClick={() => archiveMutation.mutate(content.id)}
-                disabled={archiveMutation.isPending}
-                data-testid={`button-archive-rejected-${content.id}`}
-              >
-                <Archive className="w-4 h-4" />
-                Archive
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 text-destructive hover:text-destructive"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
-                    deleteMutation.mutate(content.id);
-                  }
-                }}
-                disabled={deleteMutation.isPending}
-                data-testid={`button-delete-rejected-${content.id}`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <ResponsiveTooltip content="Re-approve content">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => approveMutation.mutate(content.id)}
+                  disabled={approveMutation.isPending}
+                  data-testid={`button-reapprove-${content.id}`}
+                >
+                  <Check className="w-4 h-4" />
+                  Re-approve
+                </Button>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Archive item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-2"
+                  onClick={() => archiveMutation.mutate(content.id)}
+                  disabled={archiveMutation.isPending}
+                  data-testid={`button-archive-rejected-${content.id}`}
+                >
+                  <Archive className="w-4 h-4" />
+                  Archive
+                </Button>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Delete item">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this content? This cannot be undone.")) {
+                      deleteMutation.mutate(content.id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  data-testid={`button-delete-rejected-${content.id}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </div>
         )}
@@ -3301,38 +3376,42 @@ export default function ContentQueue() {
                       <p className="text-sm text-muted-foreground line-clamp-3">{content.caption}</p>
                     )}
                     <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => restoreMutation.mutate(content.id)}
-                        disabled={restoreMutation.isPending}
-                        data-testid={`button-restore-${content.id}`}
-                      >
-                        {restoreMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            Restore
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          if (confirm("Are you sure you want to permanently delete this content?")) {
-                            deleteMutation.mutate(content.id);
-                          }
-                        }}
-                        disabled={deleteMutation.isPending}
-                        data-testid={`button-delete-archived-${content.id}`}
-                      >
-                        {deleteMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Restore item">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => restoreMutation.mutate(content.id)}
+                          disabled={restoreMutation.isPending}
+                          data-testid={`button-restore-${content.id}`}
+                        >
+                          {restoreMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Restore
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Delete permanently">
+                        <Button
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm("Are you sure you want to permanently delete this content?")) {
+                              deleteMutation.mutate(content.id);
+                            }
+                          }}
+                          disabled={deleteMutation.isPending}
+                          data-testid={`button-delete-archived-${content.id}`}
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </CardContent>
                 </Card>

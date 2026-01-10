@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { ArrowLeft, Calendar, User, Share2, Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -91,9 +92,11 @@ export default function BlogPost() {
           <h1 className="text-3xl font-bold text-white mb-4">Blog Post Not Found</h1>
           <p className="text-slate-300 mb-8">The blog post you're looking for doesn't exist or has been removed.</p>
           <Link href="/blog">
-            <Button>
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Blog
-            </Button>
+            <ResponsiveTooltip content="View all articles">
+              <Button>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Blog
+              </Button>
+            </ResponsiveTooltip>
           </Link>
         </div>
       </div>
@@ -105,13 +108,17 @@ export default function BlogPost() {
       <article className="container mx-auto px-4 py-8 max-w-3xl">
         <div className="flex items-center justify-between mb-8">
           <Link href="/blog">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Blog
-            </Button>
+            <ResponsiveTooltip content="View all articles">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Blog
+              </Button>
+            </ResponsiveTooltip>
           </Link>
-          <Button variant="ghost" size="sm" onClick={handleShare} className="text-white hover:bg-white/10">
-            <Share2 className="w-4 h-4 mr-2" /> Share
-          </Button>
+          <ResponsiveTooltip content="Share this article">
+            <Button variant="ghost" size="sm" onClick={handleShare} className="text-white hover:bg-white/10">
+              <Share2 className="w-4 h-4 mr-2" /> Share
+            </Button>
+          </ResponsiveTooltip>
         </div>
 
         {blog.heroImageUrl && (
@@ -174,13 +181,17 @@ export default function BlogPost() {
         <footer className="mt-12 pt-8 border-t border-slate-700">
           <div className="flex items-center justify-between">
             <Link href="/blog">
-              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
-                <ArrowLeft className="w-4 h-4 mr-2" /> More Articles
-              </Button>
+              <ResponsiveTooltip content="Browse more posts">
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800">
+                  <ArrowLeft className="w-4 h-4 mr-2" /> More Articles
+                </Button>
+              </ResponsiveTooltip>
             </Link>
-            <Button onClick={handleShare} className="bg-purple-600 hover:bg-purple-700">
-              <Share2 className="w-4 h-4 mr-2" /> Share This Post
-            </Button>
+            <ResponsiveTooltip content="Share this article">
+              <Button onClick={handleShare} className="bg-purple-600 hover:bg-purple-700">
+                <Share2 className="w-4 h-4 mr-2" /> Share This Post
+              </Button>
+            </ResponsiveTooltip>
           </div>
         </footer>
       </article>

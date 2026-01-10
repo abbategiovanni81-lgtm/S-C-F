@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 export function Header({ title }: { title: string }) {
   const { user, logout } = useAuth();
@@ -70,12 +71,14 @@ export function Header({ title }: { title: string }) {
           />
         </div>
         
-        <button 
-          className="w-9 h-9 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          data-testid="button-notifications"
-        >
-          <Bell className="w-4 h-4" />
-        </button>
+        <ResponsiveTooltip content="View notifications">
+          <button 
+            className="w-9 h-9 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            data-testid="button-notifications"
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+        </ResponsiveTooltip>
         
         <div className="flex items-center gap-3 pl-2 border-l border-border/50">
           <DropdownMenu>

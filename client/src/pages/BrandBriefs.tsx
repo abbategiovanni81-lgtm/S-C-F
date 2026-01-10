@@ -17,6 +17,7 @@ import type { BrandBrief, BrandAsset, AssetType, ASSET_TYPES } from "@shared/sch
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 const PLATFORMS = ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn", "Facebook"];
 const FREQUENCIES = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
@@ -459,10 +460,12 @@ export default function BrandBriefs() {
         </p>
         <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) resetFormFields(); }}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-brief">
-              <Plus className="w-4 h-4 mr-2" />
-              New Brand Brief
-            </Button>
+            <ResponsiveTooltip content="Create a brand profile">
+              <Button data-testid="button-create-brief">
+                <Plus className="w-4 h-4 mr-2" />
+                New Brand Brief
+              </Button>
+            </ResponsiveTooltip>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -492,20 +495,22 @@ export default function BrandBriefs() {
                   className="flex-1"
                   data-testid="input-website-url"
                 />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAnalyzeWebsite}
-                  disabled={analyzingWebsite || !websiteUrl.trim()}
-                  data-testid="button-analyze-website"
-                >
-                  {analyzingWebsite ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {analyzingWebsite ? "Analyzing..." : "Analyze"}
-                </Button>
+                <ResponsiveTooltip content="Auto-fill with AI">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleAnalyzeWebsite}
+                    disabled={analyzingWebsite || !websiteUrl.trim()}
+                    data-testid="button-analyze-website"
+                  >
+                    {analyzingWebsite ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    {analyzingWebsite ? "Analyzing..." : "Analyze"}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </div>
             
@@ -650,13 +655,17 @@ export default function BrandBriefs() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createBriefMutation.isPending || selectedPlatforms.length === 0} data-testid="button-submit-brief">
-                  {createBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Create Brief
-                </Button>
+                <ResponsiveTooltip content="Close dialog">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Save new brief">
+                  <Button type="submit" disabled={createBriefMutation.isPending || selectedPlatforms.length === 0} data-testid="button-submit-brief">
+                    {createBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Create Brief
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </form>
           </DialogContent>
@@ -675,10 +684,12 @@ export default function BrandBriefs() {
             <p className="text-muted-foreground text-center mb-4">
               Create your first brand brief to start generating AI-powered content.
             </p>
-            <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-brief">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Brief
-            </Button>
+            <ResponsiveTooltip content="Create a brand profile">
+              <Button onClick={() => setIsDialogOpen(true)} data-testid="button-create-first-brief">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Brief
+              </Button>
+            </ResponsiveTooltip>
           </CardContent>
         </Card>
       ) : (
@@ -709,49 +720,57 @@ export default function BrandBriefs() {
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleGenerateContent(brief.id)}
-                    disabled={generatingForBrief === brief.id}
-                    data-testid={`button-generate-${brief.id}`}
-                  >
-                    {generatingForBrief === brief.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Generate
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleGenerateIdeas(brief.id)}
-                    disabled={generateIdeasMutation.isPending && showIdeasForBrief === brief.id}
-                    data-testid={`button-ideas-${brief.id}`}
-                  >
-                    {generateIdeasMutation.isPending && showIdeasForBrief === brief.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Lightbulb className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditBrief(brief)}
-                    data-testid={`button-edit-${brief.id}`}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenAssets(brief.id)}
-                    data-testid={`button-assets-${brief.id}`}
-                  >
-                    <ImagePlus className="w-4 h-4" />
-                  </Button>
+                  <ResponsiveTooltip content="Create AI content">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handleGenerateContent(brief.id)}
+                      disabled={generatingForBrief === brief.id}
+                      data-testid={`button-generate-${brief.id}`}
+                    >
+                      {generatingForBrief === brief.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 mr-2" />
+                      )}
+                      Generate
+                    </Button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Get topic suggestions">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleGenerateIdeas(brief.id)}
+                      disabled={generateIdeasMutation.isPending && showIdeasForBrief === brief.id}
+                      data-testid={`button-ideas-${brief.id}`}
+                    >
+                      {generateIdeasMutation.isPending && showIdeasForBrief === brief.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Lightbulb className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Modify this brief">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditBrief(brief)}
+                      data-testid={`button-edit-${brief.id}`}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Upload brand images">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenAssets(brief.id)}
+                      data-testid={`button-assets-${brief.id}`}
+                    >
+                      <ImagePlus className="w-4 h-4" />
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
 
                 {showIdeasForBrief === brief.id && generatedIdeas.length > 0 && (
@@ -817,17 +836,18 @@ export default function BrandBriefs() {
                 <Label className="text-sm font-medium mb-2 block">Number of Scenes</Label>
                 <div className="flex gap-2">
                   {[1, 2, 3].map((num) => (
-                    <Button
-                      key={num}
-                      type="button"
-                      variant={sceneCount === num ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSceneCount(num)}
-                      className="flex-1"
-                      data-testid={`button-scene-count-${num}`}
-                    >
-                      {num} {num === 1 ? "Scene" : "Scenes"}
-                    </Button>
+                    <ResponsiveTooltip key={num} content="Select scene count">
+                      <Button
+                        type="button"
+                        variant={sceneCount === num ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSceneCount(num)}
+                        className="flex-1"
+                        data-testid={`button-scene-count-${num}`}
+                      >
+                        {num} {num === 1 ? "Scene" : "Scenes"}
+                      </Button>
+                    </ResponsiveTooltip>
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -1028,31 +1048,35 @@ export default function BrandBriefs() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setFormatDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={executeGenerate}
-              disabled={generateContentMutation.isPending || analyzingStyle || (selectedFormat === "carousel" && carouselMode === "match_style" && !referenceImage)}
-              data-testid="button-confirm-generate"
-            >
-              {analyzingStyle ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing Style...
-                </>
-              ) : generateContentMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Content
-                </>
-              )}
-            </Button>
+            <ResponsiveTooltip content="Close dialog">
+              <Button variant="outline" onClick={() => setFormatDialogOpen(false)}>
+                Cancel
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Start generating">
+              <Button
+                onClick={executeGenerate}
+                disabled={generateContentMutation.isPending || analyzingStyle || (selectedFormat === "carousel" && carouselMode === "match_style" && !referenceImage)}
+                data-testid="button-confirm-generate"
+              >
+                {analyzingStyle ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing Style...
+                  </>
+                ) : generateContentMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate Content
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1196,13 +1220,17 @@ export default function BrandBriefs() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updateBriefMutation.isPending || editPlatforms.length === 0} data-testid="button-save-edit">
-                  {updateBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Save Changes
-                </Button>
+                <ResponsiveTooltip content="Close dialog">
+                  <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Save edits">
+                  <Button type="submit" disabled={updateBriefMutation.isPending || editPlatforms.length === 0} data-testid="button-save-edit">
+                    {updateBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    Save Changes
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </form>
           )}
@@ -1294,24 +1322,26 @@ export default function BrandBriefs() {
                 )}
               </div>
 
-              <Button
-                onClick={handleUploadAsset}
-                disabled={!assetFile || !assetName || uploadingAsset}
-                className="w-full"
-                data-testid="button-upload-asset"
-              >
-                {uploadingAsset ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Asset
-                  </>
-                )}
-              </Button>
+              <ResponsiveTooltip content="Upload this image">
+                <Button
+                  onClick={handleUploadAsset}
+                  disabled={!assetFile || !assetName || uploadingAsset}
+                  className="w-full"
+                  data-testid="button-upload-asset"
+                >
+                  {uploadingAsset ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Asset
+                    </>
+                  )}
+                </Button>
+              </ResponsiveTooltip>
             </div>
 
             <div className="space-y-3">
@@ -1349,15 +1379,17 @@ export default function BrandBriefs() {
                             )}
                           </div>
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => deleteAssetMutation.mutate(asset.id)}
-                          data-testid={`button-delete-asset-${asset.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <ResponsiveTooltip content="Remove this asset">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => deleteAssetMutation.mutate(asset.id)}
+                            data-testid={`button-delete-asset-${asset.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </ResponsiveTooltip>
                       </div>
                       {asset.description && (
                         <p className="text-xs text-muted-foreground line-clamp-2">{asset.description}</p>
@@ -1370,9 +1402,11 @@ export default function BrandBriefs() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssetsDialogOpen(false)}>
-              Close
-            </Button>
+            <ResponsiveTooltip content="Close dialog">
+              <Button variant="outline" onClick={() => setAssetsDialogOpen(false)}>
+                Close
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -572,10 +573,12 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
             <p className="text-muted-foreground">Analyze viral posts and competitor videos to improve your content</p>
           </div>
           {mainTab === "video-research" && selectedForComparison.length >= 2 && (
-            <Button onClick={() => setShowComparisonDialog(true)} data-testid="button-compare-selected">
-              <GitCompare className="w-4 h-4 mr-2" />
-              Compare {selectedForComparison.length} Videos
-            </Button>
+            <ResponsiveTooltip content="Compare videos">
+              <Button onClick={() => setShowComparisonDialog(true)} data-testid="button-compare-selected">
+                <GitCompare className="w-4 h-4 mr-2" />
+                Compare {selectedForComparison.length} Videos
+              </Button>
+            </ResponsiveTooltip>
           )}
         </div>
 
@@ -656,33 +659,35 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                           </div>
                         )}
 
-                        <Button
-                          onClick={() => {
-                            if (!postUrl) {
-                              toast({ title: "Please enter a URL", variant: "destructive" });
-                              return;
-                            }
-                            scrapePostMutation.mutate({ 
-                              url: postUrl, 
-                              briefId: selectedBriefId && selectedBriefId !== "none" ? selectedBriefId : undefined 
-                            });
-                          }}
-                          disabled={!postUrl || scrapePostMutation.isPending}
-                          className="w-full"
-                          data-testid="button-scrape-post"
-                        >
-                          {scrapePostMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Scraping post...
-                            </>
-                          ) : (
-                            <>
-                              <Search className="w-4 h-4 mr-2" />
-                              Scrape & Analyze Post
-                            </>
-                          )}
-                        </Button>
+                        <ResponsiveTooltip content="Scrape post data">
+                          <Button
+                            onClick={() => {
+                              if (!postUrl) {
+                                toast({ title: "Please enter a URL", variant: "destructive" });
+                                return;
+                              }
+                              scrapePostMutation.mutate({ 
+                                url: postUrl, 
+                                briefId: selectedBriefId && selectedBriefId !== "none" ? selectedBriefId : undefined 
+                              });
+                            }}
+                            disabled={!postUrl || scrapePostMutation.isPending}
+                            className="w-full"
+                            data-testid="button-scrape-post"
+                          >
+                            {scrapePostMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Scraping post...
+                              </>
+                            ) : (
+                              <>
+                                <Search className="w-4 h-4 mr-2" />
+                                Scrape & Analyze Post
+                              </>
+                            )}
+                          </Button>
+                        </ResponsiveTooltip>
                       </TabsContent>
 
                       <TabsContent value="screenshot" className="mt-4">
@@ -782,28 +787,32 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       </div>
 
                       <div className="flex gap-2">
-                        <Button
-                          onClick={handleAnalyze}
-                          disabled={selectedFiles.length === 0 || analyzeMutation.isPending}
-                          className="flex-1"
-                          data-testid="button-analyze"
-                        >
-                          {analyzeMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Analyzing...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="w-4 h-4 mr-2" />
-                              Analyze Content
-                            </>
-                          )}
-                        </Button>
-                        {(selectedFiles.length > 0 || analysis) && (
-                          <Button variant="outline" onClick={handleReset} data-testid="button-reset">
-                            <RefreshCw className="w-4 h-4" />
+                        <ResponsiveTooltip content="Analyze content">
+                          <Button
+                            onClick={handleAnalyze}
+                            disabled={selectedFiles.length === 0 || analyzeMutation.isPending}
+                            className="flex-1"
+                            data-testid="button-analyze"
+                          >
+                            {analyzeMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Analyze Content
+                              </>
+                            )}
                           </Button>
+                        </ResponsiveTooltip>
+                        {(selectedFiles.length > 0 || analysis) && (
+                          <ResponsiveTooltip content="Reset">
+                            <Button variant="outline" onClick={handleReset} data-testid="button-reset">
+                              <RefreshCw className="w-4 h-4" />
+                            </Button>
+                          </ResponsiveTooltip>
                         )}
                       </div>
                     </div>
@@ -997,23 +1006,27 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                             </Button>
                           ) : (
                             <div className="flex gap-2">
-                              <Button
-                                onClick={() => handleOpenGenerateDialog("post")}
-                                className="gap-2"
-                                data-testid="button-generate-from-post"
-                              >
-                                <Wand2 className="w-4 h-4" />
-                                Generate Content
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setLocation("/blog-studio")}
-                                className="gap-2"
-                                data-testid="button-convert-to-blog-post"
-                              >
-                                <BookOpen className="w-4 h-4" />
-                                Create Blog
-                              </Button>
+                              <ResponsiveTooltip content="Generate content">
+                                <Button
+                                  onClick={() => handleOpenGenerateDialog("post")}
+                                  className="gap-2"
+                                  data-testid="button-generate-from-post"
+                                >
+                                  <Wand2 className="w-4 h-4" />
+                                  Generate Content
+                                </Button>
+                              </ResponsiveTooltip>
+                              <ResponsiveTooltip content="Create blog post">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => setLocation("/blog-studio")}
+                                  className="gap-2"
+                                  data-testid="button-convert-to-blog-post"
+                                >
+                                  <BookOpen className="w-4 h-4" />
+                                  Create Blog
+                                </Button>
+                              </ResponsiveTooltip>
                             </div>
                           )}
                         </div>
@@ -1065,14 +1078,16 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         onChange={(e) => setNewVideoUrl(e.target.value)}
                         data-testid="input-video-url"
                       />
-                      <Button 
-                        onClick={() => addVideoMutation.mutate(newVideoUrl)}
-                        disabled={!newVideoUrl || addVideoMutation.isPending}
-                        data-testid="button-add-video"
-                      >
-                        {addVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        Add
-                      </Button>
+                      <ResponsiveTooltip content="Add video">
+                        <Button 
+                          onClick={() => addVideoMutation.mutate(newVideoUrl)}
+                          disabled={!newVideoUrl || addVideoMutation.isPending}
+                          data-testid="button-add-video"
+                        >
+                          {addVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                          Add
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </CardContent>
                 </Card>
@@ -1154,35 +1169,41 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         {selectedVideo && (
                           <div className="flex gap-2">
                             {selectedVideo.status === "pending" && (
-                              <Button
-                                size="sm"
-                                onClick={() => scrapeVideoMutation.mutate(selectedVideo.id)}
-                                disabled={scrapeVideoMutation.isPending}
-                                data-testid="button-fetch-transcript"
-                              >
-                                {scrapeVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
-                                Fetch Transcript
-                              </Button>
+                              <ResponsiveTooltip content="Get transcript">
+                                <Button
+                                  size="sm"
+                                  onClick={() => scrapeVideoMutation.mutate(selectedVideo.id)}
+                                  disabled={scrapeVideoMutation.isPending}
+                                  data-testid="button-fetch-transcript"
+                                >
+                                  {scrapeVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileText className="w-4 h-4 mr-2" />}
+                                  Fetch Transcript
+                                </Button>
+                              </ResponsiveTooltip>
                             )}
                             {selectedVideo.status === "completed" && (
+                              <ResponsiveTooltip content="AI analyze video">
+                                <Button
+                                  size="sm"
+                                  onClick={() => analyzeVideoMutation.mutate(selectedVideo.id)}
+                                  disabled={analyzeVideoMutation.isPending}
+                                  data-testid="button-analyze-video"
+                                >
+                                  {analyzeVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <BarChart2 className="w-4 h-4 mr-2" />}
+                                  Analyze with AI
+                                </Button>
+                              </ResponsiveTooltip>
+                            )}
+                            <ResponsiveTooltip content="Delete video">
                               <Button
                                 size="sm"
-                                onClick={() => analyzeVideoMutation.mutate(selectedVideo.id)}
-                                disabled={analyzeVideoMutation.isPending}
-                                data-testid="button-analyze-video"
+                                variant="destructive"
+                                onClick={() => deleteVideoMutation.mutate(selectedVideo.id)}
+                                data-testid="button-delete-video"
                               >
-                                {analyzeVideoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <BarChart2 className="w-4 h-4 mr-2" />}
-                                Analyze with AI
+                                <Trash2 className="w-4 h-4" />
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteVideoMutation.mutate(selectedVideo.id)}
-                              data-testid="button-delete-video"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            </ResponsiveTooltip>
                           </div>
                         )}
                       </div>
@@ -1328,23 +1349,27 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                               )}
 
                               <div className="pt-4 border-t space-y-2">
-                                <Button
-                                  onClick={() => handleOpenGenerateDialog("video")}
-                                  className="w-full gap-2"
-                                  data-testid="button-generate-from-video"
-                                >
-                                  <Wand2 className="w-4 h-4" />
-                                  Generate Content from This Analysis
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => setLocation(`/blog-studio/video/${selectedVideo.id}`)}
-                                  className="w-full gap-2"
-                                  data-testid="button-convert-to-blog-video"
-                                >
-                                  <BookOpen className="w-4 h-4" />
-                                  Convert to Blog
-                                </Button>
+                                <ResponsiveTooltip content="Generate content">
+                                  <Button
+                                    onClick={() => handleOpenGenerateDialog("video")}
+                                    className="w-full gap-2"
+                                    data-testid="button-generate-from-video"
+                                  >
+                                    <Wand2 className="w-4 h-4" />
+                                    Generate Content from This Analysis
+                                  </Button>
+                                </ResponsiveTooltip>
+                                <ResponsiveTooltip content="Create blog post">
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setLocation(`/blog-studio/video/${selectedVideo.id}`)}
+                                    className="w-full gap-2"
+                                    data-testid="button-convert-to-blog-video"
+                                  >
+                                    <BookOpen className="w-4 h-4" />
+                                    Convert to Blog
+                                  </Button>
+                                </ResponsiveTooltip>
                               </div>
                             </div>
                           )}
@@ -1364,9 +1389,11 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                       <p className="text-muted-foreground mb-4">
                         Select 2+ videos from the Videos tab and compare them to find winning patterns
                       </p>
-                      <Button onClick={() => setVideoTab("videos")}>
-                        Go to Videos
-                      </Button>
+                      <ResponsiveTooltip content="View videos">
+                        <Button onClick={() => setVideoTab("videos")}>
+                          Go to Videos
+                        </Button>
+                      </ResponsiveTooltip>
                     </CardContent>
                   </Card>
                 ) : (

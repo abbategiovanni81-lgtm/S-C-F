@@ -12,6 +12,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2, Crown, BarChart3, FileText, Mic, Video, Image, MessageSquare, CreditCard } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 
 export default function Settings() {
   const { user, logout, hasFullAccess, tier } = useAuth();
@@ -191,14 +192,16 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => logout()}
-                    data-testid="button-logout"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
+                  <ResponsiveTooltip content="Sign out of account">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => logout()}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               </CardContent>
             </Card>
@@ -302,18 +305,20 @@ export default function Settings() {
                               Top up for £10 and get {usageStats.tier === "pro" ? "20%" : "40%"} extra on all limits this month
                             </p>
                           </div>
-                          <Button
-                            onClick={() => topupMutation.mutate()}
-                            disabled={topupMutation.isPending}
-                            data-testid="button-topup"
-                          >
-                            {topupMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <CreditCard className="h-4 w-4 mr-2" />
-                            )}
-                            Top Up £10
-                          </Button>
+                          <ResponsiveTooltip content="Add more credits">
+                            <Button
+                              onClick={() => topupMutation.mutate()}
+                              disabled={topupMutation.isPending}
+                              data-testid="button-topup"
+                            >
+                              {topupMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <CreditCard className="h-4 w-4 mr-2" />
+                              )}
+                              Top Up £10
+                            </Button>
+                          </ResponsiveTooltip>
                         </div>
                       </div>
                     </div>
@@ -489,20 +494,22 @@ export default function Settings() {
                       />
                       <p className="text-xs text-muted-foreground">For B-Roll stock footage</p>
                     </div>
-                    <Button 
-                      onClick={handleSaveKeys}
-                      disabled={saveKeysMutation.isPending}
-                      data-testid="button-save-keys"
-                    >
-                      {saveKeysMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save API Keys"
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Save your changes">
+                      <Button 
+                        onClick={handleSaveKeys}
+                        disabled={saveKeysMutation.isPending}
+                        data-testid="button-save-keys"
+                      >
+                        {saveKeysMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save API Keys"
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 )}
               </CardContent>
@@ -527,21 +534,25 @@ export default function Settings() {
                     <p className="text-sm text-muted-foreground">
                       You can manage your connected accounts in the Accounts page.
                     </p>
-                    <Button variant="outline" asChild>
-                      <a href="/accounts" data-testid="link-manage-accounts">Manage Accounts</a>
-                    </Button>
+                    <ResponsiveTooltip content="View connected accounts">
+                      <Button variant="outline" asChild>
+                        <a href="/accounts" data-testid="link-manage-accounts">Manage Accounts</a>
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <p className="text-muted-foreground">
                       Connect your YouTube channel to upload videos directly and view analytics.
                     </p>
-                    <Button asChild>
-                      <a href="/accounts" data-testid="link-connect-youtube">
-                        <Youtube className="h-4 w-4 mr-2" />
-                        Connect YouTube
-                      </a>
-                    </Button>
+                    <ResponsiveTooltip content="Link your channel">
+                      <Button asChild>
+                        <a href="/accounts" data-testid="link-connect-youtube">
+                          <Youtube className="h-4 w-4 mr-2" />
+                          Connect YouTube
+                        </a>
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 )}
               </CardContent>
@@ -667,15 +678,17 @@ function SubscriptionTab({ tier, hasFullAccess, usageStats, loadingUsage }: {
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 150 DALL-E images</li>
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 3 listening keywords</li>
               </ul>
-              <Button 
-                className="w-full mt-4" 
-                onClick={() => handleSubscribe("premium")}
-                disabled={subscribing}
-                data-testid="button-subscribe-premium"
-              >
-                {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Upgrade to Premium
-              </Button>
+              <ResponsiveTooltip content="Get Premium plan">
+                <Button 
+                  className="w-full mt-4" 
+                  onClick={() => handleSubscribe("premium")}
+                  disabled={subscribing}
+                  data-testid="button-subscribe-premium"
+                >
+                  {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Upgrade to Premium
+                </Button>
+              </ResponsiveTooltip>
             </CardContent>
           </Card>
 
@@ -698,15 +711,17 @@ function SubscriptionTab({ tier, hasFullAccess, usageStats, loadingUsage }: {
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 400 DALL-E images</li>
                 <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> 6 listening keywords</li>
               </ul>
-              <Button 
-                className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
-                onClick={() => handleSubscribe("pro")}
-                disabled={subscribing}
-                data-testid="button-subscribe-pro"
-              >
-                {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Upgrade to Pro
-              </Button>
+              <ResponsiveTooltip content="Get Pro plan">
+                <Button 
+                  className="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600" 
+                  onClick={() => handleSubscribe("pro")}
+                  disabled={subscribing}
+                  data-testid="button-subscribe-pro"
+                >
+                  {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Upgrade to Pro
+                </Button>
+              </ResponsiveTooltip>
             </CardContent>
           </Card>
         </div>

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { 
   Wand2, 
   Mic, 
@@ -300,15 +301,17 @@ export default function CreatorStudio() {
             <AlertDescription className="text-muted-foreground">
               Get access to advanced AI tools: voice cloning, talking photos, face swap, AI dubbing, and more.
               {tier === "studio" ? " Studio tier includes Creator Studio." : " Add Creator Studio to your subscription for £20/month, or upgrade to Studio tier (£99.99/mo - Early adopter pricing, limited time) to get it included."}
-              <Button 
-                onClick={() => subscribeMutation.mutate()} 
-                disabled={subscribeMutation.isPending}
-                className="ml-4 bg-gradient-to-r from-purple-600 to-pink-600"
-                size="sm"
-              >
-                {subscribeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                Subscribe Now
-              </Button>
+              <ResponsiveTooltip content="Upgrade subscription">
+                <Button 
+                  onClick={() => subscribeMutation.mutate()} 
+                  disabled={subscribeMutation.isPending}
+                  className="ml-4 bg-gradient-to-r from-purple-600 to-pink-600"
+                  size="sm"
+                >
+                  {subscribeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                  Subscribe Now
+                </Button>
+              </ResponsiveTooltip>
             </AlertDescription>
           </Alert>
         )}
@@ -542,15 +545,17 @@ function VoiceCloneTab({ usage }: { usage?: { used: number; limit: number } }) {
             data-testid="input-voice-name"
           />
         </div>
-        <Button 
-          onClick={() => mutation.mutate()}
-          disabled={mutation.isPending || !audioUrl || !voiceName}
-          className="gap-2"
-          data-testid="button-clone-voice"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-          Clone Voice
-        </Button>
+        <ResponsiveTooltip content="Start voice cloning">
+          <Button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !audioUrl || !voiceName}
+            className="gap-2"
+            data-testid="button-clone-voice"
+          >
+            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+            Clone Voice
+          </Button>
+        </ResponsiveTooltip>
       </CardContent>
     </Card>
   );
@@ -639,15 +644,17 @@ function TalkingPhotoTab({ usage }: { usage?: { used: number; limit: number } })
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !imageUrl || !text}
-            className="gap-2"
-            data-testid="button-talking-photo"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Generate Talking Photo
-          </Button>
+          <ResponsiveTooltip content="Create talking photo">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !imageUrl || !text}
+              className="gap-2"
+              data-testid="button-talking-photo"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Generate Talking Photo
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -743,15 +750,17 @@ function TalkingVideoTab({ usage }: { usage?: { used: number; limit: number } })
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !videoUrl || !text}
-            className="gap-2"
-            data-testid="button-talking-video"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Generate Talking Video
-          </Button>
+          <ResponsiveTooltip content="Create talking video">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !videoUrl || !text}
+              className="gap-2"
+              data-testid="button-talking-video"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Generate Talking Video
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -846,15 +855,17 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
           testId="face-swap-target"
         />
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !sourceImageUrl || !targetVideoUrl}
-            className="gap-2"
-            data-testid="button-face-swap"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Swap Face
-          </Button>
+          <ResponsiveTooltip content="Swap face in video">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !sourceImageUrl || !targetVideoUrl}
+              className="gap-2"
+              data-testid="button-face-swap"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Swap Face
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -966,15 +977,17 @@ function DubbingTab({ usage }: { usage?: { used: number; limit: number } }) {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !videoUrl || !targetLanguage}
-            className="gap-2"
-            data-testid="button-dub-video"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
-            Dub Video
-          </Button>
+          <ResponsiveTooltip content="Translate and dub">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !videoUrl || !targetLanguage}
+              className="gap-2"
+              data-testid="button-dub-video"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+              Dub Video
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -1069,15 +1082,17 @@ function ImageToVideoTab({ usage }: { usage?: { used: number; limit: number } })
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !imageUrl}
-            className="gap-2"
-            data-testid="button-img-to-video"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Animate Image
-          </Button>
+          <ResponsiveTooltip content="Create video from image">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !imageUrl}
+              className="gap-2"
+              data-testid="button-img-to-video"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              Animate Image
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -1161,15 +1176,17 @@ function CaptionRemovalTab({ usage }: { usage?: { used: number; limit: number } 
           testId="caption-removal"
         />
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !videoUrl}
-            className="gap-2"
-            data-testid="button-remove-captions"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
-            Remove Captions
-          </Button>
+          <ResponsiveTooltip content="Remove text overlays">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !videoUrl}
+              className="gap-2"
+              data-testid="button-remove-captions"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scissors className="h-4 w-4" />}
+              Remove Captions
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -1264,15 +1281,17 @@ function VideoStyleTab({ usage }: { usage?: { used: number; limit: number } }) {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !videoUrl || !prompt}
-            className="gap-2"
-            data-testid="button-style-transfer"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
-            Apply Style
-          </Button>
+          <ResponsiveTooltip content="Apply artistic style">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !videoUrl || !prompt}
+              className="gap-2"
+              data-testid="button-style-transfer"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Palette className="h-4 w-4" />}
+              Apply Style
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedVideoUrl}
@@ -1366,15 +1385,17 @@ function VirtualTryOnTab({ usage }: { usage?: { used: number; limit: number } })
           testId="virtual-tryon-clothing"
         />
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !personImageUrl || !clothingImageUrl}
-            className="gap-2"
-            data-testid="button-virtual-tryon"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
-            Try On
-          </Button>
+          <ResponsiveTooltip content="Preview clothing fit">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !personImageUrl || !clothingImageUrl}
+              className="gap-2"
+              data-testid="button-virtual-tryon"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
+              Try On
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={generatedImageUrl}
@@ -1472,15 +1493,17 @@ function ImageReformatTab({ usage }: { usage?: { used: number; limit: number } }
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !imageUrl}
-            className="gap-2"
-            data-testid="button-image-reformat"
-          >
-            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
-            Reformat Image
-          </Button>
+          <ResponsiveTooltip content="Change aspect ratio">
+            <Button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !imageUrl}
+              className="gap-2"
+              data-testid="button-image-reformat"
+            >
+              {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
+              Reformat Image
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={resultUrl}
@@ -1754,15 +1777,17 @@ function SteveAIVideosTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending || !script.trim() || (!!requestId && !generationComplete)}
-            className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
-            data-testid="button-generate-steve"
-          >
-            {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-            {generationComplete ? "Generate Another" : "Generate Video"}
-          </Button>
+          <ResponsiveTooltip content="Create long video">
+            <Button 
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending || !script.trim() || (!!requestId && !generationComplete)}
+              className="gap-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              data-testid="button-generate-steve"
+            >
+              {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+              {generationComplete ? "Generate Another" : "Generate Video"}
+            </Button>
+          </ResponsiveTooltip>
           <SaveToContentButton
             contentId={selectedContentId}
             assetUrl={videoUrl || undefined}

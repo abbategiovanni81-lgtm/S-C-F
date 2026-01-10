@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -202,10 +203,12 @@ export default function RedditManager() {
               Post to subreddits to earn A2E credits (620 credits per post)
             </p>
           </div>
-          <Button onClick={() => window.location.href = "/api/reddit/auth"} data-testid="button-connect-reddit">
-            <Link2 className="w-4 h-4 mr-2" />
-            Connect Reddit
-          </Button>
+          <ResponsiveTooltip content="Connect account">
+            <Button onClick={() => window.location.href = "/api/reddit/auth"} data-testid="button-connect-reddit">
+              <Link2 className="w-4 h-4 mr-2" />
+              Connect Reddit
+            </Button>
+          </ResponsiveTooltip>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -294,13 +297,17 @@ export default function RedditManager() {
               <CardDescription>Manage the subreddits you want to post to</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleAddSuggested} disabled={bulkAddMutation.isPending}>
-                {bulkAddMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add Suggested (35)"}
-              </Button>
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Subreddit
-              </Button>
+              <ResponsiveTooltip content="Add popular subs">
+                <Button variant="outline" onClick={handleAddSuggested} disabled={bulkAddMutation.isPending}>
+                  {bulkAddMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add Suggested (35)"}
+                </Button>
+              </ResponsiveTooltip>
+              <ResponsiveTooltip content="Add subreddit">
+                <Button onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Subreddit
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </CardHeader>
           <CardContent>
@@ -328,23 +335,27 @@ export default function RedditManager() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openPostDialog(sub)}
-                        disabled={(todayStats?.remaining ?? 5) <= 0}
-                        data-testid={`button-post-${sub.name}`}
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteSubredditMutation.mutate(sub.id)}
-                        data-testid={`button-delete-${sub.name}`}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
+                      <ResponsiveTooltip content="Post to sub">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openPostDialog(sub)}
+                          disabled={(todayStats?.remaining ?? 5) <= 0}
+                          data-testid={`button-post-${sub.name}`}
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </ResponsiveTooltip>
+                      <ResponsiveTooltip content="Remove sub">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteSubredditMutation.mutate(sub.id)}
+                          data-testid={`button-delete-${sub.name}`}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </div>
                 ))}
@@ -420,13 +431,15 @@ export default function RedditManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button 
-              onClick={() => addSubredditMutation.mutate(newSubreddit)}
-              disabled={!newSubreddit.trim() || addSubredditMutation.isPending}
-              data-testid="button-confirm-add-subreddit"
-            >
-              {addSubredditMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
-            </Button>
+            <ResponsiveTooltip content="Add subreddit">
+              <Button 
+                onClick={() => addSubredditMutation.mutate(newSubreddit)}
+                disabled={!newSubreddit.trim() || addSubredditMutation.isPending}
+                data-testid="button-confirm-add-subreddit"
+              >
+                {addSubredditMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -466,21 +479,23 @@ export default function RedditManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPostDialog(false)}>Cancel</Button>
-            <Button 
-              onClick={handlePost}
-              disabled={!postTitle.trim() || !postBody.trim() || postMutation.isPending}
-              className="bg-orange-500 hover:bg-orange-600"
-              data-testid="button-submit-post"
-            >
-              {postMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Post to Reddit
-                </>
-              )}
-            </Button>
+            <ResponsiveTooltip content="Submit post">
+              <Button 
+                onClick={handlePost}
+                disabled={!postTitle.trim() || !postBody.trim() || postMutation.isPending}
+                className="bg-orange-500 hover:bg-orange-600"
+                data-testid="button-submit-post"
+              >
+                {postMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Post to Reddit
+                  </>
+                )}
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>

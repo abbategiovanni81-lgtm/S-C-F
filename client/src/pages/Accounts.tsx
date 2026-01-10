@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2, CloudSun, MessageCircle, Pin, MessageSquare } from "lucide-react";
@@ -173,16 +174,18 @@ export default function Accounts() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <button 
-            onClick={() => setDialogOpen(true)}
-            className="h-full min-h-[200px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
-            data-testid="button-add-channel"
-          >
-            <div className="w-12 h-12 rounded-full bg-background shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
-              <Plus className="w-6 h-6" />
-            </div>
-            <span className="font-medium text-muted-foreground group-hover:text-primary">Add Channel</span>
-          </button>
+          <ResponsiveTooltip content="Add new channel">
+            <button 
+              onClick={() => setDialogOpen(true)}
+              className="h-full min-h-[200px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
+              data-testid="button-add-channel"
+            >
+              <div className="w-12 h-12 rounded-full bg-background shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
+                <Plus className="w-6 h-6" />
+              </div>
+              <span className="font-medium text-muted-foreground group-hover:text-primary">Add Channel</span>
+            </button>
+          </ResponsiveTooltip>
 
           {accounts.map((account) => {
             const platformInfo = getPlatformInfo(account.platform);
@@ -199,20 +202,22 @@ export default function Accounts() {
                         <span className="font-bold text-lg">T</span>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteMutation.mutate(account.id)}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-${account.id}`}
-                    >
-                      {deleteMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <ResponsiveTooltip content="Disconnect account">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => deleteMutation.mutate(account.id)}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-${account.id}`}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </ResponsiveTooltip>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -239,16 +244,18 @@ export default function Accounts() {
                     )}
                   </div>
                   {account.platform === "YouTube" && account.isConnected === "connected" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-3 text-xs"
-                      onClick={() => window.location.href = "/api/youtube/connect"}
-                      data-testid={`button-add-another-youtube-${account.id}`}
-                    >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Add Another Channel
-                    </Button>
+                    <ResponsiveTooltip content="Link another channel">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3 text-xs"
+                        onClick={() => window.location.href = "/api/youtube/connect"}
+                        data-testid={`button-add-another-youtube-${account.id}`}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Another Channel
+                      </Button>
+                    </ResponsiveTooltip>
                   )}
                 </CardContent>
               </Card>
@@ -334,25 +341,29 @@ export default function Accounts() {
                 </p>
               </div>
               <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowBlueskyLogin(false)}
-                >
-                  Back
-                </Button>
-                <Button
-                  className="flex-1 bg-sky-400 hover:bg-sky-500"
-                  onClick={handleBlueskyLogin}
-                  disabled={!accountHandle.trim() || !blueskyPassword.trim() || blueskyMutation.isPending}
-                  data-testid="button-connect-bluesky"
-                >
-                  {blueskyMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Connect"
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Go back">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setShowBlueskyLogin(false)}
+                  >
+                    Back
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Link this platform">
+                  <Button
+                    className="flex-1 bg-sky-400 hover:bg-sky-500"
+                    onClick={handleBlueskyLogin}
+                    disabled={!accountHandle.trim() || !blueskyPassword.trim() || blueskyMutation.isPending}
+                    data-testid="button-connect-bluesky"
+                  >
+                    {blueskyMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Connect"
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </div>
           ) : showPlatformChoice ? (
@@ -363,35 +374,41 @@ export default function Accounts() {
               const oauthDesc = showPlatformChoice === "YouTube" ? "Auto-publish videos directly" : "Auto-publish content directly";
               return (
                 <div className="space-y-3 py-4">
-                  <button
-                    onClick={handlePlatformOAuth}
-                    className={`w-full flex items-center gap-4 p-4 rounded-lg ${platform?.color} ${platform?.hoverColor} text-white transition-colors`}
-                    data-testid={`button-${showPlatformChoice?.toLowerCase()}-oauth`}
-                  >
-                    {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
-                    <div className="text-left">
-                      <span className="font-medium block">{oauthLabel}</span>
-                      <span className="text-xs text-white/80">{oauthDesc}</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={handlePlatformManual}
-                    className={`w-full flex items-center gap-4 p-4 rounded-lg border ${platform?.bgLight} ${platform?.textColor} transition-colors hover:opacity-80`}
-                    data-testid={`button-${showPlatformChoice?.toLowerCase()}-manual`}
-                  >
-                    {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
-                    <div className="text-left">
-                      <span className="font-medium block">Add Manually</span>
-                      <span className="text-xs opacity-80">Track channel for manual posting</span>
-                    </div>
-                  </button>
-                  <Button
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => setShowPlatformChoice(null)}
-                  >
-                    Back
-                  </Button>
+                  <ResponsiveTooltip content="Connect this channel">
+                    <button
+                      onClick={handlePlatformOAuth}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg ${platform?.color} ${platform?.hoverColor} text-white transition-colors`}
+                      data-testid={`button-${showPlatformChoice?.toLowerCase()}-oauth`}
+                    >
+                      {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
+                      <div className="text-left">
+                        <span className="font-medium block">{oauthLabel}</span>
+                        <span className="text-xs text-white/80">{oauthDesc}</span>
+                      </div>
+                    </button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Add without linking">
+                    <button
+                      onClick={handlePlatformManual}
+                      className={`w-full flex items-center gap-4 p-4 rounded-lg border ${platform?.bgLight} ${platform?.textColor} transition-colors hover:opacity-80`}
+                      data-testid={`button-${showPlatformChoice?.toLowerCase()}-manual`}
+                    >
+                      {IconComponent ? <IconComponent className="w-6 h-6" /> : <span className="w-6 h-6 font-bold">T</span>}
+                      <div className="text-left">
+                        <span className="font-medium block">Add Manually</span>
+                        <span className="text-xs opacity-80">Track channel for manual posting</span>
+                      </div>
+                    </button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Go back">
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                      onClick={() => setShowPlatformChoice(null)}
+                    >
+                      Back
+                    </Button>
+                  </ResponsiveTooltip>
                 </div>
               );
             })()
@@ -403,34 +420,35 @@ export default function Accounts() {
                 const isComingSoon = platform.oauth && !isConfigured && platform.name !== "YouTube" && platform.name !== "Pinterest";
                 
                 return (
-                  <button
-                    key={platform.name}
-                    onClick={() => handlePlatformSelect(platform.name)}
-                    className={`flex items-center gap-4 p-4 rounded-lg ${platform.color} ${platform.hoverColor} text-white transition-colors`}
-                    data-testid={`button-select-${platform.name.toLowerCase().replace('/', '-')}`}
-                  >
-                    {platform.icon ? (
-                      <platform.icon className="w-6 h-6" />
-                    ) : (
-                      <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
-                    )}
-                    <span className="font-medium">{platform.name}</span>
-                    {isComingSoon && (
-                      <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
-                    )}
-                    {platform.oauth && platform.name === "YouTube" && (
-                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
-                    )}
-                    {platform.oauth && platform.name !== "YouTube" && !isComingSoon && (
-                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect</span>
-                    )}
-                    {platform.authType === "password" && (
-                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Login</span>
-                    )}
-                    {platform.name === "Instagram" && !isComingSoon && (
-                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">via Facebook</span>
-                    )}
-                  </button>
+                  <ResponsiveTooltip key={platform.name} content="Link this platform">
+                    <button
+                      onClick={() => handlePlatformSelect(platform.name)}
+                      className={`flex items-center gap-4 p-4 rounded-lg ${platform.color} ${platform.hoverColor} text-white transition-colors`}
+                      data-testid={`button-select-${platform.name.toLowerCase().replace('/', '-')}`}
+                    >
+                      {platform.icon ? (
+                        <platform.icon className="w-6 h-6" />
+                      ) : (
+                        <span className="w-6 h-6 flex items-center justify-center font-bold">T</span>
+                      )}
+                      <span className="font-medium">{platform.name}</span>
+                      {isComingSoon && (
+                        <span className="text-xs bg-yellow-500 text-black px-2 py-0.5 rounded-full font-semibold">Coming Soon</span>
+                      )}
+                      {platform.oauth && platform.name === "YouTube" && (
+                        <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect with Google</span>
+                      )}
+                      {platform.oauth && platform.name !== "YouTube" && !isComingSoon && (
+                        <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Connect</span>
+                      )}
+                      {platform.authType === "password" && (
+                        <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">Login</span>
+                      )}
+                      {platform.name === "Instagram" && !isComingSoon && (
+                        <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded">via Facebook</span>
+                      )}
+                    </button>
+                  </ResponsiveTooltip>
                 );
               })}
             </div>
@@ -463,26 +481,30 @@ export default function Accounts() {
                 </div>
               </div>
               <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setSelectedPlatform(null)}
-                  data-testid="button-back"
-                >
-                  Back
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleAddAccount}
-                  disabled={!accountName.trim() || createMutation.isPending}
-                  data-testid="button-save-account"
-                >
-                  {createMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Add Channel"
-                  )}
-                </Button>
+                <ResponsiveTooltip content="Go back">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setSelectedPlatform(null)}
+                    data-testid="button-back"
+                  >
+                    Back
+                  </Button>
+                </ResponsiveTooltip>
+                <ResponsiveTooltip content="Save this channel">
+                  <Button
+                    className="flex-1"
+                    onClick={handleAddAccount}
+                    disabled={!accountName.trim() || createMutation.isPending}
+                    data-testid="button-save-account"
+                  >
+                    {createMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Add Channel"
+                    )}
+                  </Button>
+                </ResponsiveTooltip>
               </div>
             </div>
           )}

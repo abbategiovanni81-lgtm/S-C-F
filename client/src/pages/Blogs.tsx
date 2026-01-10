@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { ArrowLeft, Calendar, User, BookOpen, Loader2 } from "lucide-react";
 
 interface Blog {
@@ -31,9 +32,11 @@ export default function Blogs() {
       <div className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back
-            </Button>
+            <ResponsiveTooltip content="Go back home">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+              </Button>
+            </ResponsiveTooltip>
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-white flex items-center gap-3" data-testid="text-page-title">

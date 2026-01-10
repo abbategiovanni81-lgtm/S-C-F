@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -230,15 +231,17 @@ export default function AIEngines() {
             <p className="text-sm text-emerald-600 mt-2">Premium/Pro: You have access to platform API keys</p>
           )}
         </div>
-        <button 
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-          data-testid="button-refresh-status"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`} />
-          Refresh Status
-        </button>
+        <ResponsiveTooltip content="Check engine status">
+          <button 
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+            data-testid="button-refresh-status"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh Status
+          </button>
+        </ResponsiveTooltip>
       </div>
 
       {isLoading ? (
@@ -289,40 +292,46 @@ export default function AIEngines() {
                 )}
 
                 <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border/50">
-                  <button 
-                    onClick={() => handleConfigureClick(engine.id)}
-                    className="flex-1 h-9 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
-                    data-testid={`button-configure-${engine.id}`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    Configure
-                  </button>
-                  <button 
-                    onClick={() => refetch()}
-                    className="h-9 w-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" 
-                    title="Test Connection"
-                    data-testid={`button-test-${engine.id}`}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                  <ResponsiveTooltip content="Setup API key">
+                    <button 
+                      onClick={() => handleConfigureClick(engine.id)}
+                      className="flex-1 h-9 rounded-lg bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2"
+                      data-testid={`button-configure-${engine.id}`}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Configure
+                    </button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Test connection">
+                    <button 
+                      onClick={() => refetch()}
+                      className="h-9 w-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors" 
+                      title="Test Connection"
+                      data-testid={`button-test-${engine.id}`}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </ResponsiveTooltip>
                 </div>
               </CardContent>
             </Card>
           ))}
 
-          <button 
-            onClick={() => setAddDialogOpen(true)}
-            className="h-full min-h-[300px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
-            data-testid="button-add-engine"
-          >
-            <div className="w-16 h-16 rounded-full bg-background shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
-              <Zap className="w-8 h-8" />
-            </div>
-            <div className="text-center">
-              <span className="font-bold text-lg text-foreground block">Add New Engine</span>
-              <span className="text-sm text-muted-foreground">Connect more AI tools</span>
-            </div>
-          </button>
+          <ResponsiveTooltip content="Connect AI services">
+            <button 
+              onClick={() => setAddDialogOpen(true)}
+              className="h-full min-h-[300px] rounded-xl border-2 border-dashed border-border bg-secondary/20 hover:bg-secondary/50 hover:border-primary/50 flex flex-col items-center justify-center gap-4 transition-all group"
+              data-testid="button-add-engine"
+            >
+              <div className="w-16 h-16 rounded-full bg-background shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
+                <Zap className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <span className="font-bold text-lg text-foreground block">Add New Engine</span>
+                <span className="text-sm text-muted-foreground">Connect more AI tools</span>
+              </div>
+            </button>
+          </ResponsiveTooltip>
         </div>
       )}
 
@@ -383,34 +392,38 @@ export default function AIEngines() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
-                      onClick={handleSaveKey}
-                      disabled={!apiKeyInput.trim() || saveKeyMutation.isPending}
-                      className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                      data-testid="button-save-key"
-                    >
-                      {saveKeyMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      Save Key
-                    </button>
-                    
-                    {isEngineConfigured(selectedEngine) && (
+                    <ResponsiveTooltip content="Store your key">
                       <button
-                        onClick={handleRemoveKey}
-                        disabled={removeKeyMutation.isPending}
-                        className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                        data-testid="button-remove-key"
+                        onClick={handleSaveKey}
+                        disabled={!apiKeyInput.trim() || saveKeyMutation.isPending}
+                        className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        data-testid="button-save-key"
                       >
-                        {removeKeyMutation.isPending ? (
+                        {saveKeyMutation.isPending ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Trash2 className="w-4 h-4" />
+                          <Save className="w-4 h-4" />
                         )}
-                        Remove
+                        Save Key
                       </button>
+                    </ResponsiveTooltip>
+                    
+                    {isEngineConfigured(selectedEngine) && (
+                      <ResponsiveTooltip content="Delete stored key">
+                        <button
+                          onClick={handleRemoveKey}
+                          disabled={removeKeyMutation.isPending}
+                          className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          data-testid="button-remove-key"
+                        >
+                          {removeKeyMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                          Remove
+                        </button>
+                      </ResponsiveTooltip>
                     )}
                   </div>
                 </div>
@@ -422,13 +435,15 @@ export default function AIEngines() {
                 </p>
               )}
 
-              <button
-                onClick={() => setConfigDialogOpen(false)}
-                className="w-full mt-4 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
-                data-testid="button-done"
-              >
-                Done
-              </button>
+              <ResponsiveTooltip content="Close dialog">
+                <button
+                  onClick={() => setConfigDialogOpen(false)}
+                  className="w-full mt-4 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+                  data-testid="button-done"
+                >
+                  Done
+                </button>
+              </ResponsiveTooltip>
             </div>
           )}
         </DialogContent>
@@ -451,13 +466,15 @@ export default function AIEngines() {
             <p className="text-sm text-muted-foreground mb-6">
               We're working on adding support for more AI services. Currently supported: OpenAI, Claude, DALL-E, A2E, ElevenLabs, Fal.ai, and Pexels.
             </p>
-            <button
-              onClick={() => setAddDialogOpen(false)}
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
-              data-testid="button-close-add-dialog"
-            >
-              Got it
-            </button>
+            <ResponsiveTooltip content="Close dialog">
+              <button
+                onClick={() => setAddDialogOpen(false)}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                data-testid="button-close-add-dialog"
+              >
+                Got it
+              </button>
+            </ResponsiveTooltip>
           </div>
         </DialogContent>
       </Dialog>

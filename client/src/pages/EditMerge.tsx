@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 
@@ -638,16 +639,18 @@ export default function EditMerge() {
                       Scene Clips
                     </CardTitle>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerateAllClips}
-                        disabled={clips.every(c => c.status === "completed" || c.status === "generating")}
-                        data-testid="button-generate-all"
-                      >
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Generate All
-                      </Button>
+                      <ResponsiveTooltip content="Generate all clips">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateAllClips}
+                          disabled={clips.every(c => c.status === "completed" || c.status === "generating")}
+                          data-testid="button-generate-all"
+                        >
+                          <Wand2 className="w-4 h-4 mr-2" />
+                          Generate All
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   </div>
                 </CardHeader>
@@ -699,31 +702,37 @@ export default function EditMerge() {
                             )}
                           </div>
                           <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMoveClip(index, "up")}
-                              disabled={index === 0}
-                            >
-                              <ArrowUp className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMoveClip(index, "down")}
-                              disabled={index === clips.length - 1}
-                            >
-                              <ArrowDown className="w-4 h-4" />
-                            </Button>
-                            {clip.type === "uploaded" && (
+                            <ResponsiveTooltip content="Move clip up">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleRemoveClip(clip.id)}
-                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleMoveClip(index, "up")}
+                                disabled={index === 0}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <ArrowUp className="w-4 h-4" />
                               </Button>
+                            </ResponsiveTooltip>
+                            <ResponsiveTooltip content="Move clip down">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMoveClip(index, "down")}
+                                disabled={index === clips.length - 1}
+                              >
+                                <ArrowDown className="w-4 h-4" />
+                              </Button>
+                            </ResponsiveTooltip>
+                            {clip.type === "uploaded" && (
+                              <ResponsiveTooltip content="Remove clip">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveClip(clip.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </ResponsiveTooltip>
                             )}
                           </div>
                         </div>
@@ -736,24 +745,26 @@ export default function EditMerge() {
                           />
                         ) : clip.status === "pending" || clip.status === "failed" ? (
                           scene && (
-                            <Button
-                              variant="secondary"
-                              className="w-full"
-                              onClick={() => handleGenerateClip(scene)}
-                              disabled={generateClipMutation.isPending}
-                            >
-                              {clip.status === "failed" ? (
-                                <>
-                                  <RefreshCw className="w-4 h-4 mr-2" />
-                                  Retry Generation
-                                </>
-                              ) : (
-                                <>
-                                  <Wand2 className="w-4 h-4 mr-2" />
-                                  Generate Clip
-                                </>
-                              )}
-                            </Button>
+                            <ResponsiveTooltip content={clip.status === "failed" ? "Retry generation" : "Generate this clip"}>
+                              <Button
+                                variant="secondary"
+                                className="w-full"
+                                onClick={() => handleGenerateClip(scene)}
+                                disabled={generateClipMutation.isPending}
+                              >
+                                {clip.status === "failed" ? (
+                                  <>
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    Retry Generation
+                                  </>
+                                ) : (
+                                  <>
+                                    <Wand2 className="w-4 h-4 mr-2" />
+                                    Generate Clip
+                                  </>
+                                )}
+                              </Button>
+                            </ResponsiveTooltip>
                           )
                         ) : (
                           <div className="h-48 rounded-lg bg-muted flex items-center justify-center">
@@ -778,25 +789,27 @@ export default function EditMerge() {
                         className="hidden"
                         data-testid="input-upload-clip"
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        data-testid="button-upload-clip"
-                      >
-                        {uploading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Video
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Upload video clip">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          data-testid="button-upload-clip"
+                        >
+                          {uploading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-2" />
+                              Upload Video
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Upload archive footage, B-roll, or additional clips to include in your final video
@@ -931,26 +944,28 @@ export default function EditMerge() {
                         return (
                           <>
                             <div className="flex gap-2">
-                              <Button
-                                variant={getImageUrl(selectedContent) ? "outline" : "default"}
-                                size="sm"
-                                onClick={handleGenerateImage}
-                                disabled={generatingImage}
-                                className="flex-1"
-                                data-testid="button-generate-image"
-                              >
-                                {generatingImage ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Generating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Wand2 className="w-4 h-4 mr-2" />
-                                    {getImageUrl(selectedContent) ? "Regenerate" : "Generate"} Image
-                                  </>
-                                )}
-                              </Button>
+                              <ResponsiveTooltip content="AI generate image">
+                                <Button
+                                  variant={getImageUrl(selectedContent) ? "outline" : "default"}
+                                  size="sm"
+                                  onClick={handleGenerateImage}
+                                  disabled={generatingImage}
+                                  className="flex-1"
+                                  data-testid="button-generate-image"
+                                >
+                                  {generatingImage ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Generating...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Wand2 className="w-4 h-4 mr-2" />
+                                      {getImageUrl(selectedContent) ? "Regenerate" : "Generate"} Image
+                                    </>
+                                  )}
+                                </Button>
+                              </ResponsiveTooltip>
                               
                               <input
                                 ref={imageInputRef}
@@ -964,70 +979,76 @@ export default function EditMerge() {
                               {isCarousel ? (
                                 <>
                                   {selectedSlideIndex !== null ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => imageInputRef.current?.click()}
-                                      disabled={uploadingImage}
-                                      className="flex-1"
-                                      data-testid="button-replace-slide"
-                                    >
-                                      {uploadingImage ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                          Uploading...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Upload className="w-4 h-4 mr-2" />
-                                          Replace Slide {selectedSlideIndex + 1}
-                                        </>
-                                      )}
-                                    </Button>
+                                    <ResponsiveTooltip content="Replace selected slide">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => imageInputRef.current?.click()}
+                                        disabled={uploadingImage}
+                                        className="flex-1"
+                                        data-testid="button-replace-slide"
+                                      >
+                                        {uploadingImage ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Uploading...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Upload className="w-4 h-4 mr-2" />
+                                            Replace Slide {selectedSlideIndex + 1}
+                                          </>
+                                        )}
+                                      </Button>
+                                    </ResponsiveTooltip>
                                   ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => imageInputRef.current?.click()}
-                                      disabled={uploadingImage}
-                                      className="flex-1"
-                                      data-testid="button-add-slide"
-                                    >
-                                      {uploadingImage ? (
-                                        <>
-                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                          Uploading...
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Plus className="w-4 h-4 mr-2" />
-                                          Add New Slide
-                                        </>
-                                      )}
-                                    </Button>
+                                    <ResponsiveTooltip content="Add new slide">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => imageInputRef.current?.click()}
+                                        disabled={uploadingImage}
+                                        className="flex-1"
+                                        data-testid="button-add-slide"
+                                      >
+                                        {uploadingImage ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Uploading...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Add New Slide
+                                          </>
+                                        )}
+                                      </Button>
+                                    </ResponsiveTooltip>
                                   )}
                                 </>
                               ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => imageInputRef.current?.click()}
-                                  disabled={uploadingImage}
-                                  className="flex-1"
-                                  data-testid="button-upload-image"
-                                >
-                                  {uploadingImage ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Uploading...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="w-4 h-4 mr-2" />
-                                      Upload Image
-                                    </>
-                                  )}
-                                </Button>
+                                <ResponsiveTooltip content="Upload your image">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    disabled={uploadingImage}
+                                    className="flex-1"
+                                    data-testid="button-upload-image"
+                                  >
+                                    {uploadingImage ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Uploading...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Upload Image
+                                      </>
+                                    )}
+                                  </Button>
+                                </ResponsiveTooltip>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -1046,51 +1067,55 @@ export default function EditMerge() {
 
                   {allClipsReady && (
                     <div className="pt-4 border-t">
-                      <Button
-                        className="w-full"
-                        size="lg"
-                        onClick={handleMergeClips}
-                        disabled={merging}
-                        data-testid="button-merge-clips"
-                      >
-                        {merging ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Merging Clips...
-                          </>
-                        ) : (
-                          <>
-                            <Scissors className="w-4 h-4 mr-2" />
-                            Merge All Clips {voiceoverUrl ? "with Voiceover" : ""}
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Combine all clips">
+                        <Button
+                          className="w-full"
+                          size="lg"
+                          onClick={handleMergeClips}
+                          disabled={merging}
+                          data-testid="button-merge-clips"
+                        >
+                          {merging ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Merging Clips...
+                            </>
+                          ) : (
+                            <>
+                              <Scissors className="w-4 h-4 mr-2" />
+                              Merge All Clips {voiceoverUrl ? "with Voiceover" : ""}
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                     </div>
                   )}
 
                   {/* Move to Ready button - visible when there are assets OR user wants to move anyway */}
                   {selectedContent && (
                     <div className="pt-4 border-t">
-                      <Button
-                        className="w-full"
-                        variant="secondary"
-                        size="lg"
-                        onClick={handleMoveToReady}
-                        disabled={movingToReady}
-                        data-testid="button-move-ready"
-                      >
-                        {movingToReady ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Moving...
-                          </>
-                        ) : (
-                          <>
-                            <ArrowRight className="w-4 h-4 mr-2" />
-                            Move to Ready to Post
-                          </>
-                        )}
-                      </Button>
+                      <ResponsiveTooltip content="Send to ready queue">
+                        <Button
+                          className="w-full"
+                          variant="secondary"
+                          size="lg"
+                          onClick={handleMoveToReady}
+                          disabled={movingToReady}
+                          data-testid="button-move-ready"
+                        >
+                          {movingToReady ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Moving...
+                            </>
+                          ) : (
+                            <>
+                              <ArrowRight className="w-4 h-4 mr-2" />
+                              Move to Ready to Post
+                            </>
+                          )}
+                        </Button>
+                      </ResponsiveTooltip>
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         Ready to publish? Move this content to Ready to Post
                       </p>

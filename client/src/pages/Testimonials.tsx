@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { ArrowLeft, Quote } from "lucide-react";
 import { Link } from "wouter";
 
@@ -36,10 +37,12 @@ export default function Testimonials() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <Link href="/">
-            <Button variant="ghost" className="text-purple-400 hover:text-purple-300" data-testid="button-back-home">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Button>
+            <ResponsiveTooltip content="Return to homepage">
+              <Button variant="ghost" className="text-purple-400 hover:text-purple-300" data-testid="button-back-home">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </ResponsiveTooltip>
           </Link>
         </div>
 
@@ -85,9 +88,11 @@ export default function Testimonials() {
 
         <div className="text-center mt-12">
           <Link href="/">
-            <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-get-started">
-              Get Started with SocialCommandFlow
-            </Button>
+            <ResponsiveTooltip content="Start using the app">
+              <Button className="bg-purple-600 hover:bg-purple-700" data-testid="button-get-started">
+                Get Started with SocialCommandFlow
+              </Button>
+            </ResponsiveTooltip>
           </Link>
         </div>
       </div>

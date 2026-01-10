@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { format, addDays, startOfToday, startOfWeek, endOfWeek, isSameDay } from "date-fns";
 import { Calendar as CalendarIcon, Plus, Clock, Youtube, Instagram, Video, Twitter, Linkedin, Facebook, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -181,30 +182,36 @@ export default function Schedule() {
       <div className="flex flex-col h-[calc(100vh-14rem)]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekOffset(w => w - 1)}
-              data-testid="button-prev-week"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekOffset(0)}
-              data-testid="button-today"
-            >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setWeekOffset(w => w + 1)}
-              data-testid="button-next-week"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+            <ResponsiveTooltip content="Previous week">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekOffset(w => w - 1)}
+                data-testid="button-prev-week"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Jump to today">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekOffset(0)}
+                data-testid="button-today"
+              >
+                Today
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Next week">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeekOffset(w => w + 1)}
+                data-testid="button-next-week"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </ResponsiveTooltip>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CalendarIcon className="w-4 h-4" />
@@ -330,16 +337,20 @@ export default function Schedule() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={createMutation.isPending}
-              data-testid="button-save-post"
-            >
-              {createMutation.isPending ? "Saving..." : "Add to Schedule"}
-            </Button>
+            <ResponsiveTooltip content="Discard changes">
+              <Button variant="outline" onClick={() => setDialogOpen(false)} data-testid="button-cancel">
+                Cancel
+              </Button>
+            </ResponsiveTooltip>
+            <ResponsiveTooltip content="Save scheduled post">
+              <Button 
+                onClick={handleSubmit} 
+                disabled={createMutation.isPending}
+                data-testid="button-save-post"
+              >
+                {createMutation.isPending ? "Saving..." : "Add to Schedule"}
+              </Button>
+            </ResponsiveTooltip>
           </DialogFooter>
         </DialogContent>
       </Dialog>
