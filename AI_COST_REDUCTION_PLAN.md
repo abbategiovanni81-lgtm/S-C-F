@@ -481,7 +481,7 @@ Additional 15-25% savings possible on top of Phase 2.
 
 **Status:** Not implemented (tested - quality great)
 **Tier:** Studio exclusive (or premium add-on)
-**Pricing:** $99/mo (100 credits) or $330/mo (660 credits) - platform cost
+**Pricing:** $25/mo (200 credits) - confirmed by owner testing
 **Effort:** ~1 week
 
 #### Capabilities
