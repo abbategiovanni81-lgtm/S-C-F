@@ -31,7 +31,7 @@ import fs from "fs";
 import os from "os";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
-import { processVideoForClips, extractAndUploadClip } from "./videoProcessing";
+import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadClip } from "./videoProcessing";
 import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 
@@ -7689,15 +7689,15 @@ Provide analysis in this JSON structure:
 
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
-      // Save video to temp file for FFmpeg processing
+      // Save video to temp file for FFmpeg processing (write once, use path-based processing)
       const tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "source.mp4");
       fs.writeFileSync(tempVideoPath, req.file.buffer);
 
-      // Process with AI to get clip suggestions
-      const result = await processVideoForClips(
-        req.file.buffer,
+      // Process with AI using path-based function (avoids writing video twice)
+      const result = await processVideoForClipsFromPath(
+        tempVideoPath,
         userId,
         suggestions,
         customPrompt

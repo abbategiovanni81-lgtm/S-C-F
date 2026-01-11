@@ -179,8 +179,8 @@ export async function generateThumbnail(
   );
 }
 
-export async function processVideoForClips(
-  videoBuffer: Buffer,
+export async function processVideoForClipsFromPath(
+  videoPath: string,
   userId: string,
   suggestions: string[],
   customPrompt?: string,
@@ -191,16 +191,10 @@ export async function processVideoForClips(
   segments: TranscriptSegment[];
   duration: number;
 }> {
-  const tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
-  fs.mkdirSync(tempDir, { recursive: true });
-  
-  const videoPath = path.join(tempDir, "input.mp4");
+  const tempDir = path.dirname(videoPath);
   const audioPath = path.join(tempDir, "audio.mp3");
   
   try {
-    onProgress?.("Saving video...", 10);
-    fs.writeFileSync(videoPath, videoBuffer);
-    
     onProgress?.("Getting video info...", 20);
     const duration = await getVideoDuration(videoPath);
     if (duration === 0) {
@@ -242,6 +236,33 @@ export async function processVideoForClips(
     onProgress?.("Complete!", 100);
     
     return { clips, transcript, segments, duration };
+  } finally {
+    try { fs.unlinkSync(audioPath); } catch (e) { }
+  }
+}
+
+export async function processVideoForClips(
+  videoBuffer: Buffer,
+  userId: string,
+  suggestions: string[],
+  customPrompt?: string,
+  onProgress?: (status: string, progress: number) => void
+): Promise<{
+  clips: ClipSuggestion[];
+  transcript: string;
+  segments: TranscriptSegment[];
+  duration: number;
+}> {
+  const tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+  
+  const videoPath = path.join(tempDir, "input.mp4");
+  
+  try {
+    onProgress?.("Saving video...", 10);
+    fs.writeFileSync(videoPath, videoBuffer);
+    
+    return await processVideoForClipsFromPath(videoPath, userId, suggestions, customPrompt, onProgress);
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
