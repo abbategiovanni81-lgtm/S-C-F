@@ -181,9 +181,6 @@ export default function VideoToClips() {
         if (err.name === "AbortError") {
           throw new Error("Processing timed out. Try a shorter video or use a URL instead.");
         }
-        if (err.message?.includes("pattern") || err.message?.includes("Load failed")) {
-          throw new Error("Upload failed. Try refreshing the page and uploading again.");
-        }
         throw err;
       }
     },
