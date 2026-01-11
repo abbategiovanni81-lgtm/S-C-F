@@ -190,7 +190,7 @@ export default function SocialListening() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/listening/drafts"] });
-      toast({ title: "Draft updated" });
+      // Toast is handled by the caller when needed (e.g., approve, select alternative)
     },
   });
 
@@ -1054,32 +1054,103 @@ export default function SocialListening() {
                             <div>
                               <p className="text-xs text-muted-foreground mb-2">Alternative replies:</p>
                               <div className="space-y-2">
-                                {metadata.alternativeReplies.map((alt, i) => (
-                                  <div key={i} className="flex items-start gap-2 text-sm bg-muted/30 rounded p-2">
-                                    <span className="flex-1">{alt}</span>
-                                    <ResponsiveTooltip content="Use this reply">
-                                      <Button size="sm" variant="ghost" onClick={() => updateDraftMutation.mutate({ id: draft.id, data: { replyContent: alt } })}>
-                                        Use
-                                      </Button>
-                                    </ResponsiveTooltip>
-                                  </div>
-                                ))}
+                                {metadata.alternativeReplies.map((alt, i) => {
+                                  const isSelected = draft.replyContent === alt;
+                                  return (
+                                    <div 
+                                      key={i} 
+                                      className={`flex items-start gap-2 text-sm rounded p-2 transition-colors ${
+                                        isSelected 
+                                          ? "bg-green-500/20 border border-green-500/50" 
+                                          : "bg-muted/30 hover:bg-muted/50"
+                                      }`}
+                                    >
+                                      {isSelected && <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />}
+                                      <span className="flex-1">{alt}</span>
+                                      <ResponsiveTooltip content={isSelected ? "Currently selected" : "Use this reply"}>
+                                        <Button 
+                                          size="sm" 
+                                          variant={isSelected ? "default" : "ghost"}
+                                          className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
+                                          onClick={() => {
+                                            updateDraftMutation.mutate({ id: draft.id, data: { replyContent: alt } });
+                                            toast({ title: "Reply selected", description: "This message will be used when you approve." });
+                                          }}
+                                        >
+                                          {isSelected ? "Selected" : "Use"}
+                                        </Button>
+                                      </ResponsiveTooltip>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
                           <div className="flex items-center gap-2 flex-wrap">
-                            <ResponsiveTooltip content="Approve this reply">
-                              <Button
-                                onClick={() => {
-                                  updateDraftMutation.mutate({ id: draft.id, data: { status: "approved" } });
-                                  toast({ title: "Reply approved!", description: "Now paste it manually on the platform." });
-                                }}
-                                data-testid={`button-approve-draft-${draft.id}`}
-                              >
-                                <ThumbsUp className="w-4 h-4 mr-1" />
-                                Approve
-                              </Button>
-                            </ResponsiveTooltip>
+                            {(() => {
+                              const isYouTube = originalHit?.platform === "YouTube";
+                              const hasYouTubeAccount = youtubeAccounts.length > 0;
+                              const videoUrl = originalHit?.postUrl || (originalHit as any)?.sourceUrl;
+                              const videoId = videoUrl ? extractYouTubeVideoId(videoUrl) : null;
+                              const canAutoPost = isYouTube && hasYouTubeAccount && videoId;
+                              const youTubeMissingInfo = isYouTube && (!hasYouTubeAccount || !videoId);
+                              
+                              const tooltipText = canAutoPost 
+                                ? "Approve and post to YouTube" 
+                                : isYouTube && !hasYouTubeAccount 
+                                  ? "Connect a YouTube account to auto-post"
+                                  : isYouTube && !videoId
+                                    ? "Missing video URL - cannot auto-post"
+                                    : "Approve and mark as sent";
+                              
+                              return (
+                                <ResponsiveTooltip content={tooltipText}>
+                                  <Button
+                                    onClick={() => {
+                                      // For YouTube with connected account and valid video ID, auto-post
+                                      if (canAutoPost) {
+                                        const parentCommentId = originalHit?.postType === "comment" ? originalHit.postId : undefined;
+                                        setPostingDraftId(draft.id);
+                                        postToYouTubeMutation.mutate({
+                                          draftId: draft.id,
+                                          accountId: youtubeAccounts[0].id,
+                                          text: draft.replyContent,
+                                          videoId: videoId!,
+                                          postUrl: videoUrl,
+                                          parentCommentId: parentCommentId || undefined,
+                                        });
+                                        return;
+                                      }
+                                      // YouTube but can't auto-post - show error, don't mark as sent
+                                      if (youTubeMissingInfo) {
+                                        if (!hasYouTubeAccount) {
+                                          toast({ title: "Cannot auto-post", description: "Connect a YouTube account in Settings to auto-post replies.", variant: "destructive" });
+                                        } else {
+                                          toast({ title: "Cannot auto-post", description: "Missing video URL. Copy the reply manually from below.", variant: "destructive" });
+                                        }
+                                        return;
+                                      }
+                                      // For other platforms, mark as sent directly
+                                      updateDraftMutation.mutate(
+                                        { id: draft.id, data: { status: "sent" } },
+                                        { onSuccess: () => toast({ title: "Reply approved!", description: "Moved to Sent. Copy and paste it on the platform." }) }
+                                      );
+                                    }}
+                                    disabled={postToYouTubeMutation.isPending && postingDraftId === draft.id}
+                                    data-testid={`button-approve-draft-${draft.id}`}
+                                  >
+                                    {postToYouTubeMutation.isPending && postingDraftId === draft.id ? (
+                                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                    ) : canAutoPost ? (
+                                      <Youtube className="w-4 h-4 mr-1" />
+                                    ) : (
+                                      <ThumbsUp className="w-4 h-4 mr-1" />
+                                    )}
+                                    {canAutoPost ? "Approve & Post" : "Approve"}
+                                  </Button>
+                                </ResponsiveTooltip>
+                              );
+                            })()}
                             <ResponsiveTooltip content="Discard this draft">
                               <Button
                                 variant="outline"
@@ -1099,54 +1170,6 @@ export default function SocialListening() {
                                 </Button>
                               </ResponsiveTooltip>
                             )}
-                            {/* Post to YouTube button */}
-                            {(() => {
-                              if (originalHit?.platform !== "YouTube") return null;
-                              
-                              // Try to get video URL from postUrl or sourceUrl
-                              const videoUrl = originalHit.postUrl || (originalHit as any).sourceUrl;
-                              const videoId = videoUrl ? extractYouTubeVideoId(videoUrl) : null;
-                              
-                              // For comments, postId contains the YouTube comment ID
-                              const parentCommentId = originalHit.postType === "comment" ? originalHit.postId : undefined;
-                              
-                              if (youtubeAccounts.length === 0) {
-                                return <p className="text-xs text-muted-foreground">Connect a YouTube account to post directly</p>;
-                              }
-                              
-                              if (!videoId) {
-                                return <p className="text-xs text-muted-foreground">Cannot post: missing video URL</p>;
-                              }
-                              
-                              return (
-                                <ResponsiveTooltip content="Post to YouTube">
-                                  <Button
-                                    variant="default"
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => {
-                                      setPostingDraftId(draft.id);
-                                      postToYouTubeMutation.mutate({
-                                        draftId: draft.id,
-                                        accountId: youtubeAccounts[0].id,
-                                        text: draft.replyContent,
-                                        videoId,
-                                        postUrl: videoUrl,
-                                        parentCommentId: parentCommentId || undefined,
-                                      });
-                                    }}
-                                    disabled={postToYouTubeMutation.isPending && postingDraftId === draft.id}
-                                    data-testid={`button-post-youtube-${draft.id}`}
-                                  >
-                                    {postToYouTubeMutation.isPending && postingDraftId === draft.id ? (
-                                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                    ) : (
-                                      <Youtube className="w-4 h-4 mr-1" />
-                                    )}
-                                    {parentCommentId ? "Reply on YouTube" : "Comment on YouTube"}
-                                  </Button>
-                                </ResponsiveTooltip>
-                              );
-                            })()}
                           </div>
                         </div>
                       </CardContent>
