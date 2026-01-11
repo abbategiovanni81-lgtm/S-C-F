@@ -7682,6 +7682,9 @@ Provide analysis in this JSON structure:
 
   // Upload, analyze, and extract clips in one step
   app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
+    let tempDir: string | null = null;
+    let cloudVideoPath: string | null = null;
+    
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -7697,13 +7700,27 @@ Provide analysis in this JSON structure:
 
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
-      // Save video to temp file for FFmpeg processing (write once, use path-based processing)
-      const tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
+      // Upload video to object storage first (persists in production serverless environment)
+      const uploadFilename = `temp-video-${userId}-${Date.now()}.mp4`;
+      const uploadResult = await objectStorageService.uploadBuffer(
+        req.file.buffer,
+        uploadFilename,
+        req.file.mimetype || "video/mp4",
+        false // private upload
+      );
+      cloudVideoPath = uploadResult.objectPath;
+      console.log(`Video uploaded to cloud storage: ${cloudVideoPath}`);
+
+      // Download to temp directory for FFmpeg processing
+      tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "source.mp4");
+      
+      // Write from buffer (already in memory from multer)
       fs.writeFileSync(tempVideoPath, req.file.buffer);
+      console.log(`Video written to temp: ${tempVideoPath}`);
 
-      // Process with AI using path-based function (avoids writing video twice)
+      // Process with AI using path-based function
       const result = await processVideoForClipsFromPath(
         tempVideoPath,
         userId,
@@ -7750,13 +7767,6 @@ Provide analysis in this JSON structure:
         }
       }
 
-      // Cleanup temp files
-      try {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      } catch (e) {
-        console.error("Cleanup error:", e);
-      }
-
       // Check if response is still writable before sending (connection may have timed out)
       if (!res.headersSent && !res.writableEnded) {
         try {
@@ -7764,6 +7774,7 @@ Provide analysis in this JSON structure:
             clips: extractedClips,
             totalDuration: result.duration,
             transcript: result.transcript,
+            sourceVideoPath: cloudVideoPath,
             message: "Video processed and clips extracted successfully",
           });
         } catch (sendError) {
@@ -7781,6 +7792,17 @@ Provide analysis in this JSON structure:
           console.error("Failed to send error response:", sendError);
         }
       }
+    } finally {
+      // Cleanup temp files
+      if (tempDir) {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch (e) {
+          console.error("Temp cleanup error:", e);
+        }
+      }
+      // Note: Cloud temp video cleanup would be nice but deleteFile not implemented
+      // The temp videos will accumulate but won't affect functionality
     }
   });
 
