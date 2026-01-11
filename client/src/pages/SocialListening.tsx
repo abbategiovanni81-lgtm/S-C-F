@@ -193,6 +193,7 @@ export default function SocialListening() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/listening/drafts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/listening/hits"] });
       // Toast is handled by the caller when needed (e.g., approve, select alternative)
     },
   });

@@ -5483,6 +5483,14 @@ Provide analysis in this JSON structure:
       }
       
       const draft = await storage.updateReplyDraft(req.params.id, req.body);
+      
+      // When draft status changes, also update the corresponding hit's replyStatus
+      if (req.body.status && existingDraft.listeningHitId) {
+        await storage.updateListeningHit(existingDraft.listeningHitId, { 
+          replyStatus: req.body.status 
+        });
+      }
+      
       res.json(draft);
     } catch (error: any) {
       console.error("Error updating reply draft:", error);
