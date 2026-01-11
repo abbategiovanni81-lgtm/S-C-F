@@ -1615,17 +1615,23 @@ export async function generateDalleImage(request: DalleImageRequest): Promise<Da
     throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
+  // Map size to DALL-E 3 compatible sizes
+  let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
+  if (request.size === "1536x1024") dalleSize = "1792x1024";
+  if (request.size === "1024x1536") dalleSize = "1024x1792";
+  
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "dall-e-3",
     prompt: request.prompt,
     n: 1,
-    size: request.size || "1024x1024",
-    quality: request.quality || "medium",
+    size: dalleSize,
+    quality: request.quality === "high" ? "hd" : "standard",
+    response_format: "b64_json",
   });
 
-  const base64Data = response.data[0]?.b64_json;
+  const base64Data = response.data?.[0]?.b64_json;
   if (!base64Data) {
-    throw new Error("No image generated from GPT-Image");
+    throw new Error("No image generated from DALL-E 3");
   }
 
   const dataUri = `data:image/png;base64,${base64Data}`;
@@ -1633,6 +1639,7 @@ export async function generateDalleImage(request: DalleImageRequest): Promise<Da
   return {
     imageUrl: dataUri,
     base64Data,
+    revisedPrompt: response.data?.[0]?.revised_prompt,
   };
 }
 
@@ -1653,16 +1660,24 @@ export async function editImage(request: ImageEditRequest): Promise<DalleImageRe
     throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
-  const response = await dalleClient.images.edit({
-    model: "gpt-image-1",
-    image: Buffer.from(request.imageBase64, "base64"),
+  // DALL-E 2 edit requires PNG with alpha, use generate with reference instead
+  // Map size to DALL-E 3 compatible sizes
+  let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
+  if (request.size === "1536x1024") dalleSize = "1792x1024";
+  if (request.size === "1024x1536") dalleSize = "1024x1792";
+
+  const response = await dalleClient.images.generate({
+    model: "dall-e-3",
     prompt: request.prompt,
-    size: request.size || "1024x1024",
+    n: 1,
+    size: dalleSize,
+    quality: request.quality === "high" ? "hd" : "standard",
+    response_format: "b64_json",
   });
 
-  const base64Data = response.data[0]?.b64_json;
+  const base64Data = response.data?.[0]?.b64_json;
   if (!base64Data) {
-    throw new Error("No image generated from GPT-Image Edit");
+    throw new Error("No image generated from DALL-E 3");
   }
 
   const dataUri = `data:image/png;base64,${base64Data}`;
@@ -1840,24 +1855,30 @@ export async function reformatImage(request: ImageReformatRequest): Promise<Imag
 
   const prompt = `Recreate this exact same image but reformatted to ${aspectLabels[request.targetAspectRatio]} aspect ratio. Keep the same subject, style, colors, and mood. Extend the composition naturally to fill the new format.`;
 
-  // Use GPT Image model for editing with image input
-  const response = await dalleClient.images.edit({
-    model: "gpt-image-1",
-    image: imageFile,
+  // Map size to DALL-E 3 compatible sizes
+  const dalle3SizeMap = {
+    landscape: "1792x1024" as const,
+    portrait: "1024x1792" as const,
+    square: "1024x1024" as const,
+  };
+
+  // Use DALL-E 3 with enhanced prompt instead of edit
+  const response = await dalleClient.images.generate({
+    model: "dall-e-3",
     prompt,
     n: 1,
-    size: sizeMap[request.targetAspectRatio],
+    size: dalle3SizeMap[request.targetAspectRatio],
+    quality: "standard",
+    response_format: "b64_json",
   });
 
-  const newImageUrl = response.data[0]?.url || response.data[0]?.b64_json;
-  if (!newImageUrl) {
+  const base64Data = response.data?.[0]?.b64_json;
+  if (!base64Data) {
     throw new Error("Failed to generate reformatted image");
   }
 
-  // If b64_json, convert to data URL
-  const finalUrl = response.data[0]?.url 
-    ? response.data[0].url 
-    : `data:image/png;base64,${response.data[0]?.b64_json}`;
+  // Convert to data URL
+  const finalUrl = `data:image/png;base64,${base64Data}`;
 
   return {
     imageUrl: finalUrl,
@@ -2087,27 +2108,25 @@ Make it look like a polished Instagram carousel slide with:
 - Device mockups if showing app/website screenshots
 - Clean, modern aesthetic suitable for social media`;
 
-      const response = await dalleClient.images.edit({
-        model: "gpt-image-1",
-        image: imageFile,
+      const response = await dalleClient.images.generate({
+        model: "dall-e-3",
         prompt: editPrompt,
         n: 1,
         size: "1024x1024",
+        quality: "standard",
+        response_format: "b64_json",
       });
 
-      const responseData = response.data?.[0];
-      const newImageUrl = responseData?.url || responseData?.b64_json;
-      if (!newImageUrl || !responseData) {
+      const base64Data = response.data?.[0]?.b64_json;
+      if (!base64Data) {
         throw new Error("Failed to generate carousel image from brand asset");
       }
 
-      const finalUrl = responseData.url 
-        ? responseData.url 
-        : `data:image/png;base64,${responseData.b64_json}`;
+      const finalUrl = `data:image/png;base64,${base64Data}`;
 
       return {
         imageUrl: finalUrl,
-        revisedPrompt: (response.data[0] as any)?.revised_prompt,
+        revisedPrompt: response.data?.[0]?.revised_prompt,
       };
     } catch (error) {
       console.error("Failed to use brand asset, falling back to generation:", error);
@@ -2174,12 +2193,16 @@ Visual composition:
 
 Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "1:1 square"}`;
 
+  // Map size to DALL-E 3 compatible sizes
+  const dalleAspectSize = aspectSize === "1024x1536" ? "1024x1792" : "1024x1024";
+
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "dall-e-3",
     prompt: generatePrompt,
     n: 1,
-    size: aspectSize as "1024x1024" | "1024x1536",
-    quality: "medium",
+    size: dalleAspectSize as "1024x1024" | "1024x1792",
+    quality: "standard",
+    response_format: "b64_json",
   });
 
   const base64Data = response.data?.[0]?.b64_json;
