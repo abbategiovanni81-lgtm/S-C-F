@@ -4048,13 +4048,16 @@ Provide analysis in this JSON structure:
       if (account.tokenExpiry && new Date(account.tokenExpiry) <= new Date()) {
         if (account.refreshToken) {
           try {
+            console.log("[YouTube] Token expired, attempting refresh...");
             const newTokens = await refreshAccessToken(account.refreshToken);
-            accessToken = newTokens.access_token!;
+            accessToken = newTokens.accessToken!;
             await storage.updateSocialAccount(account.id, {
-              accessToken: newTokens.access_token,
-              tokenExpiry: newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
+              accessToken: newTokens.accessToken,
+              tokenExpiry: newTokens.expiryDate ? new Date(newTokens.expiryDate) : null,
             });
-          } catch (refreshError) {
+            console.log("[YouTube] Token refreshed successfully");
+          } catch (refreshError: any) {
+            console.error("[YouTube] Token refresh failed:", refreshError?.message || refreshError);
             return res.status(401).json({ error: "Token expired. Please reconnect your YouTube account." });
           }
         } else {
