@@ -7558,60 +7558,72 @@ Provide analysis in this JSON structure:
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "downloaded.mp4");
 
-      // Download video using ytdl-core (Node.js library - works in production)
-      console.log("Downloading video with ytdl-core...");
+      // Try yt-dlp first (works better in dev), fall back to ytdl-core for production
+      console.log("Downloading video...");
+      let downloadSuccess = false;
+      
+      // Try yt-dlp binary first (available in dev via Nix)
       try {
-        const ytdl = await import("@distube/ytdl-core");
+        const { spawnSync } = await import("child_process");
+        const result = spawnSync("yt-dlp", [
+          "--extractor-args", "youtube:player_client=android",
+          "-f", "best[height<=720]",
+          "-o", tempVideoPath,
+          parsedUrl.href
+        ], { timeout: 300000, maxBuffer: 50 * 1024 * 1024 });
         
-        // Check if it's a YouTube URL
-        if (ytdl.default.validateURL(parsedUrl.href)) {
-          const videoInfo = await ytdl.default.getInfo(parsedUrl.href);
-          const format = ytdl.default.chooseFormat(videoInfo.formats, { 
-            quality: 'highest',
-            filter: (format: any) => format.container === 'mp4' && format.hasVideo && format.hasAudio
-          });
-          
-          if (!format) {
-            // Try video-only format
-            const videoFormat = ytdl.default.chooseFormat(videoInfo.formats, { 
-              quality: 'highestvideo',
-              filter: 'videoonly'
-            });
-            if (!videoFormat) {
-              throw new Error("No suitable video format found");
-            }
-          }
-          
-          // Download to buffer
-          const chunks: Buffer[] = [];
-          const stream = ytdl.default(parsedUrl.href, { 
-            quality: 'highest',
-            filter: (format: any) => format.container === 'mp4' || format.hasVideo
-          });
-          
-          await new Promise<void>((resolve, reject) => {
-            stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-            stream.on('end', () => resolve());
-            stream.on('error', (err: Error) => reject(err));
-          });
-          
-          const videoBuffer = Buffer.concat(chunks);
-          fs.writeFileSync(tempVideoPath, videoBuffer);
-          console.log(`Downloaded YouTube video: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+        if (result.status === 0 && fs.existsSync(tempVideoPath)) {
+          console.log("Downloaded with yt-dlp successfully");
+          downloadSuccess = true;
         } else {
-          // For non-YouTube URLs, try direct fetch
-          console.log("Non-YouTube URL, attempting direct download...");
-          const response = await fetch(parsedUrl.href);
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          const videoBuffer = Buffer.from(arrayBuffer);
-          fs.writeFileSync(tempVideoPath, videoBuffer);
-          console.log(`Downloaded video directly: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+          console.log("yt-dlp failed or not available, trying fallback...");
         }
-      } catch (dlError: any) {
-        console.error("Video download error:", dlError.message);
+      } catch (ytdlpError: any) {
+        console.log("yt-dlp not available:", ytdlpError.message);
+      }
+      
+      // Fallback to ytdl-core if yt-dlp failed
+      if (!downloadSuccess) {
+        try {
+          const ytdl = await import("@distube/ytdl-core");
+          
+          if (ytdl.default.validateURL(parsedUrl.href)) {
+            console.log("Trying ytdl-core for YouTube URL...");
+            const chunks: Buffer[] = [];
+            const stream = ytdl.default(parsedUrl.href, { 
+              quality: 'highest',
+              filter: (format: any) => format.container === 'mp4' || format.hasVideo
+            });
+            
+            await new Promise<void>((resolve, reject) => {
+              stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+              stream.on('end', () => resolve());
+              stream.on('error', (err: Error) => reject(err));
+            });
+            
+            const videoBuffer = Buffer.concat(chunks);
+            fs.writeFileSync(tempVideoPath, videoBuffer);
+            console.log(`Downloaded with ytdl-core: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+            downloadSuccess = true;
+          } else {
+            // For non-YouTube URLs, try direct fetch
+            console.log("Non-YouTube URL, attempting direct download...");
+            const response = await fetch(parsedUrl.href);
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            const videoBuffer = Buffer.from(arrayBuffer);
+            fs.writeFileSync(tempVideoPath, videoBuffer);
+            console.log(`Downloaded directly: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+            downloadSuccess = true;
+          }
+        } catch (fallbackError: any) {
+          console.error("Fallback download error:", fallbackError.message);
+        }
+      }
+      
+      if (!downloadSuccess || !fs.existsSync(tempVideoPath)) {
         if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
         return res.status(400).json({ error: "Failed to download video. Please check the URL." });
       }
