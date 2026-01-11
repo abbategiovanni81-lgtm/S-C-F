@@ -7524,9 +7524,11 @@ Provide analysis in this JSON structure:
     }
   });
 
-  // Process video from URL using yt-dlp
+  // Process video from URL using ytdl-core (works in production serverless)
   app.post("/api/video-to-clips/url", isAuthenticated, async (req: any, res) => {
-    const { execSync, spawn } = await import("child_process");
+    const { execSync } = await import("child_process");
+    let tempDir: string | null = null;
+    
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -7538,7 +7540,7 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "No URL provided" });
       }
 
-      // Validate URL to prevent command injection
+      // Validate URL
       let parsedUrl;
       try {
         parsedUrl = new URL(url);
@@ -7552,39 +7554,77 @@ Provide analysis in this JSON structure:
       console.log(`Processing URL for user ${userId}: ${parsedUrl.href}`);
 
       // Create temp directory
-      const tempDir = path.join(os.tmpdir(), `video-url-${Date.now()}`);
+      tempDir = path.join(os.tmpdir(), `video-url-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "downloaded.mp4");
 
-      // Download video using yt-dlp with spawn to avoid shell injection
-      console.log("Downloading video with yt-dlp...");
+      // Download video using ytdl-core (Node.js library - works in production)
+      console.log("Downloading video with ytdl-core...");
       try {
-        const { spawnSync } = await import("child_process");
-        const result = spawnSync("yt-dlp", [
-          "--extractor-args", "youtube:player_client=android",
-          "-f", "best[height<=720]",
-          "-o", tempVideoPath,
-          parsedUrl.href
-        ], { timeout: 300000, maxBuffer: 50 * 1024 * 1024 });
+        const ytdl = await import("@distube/ytdl-core");
         
-        if (result.status !== 0) {
-          throw new Error(result.stderr?.toString() || "Download failed");
+        // Check if it's a YouTube URL
+        if (ytdl.default.validateURL(parsedUrl.href)) {
+          const videoInfo = await ytdl.default.getInfo(parsedUrl.href);
+          const format = ytdl.default.chooseFormat(videoInfo.formats, { 
+            quality: 'highest',
+            filter: (format: any) => format.container === 'mp4' && format.hasVideo && format.hasAudio
+          });
+          
+          if (!format) {
+            // Try video-only format
+            const videoFormat = ytdl.default.chooseFormat(videoInfo.formats, { 
+              quality: 'highestvideo',
+              filter: 'videoonly'
+            });
+            if (!videoFormat) {
+              throw new Error("No suitable video format found");
+            }
+          }
+          
+          // Download to buffer
+          const chunks: Buffer[] = [];
+          const stream = ytdl.default(parsedUrl.href, { 
+            quality: 'highest',
+            filter: (format: any) => format.container === 'mp4' || format.hasVideo
+          });
+          
+          await new Promise<void>((resolve, reject) => {
+            stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+            stream.on('end', () => resolve());
+            stream.on('error', (err: Error) => reject(err));
+          });
+          
+          const videoBuffer = Buffer.concat(chunks);
+          fs.writeFileSync(tempVideoPath, videoBuffer);
+          console.log(`Downloaded YouTube video: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+        } else {
+          // For non-YouTube URLs, try direct fetch
+          console.log("Non-YouTube URL, attempting direct download...");
+          const response = await fetch(parsedUrl.href);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          const videoBuffer = Buffer.from(arrayBuffer);
+          fs.writeFileSync(tempVideoPath, videoBuffer);
+          console.log(`Downloaded video directly: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
         }
       } catch (dlError: any) {
-        console.error("yt-dlp error:", dlError.message);
-        fs.rmSync(tempDir, { recursive: true, force: true });
+        console.error("Video download error:", dlError.message);
+        if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
         return res.status(400).json({ error: "Failed to download video. Please check the URL." });
       }
 
       // Check if file exists and read it
       if (!fs.existsSync(tempVideoPath)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+        if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
         return res.status(400).json({ error: "Download failed - no video file created" });
       }
 
       const videoBuffer = fs.readFileSync(tempVideoPath);
       const fileSize = videoBuffer.length;
-      console.log(`Downloaded video size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`Video size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
 
       // Limit to 500MB
       if (fileSize > 500 * 1024 * 1024) {
