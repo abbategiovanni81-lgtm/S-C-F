@@ -36,7 +36,7 @@ export async function createSoraVideo(request: SoraVideoRequest): Promise<SoraVi
   const response = await (soraClient as any).videos.create({
     model: request.model || "sora-2",
     prompt: request.prompt,
-    duration: request.duration || 4,
+    seconds: request.duration || 4,
     size: request.size || "1280x720",
   });
 
@@ -70,7 +70,7 @@ export async function createSoraImageToVideo(request: SoraImageToVideoRequest): 
     model: "sora-2-i2v",
     prompt: request.prompt,
     image_url: request.imageUrl,
-    duration: request.duration || 4,
+    seconds: request.duration || 4,
     size: request.size || "1280x720",
   });
 
