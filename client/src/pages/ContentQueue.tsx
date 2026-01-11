@@ -121,10 +121,41 @@ export default function ContentQueue() {
 
   // Video engine selection (A2E vs Fal.ai vs Studio Package vs Sora)
   const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai" | "sora">("sora");
+  // Video duration selection per engine
+  const [videoDuration, setVideoDuration] = useState<number>(4);
   // Image engine selection (A2E vs DALL-E vs Fal.ai vs Pexels vs Getty)
   const [imageEngine, setImageEngine] = useState<"a2e" | "dalle" | "fal" | "pexels" | "getty">("dalle");
   // Studio Package specific settings
   const [steveAIStyle, setSteveAIStyle] = useState<"animation" | "live_action" | "generative" | "talking_head" | "documentary">("animation");
+  
+  // Duration options per engine
+  const durationOptions: Record<string, { value: number; label: string }[]> = {
+    sora: [
+      { value: 4, label: "4 seconds" },
+      { value: 8, label: "8 seconds" },
+      { value: 12, label: "12 seconds" },
+    ],
+    "a2e-avatar": [
+      { value: 5, label: "5 seconds" },
+      { value: 10, label: "10 seconds" },
+      { value: 15, label: "15 seconds" },
+    ],
+    "a2e-scene": [
+      { value: 5, label: "5 seconds" },
+      { value: 10, label: "10 seconds" },
+      { value: 15, label: "15 seconds" },
+    ],
+    fal: [
+      { value: 10, label: "10 seconds" },
+    ],
+    steveai: [
+      { value: 15, label: "15 seconds" },
+      { value: 30, label: "30 seconds" },
+      { value: 60, label: "1 minute" },
+      { value: 120, label: "2 minutes" },
+      { value: 180, label: "3 minutes" },
+    ],
+  };
   const [selectedA2EAvatar, setSelectedA2EAvatar] = useState<string>("");
   const [a2eAvatars, setA2EAvatars] = useState<{ id: string; name: string; thumbnail?: string }[]>([]);
   const [loadingAvatars, setLoadingAvatars] = useState(false);
@@ -133,6 +164,14 @@ export default function ContentQueue() {
   const { data: aiEngines } = useQuery<Record<string, { configured: boolean; name: string }>>({
     queryKey: ["/api/ai-engines/status"],
   });
+
+  // Reset duration to first available option when engine changes
+  useEffect(() => {
+    const options = durationOptions[videoEngine];
+    if (options && options.length > 0 && !options.find(o => o.value === videoDuration)) {
+      setVideoDuration(options[0].value);
+    }
+  }, [videoEngine]);
 
   // Fetch A2E avatars when engine is selected
   useEffect(() => {
@@ -914,7 +953,7 @@ export default function ContentQueue() {
       const res = await fetch("/api/fal/generate-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, negativePrompt, aspectRatio: aspectRatio || "16:9", duration: 5, contentId }),
+        body: JSON.stringify({ prompt, negativePrompt, aspectRatio: aspectRatio || "16:9", duration: videoDuration || 10, contentId }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -1033,7 +1072,8 @@ export default function ContentQueue() {
           body: JSON.stringify({ 
             text: prompt, 
             creatorId: selectedA2EAvatar, 
-            aspectRatio 
+            aspectRatio,
+            duration: videoDuration
           }),
         });
         
@@ -1079,7 +1119,7 @@ export default function ContentQueue() {
             script: prompt, 
             style: steveAIStyle,
             aspectRatio,
-            duration: 60
+            duration: videoDuration
           }),
         });
         
@@ -1123,8 +1163,8 @@ export default function ContentQueue() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             prompt, 
-            duration: 10,
-            size: aspectRatio === "9:16" ? "1080x1920" : "1920x1080"
+            duration: videoDuration,
+            size: aspectRatio === "9:16" ? "720x1280" : "1280x720"
           }),
         });
         
@@ -1166,7 +1206,7 @@ export default function ContentQueue() {
         const res = await fetch("/api/a2e/generate-scene-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, aspectRatio }),
+          body: JSON.stringify({ prompt, aspectRatio, duration: videoDuration }),
         });
         
         if (!res.ok) {
@@ -1207,7 +1247,7 @@ export default function ContentQueue() {
         const res = await fetch("/api/fal/generate-video", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contentId, prompt, aspectRatio, duration: 10, sceneNumber }),
+          body: JSON.stringify({ contentId, prompt, aspectRatio, duration: videoDuration || 10, sceneNumber }),
         });
         
         if (!res.ok) {
@@ -2229,6 +2269,27 @@ export default function ContentQueue() {
                         </Select>
                       </div>
                     )}
+
+                    {/* Duration Selector */}
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-medium">Duration:</Label>
+                      <Select 
+                        value={videoDuration.toString()} 
+                        onValueChange={(v) => setVideoDuration(parseInt(v))}
+                        disabled={durationOptions[videoEngine]?.length === 1}
+                      >
+                        <SelectTrigger className="w-32 h-8 text-xs" data-testid="select-video-duration">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {durationOptions[videoEngine]?.map((option) => (
+                            <SelectItem key={option.value} value={option.value.toString()}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {videoEngine === "sora"
