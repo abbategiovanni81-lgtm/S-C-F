@@ -3216,9 +3216,19 @@ Provide analysis in this JSON structure:
 
   app.post("/api/sora/generate", async (req, res) => {
     try {
-      const { prompt, duration, size, model } = req.body;
+      const { prompt, duration: rawDuration, size, model } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "prompt is required" });
+      }
+
+      // Sora only supports 4, 8, or 12 second videos - clamp to nearest valid value
+      const validDurations = [4, 8, 12];
+      let duration = 4;
+      if (rawDuration) {
+        const numDuration = Number(rawDuration);
+        if (numDuration <= 6) duration = 4;
+        else if (numDuration <= 10) duration = 8;
+        else duration = 12;
       }
 
       if (!isSoraConfigured()) {
@@ -3272,9 +3282,18 @@ Provide analysis in this JSON structure:
 
   app.post("/api/sora/image-to-video", async (req, res) => {
     try {
-      const { prompt, imageUrl, duration, size } = req.body;
+      const { prompt, imageUrl, duration: rawDuration, size } = req.body;
       if (!prompt || !imageUrl) {
         return res.status(400).json({ error: "prompt and imageUrl are required" });
+      }
+
+      // Sora only supports 4, 8, or 12 second videos - clamp to nearest valid value
+      let duration = 4;
+      if (rawDuration) {
+        const numDuration = Number(rawDuration);
+        if (numDuration <= 6) duration = 4;
+        else if (numDuration <= 10) duration = 8;
+        else duration = 12;
       }
 
       if (!isSoraConfigured()) {
