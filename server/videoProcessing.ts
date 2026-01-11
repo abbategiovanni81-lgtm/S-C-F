@@ -6,8 +6,13 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import OpenAI from "openai";
+import ffmpegPath from "ffmpeg-static";
 
 const execAsync = promisify(exec);
+
+// Get ffmpeg/ffprobe paths - use bundled binaries for production compatibility
+const FFMPEG_PATH = ffmpegPath || "ffmpeg";
+const FFPROBE_PATH = ffmpegPath ? ffmpegPath.replace("ffmpeg", "ffprobe") : "ffprobe";
 const objectStorageService = new ObjectStorageService();
 
 // Use direct OpenAI API for Whisper (Replit proxy doesn't support audio endpoints)
@@ -37,7 +42,7 @@ interface ClipSuggestion {
 export async function getVideoDuration(videoPath: string): Promise<number> {
   try {
     const { stdout } = await execAsync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
+      `"${FFPROBE_PATH}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
     );
     return Math.floor(parseFloat(stdout.trim()));
   } catch (error) {
@@ -48,7 +53,7 @@ export async function getVideoDuration(videoPath: string): Promise<number> {
 
 export async function extractAudioFromVideo(videoPath: string, outputPath: string): Promise<void> {
   await execAsync(
-    `ffmpeg -i "${videoPath}" -vn -acodec libmp3lame -ar 16000 -ac 1 -q:a 4 "${outputPath}" -y`
+    `"${FFMPEG_PATH}" -i "${videoPath}" -vn -acodec libmp3lame -ar 16000 -ac 1 -q:a 4 "${outputPath}" -y`
   );
 }
 
@@ -165,7 +170,7 @@ export async function extractVideoClip(
     : "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2";
 
   await execAsync(
-    `ffmpeg -ss ${startTime} -i "${inputPath}" -t ${duration} -vf "${scaleFilter}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "${outputPath}" -y`
+    `"${FFMPEG_PATH}" -ss ${startTime} -i "${inputPath}" -t ${duration} -vf "${scaleFilter}" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k "${outputPath}" -y`
   );
 }
 
@@ -175,7 +180,7 @@ export async function generateThumbnail(
   timeOffset: number = 0
 ): Promise<void> {
   await execAsync(
-    `ffmpeg -ss ${timeOffset} -i "${videoPath}" -vframes 1 -vf "scale=480:-1" "${outputPath}" -y`
+    `"${FFMPEG_PATH}" -ss ${timeOffset} -i "${videoPath}" -vframes 1 -vf "scale=480:-1" "${outputPath}" -y`
   );
 }
 

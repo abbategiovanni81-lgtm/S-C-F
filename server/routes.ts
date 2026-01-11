@@ -7558,68 +7558,44 @@ Provide analysis in this JSON structure:
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "downloaded.mp4");
 
-      // Try yt-dlp first (works better in dev), fall back to ytdl-core for production
+      // Use yt-dlp-exec npm package (bundles binary, works in both dev and production)
       console.log("Downloading video...");
       let downloadSuccess = false;
       
-      // Try yt-dlp binary first (available in dev via Nix)
       try {
-        const { spawnSync } = await import("child_process");
-        const result = spawnSync("yt-dlp", [
-          "--extractor-args", "youtube:player_client=android",
-          "-f", "best[height<=720]",
-          "-o", tempVideoPath,
-          parsedUrl.href
-        ], { timeout: 300000, maxBuffer: 50 * 1024 * 1024 });
+        const ytDlpExec = await import("yt-dlp-exec");
+        const ytdlp = ytDlpExec.default || ytDlpExec;
         
-        if (result.status === 0 && fs.existsSync(tempVideoPath)) {
-          console.log("Downloaded with yt-dlp successfully");
+        console.log("Using yt-dlp-exec to download video...");
+        await ytdlp(parsedUrl.href, {
+          output: tempVideoPath,
+          format: "best[height<=720]",
+          extractorArgs: "youtube:player_client=android",
+        });
+        
+        if (fs.existsSync(tempVideoPath)) {
+          console.log("Downloaded with yt-dlp-exec successfully");
           downloadSuccess = true;
-        } else {
-          console.log("yt-dlp failed or not available, trying fallback...");
         }
       } catch (ytdlpError: any) {
-        console.log("yt-dlp not available:", ytdlpError.message);
+        console.error("yt-dlp-exec failed:", ytdlpError.message);
       }
       
-      // Fallback to ytdl-core if yt-dlp failed
+      // Fallback to direct fetch for non-YouTube URLs
       if (!downloadSuccess) {
         try {
-          const ytdl = await import("@distube/ytdl-core");
-          
-          if (ytdl.default.validateURL(parsedUrl.href)) {
-            console.log("Trying ytdl-core for YouTube URL...");
-            const chunks: Buffer[] = [];
-            const stream = ytdl.default(parsedUrl.href, { 
-              quality: 'highest',
-              filter: (format: any) => format.container === 'mp4' || format.hasVideo
-            });
-            
-            await new Promise<void>((resolve, reject) => {
-              stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-              stream.on('end', () => resolve());
-              stream.on('error', (err: Error) => reject(err));
-            });
-            
-            const videoBuffer = Buffer.concat(chunks);
-            fs.writeFileSync(tempVideoPath, videoBuffer);
-            console.log(`Downloaded with ytdl-core: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
-            downloadSuccess = true;
-          } else {
-            // For non-YouTube URLs, try direct fetch
-            console.log("Non-YouTube URL, attempting direct download...");
-            const response = await fetch(parsedUrl.href);
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            const videoBuffer = Buffer.from(arrayBuffer);
-            fs.writeFileSync(tempVideoPath, videoBuffer);
-            console.log(`Downloaded directly: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
-            downloadSuccess = true;
+          console.log("Attempting direct download...");
+          const response = await fetch(parsedUrl.href);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
+          const arrayBuffer = await response.arrayBuffer();
+          const videoBuffer = Buffer.from(arrayBuffer);
+          fs.writeFileSync(tempVideoPath, videoBuffer);
+          console.log(`Downloaded directly: ${(videoBuffer.length / 1024 / 1024).toFixed(2)} MB`);
+          downloadSuccess = true;
         } catch (fallbackError: any) {
-          console.error("Fallback download error:", fallbackError.message);
+          console.error("Direct download error:", fallbackError.message);
         }
       }
       
