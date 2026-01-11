@@ -1,18 +1,38 @@
 import { openai } from "./openai";
 import { ObjectStorageService } from "./objectStorage";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import OpenAI from "openai";
-import ffmpegPath from "ffmpeg-static";
+import ffmpegStaticPath from "ffmpeg-static";
 
 const execAsync = promisify(exec);
 
-// Get ffmpeg/ffprobe paths - use bundled binaries for production compatibility
-const FFMPEG_PATH = ffmpegPath || "ffmpeg";
-const FFPROBE_PATH = ffmpegPath ? ffmpegPath.replace("ffmpeg", "ffprobe") : "ffprobe";
+// Detect if system ffmpeg/ffprobe are available (dev has Nix packages)
+function getFFmpegPath(): string {
+  try {
+    execSync("which ffmpeg", { stdio: "ignore" });
+    return "ffmpeg";
+  } catch {
+    return ffmpegStaticPath || "ffmpeg";
+  }
+}
+
+function getFFprobePath(): string {
+  try {
+    execSync("which ffprobe", { stdio: "ignore" });
+    return "ffprobe";
+  } catch {
+    // ffmpeg-static doesn't include ffprobe, so we fall back to ffmpeg for probing
+    // In production, we'll use a workaround
+    return "ffprobe";
+  }
+}
+
+const FFMPEG_PATH = getFFmpegPath();
+const FFPROBE_PATH = getFFprobePath();
 const objectStorageService = new ObjectStorageService();
 
 // Use direct OpenAI API for Whisper (Replit proxy doesn't support audio endpoints)
@@ -40,15 +60,33 @@ interface ClipSuggestion {
 }
 
 export async function getVideoDuration(videoPath: string): Promise<number> {
+  // Try ffprobe first
   try {
     const { stdout } = await execAsync(
       `"${FFPROBE_PATH}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
     );
     return Math.floor(parseFloat(stdout.trim()));
   } catch (error) {
-    console.error("Error getting video duration:", error);
-    return 0;
+    console.log("ffprobe failed, trying ffmpeg for duration...");
   }
+  
+  // Fallback: use ffmpeg to get duration (works when ffprobe not available)
+  try {
+    const { stderr } = await execAsync(
+      `"${FFMPEG_PATH}" -i "${videoPath}" 2>&1 | grep "Duration" || "${FFMPEG_PATH}" -i "${videoPath}" -f null - 2>&1 | grep "Duration"`
+    );
+    const match = stderr.match(/Duration: (\d+):(\d+):(\d+)/);
+    if (match) {
+      const hours = parseInt(match[1]);
+      const minutes = parseInt(match[2]);
+      const seconds = parseInt(match[3]);
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+  } catch (error2) {
+    console.error("Error getting video duration:", error2);
+  }
+  
+  return 0;
 }
 
 export async function extractAudioFromVideo(videoPath: string, outputPath: string): Promise<void> {
