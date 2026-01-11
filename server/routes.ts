@@ -7714,7 +7714,6 @@ Provide analysis in this JSON structure:
   // Upload, analyze, and extract clips in one step
   app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
     let tempDir: string | null = null;
-    let cloudVideoPath: string | null = null;
     
     try {
       const userId = getUserId(req);
@@ -7731,23 +7730,11 @@ Provide analysis in this JSON structure:
 
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
-      // Upload video to object storage first (persists in production serverless environment)
-      const uploadFilename = `temp-video-${userId}-${Date.now()}.mp4`;
-      const uploadResult = await objectStorageService.uploadBuffer(
-        req.file.buffer,
-        uploadFilename,
-        req.file.mimetype || "video/mp4",
-        false // private upload
-      );
-      cloudVideoPath = uploadResult.objectPath;
-      console.log(`Video uploaded to cloud storage: ${cloudVideoPath}`);
-
-      // Download to temp directory for FFmpeg processing
+      // Write directly to temp for FFmpeg processing (skip cloud upload for source - only clips get uploaded)
       tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
       fs.mkdirSync(tempDir, { recursive: true });
       const tempVideoPath = path.join(tempDir, "source.mp4");
       
-      // Write from buffer (already in memory from multer)
       fs.writeFileSync(tempVideoPath, req.file.buffer);
       console.log(`Video written to temp: ${tempVideoPath}`);
 
@@ -7805,7 +7792,6 @@ Provide analysis in this JSON structure:
             clips: extractedClips,
             totalDuration: result.duration,
             transcript: result.transcript,
-            sourceVideoPath: cloudVideoPath,
             message: "Video processed and clips extracted successfully",
           });
         } catch (sendError) {
