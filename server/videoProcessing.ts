@@ -11,9 +11,13 @@ const execAsync = promisify(exec);
 const objectStorageService = new ObjectStorageService();
 
 // Use direct OpenAI API for Whisper (Replit proxy doesn't support audio endpoints)
-const whisperClient = new OpenAI({
-  apiKey: process.env.OPENAI_DALLE_API_KEY,
-});
+function getWhisperClient(): OpenAI {
+  const apiKey = process.env.OPENAI_DALLE_API_KEY;
+  if (!apiKey) {
+    throw new Error("Video transcription not configured. Please add OPENAI_DALLE_API_KEY in Settings.");
+  }
+  return new OpenAI({ apiKey });
+}
 
 interface TranscriptSegment {
   start: number;
@@ -52,6 +56,7 @@ export async function transcribeAudio(audioPath: string): Promise<{ transcript: 
   const audioFile = fs.createReadStream(audioPath);
   
   // Use direct OpenAI client for Whisper (not Replit proxy)
+  const whisperClient = getWhisperClient();
   const response = await whisperClient.audio.transcriptions.create({
     file: audioFile,
     model: "whisper-1",
@@ -198,12 +203,32 @@ export async function processVideoForClips(
     
     onProgress?.("Getting video info...", 20);
     const duration = await getVideoDuration(videoPath);
+    if (duration === 0) {
+      throw new Error("Could not read video. Please check the file format is supported (MP4, MOV, AVI).");
+    }
     
     onProgress?.("Extracting audio...", 30);
-    await extractAudioFromVideo(videoPath, audioPath);
+    try {
+      await extractAudioFromVideo(videoPath, audioPath);
+    } catch (err: any) {
+      console.error("Audio extraction failed:", err);
+      throw new Error("Failed to extract audio from video. The file may be corrupted or in an unsupported format.");
+    }
     
     onProgress?.("Transcribing with AI...", 50);
-    const { transcript, segments } = await transcribeAudio(audioPath);
+    let transcript: string;
+    let segments: TranscriptSegment[];
+    try {
+      const result = await transcribeAudio(audioPath);
+      transcript = result.transcript;
+      segments = result.segments;
+    } catch (err: any) {
+      console.error("Transcription failed:", err);
+      if (err.message?.includes("not configured")) {
+        throw err;
+      }
+      throw new Error("AI transcription failed. Please try again or use a shorter video.");
+    }
     
     onProgress?.("Analyzing for best clips...", 70);
     const clips = await analyzeTranscriptForClips(
