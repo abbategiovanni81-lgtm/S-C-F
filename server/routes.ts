@@ -7421,9 +7421,19 @@ Provide analysis in this JSON structure:
 
   // ==================== VIDEO TO CLIPS ====================
   
-  // Multer config for video uploads
+  // Multer config for video uploads - use disk storage to avoid memory issues with large files
+  const videoToClipsTempDir = os.tmpdir();
   const videoToClipsUpload = multer({
-    storage: multer.memoryStorage(),
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(videoToClipsTempDir, 'video-uploads');
+        fs.mkdirSync(uploadDir, { recursive: true });
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        cb(null, `upload-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`);
+      }
+    }),
     limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit
     fileFilter: (req, file, cb) => {
       if (file.mimetype.startsWith("video/")) {
@@ -7730,13 +7740,11 @@ Provide analysis in this JSON structure:
 
       console.log(`Processing video for user ${userId}, size: ${req.file.size} bytes`);
 
-      // Write directly to temp for FFmpeg processing (skip cloud upload for source - only clips get uploaded)
-      tempDir = path.join(os.tmpdir(), `video-clips-${Date.now()}`);
-      fs.mkdirSync(tempDir, { recursive: true });
-      const tempVideoPath = path.join(tempDir, "source.mp4");
-      
-      fs.writeFileSync(tempVideoPath, req.file.buffer);
-      console.log(`Video written to temp: ${tempVideoPath}`);
+      // With disk storage, req.file.path already points to the uploaded file on disk
+      // No need to write to temp again - use the uploaded file directly
+      const tempVideoPath = req.file.path;
+      tempDir = path.dirname(tempVideoPath);
+      console.log(`Video uploaded to disk: ${tempVideoPath}`);
 
       // Process with AI using path-based function
       const result = await processVideoForClipsFromPath(
@@ -7810,16 +7818,14 @@ Provide analysis in this JSON structure:
         }
       }
     } finally {
-      // Cleanup temp files
-      if (tempDir) {
+      // Cleanup uploaded file (don't delete the whole temp directory since it's shared)
+      if (req.file?.path) {
         try {
-          fs.rmSync(tempDir, { recursive: true, force: true });
+          fs.unlinkSync(req.file.path);
         } catch (e) {
-          console.error("Temp cleanup error:", e);
+          console.error("Cleanup error:", e);
         }
       }
-      // Note: Cloud temp video cleanup would be nice but deleteFile not implemented
-      // The temp videos will accumulate but won't affect functionality
     }
   });
 
