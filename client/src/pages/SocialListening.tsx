@@ -115,6 +115,9 @@ export default function SocialListening() {
 
   // State for tracking which draft is being posted
   const [postingDraftId, setPostingDraftId] = useState<string | null>(null);
+  
+  // State for tracking selected alternative by draft ID (persists through edits)
+  const [selectedAltByDraft, setSelectedAltByDraft] = useState<Record<string, number>>({});
 
   // Helper to extract YouTube video ID from URL
   const extractYouTubeVideoId = (url: string): string | null => {
@@ -1055,7 +1058,7 @@ export default function SocialListening() {
                               <p className="text-xs text-muted-foreground mb-2">Alternative replies:</p>
                               <div className="space-y-2">
                                 {metadata.alternativeReplies.map((alt, i) => {
-                                  const isSelected = draft.replyContent === alt;
+                                  const isSelected = selectedAltByDraft[draft.id] === i;
                                   return (
                                     <div 
                                       key={i} 
@@ -1073,6 +1076,7 @@ export default function SocialListening() {
                                           variant={isSelected ? "default" : "ghost"}
                                           className={isSelected ? "bg-green-600 hover:bg-green-700" : ""}
                                           onClick={() => {
+                                            setSelectedAltByDraft(prev => ({ ...prev, [draft.id]: i }));
                                             updateDraftMutation.mutate({ id: draft.id, data: { replyContent: alt } });
                                             toast({ title: "Reply selected", description: "This message will be used when you approve." });
                                           }}
