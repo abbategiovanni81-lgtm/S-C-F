@@ -9,9 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film, HardDrive, Search } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
 import { VideoEditor, ProcessingOverlay } from "@/components/VideoEditor";
+import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -37,6 +40,15 @@ export default function EditMerge() {
   const [videoEditorOpen, setVideoEditorOpen] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  
+  const [showDriveBrowser, setShowDriveBrowser] = useState(false);
+  const [showPexelsSearch, setShowPexelsSearch] = useState(false);
+  const [showAiGenerate, setShowAiGenerate] = useState(false);
+  const [pexelsQuery, setPexelsQuery] = useState("");
+  const [pexelsVideos, setPexelsVideos] = useState<any[]>([]);
+  const [pexelsLoading, setPexelsLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -605,6 +617,92 @@ export default function EditMerge() {
     return segments;
   };
 
+  const handleVideoSourceSelect = (source: "upload" | "drive" | "pexels" | "ai") => {
+    switch (source) {
+      case "upload":
+        fileInputRef.current?.click();
+        break;
+      case "drive":
+        setShowDriveBrowser(true);
+        break;
+      case "pexels":
+        setShowPexelsSearch(true);
+        break;
+      case "ai":
+        setShowAiGenerate(true);
+        break;
+    }
+  };
+
+  const handleDriveVideoSelected = (videoUrl: string, fileName: string) => {
+    setShowDriveBrowser(false);
+    const newClip: ClipState = {
+      id: `drive-${Date.now()}`,
+      type: "uploaded",
+      status: "completed",
+      videoUrl,
+      fileName,
+    };
+    setClips(prev => [...prev, newClip]);
+    toast({ title: "Video added", description: fileName });
+  };
+
+  const handleSearchPexels = async () => {
+    if (!pexelsQuery.trim()) return;
+    setPexelsLoading(true);
+    try {
+      const res = await fetch(`/api/pexels/popular-videos?query=${encodeURIComponent(pexelsQuery)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPexelsVideos(data.videos || []);
+      }
+    } catch (error) {
+      toast({ title: "Search failed", variant: "destructive" });
+    } finally {
+      setPexelsLoading(false);
+    }
+  };
+
+  const handleSelectPexelsVideo = async (video: any) => {
+    const videoFile = video.video_files?.find((f: any) => f.quality === "hd") || video.video_files?.[0];
+    if (videoFile?.link) {
+      const newClip: ClipState = {
+        id: `pexels-${video.id}`,
+        type: "uploaded",
+        status: "completed",
+        videoUrl: videoFile.link,
+        fileName: `Pexels-${video.id}`,
+      };
+      setClips(prev => [...prev, newClip]);
+      setShowPexelsSearch(false);
+      setPexelsVideos([]);
+      setPexelsQuery("");
+      toast({ title: "Video added from Pexels" });
+    }
+  };
+
+  const handleAiGenerateVideo = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiGenerating(true);
+    try {
+      const res = await fetch("/api/sora/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ prompt: aiPrompt, duration: 4 }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const data = await res.json();
+      toast({ title: "AI video generation started!", description: `Video ID: ${data.videoId}` });
+      setShowAiGenerate(false);
+      setAiPrompt("");
+    } catch (error: any) {
+      toast({ title: "Generation failed", description: error.message, variant: "destructive" });
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     setProcessingProgress(0);
@@ -655,6 +753,7 @@ export default function EditMerge() {
             onClose={() => setVideoEditorOpen(false)}
             onExport={handleExport}
             onAddClip={() => fileInputRef.current?.click()}
+            onSelectSource={handleVideoSourceSelect}
           />
         )
       )}
@@ -1253,6 +1352,101 @@ export default function EditMerge() {
           </div>
         </div>
       </div>
+      
+      <GoogleDriveBrowser
+        open={showDriveBrowser}
+        onOpenChange={setShowDriveBrowser}
+        onVideoSelected={handleDriveVideoSelected}
+      />
+      
+      <Dialog open={showPexelsSearch} onOpenChange={setShowPexelsSearch}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Search Pexels Stock Videos
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={pexelsQuery}
+                onChange={(e) => setPexelsQuery(e.target.value)}
+                placeholder="Search for videos..."
+                onKeyDown={(e) => e.key === "Enter" && handleSearchPexels()}
+                data-testid="input-pexels-search"
+              />
+              <Button onClick={handleSearchPexels} disabled={pexelsLoading} data-testid="button-pexels-search">
+                {pexelsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+              {pexelsVideos.map((video) => (
+                <button
+                  key={video.id}
+                  onClick={() => handleSelectPexelsVideo(video)}
+                  className="relative aspect-video rounded-lg overflow-hidden hover:ring-2 ring-primary transition-all group"
+                  data-testid={`button-pexels-video-${video.id}`}
+                >
+                  <video
+                    src={video.video_files?.[0]?.link}
+                    className="w-full h-full object-cover"
+                    muted
+                    onMouseOver={(e) => (e.target as HTMLVideoElement).play()}
+                    onMouseOut={(e) => (e.target as HTMLVideoElement).pause()}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Plus className="w-8 h-8 text-white" />
+                  </div>
+                </button>
+              ))}
+            </div>
+            {pexelsVideos.length === 0 && !pexelsLoading && (
+              <p className="text-center text-muted-foreground py-8">
+                Search for free stock videos from Pexels
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showAiGenerate} onOpenChange={setShowAiGenerate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="w-5 h-5" />
+              Generate Video with AI
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="Describe the video you want to create..."
+              rows={4}
+              data-testid="input-ai-prompt"
+            />
+            <Button
+              onClick={handleAiGenerateVideo}
+              disabled={aiGenerating || !aiPrompt.trim()}
+              className="w-full"
+              data-testid="button-generate-ai-video"
+            >
+              {aiGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Generate Video
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

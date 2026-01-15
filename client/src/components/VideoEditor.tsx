@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import {
   X, Play, Pause, RotateCcw, RotateCw, ChevronDown,
   Music, Type, Mic, Link2, Captions, Sparkles, SlidersHorizontal,
-  Plus, Download
+  Plus, Download, Upload, HardDrive, Film, Wand2, Image as ImageIcon
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface CaptionSegment {
   id: string;
@@ -23,6 +24,8 @@ interface VideoClip {
   thumbnailUrl?: string;
 }
 
+type VideoSource = "upload" | "drive" | "pexels" | "ai";
+
 interface VideoEditorProps {
   videoUrl?: string;
   clips?: VideoClip[];
@@ -34,6 +37,7 @@ interface VideoEditorProps {
   onClose?: () => void;
   onExport?: () => void;
   onAddClip?: () => void;
+  onSelectSource?: (source: VideoSource) => void;
 }
 
 export function VideoEditor({
@@ -47,6 +51,7 @@ export function VideoEditor({
   onClose,
   onExport,
   onAddClip,
+  onSelectSource,
 }: VideoEditorProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,6 +59,31 @@ export function VideoEditor({
   const [duration, setDuration] = useState(0);
   const [activeCaption, setActiveCaption] = useState<CaptionSegment | null>(null);
   const [highlightedWord, setHighlightedWord] = useState<string>("");
+  const [showSourceModal, setShowSourceModal] = useState(false);
+
+  const videoSources = [
+    { id: "upload" as VideoSource, label: "Upload Video", icon: Upload, description: "Upload from your device" },
+    { id: "drive" as VideoSource, label: "Google Drive", icon: HardDrive, description: "Import from your Drive" },
+    { id: "pexels" as VideoSource, label: "Pexels Stock", icon: ImageIcon, description: "Free stock videos" },
+    { id: "ai" as VideoSource, label: "AI Generate", icon: Wand2, description: "Create with AI" },
+  ];
+
+  const handleSourceSelect = (source: VideoSource) => {
+    setShowSourceModal(false);
+    if (onSelectSource) {
+      onSelectSource(source);
+    } else if (source === "upload" && onAddClip) {
+      onAddClip();
+    }
+  };
+
+  const handleAddClick = () => {
+    if (onSelectSource) {
+      setShowSourceModal(true);
+    } else if (onAddClip) {
+      onAddClip();
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -350,7 +380,7 @@ export function VideoEditor({
           ))}
           
           <button 
-            onClick={onAddClip}
+            onClick={handleAddClick}
             className="flex-shrink-0 w-16 h-16 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
             data-testid="button-add-clip"
           >
@@ -368,6 +398,32 @@ export function VideoEditor({
         <ToolbarButton icon={Sparkles} label="Filters" />
         <ToolbarButton icon={SlidersHorizontal} label="Adjust" />
       </nav>
+      
+      <Sheet open={showSourceModal} onOpenChange={setShowSourceModal}>
+        <SheetContent side="bottom" className="bg-zinc-900 border-zinc-800 rounded-t-3xl">
+          <SheetHeader>
+            <SheetTitle className="text-white text-center">Add Video</SheetTitle>
+          </SheetHeader>
+          <div className="grid grid-cols-2 gap-3 py-6">
+            {videoSources.map((source) => (
+              <button
+                key={source.id}
+                onClick={() => handleSourceSelect(source.id)}
+                className="flex flex-col items-center gap-3 p-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors"
+                data-testid={`button-source-${source.id}`}
+              >
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center">
+                  <source.icon className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-center">
+                  <p className="text-white font-medium text-sm">{source.label}</p>
+                  <p className="text-zinc-400 text-xs">{source.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
