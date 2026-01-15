@@ -1164,7 +1164,7 @@ export default function ContentQueue() {
           body: JSON.stringify({ 
             prompt, 
             duration: videoDuration,
-            size: aspectRatio === "9:16" ? "1024x1536" : "1536x1024"
+            size: aspectRatio === "9:16" ? "720x1280" : "1280x720"
           }),
         });
         
