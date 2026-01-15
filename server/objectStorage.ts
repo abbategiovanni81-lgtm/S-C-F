@@ -203,7 +203,8 @@ export class ObjectStorageService {
     isPublic: boolean = true
   ): Promise<{ objectPath: string; publicUrl: string }> {
     const objectId = randomUUID();
-    const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.')) : '';
+    const safeFileName = fileName || 'file';
+    const ext = safeFileName.includes('.') ? safeFileName.substring(safeFileName.lastIndexOf('.')) : '';
     const privateObjectDir = this.getPrivateObjectDir();
     const fullPath = `${privateObjectDir}/uploads/${objectId}${ext}`;
     
@@ -214,7 +215,7 @@ export class ObjectStorageService {
     await file.save(buffer, {
       contentType,
       metadata: {
-        originalName: fileName,
+        originalName: safeFileName,
       },
     });
     
