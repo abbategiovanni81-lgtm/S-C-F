@@ -118,6 +118,14 @@ export default function ContentQueue() {
   
   // Image style for DALL-E (vivid vs natural)
   const [imageStyle, setImageStyle] = useState<"photorealistic" | "illustrated" | "minimalist">("photorealistic");
+  
+  // Image size selection for gpt-image-1
+  const [imageSize, setImageSize] = useState<"1024x1024" | "1536x1024" | "1024x1536">("1024x1024");
+  const imageSizeOptions = [
+    { value: "1024x1024", label: "Square (1024×1024)" },
+    { value: "1536x1024", label: "Landscape (1536×1024)" },
+    { value: "1024x1536", label: "Portrait (1024×1536)" },
+  ];
 
   // Video engine selection (A2E vs Fal.ai vs Studio Package vs Sora)
   const [videoEngine, setVideoEngine] = useState<"a2e-avatar" | "a2e-scene" | "fal" | "steveai" | "sora">("sora");
@@ -402,7 +410,12 @@ export default function ContentQueue() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
+        body: JSON.stringify({ 
+          prompt: styledPrompt, 
+          aspectRatio: apiAspectRatio, 
+          style: dalleStyle,
+          size: imageEngine === "dalle" ? imageSize : undefined 
+        }),
       });
       
       if (!res.ok) {
@@ -463,7 +476,12 @@ export default function ContentQueue() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
+        body: JSON.stringify({ 
+          prompt: styledPrompt, 
+          aspectRatio: apiAspectRatio, 
+          style: dalleStyle,
+          size: imageEngine === "dalle" ? imageSize : undefined 
+        }),
       });
       
       if (!res.ok) {
@@ -581,7 +599,12 @@ export default function ContentQueue() {
           res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
+            body: JSON.stringify({ 
+              prompt: styledPrompt, 
+              aspectRatio: apiAspectRatio, 
+              style: dalleStyle,
+              size: imageEngine === "dalle" ? imageSize : undefined 
+            }),
           });
         }
         
@@ -724,7 +747,12 @@ export default function ContentQueue() {
         res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: styledPrompt, aspectRatio: apiAspectRatio, style: dalleStyle }),
+          body: JSON.stringify({ 
+            prompt: styledPrompt, 
+            aspectRatio: apiAspectRatio, 
+            style: dalleStyle,
+            size: imageEngine === "dalle" ? imageSize : undefined 
+          }),
         });
       }
       
@@ -3040,19 +3068,34 @@ export default function ContentQueue() {
                         </Select>
                       </div>
                       {imageEngine === "dalle" && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <Label className="text-xs font-medium">Style:</Label>
-                          <Select value={imageStyle} onValueChange={(v: "photorealistic" | "illustrated" | "minimalist") => setImageStyle(v)}>
-                            <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-image-style">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="photorealistic">Photorealistic</SelectItem>
-                              <SelectItem value="illustrated">Illustrated</SelectItem>
-                              <SelectItem value="minimalist">Minimalist</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                        <>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Label className="text-xs font-medium">Style:</Label>
+                            <Select value={imageStyle} onValueChange={(v: "photorealistic" | "illustrated" | "minimalist") => setImageStyle(v)}>
+                              <SelectTrigger className="w-36 h-8 text-xs" data-testid="select-image-style">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="photorealistic">Photorealistic</SelectItem>
+                                <SelectItem value="illustrated">Illustrated</SelectItem>
+                                <SelectItem value="minimalist">Minimalist</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Label className="text-xs font-medium">Size:</Label>
+                            <Select value={imageSize} onValueChange={(v: "1024x1024" | "1536x1024" | "1024x1536") => setImageSize(v)}>
+                              <SelectTrigger className="w-44 h-8 text-xs" data-testid="select-image-size">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {imageSizeOptions.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
                       )}
                       <p className="text-xs text-muted-foreground">
                         {imageEngine === "a2e" 
