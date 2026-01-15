@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
+import { VideoEditor, ProcessingOverlay } from "@/components/VideoEditor";
 
 const DEMO_USER_ID = "demo-user";
 
@@ -33,6 +34,9 @@ export default function EditMerge() {
   const [clips, setClips] = useState<ClipState[]>([]);
   const [playingClip, setPlayingClip] = useState<number | null>(null);
   const [merging, setMerging] = useState(false);
+  const [videoEditorOpen, setVideoEditorOpen] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
@@ -551,8 +555,109 @@ export default function EditMerge() {
     return () => clearInterval(interval);
   }, [clips, selectedContent]);
 
+  const getMergedVideoUrl = () => {
+    const metadata = selectedContent?.generationMetadata as any;
+    return metadata?.mergedVideoUrl || metadata?.generatedVideoUrl;
+  };
+
+  const getVideoClips = () => {
+    return clips
+      .filter(c => c.status === "completed" && c.videoUrl)
+      .map(c => ({
+        id: c.id,
+        url: c.videoUrl!,
+        duration: 4,
+        thumbnailUrl: undefined,
+      }));
+  };
+
+  const getCaptions = () => {
+    const metadata = selectedContent?.generationMetadata as any;
+    const voiceoverText = metadata?.videoPrompts?.voiceoverText || "";
+    if (!voiceoverText) return [];
+    
+    const words = voiceoverText.split(" ");
+    const avgWordDuration = 0.4;
+    let currentTime = 0;
+    
+    const segments: { id: string; text: string; startTime: number; endTime: number; words: { word: string; start: number; end: number }[] }[] = [];
+    const wordsPerSegment = 5;
+    
+    for (let i = 0; i < words.length; i += wordsPerSegment) {
+      const segmentWords = words.slice(i, i + wordsPerSegment);
+      const segmentStart = currentTime;
+      const wordData = segmentWords.map((word: string, j: number) => {
+        const start = currentTime + j * avgWordDuration;
+        const end = start + avgWordDuration;
+        return { word, start, end };
+      });
+      currentTime += segmentWords.length * avgWordDuration;
+      
+      segments.push({
+        id: `segment-${i}`,
+        text: segmentWords.join(" "),
+        startTime: segmentStart,
+        endTime: currentTime,
+        words: wordData,
+      });
+    }
+    
+    return segments;
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    setProcessingProgress(0);
+    
+    const interval = setInterval(() => {
+      setProcessingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+    
+    try {
+      await handleMergeClips();
+      clearInterval(interval);
+      setProcessingProgress(100);
+      toast({ title: "Export complete!", description: "Your video is ready." });
+    } catch (error) {
+      clearInterval(interval);
+      toast({ title: "Export failed", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Layout title="Edit & Merge">
+      {videoEditorOpen && selectedContent && (
+        isExporting ? (
+          <ProcessingOverlay
+            progress={Math.min(processingProgress, 100)}
+            videoUrl={getMergedVideoUrl()}
+            caption={getCaptions()[0]?.text}
+            onClose={() => {
+              setVideoEditorOpen(false);
+              setIsExporting(false);
+            }}
+          />
+        ) : (
+          <VideoEditor
+            videoUrl={getMergedVideoUrl()}
+            clips={getVideoClips()}
+            captions={getCaptions()}
+            voiceoverUrl={voiceoverUrl || undefined}
+            projectName={selectedContent.caption?.substring(0, 30) || "New project"}
+            onClose={() => setVideoEditorOpen(false)}
+            onExport={handleExport}
+            onAddClip={() => fileInputRef.current?.click()}
+          />
+        )
+      )}
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -639,6 +744,18 @@ export default function EditMerge() {
                       Scene Clips
                     </CardTitle>
                     <div className="flex items-center gap-2">
+                      <ResponsiveTooltip content="Open full video editor">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => setVideoEditorOpen(true)}
+                          className="gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                          data-testid="button-open-video-editor"
+                        >
+                          <Film className="w-4 h-4" />
+                          Video Editor
+                        </Button>
+                      </ResponsiveTooltip>
                       <ResponsiveTooltip content="Generate all clips">
                         <Button
                           variant="outline"
