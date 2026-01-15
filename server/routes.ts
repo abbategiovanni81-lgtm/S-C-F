@@ -34,6 +34,7 @@ import sharp from "sharp";
 import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadClip } from "./videoProcessing";
 import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
+import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -8657,6 +8658,70 @@ Requirements:
       res.json(blogData);
     } catch (error: any) {
       console.error("Blog generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Google Drive endpoints for Reel Library
+  app.get("/api/drive/status", async (req, res) => {
+    try {
+      const connected = await isGoogleDriveConnected();
+      res.json({ connected });
+    } catch (error: any) {
+      res.json({ connected: false, error: error.message });
+    }
+  });
+
+  app.get("/api/drive/folders", async (req, res) => {
+    try {
+      const parentId = req.query.parentId as string | undefined;
+      const folders = await listDriveFolders(parentId);
+      res.json({ folders });
+    } catch (error: any) {
+      console.error("Drive folders error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/drive/videos", async (req, res) => {
+    try {
+      const folderId = req.query.folderId as string | undefined;
+      const search = req.query.search as string | undefined;
+      const videos = await listDriveVideos(folderId, search);
+      res.json({ videos });
+    } catch (error: any) {
+      console.error("Drive videos error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/drive/select-video", async (req, res) => {
+    try {
+      const { fileId, fileName } = req.body;
+      if (!fileId) {
+        return res.status(400).json({ error: "fileId is required" });
+      }
+
+      // Download video from Drive
+      const videoBuffer = await downloadDriveVideo(fileId);
+      
+      // Save to object storage
+      const safeName = (fileName || 'drive-video').replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filename = `reel-${randomUUID()}-${safeName}`;
+      
+      const result = await objectStorageService.uploadBuffer(
+        videoBuffer, 
+        filename, 
+        'video/mp4', 
+        true
+      );
+      
+      res.json({ 
+        videoUrl: result.objectPath,
+        fileName: fileName || 'video.mp4'
+      });
+    } catch (error: any) {
+      console.error("Drive select video error:", error);
       res.status(500).json({ error: error.message });
     }
   });
