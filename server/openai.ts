@@ -1657,24 +1657,20 @@ export async function editImage(request: ImageEditRequest): Promise<DalleImageRe
     throw new Error("OpenAI API key not configured. Please add OPENAI_DALLE_API_KEY to your secrets.");
   }
 
-  // DALL-E 2 edit requires PNG with alpha, use generate with reference instead
-  // Map size to DALL-E 3 compatible sizes
-  let dalleSize: "1024x1024" | "1792x1024" | "1024x1792" = "1024x1024";
-  if (request.size === "1536x1024") dalleSize = "1792x1024";
-  if (request.size === "1024x1536") dalleSize = "1024x1792";
+  // gpt-image-1 uses native sizes: 1024x1024, 1536x1024, 1024x1536
+  const imageSize = request.size || "1024x1024";
 
   const response = await dalleClient.images.generate({
     model: "gpt-image-1",
     prompt: request.prompt,
     n: 1,
-    size: dalleSize,
-    quality: request.quality === "high" ? "hd" : "standard",
-    response_format: "b64_json",
-  });
+    size: imageSize,
+    quality: request.quality || "high",
+  } as any);
 
   const base64Data = response.data?.[0]?.b64_json;
   if (!base64Data) {
-    throw new Error("No image generated from DALL-E 3");
+    throw new Error("No image generated from gpt-image-1");
   }
 
   const dataUri = `data:image/png;base64,${base64Data}`;

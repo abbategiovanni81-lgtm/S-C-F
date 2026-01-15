@@ -7,7 +7,7 @@ const soraClient = new OpenAI({
 export interface SoraVideoRequest {
   prompt: string;
   duration?: 4 | 8 | 12;
-  size?: "1280x720" | "720x1280" | "1024x1024";
+  size?: "1280x720" | "720x1280" | "1792x1024" | "1024x1792";
   model?: "sora-2" | "sora-2-pro";
 }
 
@@ -36,7 +36,7 @@ export async function createSoraVideo(request: SoraVideoRequest): Promise<SoraVi
   const response = await (soraClient as any).videos.create({
     model: request.model || "sora-2",
     prompt: request.prompt,
-    seconds: String(request.duration || 4),
+    seconds: request.duration || 4,
     size: request.size || "1280x720",
   });
 
@@ -70,7 +70,7 @@ export async function createSoraImageToVideo(request: SoraImageToVideoRequest): 
     model: "sora-2-i2v",
     prompt: request.prompt,
     image_url: request.imageUrl,
-    seconds: String(request.duration || 4),
+    seconds: request.duration || 4,
     size: request.size || "1280x720",
   });
 
