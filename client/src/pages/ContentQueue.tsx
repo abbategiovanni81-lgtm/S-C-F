@@ -91,7 +91,7 @@ export default function ContentQueue() {
   const [brollLoading, setBrollLoading] = useState(false);
   
   const [driveBrowserOpen, setDriveBrowserOpen] = useState(false);
-  const [selectedDriveVideo, setSelectedDriveVideo] = useState<{ url: string; name: string } | null>(null);
+  const [driveBrowserContentId, setDriveBrowserContentId] = useState<string | null>(null);
 
   const [sceneGenerating, setSceneGenerating] = useState<Record<string, number | null>>({});
   const [sceneVideos, setSceneVideos] = useState<Record<string, Record<number, { status: string; videoUrl?: string; requestId?: string }>>>({});
@@ -2524,7 +2524,10 @@ export default function ContentQueue() {
                       size="sm"
                       variant="outline"
                       className="gap-2"
-                      onClick={() => setDriveBrowserOpen(true)}
+                      onClick={() => {
+                        setDriveBrowserContentId(content.id);
+                        setDriveBrowserOpen(true);
+                      }}
                       data-testid={`button-drive-${content.id}`}
                     >
                       <Film className="w-4 h-4" />
@@ -4692,10 +4695,46 @@ export default function ContentQueue() {
 
       <GoogleDriveBrowser
         open={driveBrowserOpen}
-        onOpenChange={setDriveBrowserOpen}
-        onVideoSelected={(url, name) => {
-          setSelectedDriveVideo({ url, name });
-          toast({ title: "Video selected from Drive", description: name });
+        onOpenChange={(open) => {
+          setDriveBrowserOpen(open);
+          if (!open) setDriveBrowserContentId(null);
+        }}
+        onVideoSelected={async (url, name) => {
+          const contentId = driveBrowserContentId;
+          if (!contentId) return;
+          
+          try {
+            const contentRes = await fetch(`/api/content/${contentId}`);
+            if (!contentRes.ok) {
+              throw new Error("Failed to load content");
+            }
+            const content = await contentRes.json();
+            const existingMetadata = content?.generationMetadata || {};
+            
+            const patchRes = await fetch(`/api/content/${contentId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                generationMetadata: { 
+                  ...existingMetadata, 
+                  generatedVideoUrl: url,
+                  videoSource: "drive",
+                  driveVideoFileName: name
+                }
+              }),
+            });
+            
+            if (!patchRes.ok) {
+              const err = await patchRes.json();
+              throw new Error(err.error || "Failed to save video to content");
+            }
+            
+            setGeneratedVideos(prev => ({ ...prev, [contentId]: url }));
+            queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+            toast({ title: "Video added", description: `${name} is ready to use for your Reel` });
+          } catch (error: any) {
+            toast({ title: "Failed to save video", description: error.message, variant: "destructive" });
+          }
         }}
       />
     </Layout>

@@ -8662,8 +8662,8 @@ Requirements:
     }
   });
 
-  // Google Drive endpoints for Reel Library
-  app.get("/api/drive/status", async (req, res) => {
+  // Google Drive endpoints for Reel Library (all require authentication)
+  app.get("/api/drive/status", isAuthenticated, async (req, res) => {
     try {
       const connected = await isGoogleDriveConnected();
       res.json({ connected });
@@ -8672,7 +8672,7 @@ Requirements:
     }
   });
 
-  app.get("/api/drive/folders", async (req, res) => {
+  app.get("/api/drive/folders", isAuthenticated, async (req, res) => {
     try {
       const parentId = req.query.parentId as string | undefined;
       const folders = await listDriveFolders(parentId);
@@ -8683,7 +8683,7 @@ Requirements:
     }
   });
 
-  app.get("/api/drive/videos", async (req, res) => {
+  app.get("/api/drive/videos", isAuthenticated, async (req, res) => {
     try {
       const folderId = req.query.folderId as string | undefined;
       const search = req.query.search as string | undefined;
@@ -8695,7 +8695,7 @@ Requirements:
     }
   });
 
-  app.post("/api/drive/select-video", async (req, res) => {
+  app.post("/api/drive/select-video", isAuthenticated, async (req, res) => {
     try {
       const { fileId, fileName } = req.body;
       if (!fileId) {
