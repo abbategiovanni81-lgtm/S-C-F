@@ -22,6 +22,7 @@ import { Link } from "wouter";
 import type { GeneratedContent, SocialAccount } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt, UpgradeBanner } from "@/components/UpgradePrompt";
+import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
 
 export default function ContentQueue() {
   const queryClient = useQueryClient();
@@ -88,6 +89,9 @@ export default function ContentQueue() {
   const [brollMediaType, setBrollMediaType] = useState<"both" | "photos" | "videos">("both");
   const [brollResults, setBrollResults] = useState<any[]>([]);
   const [brollLoading, setBrollLoading] = useState(false);
+  
+  const [driveBrowserOpen, setDriveBrowserOpen] = useState(false);
+  const [selectedDriveVideo, setSelectedDriveVideo] = useState<{ url: string; name: string } | null>(null);
 
   const [sceneGenerating, setSceneGenerating] = useState<Record<string, number | null>>({});
   const [sceneVideos, setSceneVideos] = useState<Record<string, Record<number, { status: string; videoUrl?: string; requestId?: string }>>>({});
@@ -2496,24 +2500,38 @@ export default function ContentQueue() {
                     <li key={i}>{suggestion}</li>
                   ))}
                 </ul>
-                <ResponsiveTooltip content="Find B-roll footage">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2 w-full sm:w-auto"
-                    onClick={() => {
-                      const suggestions = (content.generationMetadata as any).videoPrompts.brollSuggestions;
-                      if (suggestions && suggestions.length > 0) {
-                        setBrollSearchQuery(suggestions[0]);
-                      }
-                      setBrollDialogOpen(true);
-                    }}
-                    data-testid={`button-broll-${content.id}`}
-                  >
-                    <Clapperboard className="w-4 h-4" />
-                    Find B-Roll Footage (Pexels)
-                  </Button>
-                </ResponsiveTooltip>
+                <div className="flex flex-wrap gap-2">
+                  <ResponsiveTooltip content="Find B-roll footage from Pexels">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => {
+                        const suggestions = (content.generationMetadata as any).videoPrompts.brollSuggestions;
+                        if (suggestions && suggestions.length > 0) {
+                          setBrollSearchQuery(suggestions[0]);
+                        }
+                        setBrollDialogOpen(true);
+                      }}
+                      data-testid={`button-broll-${content.id}`}
+                    >
+                      <Clapperboard className="w-4 h-4" />
+                      Pexels B-Roll
+                    </Button>
+                  </ResponsiveTooltip>
+                  <ResponsiveTooltip content="Browse your Google Drive for videos">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => setDriveBrowserOpen(true)}
+                      data-testid={`button-drive-${content.id}`}
+                    >
+                      <Film className="w-4 h-4" />
+                      My Google Drive
+                    </Button>
+                  </ResponsiveTooltip>
+                </div>
               </div>
             )}
 
@@ -4670,6 +4688,15 @@ export default function ContentQueue() {
         feature={upgradeFeatureName}
         open={upgradePromptOpen}
         onOpenChange={setUpgradePromptOpen}
+      />
+
+      <GoogleDriveBrowser
+        open={driveBrowserOpen}
+        onOpenChange={setDriveBrowserOpen}
+        onVideoSelected={(url, name) => {
+          setSelectedDriveVideo({ url, name });
+          toast({ title: "Video selected from Drive", description: name });
+        }}
       />
     </Layout>
   );

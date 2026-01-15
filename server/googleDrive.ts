@@ -123,11 +123,11 @@ export async function listDriveVideos(folderId?: string, searchQuery?: string): 
     id: f.id!,
     name: f.name!,
     mimeType: f.mimeType!,
-    thumbnailLink: f.thumbnailLink,
-    webViewLink: f.webViewLink,
-    size: f.size,
-    createdTime: f.createdTime,
-    modifiedTime: f.modifiedTime,
+    thumbnailLink: f.thumbnailLink || undefined,
+    webViewLink: f.webViewLink || undefined,
+    size: f.size || undefined,
+    createdTime: f.createdTime || undefined,
+    modifiedTime: f.modifiedTime || undefined,
   }));
 }
 
