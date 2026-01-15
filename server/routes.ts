@@ -32,7 +32,7 @@ import os from "os";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadClip } from "./videoProcessing";
-import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, createSoraImageToVideo, remixSoraVideo } from "./soraService";
+import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVideo, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 
@@ -3276,6 +3276,21 @@ Provide analysis in this JSON structure:
     try {
       const { videoId } = req.params;
       const result = await getSoraVideoStatus(videoId);
+      
+      // If completed, download the video and save to storage
+      if (result.status === "completed") {
+        try {
+          const videoBuffer = await downloadSoraVideo(videoId);
+          const filename = `sora-video-${videoId}.mp4`;
+          const savedPath = await objectStorageService.uploadBuffer(videoBuffer, filename, "video/mp4", true);
+          console.log(`Downloaded and saved Sora video: ${savedPath.objectPath}`);
+          result.videoUrl = savedPath.objectPath;
+        } catch (downloadError: any) {
+          console.error("Failed to download Sora video:", downloadError);
+          // Still return completed status, but without URL
+        }
+      }
+      
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

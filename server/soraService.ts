@@ -57,8 +57,19 @@ export async function getSoraVideoStatus(videoId: string): Promise<SoraVideoResu
   return {
     videoId: response.id,
     status: response.status,
-    videoUrl: response.url,
+    videoUrl: undefined, // URL is not returned by retrieve - use downloadSoraVideo instead
   };
+}
+
+export async function downloadSoraVideo(videoId: string): Promise<Buffer> {
+  if (!isSoraConfigured()) {
+    throw new Error("OpenAI API key not configured.");
+  }
+
+  // Use the downloadContent method to get the video binary
+  const content = await (soraClient as any).videos.downloadContent(videoId);
+  const arrayBuffer = await content.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 export async function createSoraImageToVideo(request: SoraImageToVideoRequest): Promise<SoraVideoResult> {
