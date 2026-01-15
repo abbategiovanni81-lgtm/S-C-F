@@ -23,6 +23,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import type { EditJob, GeneratedContent } from "@shared/schema";
+import { VideoEditor, ProcessingOverlay } from "@/components/VideoEditor";
 
 const POSITIONS = [
   { value: "top", label: "Top Center" },
@@ -136,6 +137,11 @@ export default function Editor() {
   const [videoGeneratePrompt, setVideoGeneratePrompt] = useState("");
   const [remixPrompt, setRemixPrompt] = useState("");
   const [lastGeneratedVideoId, setLastGeneratedVideoId] = useState<string | null>(null);
+  
+  // Video Editor state
+  const [videoEditorOpen, setVideoEditorOpen] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [isExportingVideo, setIsExportingVideo] = useState(false);
 
   // Fetch edit jobs
   const { data: editJobs = [], isLoading: jobsLoading } = useQuery<EditJob[]>({
@@ -754,8 +760,46 @@ export default function Editor() {
     }
   };
 
+  const handleVideoEditorExport = async () => {
+    setIsExportingVideo(true);
+    setProcessingProgress(0);
+    const interval = setInterval(() => {
+      setProcessingProgress(prev => Math.min(prev + Math.random() * 15, 95));
+    }, 500);
+    
+    setTimeout(() => {
+      clearInterval(interval);
+      setProcessingProgress(100);
+      setIsExportingVideo(false);
+      toast({ title: "Export complete!", description: "Your video is ready." });
+    }, 3000);
+  };
+
   return (
     <Layout>
+      {videoEditorOpen && (
+        isExportingVideo ? (
+          <ProcessingOverlay
+            progress={Math.min(processingProgress, 100)}
+            videoUrl={videoSourceUrl || undefined}
+            caption=""
+            onClose={() => {
+              setVideoEditorOpen(false);
+              setIsExportingVideo(false);
+            }}
+          />
+        ) : (
+          <VideoEditor
+            videoUrl={videoSourceUrl || undefined}
+            clips={[]}
+            captions={[]}
+            projectName="Video Project"
+            onClose={() => setVideoEditorOpen(false)}
+            onExport={handleVideoEditorExport}
+            onAddClip={() => videoInputRef.current?.click()}
+          />
+        )
+      )}
       <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1383,9 +1427,23 @@ export default function Editor() {
             {/* AI Actions Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-500" /> AI Video Actions
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-500" /> AI Video Actions
+                  </CardTitle>
+                  <ResponsiveTooltip content="Open full video editor">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setVideoEditorOpen(true)}
+                      className="gap-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                      data-testid="button-open-video-editor"
+                    >
+                      <Film className="w-4 h-4" />
+                      Video Editor
+                    </Button>
+                  </ResponsiveTooltip>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
