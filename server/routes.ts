@@ -641,7 +641,7 @@ export async function registerRoutes(
   // AI Content Generation endpoints
   app.post("/api/generate-content", async (req, res) => {
     try {
-      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl, inspirationContext } = req.body;
+      const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl, inspirationContext, videoSource } = req.body;
       
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
@@ -718,6 +718,7 @@ export async function registerRoutes(
           carouselMode: carouselMode || "from_scratch",
           extractedStyle: extractedStyle || null,
           referenceImageUrl: referenceImageUrl || null,
+          videoSource: contentFormat === "reels" ? (videoSource || "ai") : undefined,
         },
       });
 

@@ -14,7 +14,7 @@ import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw, ChevronDown } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw, ChevronDown, HardDrive } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -2167,7 +2167,60 @@ export default function ContentQueue() {
               </div>
             )}
             
-            {(content.generationMetadata as any).videoPrompts.visualDescription && (
+            {(content.generationMetadata as any)?.contentFormat === "reels" && (
+              <div className="space-y-3 p-3 rounded-lg bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/30 dark:to-purple-950/30 border border-pink-200 dark:border-pink-800">
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-pink-500" />
+                  <p className="text-sm font-medium">Reels Video Source</p>
+                  {(content.generationMetadata as any)?.videoSource && (
+                    <Badge variant="secondary" className="text-xs capitalize">
+                      {(content.generationMetadata as any).videoSource === "ai" ? "AI Generate" : 
+                       (content.generationMetadata as any).videoSource === "pexels" ? "Pexels Stock" : 
+                       "Google Drive"}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Choose where your video comes from:</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={(content.generationMetadata as any)?.videoSource === "ai" ? "default" : "outline"}
+                    onClick={() => openVideoDialog(content)}
+                    disabled={generatingVideoId === content.id}
+                    className="gap-2"
+                    data-testid={`button-reels-ai-${content.id}`}
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    AI Generate
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={(content.generationMetadata as any)?.videoSource === "pexels" ? "default" : "outline"}
+                    onClick={() => setBrollDialogOpen(true)}
+                    className="gap-2"
+                    data-testid={`button-reels-pexels-${content.id}`}
+                  >
+                    <Clapperboard className="w-4 h-4" />
+                    Pexels Stock
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={(content.generationMetadata as any)?.videoSource === "drive" ? "default" : "outline"}
+                    onClick={() => {
+                      setDriveBrowserContentId(content.id);
+                      setDriveBrowserOpen(true);
+                    }}
+                    className="gap-2"
+                    data-testid={`button-reels-drive-${content.id}`}
+                  >
+                    <HardDrive className="w-4 h-4" />
+                    My Google Drive
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {(content.generationMetadata as any).videoPrompts?.visualDescription && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Video Generation Prompt</p>
                 <p className="text-sm bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 whitespace-pre-wrap border border-purple-200 dark:border-purple-800">

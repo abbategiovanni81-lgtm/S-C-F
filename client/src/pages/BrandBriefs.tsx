@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload, Globe } from "lucide-react";
+import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload, Globe, HardDrive, Wand2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,7 +47,8 @@ export default function BrandBriefs() {
   const [showIdeasForBrief, setShowIdeasForBrief] = useState<string | null>(null);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [selectedBriefForGenerate, setSelectedBriefForGenerate] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<"video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform">("video");
+  const [selectedFormat, setSelectedFormat] = useState<"video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform">("video");
+  const [reelsVideoSource, setReelsVideoSource] = useState<"ai" | "pexels" | "drive">("ai");
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
   const [optimizationGoal, setOptimizationGoal] = useState<"reach" | "saves" | "comments" | "clicks">("reach");
@@ -150,7 +151,7 @@ export default function BrandBriefs() {
   };
 
   const generateContentMutation = useMutation({
-    mutationFn: async ({ briefId, topic, contentFormat, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl }: { 
+    mutationFn: async ({ briefId, topic, contentFormat, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl, videoSource }: { 
       briefId: string; 
       topic?: string; 
       contentFormat?: string; 
@@ -159,6 +160,7 @@ export default function BrandBriefs() {
       carouselMode?: "from_scratch" | "match_style";
       extractedStyle?: string;
       referenceImageUrl?: string;
+      videoSource?: "ai" | "pexels" | "drive";
     }) => {
       const res = await apiRequest("POST", "/api/generate-content", {
         briefId,
@@ -170,6 +172,7 @@ export default function BrandBriefs() {
         carouselMode,
         extractedStyle,
         referenceImageUrl,
+        videoSource,
       });
       return res.json();
     },
@@ -289,6 +292,7 @@ export default function BrandBriefs() {
       carouselMode: selectedFormat === "carousel" ? carouselMode : undefined,
       extractedStyle: styleData.extractedStyle,
       referenceImageUrl: styleData.referenceImageUrl,
+      videoSource: selectedFormat === "reels" ? reelsVideoSource : undefined,
     }, {
       onSettled: () => setGeneratingForBrief(null),
     });
@@ -828,7 +832,7 @@ export default function BrandBriefs() {
 
             <RadioGroup
               value={selectedFormat}
-              onValueChange={(value: "video" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform") => setSelectedFormat(value)}
+              onValueChange={(value: "video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform") => setSelectedFormat(value)}
               className="grid grid-cols-2 gap-3"
             >
               <Label
@@ -864,6 +868,65 @@ export default function BrandBriefs() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   Each scene generates a separate video clip for editing.
+                </p>
+              </div>
+            )}
+
+              <Label
+                htmlFor="format-reels"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "reels" ? "border-pink-500 bg-pink-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="reels" id="format-reels" className="sr-only" />
+                <Film className="w-6 h-6 text-pink-500" />
+                <span className="text-sm font-medium">Reels</span>
+                <span className="text-xs text-muted-foreground text-center">Short vertical video</span>
+              </Label>
+
+            {selectedFormat === "reels" && (
+              <div className="col-span-2 p-3 bg-pink-500/5 rounded-lg border border-pink-500/20 space-y-3">
+                <Label className="text-sm font-medium block">Video Source</Label>
+                <p className="text-xs text-muted-foreground">Choose where your video comes from</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant={reelsVideoSource === "ai" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReelsVideoSource("ai")}
+                    className="flex flex-col items-center gap-1 h-auto py-3"
+                    data-testid="button-reels-source-ai"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    <span className="text-xs">AI Generate</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={reelsVideoSource === "pexels" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReelsVideoSource("pexels")}
+                    className="flex flex-col items-center gap-1 h-auto py-3"
+                    data-testid="button-reels-source-pexels"
+                  >
+                    <Video className="w-4 h-4" />
+                    <span className="text-xs">Pexels Stock</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={reelsVideoSource === "drive" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setReelsVideoSource("drive")}
+                    className="flex flex-col items-center gap-1 h-auto py-3"
+                    data-testid="button-reels-source-drive"
+                  >
+                    <HardDrive className="w-4 h-4" />
+                    <span className="text-xs">Google Drive</span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {reelsVideoSource === "ai" && "AI will generate video clips based on your script."}
+                  {reelsVideoSource === "pexels" && "You'll select stock videos from Pexels after content generation."}
+                  {reelsVideoSource === "drive" && "You'll browse and select videos from your Google Drive."}
                 </p>
               </div>
             )}
