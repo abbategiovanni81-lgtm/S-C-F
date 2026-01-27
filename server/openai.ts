@@ -1619,7 +1619,7 @@ export async function generateDalleImage(request: DalleImageRequest): Promise<Da
   const imageSize = request.size || "1024x1024";
   
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "gpt-image-1.5",
     prompt: request.prompt,
     n: 1,
     size: imageSize,
@@ -1661,7 +1661,7 @@ export async function editImage(request: ImageEditRequest): Promise<DalleImageRe
   const imageSize = request.size || "1024x1024";
 
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "gpt-image-1.5",
     prompt: request.prompt,
     n: 1,
     size: imageSize,
@@ -1857,7 +1857,7 @@ export async function reformatImage(request: ImageReformatRequest): Promise<Imag
 
   // Use DALL-E 3 with enhanced prompt instead of edit
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "gpt-image-1.5",
     prompt,
     n: 1,
     size: dalle3SizeMap[request.targetAspectRatio],
@@ -2102,7 +2102,7 @@ Make it look like a polished Instagram carousel slide with:
 - Clean, modern aesthetic suitable for social media`;
 
       const response = await dalleClient.images.generate({
-        model: "gpt-image-1",
+        model: "gpt-image-1.5",
         prompt: editPrompt,
         n: 1,
         size: "1024x1024",
@@ -2190,7 +2190,7 @@ Aspect ratio: ${request.aspectRatio === "portrait" ? "4:5 vertical/portrait" : "
   const dalleAspectSize = aspectSize === "1024x1536" ? "1024x1792" : "1024x1024";
 
   const response = await dalleClient.images.generate({
-    model: "gpt-image-1",
+    model: "gpt-image-1.5",
     prompt: generatePrompt,
     n: 1,
     size: dalleAspectSize as "1024x1024" | "1024x1792",

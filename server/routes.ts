@@ -1258,7 +1258,7 @@ Provide analysis in this JSON structure:
         const baseEngines: any = {
           openai: { configured: true, name: "OpenAI GPT-4" },
           anthropic: { configured: !!process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY, name: "Claude (Anthropic)" },
-          dalle: { configured: isDalleConfigured(), name: "GPT-Image-1" },
+          dalle: { configured: isDalleConfigured(), name: "GPT-Image-1.5" },
           sora: { configured: isSoraConfigured(), name: "Sora 2 Video" },
           openaiTts: { configured: isOpenAITTSConfigured(), name: "OpenAI TTS (Budget)" },
           a2e: { configured: a2eService.isConfigured(), name: "A2E Avatar Video & Images" },
@@ -1280,7 +1280,7 @@ Provide analysis in this JSON structure:
         res.json({
           openai: { configured: !!keys?.openaiKey, name: "OpenAI GPT-4" },
           anthropic: { configured: !!keys?.anthropicKey, name: "Claude (Anthropic)" },
-          dalle: { configured: !!keys?.openaiKey, name: "GPT-Image-1" },
+          dalle: { configured: !!keys?.openaiKey, name: "GPT-Image-1.5" },
           sora: { configured: !!keys?.openaiKey, name: "Sora 2 Video" },
           openaiTts: { configured: !!keys?.openaiKey, name: "OpenAI TTS (Budget)" },
           a2e: { configured: !!keys?.a2eKey, name: "A2E Avatar Video & Images" },
