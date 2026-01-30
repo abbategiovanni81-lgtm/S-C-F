@@ -372,7 +372,24 @@ Without these, we use GPT-4 to generate plausible keyword ideas and questions - 
 ## Template-Based Reel Maker (Beat App Style)
 
 ### Vision
-Browse a library of pre-made reel templates, pick one, fill in your images/videos, and get a polished reel instantly. AI suggests which template and content to use based on your brand brief.
+Browse a library of pre-made reel templates **synced to music beats**, pick one, fill in your images/videos, and get a polished reel instantly. AI suggests which template and content to use based on your brand brief.
+
+### Core Concept: Music-First Templates
+
+**The key differentiator:** Templates are built around the music. Each clip slot is timed to specific beats in the track. When user uploads, the reel includes the sound and all clips hit on beat.
+
+```
+MUSIC TRACK (120 BPM)
+|----beat----|----beat----|----beat----|----beat----|
+   [CLIP 1]     [CLIP 2]     [CLIP 3]     [CLIP 4]
+    0.5s         0.5s         1.0s         0.5s
+```
+
+**What this means:**
+- Template defines: music track + beat markers + clip durations
+- User just fills slots with content
+- Output: perfectly beat-synced reel with music included
+- Ready to upload directly to Instagram/TikTok with sound
 
 ### UX Flow
 
@@ -437,7 +454,7 @@ Pre-made complete reels users can use as-is or customize:
 - AI generates transitions between user content
 - Most "magic" but less control
 
-### Template Structure
+### Template Structure (Music-First)
 
 ```json
 {
@@ -449,14 +466,27 @@ Pre-made complete reels users can use as-is or customize:
   "music": {
     "name": "Summer Days",
     "artist": "Royalty Free",
-    "bpm": 120
+    "bpm": 120,
+    "audioUrl": "/templates/audio/summer-days.mp3",
+    "license": "royalty-free"
   },
-  "timing": [0.5, 0.6, 0.5, 0.5, 1.9, 0.9, ...],
-  "transitions": ["fade", "zoom", "cut", ...],
+  "beats": [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.5, 4.0, ...],
+  "slots": [
+    { "start": 0.0, "duration": 0.5, "beat": 1, "transition": "cut" },
+    { "start": 0.5, "duration": 0.5, "beat": 2, "transition": "zoom" },
+    { "start": 1.0, "duration": 1.0, "beat": 3, "transition": "fade" },
+    ...
+  ],
   "previewUrl": "/templates/beach-vibes-01/preview.mp4",
   "style": ["warm", "bright", "energetic"]
 }
 ```
+
+**Output includes:**
+- Final video with music track mixed in
+- Clips auto-trimmed/scaled to fit beat timing
+- Transitions on beat drops
+- Ready for direct upload with sound
 
 ### Preview Grid (Beat-Style)
 
