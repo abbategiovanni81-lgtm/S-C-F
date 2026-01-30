@@ -244,21 +244,43 @@ export const FORMAT_SPECIFIC_IDEAS = {
 };
 
 export const CAROUSEL_STRUCTURE = {
-  slide1: "HOOK - 6-8 words max. Speak audience's language. Signal value, tension, or curiosity. Must stop scrollers.",
-  slide2: "CRITICAL FOR REACH - Instagram may resurface posts using slide 2. Reinforce the hook, add context, push curiosity to keep swiping.",
-  slides3to9: "BODY - One key point per slide. Build a clear narrative flow. Each slide should naturally lead to the next. Encourage continued swiping.",
-  finalSlide: "CTA - Clear call to action. Prompt comments, keywords, or next actions. CTA style should match carousel tone. 'Link in bio' is fine.",
+  // LIZ METHOD: Open-loop curiosity structure - every slide creates pressure to see the next
+  slide1: "HEADLINE ONLY - 6-8 words max. Stop the scroll. Must feel new, important, urgent, or secret. NO explanation, NO how-to. Create instant curiosity. Examples: 'Instagram quietly unlocked a new way to grow.' or 'This mistake is killing your reach.'",
+  slide2: "HEADLINE + SUBHEADER + LEADING TEXT - Keep momentum. Headline reinforces slide 1. Subheader explains WHY this matters right now. End with open-loop leading text that pushes to slide 3 (e.g., 'Here's the one thing you need to understand first...'). Still NO instructions or reveals.",
+  slides3to9: "BODY WITH OPEN LOOPS - Each slide has: (1) Headline advancing the idea, (2) Subheader explaining one piece simply, (3) Leading text that opens curiosity for next slide. Each slide must feel intentionally unfinished. End with phrases like 'And this is where most people get it wrong...' or 'There's a way to fix this...' NEVER give the full answer until final slide.",
+  finalSlide: "CLEAR REVEAL + CTA - The payoff. Deliver the action/insight clearly. No mystery, no hype. Include specific CTA matching carousel tone. This is where you finally give instructions, steps, or the secret.",
+  
+  // Core principles
+  corePrinciples: [
+    "SEQUENCE CONTROL is everything - every slide creates pressure to see the next",
+    "A carousel FAILS when a slide feels complete on its own or reader gets closure too early",
+    "A carousel WORKS when continuous curiosity chain flows from slide 1 to final reveal",
+    "NEVER reveal the action or insight until the final slide - even if reader could guess",
+    "The power comes from PACING - hold back even obvious reveals until the end",
+  ],
+  
   designRules: [
     "Prefer 4:5 or 3:4 vertical ratios to maximize screen space and feed visibility",
-    "ONE idea per carousel - maintain clear narrative: hook → explanation → insight → CTA",
+    "ONE idea per carousel - maintain clear narrative: hook → build curiosity → reveal → CTA",
     "Flow matters more than volume - each slide should lead naturally to the next",
     "Large, readable fonts (readable on mobile)",
-    "Limit text per slide (6-8 words max for hook, 5-7 for body)",
+    "Limit text per slide (6-8 words max for hook, 15-20 words max for body slides)",
     "Consistent visual theme across all slides",
     "Use brand colors for cohesion",
     "Use visuals that support the message: screenshots, typography, illustrations, or relevant photos",
     "Carousels can surface in Reels tab - visual quality matters",
+    "Leave visual breathing room around text overlays",
   ],
+  
+  slideWritingRules: [
+    "Slide 1: HEADLINE ONLY - no subheader, no explanation",
+    "Slide 2: Add context but still no reveal - why does this matter NOW?",
+    "Body slides: One idea per slide, simple beginner-friendly language",
+    "Every body slide ends with an OPEN LOOP pushing to next slide",
+    "No steps or execution details until final slide",
+    "Final slide: Clear, calm, actionable - the earned payoff",
+  ],
+  
   platformBoosts: [
     "Add music (preferably instrumental) to qualify for Reels distribution",
     "Use location tags when relevant, especially for local reach",
@@ -628,14 +650,33 @@ INSPIRATION FROM ANALYZED CONTENT - Use these insights to guide your creation:
   // Build carousel structure guidance if needed
   const carouselGuidance = contentFormat === "carousel" ? `
 
-CAROUSEL OPTIMIZATION RULES (FOLLOW EXACTLY):
+CAROUSEL OPTIMIZATION RULES (LIZ METHOD - FOLLOW EXACTLY):
 ═══════════════════════════════════════════════════════════════════════════════
 
-SLIDE STRUCTURE:
-- Slide 1: ${CAROUSEL_STRUCTURE.slide1}
-- Slide 2: ${CAROUSEL_STRUCTURE.slide2}
-- Slides 3-9: ${CAROUSEL_STRUCTURE.slides3to9}
-- Final Slide: ${CAROUSEL_STRUCTURE.finalSlide}
+CORE PRINCIPLE: SEQUENCE CONTROL
+${CAROUSEL_STRUCTURE.corePrinciples.map(r => `⚡ ${r}`).join("\n")}
+
+SLIDE-BY-SLIDE STRUCTURE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📍 Slide 1: ${CAROUSEL_STRUCTURE.slide1}
+
+📍 Slide 2: ${CAROUSEL_STRUCTURE.slide2}
+
+📍 Slides 3-9: ${CAROUSEL_STRUCTURE.slides3to9}
+
+📍 Final Slide: ${CAROUSEL_STRUCTURE.finalSlide}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SLIDE WRITING RULES:
+${CAROUSEL_STRUCTURE.slideWritingRules.map(r => `✓ ${r}`).join("\n")}
+
+OPEN LOOP EXAMPLES (use these patterns in body slides):
+- "And this is where most creators get it wrong..."
+- "There is a way to reduce that guessing..."
+- "And almost no one is using it yet..."
+- "Here's the one thing you need to understand first..."
+- "But here's where it gets interesting..."
+- "The problem is..."
 
 CAROUSEL DESIGN RULES:
 ${CAROUSEL_STRUCTURE.designRules.map(r => `- ${r}`).join("\n")}
@@ -644,11 +685,12 @@ PLATFORM REACH BOOSTERS:
 ${CAROUSEL_STRUCTURE.platformBoosts.map(r => `- ${r}`).join("\n")}
 
 AI CONTENT GENERATION RULES:
-- Optimize for SWIPE DEPTH, not just slide 1
-- Generate hooks FIRST, then build content around them
-- Enforce structural discipline (one idea, clear flow)
+- Build CURIOSITY CHAIN from slide 1 to final reveal
+- Generate headline hooks FIRST, then body with open loops
+- NEVER give closure until final slide
+- Each slide must feel intentionally unfinished (except final)
 - Auto-suggest CTAs aligned to post intent
-- Recommend visuals and music as part of post readiness, not optional extras
+- Make the final reveal feel EARNED through proper pacing
 
 CAROUSEL FORMAT STRATEGY (match format to goal):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
