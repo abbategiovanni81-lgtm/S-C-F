@@ -529,3 +529,97 @@ Pre-made complete reels users can use as-is or customize:
 | AI Suggestions | ✗ | ✓ | ✓ |
 | Stock Reels Library | ✗ | Basic | Full |
 | Custom Templates | ✗ | ✗ | Premium+ |
+
+---
+
+## External Data → Auto Content Pipeline (Owner Feature)
+
+### Use Case: Flight Deals App
+
+Turn structured data from external apps into ready-to-post content automatically.
+
+**Flow:**
+```
+External App (flight insights page)
+    ↓ API/webhook
+Extract data (route, airline, points, dates)
+    ↓
+Match airline → your seat image library
+    ↓
+Overlay text on matched image
+    ↓
+Generate 5-image carousel + reel
+    ↓
+Ready to post
+```
+
+**Example Output:**
+- Image: Your Turkish Airlines business class seat photo
+- Overlay: "Miami → Beijing | Turkish Airlines Business | 87,500 pts"
+- Branding: Your logo in corner
+
+**No AI image generation needed** - just text overlay on your existing airline image library.
+
+**Implementation:**
+1. Image library with tags (airline name, class)
+2. API endpoint to receive flight data
+3. Text overlay engine (Canvas/Sharp.js)
+4. Auto-generate 5 variations for carousel
+5. Create reel from carousel images (beat-synced template)
+
+---
+
+## AI Carousel Generation (Liz on the Web Method)
+
+### Carousel Structure for Maximum Engagement
+
+Based on proven viral carousel methodology - every slide creates pressure to see the next.
+
+**Slide Structure:**
+
+| Slide | Content | Purpose |
+|-------|---------|---------|
+| **1** | Headline only | Stop the scroll |
+| **2** | Headline + subheader + leading text | Why this matters |
+| **3-N** | Headline + subheader + open loop | Build curiosity |
+| **Final** | Clear reveal + CTA | Payoff |
+
+**Core Principles:**
+- Never give closure until final slide
+- Each slide intentionally leads to the next
+- No instructions until the end
+- Open loops create "what's next?" pressure
+
+**AI Prompt Template:**
+
+```
+You are writing Instagram carousel text.
+
+Tone: confident, clear, educational, beginner-friendly.
+Goal: guide reader slide by slide using intentional curiosity.
+
+Structure:
+- Slide 1: headline only (hook)
+- Slide 2: headline + subheader + leading curiosity text
+- Slides 3 to penultimate: headline + subheader + leading text pushing to next
+- Final slide: headline + clear reveal + CTA
+
+Rules:
+- Do not reveal the action/insight until final slide
+- Every slide must lead into the next
+- One idea per slide
+- Simple language
+- No steps or execution details until end
+
+Topic: [from brand brief]
+Audience: [from brand brief target audience]
+CTA: [from brand brief CTA]
+
+Write the carousel.
+```
+
+**Integration Points:**
+- Add to Content Queue carousel generation
+- Use brand brief for topic/audience/CTA
+- Output structured slides for image generation
+- Auto-create images with text overlays
