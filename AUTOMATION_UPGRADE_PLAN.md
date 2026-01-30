@@ -366,3 +366,136 @@ These are nice-to-have but not required:
 | **Perplexity API** | Direct AI search queries | Pay per query |
 
 Without these, we use GPT-4 to generate plausible keyword ideas and questions - which works well for content ideation even without exact search volume numbers.
+
+---
+
+## Template-Based Reel Maker (Beat App Style)
+
+### Vision
+Browse a library of pre-made reel templates, pick one, fill in your images/videos, and get a polished reel instantly. AI suggests which template and content to use based on your brand brief.
+
+### UX Flow
+
+```
+1. BROWSE TEMPLATES → Auto-playing preview grid (like Beat app)
+2. SELECT TEMPLATE → See slot count, duration, music, style
+3. FILL SLOTS → Pick from Upload/Google Drive/Pexels/AI Generate
+4. AI SUGGEST → AI recommends content based on template + brand brief
+5. GENERATE → Reel created with template transitions/timing
+6. EDIT (optional) → Fine-tune in Video Editor
+```
+
+### Template Library Categories
+
+| Category | Example Styles |
+|----------|----------------|
+| **Recaps** | Travel recap, Event recap, Year in review |
+| **Product** | Product showcase, Before/after, Unboxing |
+| **Lifestyle** | Day in the life, Morning routine, GRWM |
+| **Business** | Team intro, Behind the scenes, Process reveal |
+| **Trending** | Hot trends, Viral formats, Challenge templates |
+| **Educational** | How-to, Tips & tricks, Tutorial |
+| **Promo** | Sale announcement, Launch, Countdown |
+
+### Stock Reels Library
+
+Pre-made complete reels users can use as-is or customize:
+
+| Type | Description |
+|------|-------------|
+| **B-Roll Packs** | City, nature, office, lifestyle footage |
+| **Intro/Outro Clips** | Branded openers and closers |
+| **Transition Clips** | Swoosh, zoom, glitch transitions |
+| **Text Animations** | Kinetic typography templates |
+| **Music-Synced Templates** | Pre-timed to popular beats |
+
+### AI Features
+
+| Feature | Description |
+|---------|-------------|
+| **Template Suggestion** | Based on brand brief + content type, AI suggests best templates |
+| **Content Selection** | AI picks best images/videos from your library for each slot |
+| **Auto-Fill** | One-click fill all slots with AI-chosen content |
+| **Style Matching** | AI ensures content matches template aesthetic |
+| **Caption Generation** | Auto-generate captions that fit template style |
+
+### Technical Implementation
+
+**Option 1: Remotion (Recommended)**
+- React-based video templates
+- Full control over animations/transitions
+- Server-side rendering
+- Each template = React component with placeholder props
+
+**Option 2: FFmpeg Sequences**
+- Pre-defined transition timings
+- Concat filter with crossfade
+- Less flexible but simpler
+
+**Option 3: A2E Storyboard Mode**
+- Use Sora 2 Pro storyboard as template base
+- AI generates transitions between user content
+- Most "magic" but less control
+
+### Template Structure
+
+```json
+{
+  "id": "beach-vibes-01",
+  "name": "Beach Vibes",
+  "category": "lifestyle",
+  "duration": 11.1,
+  "slots": 12,
+  "music": {
+    "name": "Summer Days",
+    "artist": "Royalty Free",
+    "bpm": 120
+  },
+  "timing": [0.5, 0.6, 0.5, 0.5, 1.9, 0.9, ...],
+  "transitions": ["fade", "zoom", "cut", ...],
+  "previewUrl": "/templates/beach-vibes-01/preview.mp4",
+  "style": ["warm", "bright", "energetic"]
+}
+```
+
+### Preview Grid (Beat-Style)
+
+**Performance Optimizations:**
+- Low-res preview loops (~480p, 3-5 seconds)
+- IntersectionObserver - only play visible templates
+- Limit 6-8 concurrent video playback
+- Animated WebP fallback for low-end devices
+- Lazy load as user scrolls
+
+### Implementation Phases
+
+**Phase 1: Foundation (1 week)**
+1. Template data structure + storage
+2. Template grid UI with autoplay previews
+3. Slot selection interface (reuse clip picker)
+4. Basic concatenation via FFmpeg
+
+**Phase 2: AI Integration (3-4 days)**
+5. AI template recommendation based on brand brief
+6. AI content selection for slots
+7. Auto-fill feature
+
+**Phase 3: Stock Library (1 week)**
+8. Curate stock reel library
+9. B-roll packs, transitions, intros/outros
+10. Pexels integration for stock content
+
+**Phase 4: Polish (3-4 days)**
+11. Music sync improvements
+12. Custom transition styles
+13. Template favorites/history
+
+### Tier Access
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Browse Templates | ✓ (view only) | ✓ | ✓ |
+| Use Templates | ✗ | 5/month | Unlimited |
+| AI Suggestions | ✗ | ✓ | ✓ |
+| Stock Reels Library | ✗ | Basic | Full |
+| Custom Templates | ✗ | ✗ | Premium+ |
