@@ -280,3 +280,89 @@ To Add:
 - Product Avatar endpoint
 - Video to Audio endpoint
 ```
+
+---
+
+## Free Features to Build (No Additional APIs Needed)
+
+These features can be built using existing GPT-4 capabilities - inspired by AnswerSocrates and Ranked.ai.
+
+### Keyword & Topic Research (AnswerSocrates-Style)
+
+| Feature | Description | How to Build |
+|---------|-------------|--------------|
+| **Keyword Expansion** | Enter 1 topic → Get 50+ long-tail variations | GPT-4 prompt engineering |
+| **Question Generation** | Generate "People Also Ask" style questions | GPT-4 + structured output |
+| **Question Clustering** | Group questions by intent (how/what/why/where/when) | GPT-4 categorization |
+| **Topic Clustering** | Group related keywords into content pillars | GPT-4 semantic grouping |
+| **Content Gap Analysis** | Identify missing topics based on niche | GPT-4 analysis |
+| **Comparison Keywords** | Generate "X vs Y" style content ideas | GPT-4 prompt |
+| **Local Keywords** | Add location modifiers to keywords | GPT-4 expansion |
+
+### Trending Topic Discovery
+
+| Feature | Description | How to Build |
+|---------|-------------|--------------|
+| **Niche Trend Detection** | Find what's trending in specific niches | Existing Social Listening + GPT-4 analysis |
+| **Platform-Specific Trends** | TikTok vs Instagram vs YouTube trends | Platform APIs we already have |
+| **Viral Pattern Analysis** | WHY content goes viral (hooks, formats, timing) | Content Analyzer enhancement |
+| **Trend Forecasting** | Predict what's about to trend | GPT-4 pattern recognition |
+
+### LLM Brand Tracking (Ranked.ai-Style)
+
+| Feature | Description | How to Build |
+|---------|-------------|--------------|
+| **ChatGPT Brand Check** | Does ChatGPT recommend your brand? | Query OpenAI API with brand prompts |
+| **Perplexity Brand Check** | Does Perplexity cite your brand? | Query Perplexity API |
+| **Claude Brand Check** | Does Claude mention your brand? | Query Anthropic API |
+| **Gemini Brand Check** | Does Gemini recommend you? | Query Google Gemini API |
+| **AI Visibility Score** | Overall AI search visibility rating | Aggregate all LLM checks |
+| **Visibility Over Time** | Track AI mentions weekly/monthly | Store results, show trend chart |
+| **Competitor AI Visibility** | Compare your AI visibility vs competitors | Run same checks for competitors |
+
+### Content Strategy Features
+
+| Feature | Description | How to Build |
+|---------|-------------|--------------|
+| **Content Calendar Generator** | Auto-fill calendar based on trends + brief | GPT-4 + existing calendar |
+| **Hook Library** | Database of effective hooks by niche | GPT-4 generation + user saves |
+| **Caption Templates** | Platform-optimized caption structures | GPT-4 templates |
+| **Hashtag Clusters** | Related hashtag groups by topic | GPT-4 clustering |
+| **CTA Library** | Effective call-to-action templates | GPT-4 generation |
+
+### Implementation Priority
+
+**Phase 1: Quick Wins (1-2 days each)**
+1. Keyword Expansion (add to Brand Brief lightbulb)
+2. Question Generation (add to Content Queue)
+3. Question Clustering (group generated questions)
+
+**Phase 2: Trend Enhancement (2-3 days each)**
+4. Viral Pattern Analysis (enhance Content Analyzer)
+5. Trending Topic Feed (enhance Social Listening)
+6. Platform-Specific Trends (per-platform insights)
+
+**Phase 3: AI Visibility (3-4 days)**
+7. LLM Brand Tracker (new section in Social Listening)
+8. Visibility Over Time (chart + history)
+9. Competitor AI Visibility (comparison view)
+
+**Phase 4: Content Strategy (2-3 days each)**
+10. Content Calendar Auto-Fill
+11. Hook Library
+12. Caption/CTA Templates
+
+---
+
+## APIs That Would Enhance (Optional - Paid)
+
+These are nice-to-have but not required:
+
+| API | What It Adds | Cost |
+|-----|--------------|------|
+| **DataForSEO** | Real search volume, CPC, competition data | ~$50/mo |
+| **SerpAPI** | Google SERP data, People Also Ask | ~$50/mo |
+| **Google Trends API** | Official trending data | Free (unofficial) |
+| **Perplexity API** | Direct AI search queries | Pay per query |
+
+Without these, we use GPT-4 to generate plausible keyword ideas and questions - which works well for content ideation even without exact search volume numbers.
