@@ -849,7 +849,7 @@ Library of pre-made AI avatars (diverse appearances, styles) that users can sele
 | Voice Clone | A2E | ElevenLabs | - |
 | Lip Sync | A2E | Sync Labs | - |
 | Face Swap | A2E | - | - |
-| Text-to-Video | A2E (Sora 2, Kling) | Fal.ai | Runway |
+| Text-to-Video | **Sora 2 (default)** | Kling, Veo 3.1 | Fal.ai, Runway |
 | Text-to-Image | gpt-image-1.5 | A2E (Flux) | Fal.ai |
 
 ### Smart Routing Logic
@@ -875,7 +875,7 @@ On landing pages and marketing, showcase the **actual AI models** users get acce
 
 | User Sees | Actual Provider | Engine |
 |-----------|-----------------|--------|
-| **Sora 2** | A2E | OpenAI Sora 2 |
+| **Sora 2** ⭐ | A2E | OpenAI Sora 2 (DEFAULT for video) |
 | **Flux Pro** | A2E | Black Forest Labs Flux |
 | **Kling** | A2E | Kuaishou Kling |
 | **Veo 3.1** | A2E | Google Veo |
@@ -1185,7 +1185,7 @@ Allow users to connect their own API keys for AI services, bypassing platform qu
 | **Fal.ai** | Video/Image | `server/fal.ts` | ✅ Partial |
 | **Pexels** | Stock Media | `server/pexels.ts` | ✅ Full |
 | **Getty** | Stock Media | `server/getty.ts` | ✅ Partial |
-| **Sora (OpenAI)** | Video | `server/soraService.ts` | ✅ Via A2E |
+| **Sora 2 (OpenAI)** | Video | `server/soraService.ts` | ✅ DEFAULT via A2E |
 | **Steve AI** | Video | `server/steveai.ts` | ✅ Studio tier |
 
 ---
