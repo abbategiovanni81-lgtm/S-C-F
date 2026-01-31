@@ -16,7 +16,7 @@ Preferred communication style: Simple, everyday language.
 - **Silent Tier Gating**: Features disabled for tier, upgrade prompt on hover/tap, no blocking modals
 - **Navigation**: Dropdown menu always accessible - user can jump to any section, not locked in workflow
 - **Scheduling**: Dual view - Board (Kanban) → Calendar, visual card previews throughout
-- Full workflow documented in `UI_UX_WORKFLOW_SPEC.md`
+- Full workflow documented in `AUTOMATION_UPGRADE_PLAN.md` (Ava AI section)
 
 ### Technical Implementations
 - **Frontend**: React 18, TypeScript, Wouter (routing), TanStack React Query (state management), shadcn/ui (Radix UI), Tailwind CSS v4, Vite.

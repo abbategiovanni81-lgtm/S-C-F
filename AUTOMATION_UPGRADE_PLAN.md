@@ -863,3 +863,248 @@ ELSE IF task.priority === "speed":
 ELSE:
   use cheapestProvider
 ```
+
+---
+
+## Ava AI — Active Workflow Guide
+
+### Core Concept
+Ava is NOT just an advisor - she **actively guides and moves users through the workflow**:
+- Presents decision cards at each step
+- Moves user to next step on selection
+- Shows progress (Step 1/3)
+- User can ALWAYS access any section via dropdown menu (not locked in)
+- Review/feedback only mode available
+
+### Ava Behaviors
+
+**Active Guidance:**
+```
+Ava: "Great choice! Let's pick a format for your Reel."
+[Shows format cards]
+[User taps Carousel]
+Ava: "Perfect! Carousels get 3x more saves. Template or scratch?"
+```
+
+**Progress Awareness:**
+- Shows step indicator (1/3, 2/3, 3/3)
+- Can go back to previous steps
+- Remembers selections
+
+**Smart Suggestions:**
+- Recommends formats based on brand brief
+- Suggests templates matching brand voice
+- Flags potential issues before publishing
+
+**Escape Hatch:**
+- Dropdown menu always visible
+- User can jump to any section
+- "Skip" option on non-critical steps
+
+---
+
+## SINGLE CONTENT WORKFLOW
+
+### Brand Brief → Generate
+
+**Step 1: Decision Card**
+> "What do you want to create?"
+- Quick Post *(visual card)*
+
+**Step 2: Decision Card**
+> "Choose format"
+- Reel *(video preview)*
+- Carousel *(visual preview)*
+- Story *(visual preview)*
+- Ad *(visual preview)*
+- Video *(video preview)*
+
+**Step 3: Decision Card**
+> "How should it be created?"
+- From Scratch *(icon/visual)*
+- Use Template *(icon/visual)*
+
+---
+
+### IF: Use Template
+
+**Step 4: Template Grid**
+- 2-column visual cards with video previews
+- Filter tabs: By Platform | By Duration | By Style
+- Metadata: clips count, duration, song name
+- "New!" badges on recent templates
+
+**Step 5: Template Populate**
+- Script + structure prefilled from template
+- Edit placeholders with brand voice
+
+**Step 6: Decision Card — Content Creator**
+> "Who creates the content?"
+- Platform AI *(included in tier)*
+- Your OpenAI Key *(BYOK)*
+- Your ElevenLabs *(voice only)*
+- Your A2E Key *(video)*
+
+**Step 7: Editor (CapCut-style)**
+- Timeline with clips
+- Edit / Merge / Adjust
+- Add text, music, effects
+
+**Step 8: Review & Score**
+- AI quality score
+- Improvement suggestions as visual cards
+- Compare with similar content
+
+**Step 9: Schedule**
+- Board view → drag to calendar
+- Calendar view → select date/time
+- Options: Schedule | Post Now | Export
+
+---
+
+### IF: From Scratch
+
+**Step 4: AI Content Cards**
+- 💡 Idea *(generates concepts)*
+- 🎣 Hook *(attention grabbers)*
+- 📝 Script *(full script)*
+- 🎙️ Voiceover *(audio)*
+- ✍️ Caption *(platform-optimized)*
+- #️⃣ Hashtags *(trending + niche)*
+
+**Step 5: Decision Card — Content Creator**
+> "Who creates the content?"
+- Platform AI | Your OpenAI | Your ElevenLabs | Your A2E
+
+**Step 6: Decision Card — Visuals**
+> "Choose visuals"
+- Upload | Google Drive | Stock (Pexels) | AI Generate
+
+**Step 7-9: Same as Template path**
+- Editor → Review & Score → Schedule
+
+---
+
+## BATCH CONTENT WORKFLOW
+
+### Brand Brief → Generate
+
+**Step 1: Decision Card**
+> "What do you want to create?"
+- Content Plan *(visual card showing calendar preview)*
+
+**Step 2: Decision Card**
+> "How should it be planned?"
+- AI Builds Plan *(visual showing AI analyzing)*
+- Manual Plan *(visual showing blank calendar)*
+
+---
+
+### IF: AI Builds Plan
+
+**Step 3: AI Planning (background)**
+- Analyzing niche + trends + brand
+- Progress indicator with animation
+- "Ava is building your content plan..."
+
+**Step 4: Content Plan Board**
+Visual cards showing:
+- Platform icon
+- Format type (Reel/Carousel/etc)
+- Topic/Theme
+- Goal (Engage/Convert/Educate)
+
+Each card has toggle:
+- Generate | Library | Upload
+
+**Step 5: Decision Card — Content Creator**
+> "Who creates the content?"
+- Platform AI *(batch pricing)*
+- Your API Keys *(BYOK - no platform cost)*
+
+**Step 6: Batch Generate (async)**
+- Progress cards showing generation status
+- Background processing notification
+- Overnight batch option
+
+**Step 7: Generated Content Board**
+Visual cards showing:
+- Video/image thumbnail
+- AI quality score badge
+- Status: Ready | Needs Edit | Regenerate
+
+**Step 8: Bulk Schedule**
+- Board view → Calendar view
+- Auto-post where supported
+- Manual queue for others
+
+---
+
+### IF: Manual Plan
+
+**Step 3: Plan Builder (cards)**
+- Format quantities selection
+- Platform distribution
+- Date range picker
+
+**Step 4-8: Same as AI Plan path**
+
+---
+
+## GLOBAL UI RULES
+
+| Rule | Implementation |
+|------|----------------|
+| All decisions = visual cards | Images/video previews, not text lists |
+| Early flow = Decision Tree | Ava guides step-by-step |
+| Templates = Grid | 2-column with video previews, metadata |
+| Editing = CapCut-style | Timeline, layers, preview |
+| Content Review = Visual Cards | Thumbnails with scores, actions |
+| Scheduling = Board + Calendar | Kanban → Calendar dual view |
+| Tier gates = Silent | Features disabled, upgrade on hover/tap |
+| Navigation = Always accessible | Dropdown menu to jump anywhere |
+| Content source = User choice | Platform AI vs BYOK at generation step |
+
+---
+
+## Visual Card Components
+
+### Decision Card
+```
+┌─────────────────────────────┐
+│  [Image/Video Preview]      │
+│                             │
+│  Title                      │
+│  Subtitle/description       │
+│  [Selected indicator ✓]     │
+└─────────────────────────────┘
+```
+
+### Template Card
+```
+┌─────────────────────────────┐
+│  [Video Thumbnail ▶]        │
+│  Template Name              │
+│  🎬 4 clips | ⏱ 15s | 🎵 Beat│
+│  [New!] badge               │
+└─────────────────────────────┘
+```
+
+### Content Card (Generated)
+```
+┌─────────────────────────────┐
+│  [Thumbnail]     [Score 8.5]│
+│  Caption preview...         │
+│  📱 Instagram | 🎬 Reel     │
+│  [Edit] [Regenerate] [✓]    │
+└─────────────────────────────┘
+```
+
+### Schedule Card (Board)
+```
+┌─────────────────────────────┐
+│  [Thumbnail]                │
+│  Mon 10:00 AM               │
+│  📱 Instagram [Auto-post ✓] │
+└─────────────────────────────┘
+```
