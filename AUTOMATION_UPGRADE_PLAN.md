@@ -866,6 +866,63 @@ ELSE:
 
 ---
 
+## Landing Page Branding — AI Engines, Not Providers
+
+### Concept
+On landing pages and marketing, showcase the **actual AI models** users get access to, not the aggregator/provider name. Users recognize Sora, Flux, DALL-E — they don't know what "A2E" means.
+
+### What We Say vs What's Behind It
+
+| User Sees | Actual Provider | Engine |
+|-----------|-----------------|--------|
+| **Sora 2** | A2E | OpenAI Sora 2 |
+| **Flux Pro** | A2E | Black Forest Labs Flux |
+| **Kling** | A2E | Kuaishou Kling |
+| **Veo 3.1** | A2E | Google Veo |
+| **DALL-E 3** | OpenAI Direct | OpenAI DALL-E |
+| **gpt-image-1.5** | OpenAI Direct | OpenAI Image Gen |
+| **ElevenLabs** | ElevenLabs Direct | ElevenLabs |
+| **Seedance** | A2E | Seedance 1.5 Pro |
+| **Wan 2.6** | A2E | Alibaba Wan |
+
+### Landing Page Copy Example
+
+**❌ Don't say:**
+> "Powered by A2E video generation"
+
+**✅ Do say:**
+> "Create videos with Sora 2, Flux Pro, Kling & more"
+> "AI-powered by OpenAI, ElevenLabs, Google Veo"
+
+### Where to Apply
+
+| Location | Show |
+|----------|------|
+| **Homepage hero** | "Powered by Sora 2, DALL-E, ElevenLabs" with logos |
+| **Pricing page** | Engine access per tier (Core = Flux, Premium = Sora 2) |
+| **Feature cards** | Engine name + capability |
+| **Generation UI** | Model selector shows engine names |
+| **Footer** | "Integrates with OpenAI, Google, ElevenLabs" |
+
+### Engine Logos to Source
+- OpenAI (Sora, DALL-E, GPT-4)
+- ElevenLabs
+- Google (Veo)
+- Flux / Black Forest Labs
+- Kling / Kuaishou
+
+### Tier-Based Engine Access (Marketing)
+
+| Tier | Engines Included |
+|------|------------------|
+| **Free** | gpt-image-1.5 (BYOK) |
+| **Core** | + Flux Pro, Wan 2.6 |
+| **Premium** | + Sora 2, Kling, ElevenLabs |
+| **Pro** | + Veo 3.1, Seedance Pro |
+| **Studio** | All engines + priority queue |
+
+---
+
 ## Ava AI — Active Workflow Guide
 
 ### Core Concept
