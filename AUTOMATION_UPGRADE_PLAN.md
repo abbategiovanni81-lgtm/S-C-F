@@ -1227,13 +1227,22 @@ Allow users to connect their own API keys for AI services, bypassing platform qu
 
 | Service | API Available | Min Price | Priority | Notes |
 |---------|---------------|-----------|----------|-------|
-| **HeyGen** | ✅ Yes | $99/mo | MEDIUM | 100+ avatars, polished but expensive |
+| **HeyGen** | ✅ Yes | **FREE** | **HIGH** | 10 credits/mo FREE = 3 min video, ALL avatars included! |
 | **D-ID** | ✅ Yes | $18/mo | MEDIUM | Real-time streaming, cheap |
 | **Synthesia** | ✅ Yes ($89+) | $89/mo | LOW | Training/explainer focused |
-| **Creatify** | ✅ Yes | $49/mo | HIGH | UGC style, 1500+ avatars, best value |
+| **Creatify** | ✅ Yes | $49/mo | MEDIUM | UGC style, 1500+ avatars |
 | **Arcads** | ⚠️ Limited | ~$110/mo | LOW | Ultra-realistic UGC |
 | **Zeely** | ❌ No API | $25/mo | N/A | 30+ UGC avatars, web only |
 | **HyperUGC** | ❌ No API | $9/mo | N/A | Cheap but no integration |
+
+**🎉 HeyGen Free API Discovery:**
+- **10 FREE credits/month** = ~3 minutes of video
+- **ALL avatars included**: UGC, Professional, Lifestyle, AI Generated
+- Create avatars with photos
+- Create video from scratch OR templates
+- Fetch avatar, voice, template lists
+- Interactive Avatar streaming
+- ⚠️ Watermark on free tier (Pro $99/mo removes it)
 
 #### **Voice / Audio**
 
@@ -1405,12 +1414,36 @@ const response = await fetch("https://api.d-id.com/talks", {
 
 ---
 
-## UGC Stock Avatar Library (Build Our Own)
+## UGC Stock Avatar Library
 
-### Why Build Our Own?
+### 🎉 NEW: HeyGen Free API = Best Option!
+
+**Discovery:** HeyGen offers FREE API tier with:
+- 10 credits/month = ~3 minutes video
+- **ALL stock avatars included** (UGC, Professional, Lifestyle, AI Generated)
+- Create avatars with photos
+- Templates + from scratch
+- Only downside: watermark (Pro $99/mo removes)
+
+**This means:** We can use HeyGen's stock avatar library for FREE instead of building our own!
+
+### Recommended Approach (Updated)
+
+**Option A: HeyGen Free API (Recommended for MVP)**
+- Integrate HeyGen API
+- Users get access to ALL HeyGen avatars
+- 3 min/month free (with watermark)
+- Upgrade to Pro ($99/mo) for no watermark
+
+**Option B: Build Our Own (Fallback/Supplement)**
+- Generate AI character images for users without HeyGen
+- Use with A2E Talking Photo
+- No monthly cost, just per-video
+
+### Why We Might Still Build Our Own
 - A2E doesn't have stock avatars (talking photo/video only)
-- HeyGen API too expensive ($99/mo)
-- Creatify cheaper ($49/mo) but still adds cost
+- For users who don't want watermarks but don't want $99/mo
+- Custom characters matching brand
 - **Solution:** Generate diverse AI character images, store as reusable library
 
 ### How It Works
@@ -1520,14 +1553,16 @@ CREATE TABLE user_actors (
 
 ### Cost Comparison
 
-| Approach | Monthly Cost | Per Video (1 min) |
-|----------|--------------|-------------------|
-| **HeyGen API** | $99/mo base | ~$1.00 |
-| **Creatify Pro** | $49/mo base | Included in credits |
-| **Our Stock Library + A2E** | $0/mo base | ~$0.60 |
-| **D-ID API** | $18/mo base | ~$0.56 |
+| Approach | Monthly Cost | Per Video (1 min) | Avatars |
+|----------|--------------|-------------------|---------|
+| **HeyGen Free API** | **$0/mo** | **FREE (3 min/mo)** | ✅ ALL stock avatars |
+| HeyGen Pro API | $99/mo | ~$1.00 | ✅ ALL, no watermark |
+| Creatify Pro | $49/mo | Included in credits | ✅ 1500+ |
+| Our Stock Library + A2E | $0/mo | ~$0.60 | Custom only |
+| D-ID API | $18/mo | ~$0.56 | Photo-based only |
 
-**Winner:** Build stock library + use A2E or D-ID for cheapest per-video cost!
+**🏆 Winner:** HeyGen Free API for stock avatars (3 min/mo free with watermark)
+**Backup:** Our stock library + A2E for unlimited without watermark
 
 ### UGC BYOK Options
 
