@@ -1227,11 +1227,13 @@ Allow users to connect their own API keys for AI services, bypassing platform qu
 
 | Service | API Available | Min Price | Priority | Notes |
 |---------|---------------|-----------|----------|-------|
-| **HeyGen** | ✅ Yes | $99/mo | HIGH | 100+ avatars, polished |
-| **D-ID** | ✅ Yes | $18/mo | MEDIUM | Real-time streaming |
-| **Synthesia** | ✅ Yes ($89+) | $89/mo | MEDIUM | Training/explainer focused |
-| **Creatify** | ✅ Yes | $99/mo | MEDIUM | UGC style, 1500+ avatars |
+| **HeyGen** | ✅ Yes | $99/mo | MEDIUM | 100+ avatars, polished but expensive |
+| **D-ID** | ✅ Yes | $18/mo | MEDIUM | Real-time streaming, cheap |
+| **Synthesia** | ✅ Yes ($89+) | $89/mo | LOW | Training/explainer focused |
+| **Creatify** | ✅ Yes | $49/mo | HIGH | UGC style, 1500+ avatars, best value |
 | **Arcads** | ⚠️ Limited | ~$110/mo | LOW | Ultra-realistic UGC |
+| **Zeely** | ❌ No API | $25/mo | N/A | 30+ UGC avatars, web only |
+| **HyperUGC** | ❌ No API | $9/mo | N/A | Cheap but no integration |
 
 #### **Voice / Audio**
 
@@ -1368,3 +1370,174 @@ const response = await fetch("https://api.heygen.com/v2/video/generate", {
   })
 });
 ```
+
+**Creatify Integration (Best Value UGC):**
+```javascript
+const response = await fetch("https://api.creatify.ai/v1/videos", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${userApiKey}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    avatar_id: "ugc_avatar_123",
+    script: "Your product is amazing...",
+    voice_id: "casual_female_01",
+    style: "ugc_bedroom"  // UGC presets like Mintly
+  })
+});
+```
+
+**D-ID Integration (Cheapest API):**
+```javascript
+const response = await fetch("https://api.d-id.com/talks", {
+  method: "POST",
+  headers: {
+    "Authorization": `Basic ${Buffer.from(userApiKey + ":").toString("base64")}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    source_url: "https://example.com/avatar.jpg",
+    script: { type: "text", input: "Hello world" }
+  })
+});
+```
+
+---
+
+## UGC Stock Avatar Library (Build Our Own)
+
+### Why Build Our Own?
+- A2E doesn't have stock avatars (talking photo/video only)
+- HeyGen API too expensive ($99/mo)
+- Creatify cheaper ($49/mo) but still adds cost
+- **Solution:** Generate diverse AI character images, store as reusable library
+
+### How It Works
+
+```
+1. GENERATE CHARACTERS
+   Use gpt-image-1.5 / Flux to create diverse UGC-style portraits
+   → 20-30 diverse characters (age, gender, ethnicity, style)
+   
+2. STORE AS "STOCK ACTORS"
+   Save to database with metadata:
+   - Gender, Age range, Ethnicity
+   - Style (casual, professional, UGC bedroom, street)
+   - Background type
+   
+3. USER SELECTS ACTOR
+   Browse 2-column grid like Mintly shows
+   Filter by: Male | Female | Style | Age
+   
+4. GENERATE VIDEO
+   Feed selected character image + script to A2E Talking Photo
+   Cost: ~$0.01/second (no monthly subscription!)
+   
+5. "CREATE YOUR OWN" OPTION
+   User uploads their own photo for custom avatar
+```
+
+### Stock Actor Categories (Like Mintly)
+
+| Category | Description | Examples |
+|----------|-------------|----------|
+| **UGC Bedroom** | Casual home setting, phone-filmed look | Cozy lighting, natural pose |
+| **Influencer Review** | Professional but relatable | Clean background, good lighting |
+| **Street Interview** | Outdoor, casual encounter | Urban backdrop, natural |
+| **Podcast Mention** | Studio/desk setting | Microphone visible, warm tones |
+| **Product Hold** | Person holding product space | Hands visible, product focus |
+| **Testimonial** | Direct-to-camera authentic | Living room, kitchen settings |
+
+### AI Image Prompt Templates
+
+**UGC Bedroom Style:**
+```
+Professional photograph of a [age] year old [ethnicity] [gender], 
+casual home setting, warm bedroom lighting, wearing casual clothes, 
+looking directly at camera with friendly expression, 
+iPhone selfie style, authentic UGC aesthetic, 
+upper body shot, soft natural lighting
+```
+
+**Influencer Review Style:**
+```
+Professional photograph of a [age] year old [ethnicity] [gender],
+clean minimal background, ring light reflection in eyes,
+wearing smart casual outfit, confident friendly expression,
+YouTube thumbnail style, high quality, upper body portrait
+```
+
+### Implementation Steps
+
+**Phase 1: Generate Initial Library (1 day)**
+1. Create 30 diverse character images using gpt-image-1.5
+2. Mix of genders, ages, ethnicities, styles
+3. Store in object storage with metadata
+
+**Phase 2: Actor Selection UI (2 days)**
+4. 2-column grid with video/image previews
+5. Filter tabs: All | Male | Female | UGC | Professional
+6. "Create your own" card at top
+7. Select → shows script input
+
+**Phase 3: Video Generation (1 day)**
+8. Connect to A2E Talking Photo API
+9. Feed selected actor image + script + voice
+10. Poll for completion, show in review
+
+**Phase 4: User Custom Actors (1 day)**
+11. Upload photo → validate face detected
+12. Save to "My Actors" library
+13. Reuse across multiple videos
+
+### Database Schema
+
+```sql
+CREATE TABLE stock_actors (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  image_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  gender VARCHAR(20),         -- male, female, non-binary
+  age_range VARCHAR(20),      -- 20s, 30s, 40s, 50s+
+  ethnicity VARCHAR(50),
+  style VARCHAR(50),          -- ugc_bedroom, influencer, street, podcast
+  is_stock BOOLEAN DEFAULT true,
+  user_id INTEGER,            -- null for stock, set for custom
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE user_actors (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  name VARCHAR(100),
+  image_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Cost Comparison
+
+| Approach | Monthly Cost | Per Video (1 min) |
+|----------|--------------|-------------------|
+| **HeyGen API** | $99/mo base | ~$1.00 |
+| **Creatify Pro** | $49/mo base | Included in credits |
+| **Our Stock Library + A2E** | $0/mo base | ~$0.60 |
+| **D-ID API** | $18/mo base | ~$0.56 |
+
+**Winner:** Build stock library + use A2E or D-ID for cheapest per-video cost!
+
+### UGC BYOK Options
+
+Users who want more avatars can connect their own:
+
+| Service | What They Get | Cost to User |
+|---------|---------------|--------------|
+| **Creatify** | 1500+ UGC avatars | $49/mo |
+| **HeyGen** | 100+ polished avatars | $99/mo |
+| **D-ID** | Talking photo/video | $18/mo |
+| **Arcads** | Ultra-realistic UGC | $110/mo |
+
+All integrate via same pattern: user adds API key → we call their API → they pay provider directly.
