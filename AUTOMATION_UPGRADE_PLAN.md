@@ -517,6 +517,198 @@ Pre-made complete reels users can use as-is or customize:
 
 **Phase 4: Polish (3-4 days)**
 11. Music sync improvements
+
+---
+
+## Reel-to-Template Generator (From Your Existing Reels)
+
+### Concept
+Use your 2000+ existing reels on Google Drive to automatically create templates. Reverse-engineer successful content into reusable patterns.
+
+### What Gets Extracted
+
+| From Your Reels | Creates |
+|-----------------|---------|
+| **Audio/Music** | Beat markers, BPM, clip timings |
+| **Cut patterns** | Scene durations, transition points |
+| **Text overlays** | Caption styles, font placements |
+| **Successful formats** | Template structures that perform |
+
+### Technical Pipeline
+
+```
+1. FETCH FROM GOOGLE DRIVE
+   └── Use existing Google Drive integration
+   └── Queue reels for background analysis
+
+2. ANALYZE EACH REEL
+   ├── FFmpeg: Extract audio → detect beats/BPM
+   ├── FFmpeg: Scene detection → get cut timings
+   ├── Librosa/Essentia: Precise BPM analysis
+   └── GPT-4 Vision: Describe visual style, text placements
+
+3. STORE ANALYSIS METADATA
+   {
+     "file_id": "abc123",
+     "duration": 15.2,
+     "bpm": 120,
+     "scene_cuts": [0.0, 0.5, 1.0, 1.5, 2.0, ...],
+     "transitions": ["cut", "zoom", "fade", ...],
+     "style_tags": ["ugc", "product", "energetic"],
+     "audio_url": "/extracted/abc123.mp3"
+   }
+
+4. CLUSTER SIMILAR PATTERNS
+   └── Group by: duration, cut count, style, BPM
+   └── Identify 50-100 unique patterns from 2000 reels
+
+5. GENERATE TEMPLATE FROM CLUSTER
+   └── Average the beat timings
+   └── Define slot durations
+   └── Extract common transitions
+   └── Keep original music track
+
+6. CREATE TEMPLATE LIBRARY
+   └── Each template = JSON + preview video
+   └── Preview = one of the original reels from cluster
+```
+
+### Analysis Tools
+
+| Task | Tool/Command |
+|------|--------------|
+| **Scene detection** | `ffmpeg -i reel.mp4 -filter:v "select='gt(scene,0.3)',showinfo" -f null -` |
+| **Audio extraction** | `ffmpeg -i reel.mp4 -vn -acodec libmp3lame audio.mp3` |
+| **BPM detection** | Python `librosa.beat.tempo()` or `essentia` |
+| **Beat markers** | Python `librosa.beat.beat_track()` |
+| **Visual style** | GPT-4 Vision API with frame samples |
+
+### Database Schema
+
+```sql
+CREATE TABLE reel_analysis (
+  id SERIAL PRIMARY KEY,
+  google_drive_file_id VARCHAR(100) NOT NULL,
+  file_name VARCHAR(255),
+  duration DECIMAL(10,2),
+  bpm INTEGER,
+  scene_cuts JSONB,           -- [0.0, 0.5, 1.0, ...]
+  transitions JSONB,          -- ["cut", "zoom", ...]
+  style_tags TEXT[],
+  audio_url TEXT,
+  analyzed_at TIMESTAMP DEFAULT NOW(),
+  cluster_id INTEGER          -- assigned after clustering
+);
+
+CREATE TABLE reel_templates (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  category VARCHAR(50),
+  source_cluster_id INTEGER,
+  sample_reel_ids INTEGER[],  -- original reels this came from
+  duration DECIMAL(10,2),
+  bpm INTEGER,
+  slots JSONB,                -- [{start, duration, transition}, ...]
+  music_url TEXT,
+  preview_url TEXT,
+  style_tags TEXT[],
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Template JSON Output
+
+```json
+{
+  "id": "my-product-reveal-01",
+  "name": "Product Reveal (Your Style)",
+  "category": "product",
+  "source": "extracted",
+  "sample_reels": ["drive_abc123", "drive_def456"],
+  "duration": 12.5,
+  "bpm": 128,
+  "music": {
+    "name": "Original Track",
+    "audioUrl": "/templates/extracted/product-reveal-01.mp3",
+    "license": "owner"
+  },
+  "slots": [
+    { "start": 0.0, "duration": 0.47, "beat": 1, "transition": "cut" },
+    { "start": 0.47, "duration": 0.47, "beat": 2, "transition": "zoom" },
+    { "start": 0.94, "duration": 0.94, "beat": 3, "transition": "fade" },
+    { "start": 1.88, "duration": 0.47, "beat": 5, "transition": "cut" }
+  ],
+  "style": ["energetic", "product", "quick-cuts"]
+}
+```
+
+### UX Flow
+
+```
+1. CONNECT GOOGLE DRIVE
+   └── Select folder with your reels
+   └── "Analyze 2000 reels" button
+
+2. BACKGROUND PROCESSING
+   └── Progress: "Analyzing... 156/2000"
+   └── Estimated time remaining
+   └── Can close and come back later
+
+3. PATTERN DISCOVERY
+   └── "Found 78 unique patterns!"
+   └── Preview clusters with sample reels
+   └── Name/categorize your templates
+
+4. TEMPLATE LIBRARY
+   └── "Your Templates" tab in template browser
+   └── Mixed with stock templates
+   └── Shows original reel as preview
+
+5. USE TEMPLATE
+   └── Select your template
+   └── Fill slots with new content
+   └── Generate new reel with YOUR timing/music
+```
+
+### Implementation Phases
+
+**Phase 1: Quick Win (2-3 days)**
+1. Manual upload of 20-30 best reels
+2. Analyze and create templates from top performers
+3. Test template system before scaling
+
+**Phase 2: Batch Analysis (1 week)**
+4. Background job queue for 2000 reels
+5. FFmpeg scene detection + audio extraction
+6. BPM/beat detection with librosa
+7. Store metadata in database
+
+**Phase 3: Clustering (3-4 days)**
+8. Group similar reels by pattern
+9. Generate template from each cluster
+10. Auto-name and categorize
+
+**Phase 4: UI Integration (2-3 days)**
+11. "Your Templates" section in template browser
+12. Upload more reels for analysis
+13. Edit/refine generated templates
+
+### Music Licensing Note
+
+Since these are YOUR reels with YOUR music:
+- ✅ You own the usage rights
+- ✅ Can reuse in new content
+- ⚠️ May not be able to share templates publicly (music licensing)
+- 💡 Mark as "Personal Templates" vs "Public Templates"
+
+### Tier Access
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Upload reels for analysis | 5 | 50 | Unlimited |
+| Generated templates | 3 | 20 | Unlimited |
+| Batch analysis | ✗ | ✓ | ✓ |
+| Cluster discovery | ✗ | ✓ | ✓ |
 12. Custom transition styles
 13. Template favorites/history
 
