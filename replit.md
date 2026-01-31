@@ -9,9 +9,14 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### UI/UX Decisions
-- All tools are visible to all users, with "Upgrade" prompts for non-subscribers to access tier-specific features.
-- Carousel, Reels, Stories, and general Instagram/YouTube content optimization guidelines focus on maximizing engagement, retention, and algorithmic favorability based on current platform trends (2025/2026). This includes strategies for hooks, content structure, CTAs, and format selection tailored to each platform's algorithm.
-- YouTube content generation focuses on viewer intent, strong hooks, and retention-optimized script structures, avoiding common "algorithm hacks."
+- **Mobile-First Visual Design**: 2-column visual card grids, dark theme editors, step wizards (1/3), center FAB navigation
+- **Ava AI = Active Workflow Guide**: Not just advisor - guides users through decision tree, moves them between steps, presents visual cards at each decision point
+- **All Decisions = Visual Cards**: Images/video previews, never text lists. Templates show metadata (clips, duration, song)
+- **Content Creator Selection**: User always chooses WHO creates content (Platform AI vs BYOK keys)
+- **Silent Tier Gating**: Features disabled for tier, upgrade prompt on hover/tap, no blocking modals
+- **Navigation**: Dropdown menu always accessible - user can jump to any section, not locked in workflow
+- **Scheduling**: Dual view - Board (Kanban) → Calendar, visual card previews throughout
+- Full workflow documented in `UI_UX_WORKFLOW_SPEC.md`
 
 ### Technical Implementations
 - **Frontend**: React 18, TypeScript, Wouter (routing), TanStack React Query (state management), shadcn/ui (Radix UI), Tailwind CSS v4, Vite.

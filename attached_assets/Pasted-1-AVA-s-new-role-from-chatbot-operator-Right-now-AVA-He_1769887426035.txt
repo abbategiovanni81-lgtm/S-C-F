@@ -1,0 +1,250 @@
+1. AVA’s new role: from chatbot → operator
+
+Right now AVA =
+
+“Here’s what you can do next”
+
+What you want is AVA =
+
+“I’m doing this with you — and sometimes for you”
+
+The rule
+
+Every major decision screen should be triggerable by AVA, not just buttons.
+
+That means:
+	•	Cards still exist (visual clarity)
+	•	But AVA can:
+	•	Select a card
+	•	Advance the flow
+	•	Populate inputs
+	•	Run generation
+	•	Rewind content back to edit
+
+Think of AVA as a stateful assistant with permissions, not a chat window.
+
+⸻
+
+2. Mobile-native flow (rewritten cleanly, step by step)
+
+I’ll rewrite exactly what you described — but in a mobile-first assistant flow, not page hopping.
+
+⸻
+
+ENTRY POINT (after Brand Brief → Generate)
+
+Instead of “Next page”, you land in a full-screen decision moment:
+
+AVA says:
+“What are we creating right now?”
+
+Two large cards (center screen):
+Option A
+
+Create One Post
+small, fast, tactical
+
+Option B
+
+Build My Content Plan
+structured, multi-post, scheduled
+
+(Names below — these are placeholders)
+
+AVA can also accept:
+	•	“Just one reel”
+	•	“Full month”
+	•	“I want TikToks only”
+
+⸻
+
+3. Single Content Path (clean, focused, fast)
+
+Step 1 — Format choice
+
+AVA asks:
+
+“What format should we make?”
+
+Cards:
+	•	Reel / Short
+	•	Static Post
+	•	Carousel
+	•	Story
+	•	Long-form Video
+	•	Ad
+
+(AVA can auto-recommend one and pre-select it)
+
+⸻
+
+Step 2 — Creation method fork
+
+AVA:
+
+“Do you want speed or control?”
+
+Cards:
+	•	Start From Scratch (AI-led)
+	•	Use a Proven Template
+
+⸻
+
+If Templates
+
+You already nailed this.
+
+UI rules:
+	•	Full-screen grid (Beat / Tempify style)
+	•	Tabs: Trending / Niche / Platform / Length
+	•	Tap = preview
+	•	AVA overlay explains why a template works
+
+AVA can say:
+
+“This one performs well for travel + hooks in the first 1.5s.”
+
+⸻
+
+If From Scratch
+
+No blank screens.
+
+AVA immediately generates:
+	•	Content idea
+	•	Hook
+	•	Script
+	•	Caption
+	•	Hashtags
+	•	Optional voiceover text
+
+All appear as editable cards, not a long text block.
+
+From here:
+	•	Upload media or
+	•	Generate media
+	•	Open editor
+	•	Edit & Merge
+	•	Compare versions
+	•	Score updates live
+
+Bad score → AVA suggests fixes, not just numbers.
+
+When score passes threshold:
+
+“This is ready to post. Want to schedule or tweak further?”
+
+⸻
+
+4. Full Content Path (this is where SCF wins)
+
+This is strong — you’re not overthinking it.
+
+⸻
+
+Step 1 — Planning choice
+
+AVA:
+
+“How do you want to plan this?”
+
+Cards:
+	•	Let AI Build the Plan
+	•	I’ll Choose What to Post
+
+⸻
+
+Step 2 — AI Plan Generation (no content yet)
+
+Behind the scenes (as you described):
+	•	Brand brief
+	•	Keywords
+	•	Example accounts
+	•	Social listening
+	•	Viral topic analysis
+	•	Platform requirements
+
+But the UI only shows the outcome, not the process.
+
+⸻
+
+Step 3 — Content Plan Review Board
+
+This is critical.
+
+You land on a content card board, not generation.
+
+Each card shows:
+	•	Platform
+	•	Format
+	•	Topic
+	•	Goal (growth / sales / authority)
+	•	Status: AI / Library / User Upload
+
+User actions:
+	•	Tick to generate
+	•	Swap content type
+	•	Edit script
+	•	Add reference media
+	•	Jump back to Brand Brief (inline, not navigation)
+
+AVA guides:
+
+“I’d generate these 9 and let you upload these 3.”
+
+⸻
+
+Step 4 — Batch Generate (async)
+
+User taps:
+Generate Content
+
+AVA:
+
+“This will take a bit. I’ll handle it.”
+
+No spinner. No blocking.
+
+⸻
+
+Step 5 — Return to a Completed Board
+
+24 hours later (or sooner):
+	•	All cards populated
+	•	Each item:
+	•	Preview
+	•	Score
+	•	Edit
+	•	Regenerate
+	•	Replace media
+
+Unsupported platforms:
+	•	Auto-saved to device
+	•	Clearly labelled “Manual Upload”
+
+There’s also:
+	•	A visual plan image (timeline/calendar view)
+	•	Checklist mode for manual posting
+
+⸻
+
+5. Naming fixes (important, but not urgent)
+
+Here are better, clearer, non-cringe names.
+
+Instead of:
+	•	Create 1 piece of content
+	•	Create full socials
+
+Use:
+
+Option A
+	•	Quick Post
+	•	Single Post
+	•	One-Off Content
+
+Option B
+	•	Content Plan
+	•	Social Schedule
+	•	Full Content Cycle
+	•	Build My Feed
