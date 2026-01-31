@@ -623,3 +623,76 @@ Write the carousel.
 - Use brand brief for topic/audience/CTA
 - Output structured slides for image generation
 - Auto-create images with text overlays
+
+---
+
+## URL → Content Generator (Quick Generate)
+
+### Concept
+Paste any URL (product page, article, affiliate link) → AI analyzes it → generates ready-to-post content in multiple formats.
+
+**Flow:**
+```
+Paste URL
+    ↓
+Scrape page content (title, description, benefits, images)
+    ↓
+AI extracts: key selling points, pain points solved, target audience
+    ↓
+Generate content in chosen formats:
+    → Carousel (5-10 slides with open-loop structure)
+    → Video script (hook + body + CTA)
+    → Blog post
+    → Social captions (platform-optimized)
+    ↓
+Ready to post or send to Editor for polish
+```
+
+### Use Cases
+
+| Input | Output |
+|-------|--------|
+| Product page URL | Product showcase carousel + video script |
+| Affiliate link | Review-style content + comparison posts |
+| Article/blog URL | Summary carousel + quote cards |
+| Competitor post | Inspired-by content with your angle |
+| News article | Trending topic content for your niche |
+
+### What AI Extracts From URL
+
+- **Product/service name**
+- **Key benefits** (what problem it solves)
+- **Target audience** (who is this for)
+- **Pain points addressed**
+- **Pricing/offer details**
+- **Images** (for reference in prompts)
+- **Testimonials** (if present)
+- **Unique selling points**
+
+### Output Formats
+
+| Format | Structure |
+|--------|-----------|
+| **Carousel** | Liz Method: hook → open loops → reveal → CTA |
+| **Video Script** | Hook (0-3s) → Body → CTA |
+| **Blog Post** | Title, intro, key points, conclusion |
+| **Caption** | Platform-optimized (IG, TikTok, LinkedIn, etc.) |
+| **Tweet/Thread** | X-optimized with hooks |
+
+### Implementation
+
+1. URL input field in Content Queue (or standalone "Quick Generate" tool)
+2. Backend: fetch URL → extract text/meta → GPT analysis
+3. Show extracted info for user review/edit
+4. Select output formats (multi-select)
+5. Generate all formats in parallel
+6. Review/edit → send to Ready to Post or Editor
+
+### Tier Access
+
+| Feature | Free | Core+ |
+|---------|------|-------|
+| URL Analysis | 3/month | Unlimited |
+| Single Format Output | ✓ | ✓ |
+| Multi-Format Output | ✗ | ✓ |
+| Image Extraction | ✗ | ✓ |
