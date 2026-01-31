@@ -520,6 +520,245 @@ Pre-made complete reels users can use as-is or customize:
 
 ---
 
+## Carousel Templates (Templify-Style)
+
+### Vision
+Browse visual carousel templates, pick one, fill slots with your images, add text overlays, and export a complete carousel for Instagram/LinkedIn. "Create a unique carousel in just two steps."
+
+### UX Flow (From Templify Analysis)
+
+```
+1. BROWSE TEMPLATES
+   └── 2-column visual grid
+   └── Each card shows: preview image, clip count (1-6), page count (6)
+   └── "New!" badges on fresh templates
+   └── Filter by category
+
+2. SELECT TEMPLATE
+   └── Full-screen swipeable preview
+   └── See all slides with dots indicator
+   └── "Use Template" CTA
+
+3. FILL SLOTS
+   └── Horizontal scroll of slide cards
+   └── Each slide has "+" button to add content
+   └── Sources: Library (Google Drive), Stock (Pexels), AI Generate
+
+4. EDIT (Optional)
+   └── Text: Add headlines, captions, CTAs
+   └── Media: Swap images/videos
+   └── Stickers: Add emojis, icons
+   └── Drawing: Freehand annotations
+   └── Background: Colors, gradients, patterns
+   └── Filters: Warm, cool, vintage, etc.
+
+5. PREVIEW & EXPORT
+   └── Swipe through final carousel
+   └── Export as: Individual images, PDF, or video slideshow
+```
+
+### Template Categories
+
+| Category | Example Styles |
+|----------|----------------|
+| **Lifestyle** | Photo dumps, aesthetic grids, travel |
+| **Educational** | Tips, how-to, listicles |
+| **Business** | Team intros, product features |
+| **Promo** | Sales, launches, announcements |
+| **Personal Brand** | Story carousels, behind the scenes |
+| **Trending** | Viral formats, meme templates |
+
+### Template Structure
+
+```json
+{
+  "id": "lifestyle-photo-dump-6",
+  "name": "Photo Dump",
+  "category": "lifestyle",
+  "isNew": true,
+  "slides": 6,
+  "imageSlots": 6,
+  "layout": [
+    {
+      "slide": 1,
+      "type": "cover",
+      "elements": [
+        { "type": "image", "position": "full", "filter": "warm" },
+        { "type": "text", "position": "bottom-left", "style": "handwritten" }
+      ]
+    },
+    {
+      "slide": 2,
+      "type": "grid-2",
+      "elements": [
+        { "type": "image", "position": "left" },
+        { "type": "image", "position": "right" }
+      ]
+    },
+    {
+      "slide": 3,
+      "type": "full-bleed",
+      "elements": [
+        { "type": "image", "position": "full" }
+      ]
+    }
+  ],
+  "style": {
+    "filter": "warm",
+    "borderRadius": 12,
+    "font": "Playfair Display",
+    "textColor": "#ffffff",
+    "overlayOpacity": 0.2
+  },
+  "previewUrl": "/templates/carousel/photo-dump-6/preview.jpg"
+}
+```
+
+### Editor Features (Matching Templify)
+
+| Feature | Tech | Description |
+|---------|------|-------------|
+| **Text** | Fabric.js | Headlines, captions, CTAs with fonts |
+| **Media** | File upload | Library, Stock (Pexels), AI Generate |
+| **Stickers** | SVG library | Emojis, icons, decorative elements |
+| **Drawing** | Canvas API | Freehand brush, highlights |
+| **Background** | CSS/Canvas | Solid colors, gradients, patterns |
+| **Filters** | CSS filters | Warm, cool, vintage, B&W, etc. |
+
+### Technical Implementation
+
+**Option 1: Fabric.js (Recommended)**
+- Full-featured canvas library
+- Text, images, shapes, filters
+- Export to PNG/JPEG
+- Mobile touch support
+
+**Option 2: Konva.js**
+- React-friendly canvas library
+- Good for complex layer management
+- Export capabilities
+
+**Option 3: Sharp.js (Server-side)**
+- Node.js image processing
+- Faster for batch generation
+- Less interactive editing
+
+### Database Schema
+
+```sql
+CREATE TABLE carousel_templates (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  category VARCHAR(50),
+  slide_count INTEGER,
+  image_slot_count INTEGER,
+  layout JSONB,              -- slide configurations
+  style JSONB,               -- fonts, colors, filters
+  preview_url TEXT,
+  is_new BOOLEAN DEFAULT true,
+  is_premium BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE user_carousels (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  template_id INTEGER REFERENCES carousel_templates(id),
+  name VARCHAR(100),
+  slides JSONB,              -- user's filled content
+  status VARCHAR(20) DEFAULT 'draft',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### Export Formats
+
+| Format | Use Case |
+|--------|----------|
+| **Individual PNGs** | Instagram carousel upload |
+| **PDF** | LinkedIn document post |
+| **Video slideshow** | Reels/TikTok (with transitions) |
+| **ZIP archive** | Bulk download |
+
+### AI Features
+
+| Feature | Description |
+|---------|-------------|
+| **Template Suggestion** | AI picks best template based on brand brief |
+| **Auto-Fill Text** | Generate headlines/captions per slide |
+| **Image Selection** | AI picks best images from library |
+| **Style Matching** | Ensure images match template aesthetic |
+
+### Media Sources
+
+| Source | How |
+|--------|-----|
+| **Library** | User's Google Drive images |
+| **Stock** | Pexels API integration |
+| **AI Generate** | DALL-E / Flux Pro |
+| **Upload** | Direct from device |
+
+### Preview Grid UI (Templify-Style)
+
+```tsx
+// Template card in grid
+<div className="relative">
+  <img src={template.previewUrl} className="rounded-lg" />
+  
+  {template.isNew && (
+    <span className="absolute top-2 left-2 bg-yellow-400 
+                     text-black text-xs px-2 py-1 rotate-[-5deg]">
+      New!
+    </span>
+  )}
+  
+  <div className="absolute bottom-2 left-2 flex gap-2 text-white text-xs">
+    <span>🖼️ 1-{template.imageSlotCount}</span>
+    <span>📄 {template.slideCount}</span>
+  </div>
+</div>
+```
+
+### Implementation Phases
+
+**Phase 1: Template Browser (3-4 days)**
+1. Template grid UI with 2-column layout
+2. Template preview modal with swipe
+3. Category filters
+4. "New!" badge system
+
+**Phase 2: Slot Filling (1 week)**
+5. Horizontal slide editor view
+6. Image slot selection
+7. Google Drive / Pexels / Upload integration
+8. Basic image placement
+
+**Phase 3: Editor Tools (1 week)**
+9. Text overlay with fonts
+10. Sticker library
+11. Background options
+12. Filter presets
+
+**Phase 4: Export (3-4 days)**
+13. PNG export per slide
+14. PDF generation
+15. Video slideshow option
+16. Download/share functionality
+
+### Tier Access
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Browse templates | ✓ | ✓ | ✓ |
+| Basic templates | 10 | All | All |
+| Premium templates | ✗ | ✓ | ✓ |
+| Export (watermark) | ✓ | ✗ | ✗ |
+| AI text fill | ✗ | ✓ | ✓ |
+| Custom fonts | ✗ | ✓ | ✓ |
+
+---
+
 ## Reel-to-Template Generator (From Your Existing Reels)
 
 ### Concept
