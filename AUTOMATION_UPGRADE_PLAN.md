@@ -696,3 +696,170 @@ Ready to post or send to Editor for polish
 | Single Format Output | ✓ | ✓ |
 | Multi-Format Output | ✗ | ✓ |
 | Image Extraction | ✗ | ✓ |
+
+---
+
+## AI Motion Transfer (Photo + Reference Video)
+
+### Concept
+Upload a photo + reference video → AI transfers the motion onto your photo character. Perfect for recreating viral dances/gestures with your own AI influencer.
+
+**Flow:**
+```
+1. Upload Photo (your character/influencer)
+2. Upload Motion Reference Video (max 30s)
+3. Optional: Keep original sound toggle
+4. Generate → AI maps motion onto your photo
+5. Output: Your character moving like the reference video
+```
+
+### Use Cases
+- Recreate viral TikTok dances with AI influencer
+- Copy competitor's video style with your character
+- Animate product mascots
+- Create consistent character across multiple motions
+
+### APIs We Can Use
+
+**Primary: A2E (Already Integrated)**
+| Endpoint | Capability |
+|----------|------------|
+| `/api/v1/actor_swap/start` | Viggle-style actor replacement |
+| Actor Animation | Animate image with motion reference |
+
+**Alternative APIs:**
+
+| Platform | API? | Best For | Pricing |
+|----------|------|----------|---------|
+| **MagicAnimate (Replicate)** | ✅ Yes | Open-source, developer-friendly | Pay-per-use |
+| **Runway Act-Two** | ✅ Yes | Pro filmmaking, facial gestures | Enterprise |
+| **Wonder Studio** | ✅ Yes | Full VFX replacement | Pro tier |
+| **DomoAI** | ❌ No | Stylized/anime animation | Subscription |
+| **Kling AI** | ✅ Yes | High-fidelity cinematic | Credits |
+| **Krikey AI** | ✅ Yes | 3D character rigging | Freemium |
+
+### MagicAnimate Integration (Backup via Replicate)
+
+```javascript
+const output = await replicate.run(
+  "lucataco/magic-animate:e24ad72cc67dd2a365b5b909aca70371bba62b685019f4e96317e59d4ace6714",
+  {
+    input: {
+      image: "character.png",
+      video: "dance-reference.mp4",
+      num_inference_steps: 25,
+      guidance_scale: 7.5
+    }
+  }
+);
+```
+
+### Implementation
+1. Photo upload (JPG/PNG, full body or mid-shot works best)
+2. Video upload (max 30s, MP4/MOV)
+3. "Keep original sound" toggle
+4. Call A2E actor_swap or MagicAnimate API
+5. Poll for completion
+6. Return animated video
+
+---
+
+## UGC Avatar Video Library
+
+### Concept
+Library of pre-made AI avatars (diverse appearances, styles) that users can select to create talking head videos. Like HeyGen/Creatify but integrated into SocialCommand.
+
+### Avatar Categories
+
+| Category | Examples |
+|----------|----------|
+| **Professional** | Business attire, office backgrounds |
+| **Casual/UGC** | iPhone-filmed look, casual clothing |
+| **Diverse Demographics** | Age, ethnicity, gender variety |
+| **Stylized** | Animated, illustrated avatars |
+| **Custom** | User uploads their own photo/video |
+
+### UGC Avatar API Comparison
+
+| Platform | API? | Price | Avatars | Best For |
+|----------|------|-------|---------|----------|
+| **A2E** (primary) | ✅ | Pay-per-use | Custom upload | Talking photo/video |
+| **HeyGen** | ✅ Enterprise | $29+/mo | 100+ | Multilingual, polished |
+| **Creatify** | ✅ $99/mo | $39+/mo | 75+ | URL-to-video, e-commerce |
+| **Arcads** | ❓ Limited | ~$110/mo | Many | Ultra-realistic UGC style |
+| **Synthesia** | ✅ | $22+/mo | 160+ | Corporate, training |
+| **Argil** | ✅ | Custom | High quality | Creator-focused |
+| **JoggAI** | ✅ | Custom | 450+ | Story-based campaigns |
+
+### A2E Avatar Capabilities (Already Have)
+
+| Feature | Endpoint |
+|---------|----------|
+| Talking Photo | `/api/v1/talking_photo/start` |
+| Talking Video | `/api/v1/talking_video/start` |
+| Voice Clone | `/api/v1/voice_clone/train` |
+| Lip Sync | `/api/v1/lipsync/start` |
+| Face Swap | `/api/v1/face_swap/start` |
+
+### What To Build
+
+**Phase 1: Avatar Library UI**
+1. Gallery of pre-selected avatar images/videos
+2. Filter by: gender, style (pro/casual), ethnicity, age
+3. Preview with sample speech
+4. "Create your own" option (upload photo)
+
+**Phase 2: Script + Generate**
+1. Select avatar
+2. Enter script (text or paste from Content Queue)
+3. Select voice (from voice library or clone)
+4. Generate via A2E talking_photo or talking_video
+
+**Phase 3: Action/Gesture Control (Like Impresso)**
+1. Add "Action" field for gesture direction
+2. "Lean toward camera, nod, smile"
+3. Requires motion-capable model (A2E actor animation or MagicAnimate)
+
+### Tier Access
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Browse Avatar Library | ✓ | ✓ | ✓ |
+| Use Avatars | ✗ | 5/month | Unlimited |
+| Custom Avatar (upload) | ✗ | ✗ | ✓ |
+| Voice Clone | ✗ | ✗ | Premium+ |
+| Motion Transfer | ✗ | ✗ | Pro+ |
+
+---
+
+## Multi-Provider AI Strategy
+
+### Why Multiple Providers?
+- **Redundancy**: If A2E goes down, fallback to alternatives
+- **Best-of-breed**: Some models better for specific tasks
+- **Cost optimization**: Route to cheapest provider per task
+- **Feature coverage**: Not all providers have all features
+
+### Provider Matrix
+
+| Capability | Primary | Fallback 1 | Fallback 2 |
+|------------|---------|------------|------------|
+| Talking Head | A2E | HeyGen API | D-ID |
+| Motion Transfer | A2E Actor Swap | MagicAnimate (Replicate) | Runway |
+| Voice Clone | A2E | ElevenLabs | - |
+| Lip Sync | A2E | Sync Labs | - |
+| Face Swap | A2E | - | - |
+| Text-to-Video | A2E (Sora 2, Kling) | Fal.ai | Runway |
+| Text-to-Image | gpt-image-1.5 | A2E (Flux) | Fal.ai |
+
+### Smart Routing Logic
+```
+IF user.tier === "Studio":
+  use highestQualityProvider
+ELSE IF primaryProvider.isDown:
+  use fallbackProvider
+ELSE IF task.priority === "speed":
+  use fastestProvider
+ELSE:
+  use cheapestProvider
+```
