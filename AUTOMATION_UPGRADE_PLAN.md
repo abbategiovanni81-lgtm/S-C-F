@@ -1165,3 +1165,206 @@ Visual cards showing:
 │  📱 Instagram [Auto-post ✓] │
 └─────────────────────────────┘
 ```
+
+---
+
+## BYOK API Connections — Bring Your Own Keys
+
+### Concept
+Allow users to connect their own API keys for AI services, bypassing platform quotas and costs. This is essential for power users and agencies managing high volumes.
+
+---
+
+### Currently Integrated ✅
+
+| Service | Category | File | Status |
+|---------|----------|------|--------|
+| **OpenAI** | Text/Image | `server/openai.ts` | ✅ Full (GPT-4, DALL-E, TTS) |
+| **ElevenLabs** | Voice | `server/elevenlabs.ts` | ✅ Full (TTS, voice clone) |
+| **A2E** | Video/Avatar | `server/a2e.ts` | ✅ Full (lip-sync, avatars, video) |
+| **Fal.ai** | Video/Image | `server/fal.ts` | ✅ Partial |
+| **Pexels** | Stock Media | `server/pexels.ts` | ✅ Full |
+| **Getty** | Stock Media | `server/getty.ts` | ✅ Partial |
+| **Sora (OpenAI)** | Video | `server/soraService.ts` | ✅ Via A2E |
+| **Steve AI** | Video | `server/steveai.ts` | ✅ Studio tier |
+
+---
+
+### APIs to Add for BYOK 🔄
+
+#### **LLM / Text Generation**
+
+| Service | API Available | Pricing | Priority | Notes |
+|---------|---------------|---------|----------|-------|
+| **Grok (xAI)** | ✅ Yes | ~$0.39/1M tokens | HIGH | X/Twitter integration, real-time data, OpenAI-compatible |
+| **Claude (Anthropic)** | ✅ Yes | $3-15/1M tokens | HIGH | Best for long-form, coding |
+| **Gemini (Google)** | ✅ Yes | Free tier available | HIGH | Multimodal, free tier |
+| **Perplexity** | ✅ Yes | Pay-per-query | MEDIUM | Real-time web search |
+| **DeepSeek** | ✅ Yes | Very cheap | MEDIUM | Strong reasoning |
+| **Groq** | ✅ Yes | Fast inference | LOW | Speed-focused |
+
+#### **Image Generation**
+
+| Service | API Available | Cost/Image | Priority | Notes |
+|---------|---------------|------------|----------|-------|
+| **Midjourney** | ❌ No official | N/A | LOW | Discord-only, unofficial wrappers violate TOS |
+| **Stability AI (SDXL)** | ✅ Yes | $0.03-0.04 | HIGH | Self-host option free |
+| **Ideogram** | ✅ Yes | Free tier | MEDIUM | Great text-in-image |
+| **Leonardo AI** | ✅ Yes | Credits-based | LOW | Art-focused |
+| **Recraft V3** | ✅ Via Replicate | Pay-per-use | MEDIUM | SVG/logo generation |
+
+#### **Video Generation**
+
+| Service | API Available | Pricing | Priority | Notes |
+|---------|---------------|---------|----------|-------|
+| **Runway (Gen-4.5)** | ✅ Yes | Enterprise | HIGH | Adobe partner, production-ready |
+| **Pika 2.2** | ✅ Via Fal.ai | Pay-per-use | HIGH | Pikascenes, Pikaframes |
+| **Luma Dream Machine** | ⚠️ Limited | Enterprise | MEDIUM | Contact directly |
+| **Kling** | ✅ Via A2E/Replicate | Credits | ✅ Already have |
+| **Veo 3.1 (Google)** | ✅ Via A2E | Credits | ✅ Already have |
+
+#### **Avatar / Talking Head**
+
+| Service | API Available | Min Price | Priority | Notes |
+|---------|---------------|-----------|----------|-------|
+| **HeyGen** | ✅ Yes | $99/mo | HIGH | 100+ avatars, polished |
+| **D-ID** | ✅ Yes | $18/mo | MEDIUM | Real-time streaming |
+| **Synthesia** | ✅ Yes ($89+) | $89/mo | MEDIUM | Training/explainer focused |
+| **Creatify** | ✅ Yes | $99/mo | MEDIUM | UGC style, 1500+ avatars |
+| **Arcads** | ⚠️ Limited | ~$110/mo | LOW | Ultra-realistic UGC |
+
+#### **Voice / Audio**
+
+| Service | API Available | Pricing | Priority | Notes |
+|---------|---------------|---------|----------|-------|
+| **Play.ht** | ✅ Yes | Pay-per-char | MEDIUM | 900+ voices |
+| **Murf.ai** | ✅ Yes | Subscription | LOW | Studio voices |
+| **Resemble AI** | ✅ Yes | Pay-per-use | LOW | Voice cloning |
+| **Descript** | ⚠️ Limited | Subscription | LOW | Overdub feature |
+
+#### **Aggregator APIs (Multi-Model Access)**
+
+| Service | What It Provides | Pricing | Priority |
+|---------|------------------|---------|----------|
+| **Replicate** | 100+ models (Flux, SDXL, Kling, Wan, etc.) | Pay-per-use | HIGH |
+| **OpenRouter** | 100+ LLMs (GPT, Claude, Gemini, etc.) | Pay-per-token | HIGH |
+| **Together AI** | LLMs + embeddings | Pay-per-token | MEDIUM |
+| **Fal.ai** | Video/image models | Pay-per-use | ✅ Already have |
+
+---
+
+### Implementation: BYOK Settings Page
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🔑 API Connections                                      │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  TEXT GENERATION                                         │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ OpenAI          [●] Connected      [Test] [Remove] ││
+│  │ Claude          [ ] Not connected  [Add Key]       ││
+│  │ Gemini          [ ] Not connected  [Add Key]       ││
+│  │ Grok (xAI)      [ ] Not connected  [Add Key]       ││
+│  └─────────────────────────────────────────────────────┘│
+│                                                          │
+│  IMAGE GENERATION                                        │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ OpenAI DALL-E   [●] Connected      [Test] [Remove] ││
+│  │ Stability AI    [ ] Not connected  [Add Key]       ││
+│  │ Replicate       [ ] Not connected  [Add Key]       ││
+│  │ Ideogram        [ ] Not connected  [Add Key]       ││
+│  └─────────────────────────────────────────────────────┘│
+│                                                          │
+│  VIDEO GENERATION                                        │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ A2E             [●] Connected      [Test] [Remove] ││
+│  │ Runway          [ ] Not connected  [Add Key]       ││
+│  │ HeyGen          [ ] Not connected  [Add Key]       ││
+│  │ Pika (Fal.ai)   [ ] Not connected  [Add Key]       ││
+│  └─────────────────────────────────────────────────────┘│
+│                                                          │
+│  VOICE                                                   │
+│  ┌─────────────────────────────────────────────────────┐│
+│  │ ElevenLabs      [●] Connected      [Test] [Remove] ││
+│  │ Play.ht         [ ] Not connected  [Add Key]       ││
+│  └─────────────────────────────────────────────────────┘│
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Priority Implementation Order
+
+**Phase 1: LLM Alternatives (1-2 days each)**
+1. Grok (xAI) — OpenAI-compatible, easy swap
+2. Claude (Anthropic) — Popular alternative
+3. Gemini (Google) — Free tier attractive
+
+**Phase 2: Video Providers (2-3 days each)**
+4. HeyGen API — Avatar videos
+5. Runway API — Premium video gen
+6. Pika via Fal.ai — Already have Fal.ai
+
+**Phase 3: Image Providers (1-2 days each)**
+7. Stability AI — SDXL direct
+8. Replicate — Multi-model access
+9. Ideogram — Text-in-image
+
+**Phase 4: Aggregators (1 day each)**
+10. OpenRouter — Route to any LLM
+11. Together AI — Fast inference
+
+---
+
+### Tier Access for BYOK
+
+| Feature | Free | Core | Premium+ |
+|---------|------|------|----------|
+| Connect OpenAI | ✓ | ✓ | ✓ |
+| Connect other LLMs | ✗ | ✓ | ✓ |
+| Connect image APIs | ✗ | ✓ | ✓ |
+| Connect video APIs | ✗ | ✗ | ✓ |
+| Connect avatar APIs | ✗ | ✗ | ✓ |
+| Max connections | 1 | 5 | Unlimited |
+
+---
+
+### Technical Notes
+
+**OpenAI-Compatible APIs (Easy to Add):**
+- Grok: `base_url = "https://api.x.ai/v1"`
+- OpenRouter: `base_url = "https://openrouter.ai/api/v1"`
+- Together: `base_url = "https://api.together.xyz/v1"`
+- Groq: `base_url = "https://api.groq.com/openai/v1"`
+
+These can use the existing OpenAI client with just a base URL change.
+
+**Replicate Integration:**
+```javascript
+import Replicate from "replicate";
+const replicate = new Replicate({ auth: userApiKey });
+
+// Run any model
+const output = await replicate.run("black-forest-labs/flux-1.1-pro", {
+  input: { prompt: "..." }
+});
+```
+
+**HeyGen Integration:**
+```javascript
+const response = await fetch("https://api.heygen.com/v2/video/generate", {
+  method: "POST",
+  headers: {
+    "X-Api-Key": userApiKey,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    video_inputs: [{
+      character: { type: "avatar", avatar_id: "..." },
+      voice: { type: "text", input_text: "..." }
+    }]
+  })
+});
+```
