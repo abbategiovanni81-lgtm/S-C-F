@@ -6,6 +6,73 @@ Compress a week's content work into 2-3 hours across multiple brands. Log on Sat
 
 ---
 
+## ⚠️ CRITICAL: AI Engine & Tools Strategy
+
+### Current Defaults (Already Built)
+| Engine | Purpose | Status |
+|--------|---------|--------|
+| **OpenAI Sora 2** | Video generation (text-to-video, image-to-video, remix) | ✅ DEFAULT |
+| **OpenAI GPT Image / DALL-E** | Image generation | ✅ DEFAULT |
+| **ElevenLabs** | Voice synthesis | ✅ Integrated |
+| **A2E** | Backup/alternative (access to Kling, Veo, etc.) | ✅ Backup only |
+| **Fal.ai** | Backup for video/image | ✅ Backup only |
+
+### AI Engines to Add (Same Pattern as Sora 2)
+Each engine = new service file following `soraService.ts` pattern:
+
+| Engine | File to Create | API | Priority |
+|--------|---------------|-----|----------|
+| **Kling** | `klingService.ts` | klingai.com | High |
+| **Runway Gen-3** | `runwayService.ts` | runwayml.com | High |
+| **Veo 3** | `veoService.ts` | Google API | Medium |
+| **Hailuo 2.3** | `hailuoService.ts` | minimax.chat | Medium |
+| **Luma Dream Machine** | `lumaService.ts` | lumalabs.ai | Medium |
+| **Pixverse** | `pixverseService.ts` | pixverse.ai | Low |
+| **Wan 2.6** | `wanService.ts` | TBD | Low |
+
+**Time per engine:** 1-2 days each
+
+### AI Tools to Build (Previously Bundled in A2E)
+These require direct API integrations or building ourselves:
+
+| Tool | Tech/API | Difficulty | Priority |
+|------|----------|------------|----------|
+| **Face Swap** | InsightFace / Replicate | Medium | High |
+| **Background Remove** | Remove.bg / Replicate | Easy | High |
+| **Image Upscale** | Real-ESRGAN / Replicate | Easy | Medium |
+| **Lip Sync** | Wav2Lip / SadTalker / Replicate | Medium | High |
+| **Image Editor** | Fabric.js (frontend) | Medium | High |
+| **Style Transfer** | Replicate models | Easy | Low |
+| **Inpainting** | DALL-E / Stable Diffusion | Medium | Medium |
+| **Outpainting** | DALL-E / Stable Diffusion | Medium | Medium |
+| **Video Extend** | Runway / Kling API | Easy | Medium |
+| **Video to Video** | Runway / Kling | Easy | Low |
+
+### BYOK (Bring Your Own Key) Support
+All engines should support user-provided API keys:
+- Platform keys = included in subscription (Premium+)
+- BYOK = user enters their own key (Free/Core tiers)
+
+### Implementation Priority
+
+**Phase 1: Core Tools (2-3 weeks)**
+1. Image Editor (Fabric.js) - needed for carousel/content creation
+2. Background Remove - most requested tool
+3. Face Swap - high engagement feature
+4. Lip Sync - for UGC content
+
+**Phase 2: Additional Engines (2 weeks)**
+5. Kling direct integration
+6. Runway direct integration
+7. Engine selector UI
+
+**Phase 3: Polish Tools (1-2 weeks)**
+8. Image Upscale
+9. Inpainting/Outpainting
+10. Style Transfer
+
+---
+
 ## Core Workflow
 
 ```
