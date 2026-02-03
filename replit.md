@@ -36,11 +36,30 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### AI Services
--   **OpenAI**: Content generation (scripts, captions, hashtags, ideas) and DALL-E 3 image generation.
+-   **OpenAI Sora 2**: DEFAULT video generation engine (text-to-video, image-to-video, remix).
+-   **OpenAI GPT Image / DALL-E**: DEFAULT image generation engine.
+-   **OpenAI**: Content generation (scripts, captions, hashtags, ideas).
 -   **ElevenLabs**: Voice synthesis.
--   **A2E**: Primary engine for video generation (avatars, text-to-image, image-to-video, lip-sync).
+-   **A2E**: Backup/alternative for video (access to Kling, Veo, etc.).
 -   **Fal.ai**: Backup for AI video/image generation.
 -   **Steve AI**: Enterprise-level video creation (Studio tier).
+
+### Planned AI Engine Additions
+-   **Kling**: Direct API integration for video.
+-   **Runway Gen-3**: Direct API integration for video.
+-   **Veo 3**: Google video generation.
+-   **Hailuo 2.3**: Video generation.
+-   **Luma Dream Machine**: Video generation.
+-   **Pixverse**: Video generation.
+
+### AI Tools to Build (Previously via A2E)
+-   **Face Swap**: InsightFace / Replicate
+-   **Background Remove**: Remove.bg / Replicate
+-   **Image Upscale**: Real-ESRGAN
+-   **Lip Sync**: Wav2Lip / SadTalker
+-   **Image Editor**: Fabric.js (frontend)
+-   **Style Transfer**: Replicate models
+-   **Inpainting/Outpainting**: DALL-E / Stable Diffusion
 
 ### Social Media Platforms
 -   YouTube (Google API)
