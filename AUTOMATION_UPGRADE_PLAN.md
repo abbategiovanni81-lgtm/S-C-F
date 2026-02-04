@@ -112,6 +112,87 @@ All engines should support user-provided API keys:
 
 ---
 
+## ⚠️ UI REFERENCE: User's Design Prototype
+
+**Demo URL:** https://3pjra0.vercel.app
+
+### Content Studio Home
+- Dark theme throughout
+- "Welcome back" + "Content Studio" header
+- **Active Brand** selector card at top
+- Two main gradient action cards:
+  - **Quick Post** (pink/magenta) - "Create one piece of content • ~5 min"
+  - **Batch Content** (blue/purple) - "Generate 7-30 days at once • ~30 min"
+- Stats cards: Brands (X of 20 max), Scheduled (X this week)
+- Upcoming Content list with visual previews
+- **Bottom nav**: Home | Brands | Create (+) | Calendar | Analytics
+
+### Brand Briefs List
+- "Brand Briefs" header with "X of 20 brands" count
+- "+ Add New Brand" dashed button
+- Brand cards showing:
+  - Purple icon
+  - Brand name + URL
+  - Platform count + asset count
+  - Edit / Delete actions
+  - "Active" badge + checkmark for selected
+
+### Create Brand Brief (5-Step Wizard)
+
+**Step 1: URL**
+- Progress: URL → Details → Assets → Platforms → Review
+- Globe icon
+- "Enter Brand URL"
+- "Paste your website and AI will extract brand info"
+- "Analyze with AI" button (purple gradient)
+- "Skip and enter manually" option
+- Success state: "Analysis Complete!" with AI Extracted summary
+
+**Step 2: Details**
+- "Brand Details - Review and edit AI-extracted info"
+- Brand Name input
+- Description with "✨ Regenerate" option
+- Services/Products as removable tags
+- "Add service or product" input with + button
+- Target Audience with "✨ Regenerate"
+- Brand Voice/Tone with "✨ Regenerate"
+- "Continue to Assets" button
+
+**Step 3: Assets**
+- "Brand Assets - Upload images for AI to use in content"
+- 4 asset type tabs: Logo | Product | App Screenshot | Other
+- Dashed upload area per type
+- "PNG, JPG, or GIF up to 10MB"
+- Asset Summary with upload counts
+- "Continue to Platforms" + "Skip for now"
+
+**Step 4: Platforms**
+- "Platforms & Frequency - Select where and how often to post"
+- Platform cards with checkbox (Instagram, TikTok, etc.)
+- Posts per week: - / number / + controls per platform
+- "Continue to Review" button
+
+**Step 5: Review**
+- Summary cards for each section with "✎ Edit" links:
+  - Description, Services
+  - Audience & Tone
+  - Assets (media files count)
+  - Platforms (active count, total frequency)
+- Platform badges: "Instagram (5/Wk)" "TikTok (7/Wk)"
+- Green "✓ Create Brand Brief" button
+
+### Design Patterns
+- Dark theme (#0a0a0a background)
+- Purple/magenta accent colors
+- Gradient buttons (pink → purple, blue → purple)
+- Rounded cards with subtle borders
+- Step progress bar with labeled segments
+- "✨ Regenerate" for AI-powered fields
+- Tags with × for removable items
+- +/- steppers for numeric inputs
+
+---
+
 ## Core Workflow
 
 ```
