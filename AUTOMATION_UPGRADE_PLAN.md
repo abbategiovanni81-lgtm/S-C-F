@@ -181,6 +181,71 @@ All engines should support user-provided API keys:
 - Platform badges: "Instagram (5/Wk)" "TikTok (7/Wk)"
 - Green "✓ Create Brand Brief" button
 
+### Batch Content Wizard (5 Steps)
+
+**Step 1: Content Plan**
+- "How much content do you need?"
+- Duration selector: 7 | 14 | 30 days (cards, 7 selected by default)
+- "Which platforms?" - Platform cards with checkboxes:
+  - Instagram, TikTok, Twitter/X, LinkedIn, YouTube
+  - Each with colored icon
+- Summary: "You'll generate **14** pieces of content for **3** platforms"
+- "Continue" button
+
+**Step 2: Generation Method**
+- "How do you want to create content?"
+- Two option cards:
+  - **AI Generate All** (highlighted/recommended)
+    - Blue icon with sparkles
+    - "Let AI create scripts, captions, and images for all 14 pieces automatically"
+    - "Recommended" badge + "~5 min wait"
+  - **Manual Entry**
+    - "Create each piece yourself with AI assistance for individual items"
+    - "Full control"
+
+**Step 3: Batch Generate (Progress)**
+- "AI is creating your content"
+- Circular progress ring with count: "11 of 14"
+- Status text: "Creating visuals..."
+- Checklist: ✓ Scripts, ✓ Captions (completed items)
+
+**Step 4: Review Board**
+- "Tap cards to select, swipe to move"
+- Kanban tabs: Generated (14) | Approved (0) | Scheduled
+- "Select All" button, "Approve (X)" action button
+- Content cards showing:
+  - Gradient thumbnail
+  - Type badge: REEL, CAROUSEL, POST
+  - Platform: Instagram, TikTok, Youtube
+  - Caption preview text
+  - Checkbox/selection state
+- Selected cards get blue border + checkmark
+- Edit icon (pencil) on approved items
+- "Continue to Schedule >" button
+
+**Step 5: Bulk Schedule**
+- "X pieces ready to schedule"
+- Two scheduling options:
+  - **AI Optimal Times** (selected/highlighted)
+    - "Let AI pick the best posting times"
+  - **Manual Calendar**
+    - "Drag and drop to specific dates"
+- "Start Date" picker
+- **AI Schedule Preview** card:
+  - Content type + scheduled date/time per item
+  - "Reel: Tue, Feb 3 at 9:00 AM"
+  - "Carousel: Wed, Feb 4 at 1:00 PM"
+- "Schedule All (X)" button (blue gradient)
+- "← Back to options" link
+
+**Success State**
+- Large checkmark icon (blue circle)
+- "All Queued! 🎉"
+- "X pieces of content scheduled"
+- "Your content calendar is set for the next 14 days"
+- "View Calendar" button (blue)
+- "Back to Home" button
+
 ### Design Patterns
 - Dark theme (#0a0a0a background)
 - Purple/magenta accent colors
@@ -190,6 +255,9 @@ All engines should support user-provided API keys:
 - "✨ Regenerate" for AI-powered fields
 - Tags with × for removable items
 - +/- steppers for numeric inputs
+- Content cards with gradient thumbnails (Instagram pink/orange, TikTok pink/magenta, YouTube blue/purple)
+- Kanban-style review with swipe gestures
+- AI-powered scheduling with preview
 
 ---
 
