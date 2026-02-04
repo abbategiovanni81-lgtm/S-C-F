@@ -47,12 +47,19 @@ Each engine = new service file following `soraService.ts` pattern:
 | V2 | Infinite-length videos, video extension |
 | V3 | Multi-reference (1-4 images), audio-driven avatars, 720p |
 
-**Capabilities:**
-- Text-to-Video
-- Image-to-Video
-- Video Extension (5s → 30s)
-- Audio-Driven Avatars (lip-sync)
-- Multi-reference images for character consistency
+**API Endpoints:**
+
+| Category | Function | Description |
+|----------|----------|-------------|
+| **Talking Avatar Video** | Single-Actor Avatar | One avatar speaking |
+| | Multi-Actor Avatar | Multiple avatars in scene |
+| | Segmented Camera Motion | Camera movement control |
+| | Lip-sync | Sync audio to face |
+| **Video Generate** | Reference to Video | Image(s) → video with consistency |
+| | Video Restyling | Change video style |
+| | Single-shot Video Extension | Extend video (same shot) |
+| | Shot Switching Video Extension | Extend with scene changes |
+| **Image Generate** | Text Editing | Edit text in images |
 
 **Pricing:** $28/mo Standard plan or API credits
 
