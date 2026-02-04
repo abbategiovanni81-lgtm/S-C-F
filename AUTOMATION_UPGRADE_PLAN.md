@@ -183,8 +183,16 @@ All engines should support user-provided API keys:
 
 ### Batch Content Wizard (5 Steps)
 
-**Step 1: Content Plan**
-- "How much content do you need?"
+**Step 1: AI Research & Content Plan**
+- AI analyzes multiple data sources to build content strategy:
+  - **Brand Brief** - voice, tone, services, target audience
+  - **Social Listening** - what people are saying, trending topics
+  - **Content Analysis** - what's performing in this niche
+  - **Pain Points** - problems the brand resolves
+  - **Questions** - what people are asking
+  - **Competitor Content** - what videos they're watching, who/what/why
+- AI generates a **Content Plan** based on research
+- User can **Skip** this research step and go straight to manual planning
 - Duration selector: 7 | 14 | 30 days (cards, 7 selected by default)
 - "Which platforms?" - Platform cards with checkboxes:
   - Instagram, TikTok, Twitter/X, LinkedIn, YouTube
@@ -192,9 +200,9 @@ All engines should support user-provided API keys:
 - Summary: "You'll generate **14** pieces of content for **3** platforms"
 - "Continue" button
 
-**Step 2: Generation Method**
+**Step 2: Generation Method (Per-Item Control)**
 - "How do you want to create content?"
-- Two option cards:
+- **Two main approaches:**
   - **AI Generate All** (highlighted/recommended)
     - Blue icon with sparkles
     - "Let AI create scripts, captions, and images for all 14 pieces automatically"
@@ -202,6 +210,11 @@ All engines should support user-provided API keys:
   - **Manual Entry**
     - "Create each piece yourself with AI assistance for individual items"
     - "Full control"
+- **Per-item selection**: User can choose WHO creates each content piece:
+  - AI generates content automatically
+  - User creates/uploads their own content
+  - Hybrid: AI generates some, user provides others
+- This is for the **actual content** (scripts, visuals), not just ideas
 
 **Step 3: Batch Generate (Progress)**
 - "AI is creating your content"
