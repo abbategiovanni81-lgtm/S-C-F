@@ -127,6 +127,28 @@ All engines should support user-provided API keys:
 - Upcoming Content list with visual previews
 - **Bottom nav**: Home | Brands | Create (+) | Calendar | Analytics
 
+### Quick Post: Format Selection
+- "What format? - Choose your content type"
+- Content type cards with colored icons + descriptions:
+
+| Icon Color | Format | Description |
+|------------|--------|-------------|
+| Red/Pink | **Reel** | 9:16 vertical video |
+| Orange | **Story** | 24hr disappearing |
+| Purple | **Carousel** | Multi-slide post |
+| Green | **Post** | Single image/video |
+| Blue | **UGC** | User-generated content style |
+| Teal | **Podcast Clip** | Audio snippet with waveform visual |
+| Gold | **Product Ad** | E-commerce product showcase |
+| Magenta | **Talking Head** | AI avatar or face-to-camera |
+| Cyan | **Tutorial** | Step-by-step explainer |
+| Coral | **Testimonial** | Customer quote/review style |
+| Indigo | **Behind the Scenes** | Raw/authentic brand content |
+| Lime | **Before/After** | Transformation comparison |
+
+- Each card has: colored icon, format name, short description, chevron (>)
+- Tapping leads to format-specific creation flow
+
 ### Brand Briefs List
 - "Brand Briefs" header with "X of 20 brands" count
 - "+ Add New Brand" dashed button
