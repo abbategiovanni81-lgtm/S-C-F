@@ -201,6 +201,69 @@ All engines should support user-provided API keys:
   - **TikTok** (TikTok icon) - direct post
   - **Other** (...) - more platforms
 
+### Carousel Creation Flow (Templify-style)
+
+**Template Library**
+- "Carousels" header with back arrow
+- 2-column grid of carousel templates
+- Each template shows:
+  - Preview image (first slide)
+  - Metadata badges: "🖼 1-7" (image slots) + "📄 4" (slide count)
+- Various styles: B&W, scrapbook, quote overlays, photo dumps, "My January Dump", etc.
+
+**Template Preview (Swipeable)**
+- Template source badge (e.g., "Templify")
+- Swipeable slide preview - user can swipe through all slides
+- Quote/text overlays visible on each slide
+- Pagination dots (• • • • • • •)
+- ♡ Heart icon to favorite
+- Metadata: "🖼 1 - 9 clips" "📄 7" (7 slides)
+- **"Use Template"** button (purple)
+
+**Media Selection**
+- Source toggle: "Recents ▼" dropdown + **"Stock"** button (orange)
+- Grid of photos/videos from gallery
+- Video duration shown (00:10, 00:37)
+- Selection counter: "3 selected"
+- Limit indicator: "Up to 9 files"
+- Selected images shown at bottom with × to remove
+- **"Next"** button (purple)
+
+**Carousel Editor (Canvas)**
+- Top bar: ✕ close | ↩ undo | ↪ redo | ⬇ download (purple)
+- Main canvas: selected slide with **+** icon to add/swap media
+- Slide strip on right: thumbnail preview of all slides (scrollable)
+- Quote/text overlay editable on canvas
+- **"▶ Preview"** button to see full carousel
+
+**Editor Bottom Toolbar**
+| Tool | Function |
+|------|----------|
+| **Text** | Add/edit text overlays |
+| **Media** | Add photos/videos |
+| **Stickers** | Add graphic elements |
+| **Drawing** | Freehand drawing |
+| **Background** | Change slide background |
+| **Filters** | Apply visual filters |
+
+**AI Features in Editor**
+- **HARMONY Score**: "94% - Excellent color match" - AI rates visual coherence
+- **Style Tags**: "Minimalist Chic →" - AI suggests aesthetic category
+
+**Stickers Panel**
+- Category tabs: My Graphics | Fluffy Letters | Paper Cuts | Heart | ...
+- Grid of sticker options
+- Stickers can be: resized, styled, shadowed, duplicated, deleted
+
+**Text Editor**
+- Font size slider (e.g., 96pt)
+- Font categories: My Fonts | ♡ Favorites | Basic | Minimal | ...
+- Font selector with preview
+- Text styling options: Add Text | Font | Style | Delete | Duplicate
+
+**Element Actions (when selected)**
+- Style | Shadow | Size | Delete | Duplicate
+
 ### Brand Briefs List
 - "Brand Briefs" header with "X of 20 brands" count
 - "+ Add New Brand" dashed button
