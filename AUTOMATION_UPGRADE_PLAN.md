@@ -22,6 +22,7 @@ Each engine = new service file following `soraService.ts` pattern:
 
 | Engine | File to Create | API | Priority |
 |--------|---------------|-----|----------|
+| **SkyReels** | `skyreelsService.ts` | apis.skyreels.ai | High |
 | **Kling** | `klingService.ts` | klingai.com | High |
 | **Runway Gen-3** | `runwayService.ts` | runwayml.com | High |
 | **Veo 3** | `veoService.ts` | Google API | Medium |
@@ -29,6 +30,37 @@ Each engine = new service file following `soraService.ts` pattern:
 | **Luma Dream Machine** | `lumaService.ts` | lumalabs.ai | Medium |
 | **Pixverse** | `pixverseService.ts` | pixverse.ai | Low |
 | **Wan 2.6** | `wanService.ts` | TBD | Low |
+
+### SkyReels Direct API Details
+
+**Endpoint:** `https://apis.skyreels.ai/`
+
+**Setup:**
+1. Sign up at skyreels.ai
+2. Account → API Keys → Create secret key
+3. Store as `SKYREELS_API_KEY` in secrets
+
+**Model Versions:**
+| Version | Features |
+|---------|----------|
+| V1 | Human-centric, 33 expressions, Hollywood quality |
+| V2 | Infinite-length videos, video extension |
+| V3 | Multi-reference (1-4 images), audio-driven avatars, 720p |
+
+**Capabilities:**
+- Text-to-Video
+- Image-to-Video
+- Video Extension (5s → 30s)
+- Audio-Driven Avatars (lip-sync)
+- Multi-reference images for character consistency
+
+**Pricing:** $28/mo Standard plan or API credits
+
+**Why Direct API over fal.ai:**
+- Better pricing control
+- Access to all model versions (V1/V2/V3)
+- Full feature access (video extension, avatars)
+- No middleman markup
 
 **Time per engine:** 1-2 days each
 
