@@ -148,6 +148,58 @@ All engines should support user-provided API keys:
 
 - Each card has: colored icon, format name, short description, chevron (>)
 - Tapping leads to format-specific creation flow
+- **Social Listening Option**: Before format selection, user can run Social Listening analysis or skip
+
+### Reel Creation Flow (CapCut-style)
+
+**Template Library**
+- Top filter tabs (scrollable): Library | By Clips | By Duration | TikTok | YouTube | Best for Recaps
+- Category tabs below: Travel | Motivation | Fashion | Reflection | Retro | Love | ...
+- Sections with "See All" links:
+  - **Collections** - themed template groups (Family, etc.)
+  - **Best for Recaps** - recap-style templates
+  - **Most popular** - trending templates
+  - **Memories** - memory/photo compilation
+  - **Hot Trends** - currently trending (talking heads, etc.)
+  - **Universal Templates** - work with any content
+- Templates show as **playing video thumbnails** (animated previews)
+- Bottom nav: CLIPS | TEMPLATES | FILTERS
+
+**Template Preview (Full Screen)**
+- Video plays full screen
+- Bottom overlay with metadata:
+  - Template badge: "UNIVERSAL" / collection name
+  - Clip requirements: "9 clips • 9.2s"
+  - Song/audio: "Charlie Atom ft. Marina Ma..."
+  - ♡ Heart icon (favorite)
+  - **"OPEN"** button to use template
+
+**Clip Selection (After opening template)**
+- Source selector: "Recents ▼" dropdown
+- Media tabs: All | Photo | Video
+- Grid of photos/videos from phone gallery
+- Each clip shows duration (0.9s, 1.7s, etc.)
+- **Progress counter**: "4/9 Clips" (fills as user selects)
+- "Redo last choice?" confirmation: ✗ / ✓
+- Bottom actions:
+  - **"Choose Clips"** label
+  - **"✦ AI SELECT"** button - AI picks best clips
+  - **→** arrow to continue
+  - **Duplicate All** | **Auto Slice** | **Delete All**
+- Clips can come from:
+  - Phone gallery (camera roll)
+  - Stock library
+  - AI-generated
+
+**Preview & Export**
+- Preview video with selected clips in template
+- Export message: "You can export this ∞ **universal** template with audio"
+- "Read More" link
+- Export options:
+  - **Save to Photos** (download icon)
+  - **Instagram** (IG icon) - direct post
+  - **TikTok** (TikTok icon) - direct post
+  - **Other** (...) - more platforms
 
 ### Brand Briefs List
 - "Brand Briefs" header with "X of 20 brands" count
