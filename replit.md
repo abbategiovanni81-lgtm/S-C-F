@@ -61,6 +61,16 @@ Preferred communication style: Simple, everyday language.
 -   **Style Transfer**: Replicate models
 -   **Inpainting/Outpainting**: DALL-E / Stable Diffusion
 
+### AI Content Features (Submagic/ThumbMagic-inspired)
+-   **Thumbnail Generator**: AI-generated YouTube/Reels thumbnails with CTR prediction
+-   **Magic Clips**: Long video → 20+ viral short clips with virality scoring
+-   **AI Caption Styles**: Named presets (Hormozi, MrBeast, etc.), word-by-word animation
+-   **Virality Score**: Applied to all content before publishing (CTR, engagement, trend alignment)
+-   **Text-Based Video Editing**: Edit video by editing transcript
+-   **Auto B-Roll**: AI inserts relevant stock footage over talking segments
+-   **AI Hooks**: Generates attention-grabbing opening titles
+-   **Auto-Trim**: Removes silences and filler words
+
 ### Social Media Platforms
 -   YouTube (Google API)
 -   Twitter/X (Twitter API v2)

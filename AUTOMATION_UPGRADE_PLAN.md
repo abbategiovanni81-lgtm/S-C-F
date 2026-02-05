@@ -145,6 +145,8 @@ All engines should support user-provided API keys:
 | Coral | **Testimonial** | Customer quote/review style |
 | Indigo | **Behind the Scenes** | Raw/authentic brand content |
 | Lime | **Before/After** | Transformation comparison |
+| Yellow | **Thumbnail** | AI-generated YouTube/Reels thumbnails |
+| Amber | **Magic Clips** | Long video → viral short clips |
 
 - Each card has: colored icon, format name, short description, chevron (>)
 - Tapping leads to format-specific creation flow
@@ -263,6 +265,97 @@ All engines should support user-provided API keys:
 
 **Element Actions (when selected)**
 - Style | Shadow | Size | Delete | Duplicate
+
+### Thumbnail Generator (ThumbMagic-style)
+
+**Input Options**
+- Paste YouTube URL → AI extracts key moments
+- Upload video/image
+- Enter text description/script
+- Upload reference thumbnail → AI recreates that style
+
+**Generation**
+- AI generates **multiple thumbnail variations** (up to 10)
+- Each thumbnail shows:
+  - **CTR Prediction Score**: "87% - High click potential"
+  - **Visual Hierarchy Score**: text readability, emotion impact
+  - Style tag: "Reaction", "Listicle", "Tutorial", etc.
+- Template library of viral thumbnail frameworks (updated from trending content)
+
+**Editor**
+- Customize text, colors, backgrounds
+- Smart face detection - auto-captures best expressions
+- Background removal + replacement
+- Text placement with readability optimization
+
+**Export**
+- 4K platform-ready exports
+- Optimized for: YouTube (16:9), Shorts (9:16), Reels (9:16), TikTok (9:16)
+- A/B testing: publish multiple variations to track performance
+
+### Magic Clips (Submagic-style)
+
+**Input**
+- Upload long video (up to 2 hours)
+- Paste YouTube URL
+- AI analyzes content, detects hooks, key moments
+
+**Output**
+- Generates **20+ viral-ready short clips**
+- Each clip shows:
+  - **Virality Score**: "92% - High viral potential"
+  - Hook detection: identifies attention-grabbing openings
+  - Best moments highlighted
+- Auto-adds: captions, effects, transitions, framing
+
+**Clip Actions**
+- Preview each clip
+- Edit in video editor
+- Approve/reject for batch scheduling
+- Auto-reframe landscape → portrait
+
+### AI Features Across All Content Types
+
+**Virality Score**
+- Applied to ALL content before publishing
+- Scores: CTR potential, engagement prediction, trend alignment
+- "This reel has 87% virality potential"
+- Breakdown: Hook strength, Visual appeal, Caption quality, Hashtag relevance
+- Ties into AI research from Batch Content Step 1
+
+**AI Caption Styles**
+- Named presets for animated captions:
+  - Hormozi (bold, punchy)
+  - MrBeast (energetic, colorful)
+  - Iman (clean, minimal)
+  - Custom (user-defined style)
+- Word-by-word highlighting animation
+- Emoji auto-insertion at key moments
+- 48+ language support
+- 98%+ accuracy auto-transcription
+
+**Text-Based Video Editing**
+- Edit video by editing the transcript
+- Delete text → removes that segment from video
+- Highlight text → select that clip
+- Like editing a document, not a timeline
+- Auto-trim: removes silences and filler words ("um", "uh", "like")
+
+**Auto B-Roll**
+- AI detects talking segments that need visual support
+- Inserts relevant stock footage over those segments
+- Sources: Pexels (free), stock library, AI-generated visuals
+- User can swap/approve each B-Roll clip
+
+**AI Hooks**
+- Generates attention-grabbing opening titles/text
+- Analyzes what hooks work in the brand's niche
+- Suggests: questions, shocking stats, controversy, curiosity gaps
+
+**Sound Effects**
+- Auto-synced audio enhancements
+- Whoosh, pop, ding effects at transitions
+- Beat-synced to music track
 
 ### Brand Briefs List
 - "Brand Briefs" header with "X of 20 brands" count
