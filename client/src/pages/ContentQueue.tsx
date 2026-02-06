@@ -14,7 +14,7 @@ import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw, ChevronDown, HardDrive } from "lucide-react";
+import { Check, X, RefreshCw, FileText, Video, Hash, Loader2, Upload, Youtube, Wand2, Copy, Mic, Play, Film, ImageIcon, LayoutGrid, Type, ArrowRight, Scissors, Clapperboard, Download, Pencil, Trash2, CheckCircle, Archive, RotateCcw, ChevronDown, HardDrive, List, Kanban, Calendar as CalendarIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,9 @@ import type { GeneratedContent, SocialAccount } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt, UpgradeBanner } from "@/components/UpgradePrompt";
 import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
+import { KanbanBoard } from "@/components/KanbanBoard";
+import { CalendarView } from "@/components/CalendarView";
+import { format } from "date-fns";
 
 export default function ContentQueue() {
   const queryClient = useQueryClient();
@@ -95,6 +98,9 @@ export default function ContentQueue() {
 
   const [sceneGenerating, setSceneGenerating] = useState<Record<string, number | null>>({});
   const [sceneVideos, setSceneVideos] = useState<Record<string, Record<number, { status: string; videoUrl?: string; requestId?: string }>>>({});
+
+  // View mode state (list, kanban, calendar)
+  const [viewMode, setViewMode] = useState<"list" | "kanban" | "calendar">("list");
 
   // Scene editing state
   const [editSceneDialogOpen, setEditSceneDialogOpen] = useState(false);
@@ -3609,6 +3615,123 @@ export default function ContentQueue() {
 
   return (
     <Layout title="Content Queue">
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">View:</span>
+          <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="gap-2"
+          >
+            <List className="w-4 h-4" />
+            List
+          </Button>
+          <Button
+            variant={viewMode === "kanban" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("kanban")}
+            className="gap-2"
+          >
+            <Kanban className="w-4 h-4" />
+            Kanban
+          </Button>
+          <Button
+            variant={viewMode === "calendar" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("calendar")}
+            className="gap-2"
+          >
+            <CalendarIcon className="w-4 h-4" />
+            Calendar
+          </Button>
+        </div>
+        
+        <Badge variant="secondary" className="text-sm">
+          {allContent.length} Total Items
+        </Badge>
+      </div>
+
+      {/* Kanban View */}
+      {viewMode === "kanban" && (
+        <KanbanBoard
+          content={allContent}
+          onStatusChange={async (contentId, newStatus) => {
+            try {
+              await apiRequest("PATCH", `/api/content/${contentId}`, { status: newStatus });
+              queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+              toast({ title: "Status updated successfully" });
+            } catch (error: any) {
+              toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
+            }
+          }}
+          onViewContent={(content) => {
+            setSelectedContent(content);
+            // Could open a detail dialog here
+          }}
+          onEditContent={(content) => {
+            // Navigate to editor or open edit dialog
+            toast({ title: "Edit functionality", description: "Navigate to appropriate editor" });
+          }}
+          onDeleteContent={async (content) => {
+            if (confirm("Are you sure you want to delete this content?")) {
+              try {
+                await apiRequest("DELETE", `/api/content/${content.id}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+                toast({ title: "Content deleted successfully" });
+              } catch (error: any) {
+                toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+              }
+            }
+          }}
+          onScheduleContent={(content) => {
+            // Open schedule dialog or navigate to schedule page
+            toast({ title: "Schedule", description: "Open schedule dialog" });
+          }}
+        />
+      )}
+
+      {/* Calendar View */}
+      {viewMode === "calendar" && (
+        <CalendarView
+          content={allContent}
+          onDateClick={(date) => {
+            toast({ title: "Date clicked", description: format(date, "PPP") });
+          }}
+          onViewContent={(content) => {
+            setSelectedContent(content);
+          }}
+          onEditContent={(content) => {
+            toast({ title: "Edit functionality", description: "Navigate to appropriate editor" });
+          }}
+          onDeleteContent={async (content) => {
+            if (confirm("Are you sure you want to delete this content?")) {
+              try {
+                await apiRequest("DELETE", `/api/content/${content.id}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+                toast({ title: "Content deleted successfully" });
+              } catch (error: any) {
+                toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+              }
+            }
+          }}
+          onRescheduleContent={async (content, newDate) => {
+            try {
+              await apiRequest("PATCH", `/api/content/${content.id}`, { 
+                scheduledFor: newDate.toISOString() 
+              });
+              queryClient.invalidateQueries({ queryKey: ["/api/content"] });
+              toast({ title: "Content rescheduled successfully" });
+            } catch (error: any) {
+              toast({ title: "Failed to reschedule", description: error.message, variant: "destructive" });
+            }
+          }}
+        />
+      )}
+
+      {/* Original List View with Tabs */}
+      {viewMode === "list" && (
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="mb-6" data-testid="tabs-content-status">
           <TabsTrigger value="pending" data-testid="tab-pending">
@@ -3744,7 +3867,9 @@ export default function ContentQueue() {
           )}
         </TabsContent>
       </Tabs>
+      )}
 
+      {/* Rest of the dialogs and components */}
       <Dialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
