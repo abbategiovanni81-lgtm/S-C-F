@@ -75,16 +75,22 @@ Preferred communication style: Simple, everyday language.
 -   **AI Hooks**: Generates attention-grabbing opening titles
 -   **Auto-Trim**: Removes silences and filler words
 
+### Social Media Posting Strategy
+-   **RECOMMENDED**: Late.dev unified API ($19/mo, 120 posts) - single API posts to all 11 platforms including video
+-   **Alternative**: Ayrshare ($49/mo), Outstand (pay-per-use), Bundle.social
+-   **Fallback**: Direct platform APIs (more control, more dev work)
+-   **Open-source reference**: Postiz (github.com/gitroomhq/postiz-app, 14K+ stars)
+
 ### Social Media Platforms
--   YouTube (Google API)
--   Twitter/X (Twitter API v2)
+-   YouTube (Google API) - YOUTUBE_API_KEY configured
+-   Twitter/X (Twitter API v2) - $100/mo for posting
 -   LinkedIn (LinkedIn API)
--   Facebook (Graph API)
--   Instagram (via Facebook Graph API)
--   TikTok (Content Posting API)
--   Threads (Threads API)
--   Bluesky (App Password, AT Protocol)
--   Pinterest (Pinterest API)
+-   Facebook (Meta Graph API) - free, requires App Review
+-   Instagram (Meta Graph API) - free, Business/Creator account required
+-   TikTok (Content Posting API) - free, business verification required
+-   Threads (Threads API) - via Meta
+-   Bluesky (App Password, AT Protocol) - easiest, no OAuth
+-   Pinterest (Pinterest API) - PINTEREST_ACCESS_TOKEN configured
 -   Reddit (OAuth2)
 
 ### Database

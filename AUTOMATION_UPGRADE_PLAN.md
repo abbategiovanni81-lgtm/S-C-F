@@ -183,6 +183,146 @@ All engines should support user-provided API keys:
 - Platform keys = included in subscription (Premium+)
 - BYOK = user enters their own key (Free/Core tiers)
 
+### Social Media Posting APIs (Facebook, Instagram, TikTok + Others)
+
+**Option A: Unified API (RECOMMENDED for speed)**
+
+Use a single API to post to ALL platforms instead of building individual integrations:
+
+| API | Price | Free Tier | Platforms | Video? | Best For |
+|-----|-------|-----------|-----------|--------|----------|
+| **Late.dev** | $19/mo | 10 posts/mo | 11 (FB, IG, TikTok, X, LinkedIn, YT, Threads, Reddit, Pinterest, Bluesky, Google Biz) | Yes (all tiers) | Best value, developer-first |
+| **Ayrshare** | $49/mo | 20 posts/mo (text only) | 13 platforms | Paid only ($149+) | Most platforms |
+| **Outstand** | Pay-per-use | Usage-based | 10 platforms | Yes | No fixed cost |
+| **Bundle.social** | Varies | Free tier | 14 platforms | Yes | Ayrshare alternative |
+
+**Late.dev Integration (Recommended):**
+```javascript
+// One API call posts to multiple platforms
+const response = await fetch("https://getlate.dev/api/v1/posts", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${LATE_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    content: "Check out our new product! 🚀",
+    mediaUrls: ["https://storage.example.com/video.mp4"],
+    scheduledFor: "2025-06-15T09:00:00Z",
+    timezone: "America/New_York",
+    platforms: [
+      { platform: "instagram", accountId: "ACCT_ID_1" },
+      { platform: "facebook", accountId: "ACCT_ID_2" },
+      { platform: "tiktok", accountId: "ACCT_ID_3" }
+    ]
+  })
+});
+```
+
+**Why Late.dev over Ayrshare:**
+- Video posting on ALL tiers (Ayrshare requires $149/mo for video)
+- $19/mo for 120 posts vs Ayrshare $49/mo
+- Covers all 11 platforms we need (including Bluesky, Reddit, Threads)
+- Webhooks for post status (published/failed)
+- Clean REST API, no complex OAuth flows
+
+**Option B: Direct Platform APIs (More control, more work)**
+
+| Platform | API | Cost | Setup Difficulty | Notes |
+|----------|-----|------|------------------|-------|
+| **Facebook** | Meta Graph API | Free | Hard | Requires App Review, token refresh logic |
+| **Instagram** | Meta Graph API | Free | Hard | Business/Creator account required, via FB Page |
+| **TikTok** | Content Posting API | Free | Hard | Business verification required, restrictive |
+| **YouTube** | Google API | Free | Medium | Already have YOUTUBE_API_KEY configured |
+| **Twitter/X** | Twitter API v2 | $100/mo Basic | Medium | Paid for posting (free for read-only) |
+| **LinkedIn** | LinkedIn API | Free | Medium | Company page or personal profile |
+| **Threads** | Threads API | Free | Medium | Via Meta, relatively new |
+| **Bluesky** | AT Protocol | Free | Easy | App Password, no OAuth needed |
+| **Pinterest** | Pinterest API | Free | Medium | Already have PINTEREST_ACCESS_TOKEN |
+| **Reddit** | OAuth2 | Free | Medium | Rate-limited, community rules |
+
+**Meta Graph API (Facebook + Instagram) Details:**
+```javascript
+// Post to Facebook Page
+const response = await fetch(
+  `https://graph.facebook.com/${PAGE_ID}/feed`,
+  {
+    method: "POST",
+    body: JSON.stringify({
+      message: "Hello from SocialCommand!",
+      access_token: PAGE_ACCESS_TOKEN
+    })
+  }
+);
+
+// Post photo to Instagram (2-step process)
+// Step 1: Create media container
+const container = await fetch(
+  `https://graph.facebook.com/${IG_USER_ID}/media`,
+  {
+    method: "POST",
+    body: JSON.stringify({
+      image_url: "https://example.com/photo.jpg",
+      caption: "Amazing content! #hashtag",
+      access_token: ACCESS_TOKEN
+    })
+  }
+);
+// Step 2: Publish
+await fetch(
+  `https://graph.facebook.com/${IG_USER_ID}/media_publish`,
+  {
+    method: "POST",
+    body: JSON.stringify({
+      creation_id: container.id,
+      access_token: ACCESS_TOKEN
+    })
+  }
+);
+```
+
+**TikTok Content Posting API Details:**
+```javascript
+// TikTok requires Creator/Business verification
+// Step 1: Initialize video upload
+const init = await fetch("https://open.tiktokapis.com/v2/post/publish/inbox/video/init/", {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${TIKTOK_ACCESS_TOKEN}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    post_info: {
+      title: "My awesome video",
+      privacy_level: "PUBLIC_TO_EVERYONE"
+    },
+    source_info: {
+      source: "FILE_UPLOAD",
+      video_size: fileSize,
+      chunk_size: chunkSize
+    }
+  })
+});
+// Step 2: Upload video chunks
+// Step 3: Publish
+```
+
+**Option C: Postiz (Open-Source Self-Hosted)**
+
+Free, open-source social media scheduler with 14K+ GitHub stars:
+- **Cost**: Free (self-hosted) or Railway deploy ($5-10/mo)
+- **Platforms**: FB, IG, TikTok, X, LinkedIn, YT, Bluesky, Mastodon, Discord, Threads, Pinterest, Reddit
+- **Features**: AI content generation, visual calendar, team collaboration, analytics
+- **GitHub**: github.com/gitroomhq/postiz-app
+- **Tech**: Node.js, PostgreSQL, Redis, BullMQ
+- Could potentially integrate its posting engine into our platform
+
+**RECOMMENDATION:**
+1. **Phase 1**: Use **Late.dev** unified API ($19/mo) - covers FB, IG, TikTok + 8 more platforms with ONE integration
+2. **Phase 2**: Add direct **Meta Graph API** for advanced Facebook/Instagram features (Reels, Stories, Carousels)
+3. **Phase 3**: Add direct **TikTok API** for advanced features (duets, stitches)
+4. **Fallback**: Study **Postiz** code for self-hosted posting engine if we want to eliminate API costs
+
 ### Implementation Priority
 
 **Phase 1: Core Tools (2-3 weeks)**
@@ -196,10 +336,15 @@ All engines should support user-provided API keys:
 6. Runway direct integration
 7. Engine selector UI
 
-**Phase 3: Polish Tools (1-2 weeks)**
-8. Image Upscale
-9. Inpainting/Outpainting
-10. Style Transfer
+**Phase 3: Social Posting (1-2 weeks)**
+8. Late.dev unified API integration (covers FB, IG, TikTok + 8 more)
+9. Platform account connection flow (OAuth)
+10. Scheduling queue with webhook status tracking
+
+**Phase 4: Polish Tools (1-2 weeks)**
+11. Image Upscale
+12. Inpainting/Outpainting
+13. Style Transfer
 
 ---
 
