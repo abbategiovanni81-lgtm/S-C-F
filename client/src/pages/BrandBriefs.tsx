@@ -47,7 +47,7 @@ export default function BrandBriefs() {
   const [showIdeasForBrief, setShowIdeasForBrief] = useState<string | null>(null);
   const [formatDialogOpen, setFormatDialogOpen] = useState(false);
   const [selectedBriefForGenerate, setSelectedBriefForGenerate] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<"video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform">("video");
+  const [selectedFormat, setSelectedFormat] = useState<"video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform" | "product_ad" | "tutorial" | "thumbnail" | "magic_clip" | "explainer" | "podcast">("video");
   const [reelsVideoSource, setReelsVideoSource] = useState<"ai" | "pexels" | "drive">("ai");
   const [sceneCount, setSceneCount] = useState<number>(3);
   const [generateTopic, setGenerateTopic] = useState<string>("");
@@ -832,7 +832,7 @@ export default function BrandBriefs() {
 
             <RadioGroup
               value={selectedFormat}
-              onValueChange={(value: "video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform") => setSelectedFormat(value)}
+              onValueChange={(value: "video" | "reels" | "image" | "carousel" | "tiktok_text" | "ugc_talking" | "ugc_lipsync" | "studio_longform" | "product_ad" | "tutorial" | "thumbnail" | "magic_clip" | "explainer" | "podcast") => setSelectedFormat(value)}
               className="grid grid-cols-2 gap-3"
             >
               <Label
@@ -1080,6 +1080,83 @@ export default function BrandBriefs() {
                 <Film className="w-6 h-6 text-orange-500" />
                 <span className="text-sm font-medium">Long-Form Video</span>
                 <span className="text-xs text-muted-foreground text-center">Professional video up to 3 minutes</span>
+              </Label>
+
+              {/* New Advanced Formats */}
+              <div className="col-span-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Advanced Formats</p>
+              </div>
+
+              <Label
+                htmlFor="format-product-ad"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "product_ad" ? "border-blue-500 bg-blue-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="product_ad" id="format-product-ad" className="sr-only" />
+                <ImagePlus className="w-6 h-6 text-blue-500" />
+                <span className="text-sm font-medium">Product Ad</span>
+                <span className="text-xs text-muted-foreground text-center">Promotional video/image</span>
+              </Label>
+
+              <Label
+                htmlFor="format-tutorial"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "tutorial" ? "border-green-500 bg-green-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="tutorial" id="format-tutorial" className="sr-only" />
+                <Video className="w-6 h-6 text-green-500" />
+                <span className="text-sm font-medium">Tutorial</span>
+                <span className="text-xs text-muted-foreground text-center">Step-by-step guide</span>
+              </Label>
+
+              <Label
+                htmlFor="format-thumbnail"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "thumbnail" ? "border-amber-500 bg-amber-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="thumbnail" id="format-thumbnail" className="sr-only" />
+                <Image className="w-6 h-6 text-amber-500" />
+                <span className="text-sm font-medium">Thumbnail</span>
+                <span className="text-xs text-muted-foreground text-center">YouTube/video thumbnail</span>
+              </Label>
+
+              <Label
+                htmlFor="format-magic-clip"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "magic_clip" ? "border-pink-500 bg-pink-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="magic_clip" id="format-magic-clip" className="sr-only" />
+                <Sparkles className="w-6 h-6 text-pink-500" />
+                <span className="text-sm font-medium">Magic Clip</span>
+                <span className="text-xs text-muted-foreground text-center">Auto-extract best moments</span>
+              </Label>
+
+              <Label
+                htmlFor="format-explainer"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "explainer" ? "border-indigo-500 bg-indigo-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="explainer" id="format-explainer" className="sr-only" />
+                <Video className="w-6 h-6 text-indigo-500" />
+                <span className="text-sm font-medium">Explainer</span>
+                <span className="text-xs text-muted-foreground text-center">15-25s explanation</span>
+              </Label>
+
+              <Label
+                htmlFor="format-podcast"
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  selectedFormat === "podcast" ? "border-teal-500 bg-teal-500/5" : "border-muted hover:border-muted-foreground/50"
+                }`}
+              >
+                <RadioGroupItem value="podcast" id="format-podcast" className="sr-only" />
+                <Mic className="w-6 h-6 text-teal-500" />
+                <span className="text-sm font-medium">Podcast</span>
+                <span className="text-xs text-muted-foreground text-center">2-host AI conversation</span>
               </Label>
             </RadioGroup>
 
