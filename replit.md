@@ -45,9 +45,13 @@ Preferred communication style: Simple, everyday language.
 -   **Steve AI**: Enterprise-level video creation (Studio tier).
 
 ### Planned AI Engine Additions
+-   **Wan 2.6** (HIGH): Alibaba open-source. Best open-source video AI. APIs via fal.ai (~$0.15/vid), Kie.ai (~$0.08/vid), Alibaba Cloud (~$0.12/vid).
+-   **SkyReels V1/V2/V3** (HIGH): Open-source. Free self-hosted or $28/mo platform. API via fal.ai ($0.30/vid).
 -   **Kling**: Direct API integration for video.
 -   **Runway Gen-3**: Direct API integration for video.
 -   **Veo 3**: Google video generation.
+-   **Waver 1.0**: ByteDance FoundationVision. Top 3 leaderboard, multi-shot narratives. Open-source, no API yet.
+-   **HuMo AI**: ByteDance human-centric video from photos. UGC, lip-sync, talking head. Open-source (Apache 2.0).
 -   **Hailuo 2.3**: Video generation.
 -   **Luma Dream Machine**: Video generation.
 -   **Pixverse**: Video generation.

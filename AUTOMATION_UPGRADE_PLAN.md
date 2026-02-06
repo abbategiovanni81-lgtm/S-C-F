@@ -29,7 +29,9 @@ Each engine = new service file following `soraService.ts` pattern:
 | **Hailuo 2.3** | `hailuoService.ts` | minimax.chat | Medium |
 | **Luma Dream Machine** | `lumaService.ts` | lumalabs.ai | Medium |
 | **Pixverse** | `pixverseService.ts` | pixverse.ai | Low |
-| **Wan 2.6** | `wanService.ts` | TBD | Low |
+| **Wan 2.6** | `wanService.ts` | Alibaba Cloud / fal.ai / AI/ML API | **HIGH** |
+| **Waver 1.0** | `waverService.ts` | FoundationVision (ByteDance) | Medium |
+| **HuMo AI** | `humoService.ts` | ByteDance open-source | Medium |
 
 ### SkyReels Direct API Details
 
@@ -70,6 +72,95 @@ Each engine = new service file following `soraService.ts` pattern:
 - No middleman markup
 
 **Time per engine:** 1-2 days each
+
+### Wan Video (Alibaba) - Direct API Details
+
+**Why HIGH priority:** Open-source, strongest open-source video AI, multiple cheap API providers, competitive with Sora/Kling 2.0.
+
+**Model Versions:**
+| Version | Features | Status |
+|---------|----------|--------|
+| Wan 2.1 | T2V + I2V, 480p/720p, 5s clips | Open-source (GitHub) |
+| Wan 2.2 | MoE architecture, better quality | Open-source (GitHub) |
+| Wan 2.5 | 1080p + audio-video lip-sync | API only (preview) |
+| Wan 2.6 | Multi-shot storytelling + audio | API only (latest) |
+
+**API Providers (cheapest first):**
+| Provider | Model | Cost (5s @ 720p) | Endpoint |
+|----------|-------|-------------------|----------|
+| **Kie.ai** | wan2.5-t2v | ~$0.08 | kie.ai |
+| **Alibaba Cloud** | wan2.6-t2v | ~$0.12 | DashScope API |
+| **Fal.ai** | wan2.1-t2v | ~$0.15 | fal.ai/models/fal-ai/wan-t2v |
+| **AI/ML API** | wan2.1-turbo | ~$0.15 | api.aimlapi.com |
+| **Novita.ai** | wan2.6-t2v | Variable | api.novita.ai |
+
+**Integration (fal.ai - simplest):**
+```javascript
+import { fal } from "@fal-ai/client";
+const result = await fal.subscribe("fal-ai/wan-t2v", {
+  input: { prompt: "A stylish woman walks down a Tokyo street" }
+});
+console.log(result.data.video.url);
+```
+
+### Waver 1.0 (ByteDance FoundationVision) Details
+
+**Why notable:** Top 3 on both T2V and I2V leaderboards. Better motion quality than Kling 2.0 and Wan 2.1.
+- Unified model: T2V + I2V + T2I in single framework
+- 1080p output, 5-10 second videos
+- Multi-shot narratives with consistent characters
+- Excels at complex motion (sports, gymnastics, animals)
+- Open-source: github.com/FoundationVision/Waver
+- No official REST API yet - needs self-hosting or custom wrapper
+
+### HuMo AI (ByteDance) Details
+
+**Why notable:** Human-centric video from photos - perfect for UGC content.
+- Multi-modal: Text + Image + Audio → video
+- Lip-sync to uploaded audio
+- Subject preservation across frames
+- Costume/appearance customization
+- Open-source: github.com/Phantom-video/HuMo (Apache 2.0)
+- 4-second clips at 720p
+- Requires 32GB+ VRAM GPU for self-hosting
+
+### Free/Low-Cost Tool Stack (from AI Surfer Research)
+
+**VIDEO GENERATION:**
+| Tool | Cost | API? | Best For |
+|------|------|------|----------|
+| **SkyReels V1/V2/V3** | Free (self-host) or $28/mo | Yes (fal.ai $0.30/vid) | Cinematic, human-centric |
+| **Wan 2.1/2.2** | Free (self-host) or ~$0.08/vid | Yes (multiple providers) | General video, best quality |
+| **Waver 1.0** | Free (self-host) | No API yet | Complex motion, multi-shot |
+| **HuMo AI** | Free (self-host) | No API yet | UGC, talking head from photo |
+
+**IMAGE GENERATION:**
+| Tool | Cost | API? | Best For |
+|------|------|------|----------|
+| **GenTube** | Free unlimited | No public API | Quick image gen, 2-5 seconds |
+| **Google ImageFX** | Free | No API | High quality images |
+| **Z Image Turbo** | Free | HuggingFace Space | Unrestricted image gen |
+| **Infip.pro** | Free | Free API keys | Multi-model access in one place |
+
+**IMAGE UPSCALING:**
+| Tool | Cost | API? | Best For |
+|------|------|------|----------|
+| **Lupa Upscaler** | Free credits, $9-119/mo | API on Business tier | Up to 16x/8K, face restoration |
+| **Real-ESRGAN** | Free (open-source) | Via Replicate | Standard upscaling |
+
+**TEXT/LLM:**
+| Tool | Cost | API? | Best For |
+|------|------|------|----------|
+| **Yupp.ai** | Free | No | Multi-model hub (scripts, hooks, captions) |
+| **Qwen (chat.qwen.ai)** | Free unlimited | Yes | Alibaba's best free LLM |
+
+**OTHER:**
+| Tool | Cost | API? | Best For |
+|------|------|------|----------|
+| **Google Flow** | Free | No | AI influencer photo generation |
+| **Design Arena** | Free | No | Benchmarking AI model quality |
+| **Hunyuan 3D** | Free | No | 3D world generation |
+| **PixVerse** | Free limited | API planned | Viral trend recreation |
 
 ### AI Tools to Build (Previously Bundled in A2E)
 These require direct API integrations or building ourselves:
