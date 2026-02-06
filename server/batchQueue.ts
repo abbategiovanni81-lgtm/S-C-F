@@ -42,7 +42,7 @@ const jobHistory: BatchJob[] = [];
  */
 export function createBatchJob(request: BatchJobRequest): BatchJob {
   const job: BatchJob = {
-    id: `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `job_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
     type: request.type,
     status: "queued",
     priority: request.priority || "normal",

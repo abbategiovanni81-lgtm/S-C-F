@@ -46,7 +46,7 @@ export function registerWebhook(
   secret?: string
 ): WebhookSubscription {
   const subscription: WebhookSubscription = {
-    id: `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `webhook_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
     userId,
     url,
     events,
@@ -99,7 +99,7 @@ export function updateWebhook(
  */
 export function emitEvent(event: Omit<WebhookEvent, "id" | "timestamp">): void {
   const fullEvent: WebhookEvent = {
-    id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `event_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
     timestamp: new Date(),
     ...event,
   };

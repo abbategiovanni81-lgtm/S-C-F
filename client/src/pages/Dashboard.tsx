@@ -65,6 +65,7 @@ export default function Dashboard() {
   );
   
   // AI Suggestions (simulated based on brand briefs and content patterns)
+  // TODO: Replace with actual AI-powered suggestions from analytics and trends
   const aiSuggestions = [
     {
       icon: TrendingUp,
@@ -108,6 +109,7 @@ export default function Dashboard() {
   };
   
   // Weekly engagement stats (simulated)
+  // TODO: Fetch real engagement data from connected social accounts via platform APIs
   const engagementStats = {
     totalViews: 45230,
     totalLikes: 3847,
