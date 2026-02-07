@@ -471,6 +471,20 @@ export default function BrandBriefs() {
   const handleEditBrief = (brief: BrandBrief) => {
     setEditingBrief(brief);
     setEditPlatforms(brief.platforms);
+    // Initialize platform configs from brief
+    if (brief.platformConfigs && Array.isArray(brief.platformConfigs)) {
+      setPlatformConfigs(brief.platformConfigs as PlatformConfigType[]);
+    } else {
+      // Legacy briefs without platformConfigs - create basic configs
+      setPlatformConfigs(brief.platforms.map(platform => ({
+        platform,
+        enabled: true,
+        connected: !!isPlatformConnected(platform),
+        frequency: brief.postingFrequency as any || 'Daily',
+        times: ['Morning'],
+        settings: {},
+      })));
+    }
     setEditDialogOpen(true);
   };
 
@@ -478,6 +492,25 @@ export default function BrandBriefs() {
     setEditPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
+    // Also update platformConfigs
+    setPlatformConfigs(prev => {
+      const exists = prev.find(p => p.platform === platform);
+      if (exists) {
+        return prev.filter(p => p.platform !== platform);
+      } else {
+        const connectedAccount = isPlatformConnected(platform);
+        return [...prev, {
+          platform,
+          enabled: true,
+          connected: !!connectedAccount,
+          accountId: connectedAccount?.id,
+          accountHandle: connectedAccount?.accountHandle || undefined,
+          frequency: 'Daily' as const,
+          times: ['Morning'],
+          settings: {},
+        }];
+      }
+    });
   };
 
   const handleAnalyzeWebsite = async () => {
@@ -554,7 +587,8 @@ export default function BrandBriefs() {
         contentGoals: formData.get("editContentGoals"),
         linksToInclude: formData.get("editLinksToInclude") || null,
         postingFrequency: formData.get("editPostingFrequency"),
-        platforms: editPlatforms,
+        platforms: platformConfigs.map(p => p.platform),
+        platformConfigs: platformConfigs,
       },
     });
   };
