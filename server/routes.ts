@@ -17,6 +17,8 @@ import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrie
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
 import { a2eService } from "./a2e";
+import { heygenService } from "./heygenService";
+import { wanService } from "./wanService";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
@@ -1265,6 +1267,8 @@ Provide analysis in this JSON structure:
           elevenlabs: { configured: elevenlabsService.isConfigured(), name: "ElevenLabs Voice (Premium)" },
           fal: { configured: falService.isConfigured(), name: "Fal.ai Video/Image" },
           pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
+          heygen: { configured: heygenService.isConfigured(), name: "HeyGen Avatars" },
+          wan: { configured: wanService.isConfigured(), name: "Wan Video (Alibaba)" },
           steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
         };
         
@@ -1287,6 +1291,8 @@ Provide analysis in this JSON structure:
           elevenlabs: { configured: !!keys?.elevenlabsKey, name: "ElevenLabs Voice" },
           fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
           pexels: { configured: !!keys?.pexelsKey, name: "Pexels B-Roll" },
+          heygen: { configured: !!keys?.heygenKey, name: "HeyGen Avatars" },
+          wan: { configured: !!keys?.falKey, name: "Wan Video (via Fal.ai)" },
           steveai: { configured: !!keys?.steveaiKey, name: "Steve AI Video" },
         });
       } else {
@@ -8738,6 +8744,141 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // HeyGen Avatar Video API routes
+  app.get("/api/heygen/avatars", isAuthenticated, async (req, res) => {
+    try {
+      if (!heygenService.isConfigured()) {
+        return res.status(503).json({ error: "HeyGen API not configured" });
+      }
+      const avatars = await heygenService.listAvatars();
+      res.json({ avatars });
+    } catch (error: any) {
+      console.error("HeyGen list avatars error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/heygen/voices", isAuthenticated, async (req, res) => {
+    try {
+      if (!heygenService.isConfigured()) {
+        return res.status(503).json({ error: "HeyGen API not configured" });
+      }
+      const voices = await heygenService.listVoices();
+      res.json({ voices });
+    } catch (error: any) {
+      console.error("HeyGen list voices error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/heygen/generate-video", isAuthenticated, async (req, res) => {
+    try {
+      if (!heygenService.isConfigured()) {
+        return res.status(503).json({ error: "HeyGen API not configured" });
+      }
+
+      const { avatar_id, script, voice_id, title, dimension } = req.body;
+
+      if (!avatar_id || !script) {
+        return res.status(400).json({ error: "avatar_id and script are required" });
+      }
+
+      const result = await heygenService.createVideo({
+        avatar_id,
+        script,
+        voice_id,
+        title,
+        dimension,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("HeyGen generate video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/heygen/video-status/:videoId", isAuthenticated, async (req, res) => {
+    try {
+      if (!heygenService.isConfigured()) {
+        return res.status(503).json({ error: "HeyGen API not configured" });
+      }
+
+      const { videoId } = req.params;
+      const status = await heygenService.getVideoStatus(videoId);
+      res.json(status);
+    } catch (error: any) {
+      console.error("HeyGen video status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Wan Video API routes
+  app.post("/api/wan/text-to-video", isAuthenticated, async (req, res) => {
+    try {
+      if (!wanService.isConfigured()) {
+        return res.status(503).json({ error: "Wan video service not configured (requires Fal.ai API key)" });
+      }
+
+      const { prompt, duration, resolution, model, aspectRatio } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      const result = await wanService.textToVideo({
+        prompt,
+        duration,
+        resolution,
+        model,
+        aspectRatio,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Wan text-to-video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/wan/image-to-video", isAuthenticated, async (req, res) => {
+    try {
+      if (!wanService.isConfigured()) {
+        return res.status(503).json({ error: "Wan video service not configured (requires Fal.ai API key)" });
+      }
+
+      const { prompt, imageUrl, duration, resolution, model, aspectRatio } = req.body;
+
+      if (!prompt || !imageUrl) {
+        return res.status(400).json({ error: "prompt and imageUrl are required" });
+      }
+
+      const result = await wanService.imageToVideo({
+        prompt,
+        imageUrl,
+        duration,
+        resolution,
+        model,
+        aspectRatio,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Wan image-to-video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/wan/models", isAuthenticated, async (req, res) => {
+    try {
+      const models = wanService.getAvailableModels();
+      res.json({ models });
+    } catch (error: any) {
+      console.error("Wan models error:", error);
       res.status(500).json({ error: error.message });
     }
   });
