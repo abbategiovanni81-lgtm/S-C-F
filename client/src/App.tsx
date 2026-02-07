@@ -31,6 +31,19 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import AvaGuide from "@/pages/AvaGuide";
+import ReelTemplates from "@/pages/ReelTemplates";
+import CarouselEditor from "@/pages/CarouselEditor";
+import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
+import HookLibrary from "@/pages/HookLibrary";
+import KeywordResearch from "@/pages/KeywordResearch";
+import ContentCalendar from "@/pages/ContentCalendar";
+import MagicClips from "@/pages/MagicClips";
+import CaptionStyles from "@/pages/CaptionStyles";
+import OAuthConnections from "@/pages/OAuthConnections";
+import BYOKSettings from "@/pages/BYOKSettings";
+import AutoTrim from "@/pages/AutoTrim";
+import FeaturesHub from "@/pages/FeaturesHub";
 
 function AuthenticatedRoutes() {
   return (
@@ -58,6 +71,19 @@ function AuthenticatedRoutes() {
       <Route path="/admin" component={Admin} />
       <Route path="/reddit" component={RedditManager} />
       <Route path="/video-to-clips" component={VideoToClips} />
+      <Route path="/ava-guide" component={AvaGuide} />
+      <Route path="/reel-templates" component={ReelTemplates} />
+      <Route path="/carousel-editor" component={CarouselEditor} />
+      <Route path="/thumbnail-generator" component={ThumbnailGenerator} />
+      <Route path="/hook-library" component={HookLibrary} />
+      <Route path="/keyword-research" component={KeywordResearch} />
+      <Route path="/content-calendar" component={ContentCalendar} />
+      <Route path="/magic-clips" component={MagicClips} />
+      <Route path="/caption-styles" component={CaptionStyles} />
+      <Route path="/oauth-connections" component={OAuthConnections} />
+      <Route path="/byok-settings" component={BYOKSettings} />
+      <Route path="/auto-trim" component={AutoTrim} />
+      <Route path="/features" component={FeaturesHub} />
       <Route component={NotFound} />
     </Switch>
   );
