@@ -19,6 +19,7 @@ import { falService } from "./fal";
 import { a2eService } from "./a2e";
 import { heygenService } from "./heygenService";
 import { wanService } from "./wanService";
+import { lateService } from "./lateService";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
@@ -1269,6 +1270,7 @@ Provide analysis in this JSON structure:
           pexels: { configured: pexelsService.isConfigured(), name: "Pexels B-Roll" },
           heygen: { configured: heygenService.isConfigured(), name: "HeyGen Avatars" },
           wan: { configured: wanService.isConfigured(), name: "Wan Video (Alibaba)" },
+          late: { configured: lateService.isConfigured(), name: "Social Posting (11 Platforms)" },
           steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
         };
         
@@ -8744,6 +8746,87 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Late.dev Social Posting API routes
+  app.get("/api/late/accounts", isAuthenticated, async (req, res) => {
+    try {
+      if (!lateService.isConfigured()) {
+        return res.status(503).json({ error: "Late.dev API not configured" });
+      }
+      const accounts = await lateService.listAccounts();
+      res.json({ accounts });
+    } catch (error: any) {
+      console.error("Late.dev list accounts error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/late/platforms", isAuthenticated, async (req, res) => {
+    try {
+      const platforms = lateService.getSupportedPlatforms();
+      res.json({ platforms });
+    } catch (error: any) {
+      console.error("Late.dev platforms error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/late/create-post", isAuthenticated, async (req, res) => {
+    try {
+      if (!lateService.isConfigured()) {
+        return res.status(503).json({ error: "Late.dev API not configured" });
+      }
+
+      const { content, mediaUrls, scheduledFor, timezone, platforms } = req.body;
+
+      if (!content || !platforms || platforms.length === 0) {
+        return res.status(400).json({ error: "content and platforms are required" });
+      }
+
+      const result = await lateService.createPost({
+        content,
+        mediaUrls,
+        scheduledFor,
+        timezone,
+        platforms,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Late.dev create post error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/late/post-status/:postId", isAuthenticated, async (req, res) => {
+    try {
+      if (!lateService.isConfigured()) {
+        return res.status(503).json({ error: "Late.dev API not configured" });
+      }
+
+      const { postId } = req.params;
+      const status = await lateService.getPostStatus(postId);
+      res.json(status);
+    } catch (error: any) {
+      console.error("Late.dev post status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/late/post/:postId", isAuthenticated, async (req, res) => {
+    try {
+      if (!lateService.isConfigured()) {
+        return res.status(503).json({ error: "Late.dev API not configured" });
+      }
+
+      const { postId } = req.params;
+      await lateService.deletePost(postId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Late.dev delete post error:", error);
       res.status(500).json({ error: error.message });
     }
   });
