@@ -42,6 +42,8 @@ import MagicClips from "@/pages/MagicClips";
 import CaptionStyles from "@/pages/CaptionStyles";
 import OAuthConnections from "@/pages/OAuthConnections";
 import BYOKSettings from "@/pages/BYOKSettings";
+import AutoTrim from "@/pages/AutoTrim";
+import FeaturesHub from "@/pages/FeaturesHub";
 
 function AuthenticatedRoutes() {
   return (
@@ -80,6 +82,8 @@ function AuthenticatedRoutes() {
       <Route path="/caption-styles" component={CaptionStyles} />
       <Route path="/oauth-connections" component={OAuthConnections} />
       <Route path="/byok-settings" component={BYOKSettings} />
+      <Route path="/auto-trim" component={AutoTrim} />
+      <Route path="/features" component={FeaturesHub} />
       <Route component={NotFound} />
     </Switch>
   );
