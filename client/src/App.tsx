@@ -38,6 +38,10 @@ import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
 import HookLibrary from "@/pages/HookLibrary";
 import KeywordResearch from "@/pages/KeywordResearch";
 import ContentCalendar from "@/pages/ContentCalendar";
+import MagicClips from "@/pages/MagicClips";
+import CaptionStyles from "@/pages/CaptionStyles";
+import OAuthConnections from "@/pages/OAuthConnections";
+import BYOKSettings from "@/pages/BYOKSettings";
 
 function AuthenticatedRoutes() {
   return (
@@ -72,6 +76,10 @@ function AuthenticatedRoutes() {
       <Route path="/hook-library" component={HookLibrary} />
       <Route path="/keyword-research" component={KeywordResearch} />
       <Route path="/content-calendar" component={ContentCalendar} />
+      <Route path="/magic-clips" component={MagicClips} />
+      <Route path="/caption-styles" component={CaptionStyles} />
+      <Route path="/oauth-connections" component={OAuthConnections} />
+      <Route path="/byok-settings" component={BYOKSettings} />
       <Route component={NotFound} />
     </Switch>
   );
