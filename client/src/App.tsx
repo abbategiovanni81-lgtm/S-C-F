@@ -31,6 +31,9 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import ContentStudio from "@/pages/ContentStudio";
+import BYOKPage from "@/pages/BYOKPage";
+import AITools from "@/pages/AITools";
 
 function AuthenticatedRoutes() {
   return (
@@ -40,6 +43,7 @@ function AuthenticatedRoutes() {
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
       <Route path="/content-comparison" component={ContentComparison} />
+      <Route path="/content-studio" component={ContentStudio} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/editor" component={Editor} />
@@ -52,6 +56,8 @@ function AuthenticatedRoutes() {
       <Route path="/accounts" component={Accounts} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/ai-engines" component={AIEngines} />
+      <Route path="/ai-tools" component={AITools} />
+      <Route path="/byok" component={BYOKPage} />
       <Route path="/settings" component={Settings} />
       <Route path="/how-to" component={HowTo} />
       <Route path="/creator-studio" component={CreatorStudio} />

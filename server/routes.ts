@@ -35,6 +35,16 @@ import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadCli
 import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVideo, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
+import { wanService } from "./wanService";
+import { skyreelsService } from "./skyreelsService";
+import { runwayService } from "./runwayService";
+import { klingService } from "./klingService";
+import { veoService } from "./veoService";
+import { lumaService } from "./lumaService";
+import { hailuoService } from "./hailuoService";
+import { pixverseService } from "./pixverseService";
+import { grokService, claudeService, geminiService, stabilityService, replicateService, heygenService, BYOK_PROVIDERS } from "./byokService";
+import { aiToolsService } from "./aiToolsService";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -8738,6 +8748,486 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== NEW AI ENGINE ROUTES ==========
+
+  // Wan Video Service Routes
+  app.post("/api/ai-engines/wan/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, negativePrompt, duration, aspectRatio, model } = req.body;
+      const result = await wanService.createVideo({
+        prompt,
+        negativePrompt,
+        duration,
+        aspectRatio,
+        model,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Wan video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-engines/wan/image-to-video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { imageUrl, prompt, duration } = req.body;
+      const result = await wanService.createImageToVideo(imageUrl, prompt, duration);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Wan I2V error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/wan/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await wanService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Wan status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // SkyReels Service Routes
+  app.post("/api/ai-engines/skyreels/avatar", isAuthenticated, async (req: any, res) => {
+    try {
+      const { text, avatarId, voiceId, aspectRatio, model } = req.body;
+      const result = await skyreelsService.createTalkingAvatar({
+        text,
+        avatarId,
+        voiceId,
+        aspectRatio,
+        model,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("SkyReels avatar error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ai-engines/skyreels/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, referenceImages, duration, aspectRatio } = req.body;
+      const result = await skyreelsService.createVideo({
+        prompt,
+        referenceImages,
+        duration,
+        aspectRatio,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("SkyReels video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/skyreels/avatars", isAuthenticated, async (req: any, res) => {
+    try {
+      const avatars = await skyreelsService.listAvatars();
+      res.json({ avatars });
+    } catch (error: any) {
+      console.error("SkyReels list avatars error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/skyreels/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await skyreelsService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("SkyReels status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Runway Service Routes
+  app.post("/api/ai-engines/runway/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, imageUrl, duration, aspectRatio, model } = req.body;
+      const result = await runwayService.createVideo({
+        prompt,
+        imageUrl,
+        duration,
+        aspectRatio,
+        model,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Runway video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/runway/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await runwayService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Runway status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Kling Service Routes
+  app.post("/api/ai-engines/kling/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, negativePrompt, imageUrl, duration, aspectRatio, mode } = req.body;
+      const result = await klingService.createVideo({
+        prompt,
+        negativePrompt,
+        imageUrl,
+        duration,
+        aspectRatio,
+        mode,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Kling video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/kling/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await klingService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Kling status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Veo Service Routes
+  app.post("/api/ai-engines/veo/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, imageUrl, duration, aspectRatio } = req.body;
+      const result = await veoService.createVideo({
+        prompt,
+        imageUrl,
+        duration,
+        aspectRatio,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Veo video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/veo/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await veoService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Veo status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Luma Service Routes
+  app.post("/api/ai-engines/luma/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, keyframes, aspectRatio, loop } = req.body;
+      const result = await lumaService.createVideo({
+        prompt,
+        keyframes,
+        aspectRatio,
+        loop,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Luma video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/luma/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await lumaService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Luma status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Hailuo Service Routes
+  app.post("/api/ai-engines/hailuo/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, duration, aspectRatio } = req.body;
+      const result = await hailuoService.createVideo({
+        prompt,
+        duration,
+        aspectRatio,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Hailuo video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/hailuo/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await hailuoService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Hailuo status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Pixverse Service Routes
+  app.post("/api/ai-engines/pixverse/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, negativePrompt, aspectRatio, seed } = req.body;
+      const result = await pixverseService.createVideo({
+        prompt,
+        negativePrompt,
+        aspectRatio,
+        seed,
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("Pixverse video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/ai-engines/pixverse/status/:videoId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await pixverseService.getVideoStatus(req.params.videoId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Pixverse status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // AI Engines List
+  app.get("/api/ai-engines", isAuthenticated, async (req: any, res) => {
+    try {
+      const engines = [
+        { id: "wan", name: "Wan 2.6", category: "video", provider: "Alibaba", configured: wanService.isConfigured() },
+        { id: "skyreels", name: "SkyReels", category: "video", provider: "SkyReels AI", configured: skyreelsService.isConfigured() },
+        { id: "runway", name: "Runway Gen-3", category: "video", provider: "Runway", configured: runwayService.isConfigured() },
+        { id: "kling", name: "Kling AI", category: "video", provider: "Kling", configured: klingService.isConfigured() },
+        { id: "veo", name: "Veo 3", category: "video", provider: "Google", configured: veoService.isConfigured() },
+        { id: "luma", name: "Luma Dream Machine", category: "video", provider: "Luma Labs", configured: lumaService.isConfigured() },
+        { id: "hailuo", name: "Hailuo AI", category: "video", provider: "Minimax", configured: hailuoService.isConfigured() },
+        { id: "pixverse", name: "Pixverse", category: "video", provider: "Pixverse", configured: pixverseService.isConfigured() },
+        { id: "sora", name: "Sora 2", category: "video", provider: "OpenAI", configured: isSoraConfigured() },
+      ];
+      res.json({ engines });
+    } catch (error: any) {
+      console.error("AI engines list error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== BYOK ROUTES ==========
+
+  app.get("/api/byok/providers", isAuthenticated, async (req: any, res) => {
+    try {
+      res.json({ providers: BYOK_PROVIDERS });
+    } catch (error: any) {
+      console.error("BYOK providers error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Grok Chat
+  app.post("/api/byok/grok/chat", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messages, model } = req.body;
+      const result = await grokService.chat(messages, model);
+      res.json({ response: result });
+    } catch (error: any) {
+      console.error("Grok chat error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Claude Chat
+  app.post("/api/byok/claude/chat", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messages, model } = req.body;
+      const result = await claudeService.chat(messages, model);
+      res.json({ response: result });
+    } catch (error: any) {
+      console.error("Claude chat error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Gemini Chat
+  app.post("/api/byok/gemini/chat", isAuthenticated, async (req: any, res) => {
+    try {
+      const { messages, model } = req.body;
+      const result = await geminiService.chat(messages, model);
+      res.json({ response: result });
+    } catch (error: any) {
+      console.error("Gemini chat error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Stability AI Image Generation
+  app.post("/api/byok/stability/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { prompt, model } = req.body;
+      const result = await stabilityService.generateImage(prompt, model);
+      res.json({ image: result });
+    } catch (error: any) {
+      console.error("Stability AI error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Replicate Model Run
+  app.post("/api/byok/replicate/run", isAuthenticated, async (req: any, res) => {
+    try {
+      const { model, input } = req.body;
+      const result = await replicateService.runModel(model, input);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Replicate run error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/byok/replicate/status/:predictionId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await replicateService.getStatus(req.params.predictionId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Replicate status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // HeyGen Video Generation
+  app.post("/api/byok/heygen/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { avatarId, text, voiceId } = req.body;
+      const result = await heygenService.generateVideo({ avatarId, text, voiceId });
+      res.json(result);
+    } catch (error: any) {
+      console.error("HeyGen video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/byok/heygen/avatars", isAuthenticated, async (req: any, res) => {
+    try {
+      const avatars = await heygenService.listAvatars();
+      res.json({ avatars });
+    } catch (error: any) {
+      console.error("HeyGen avatars error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== AI TOOLS ROUTES ==========
+
+  // Face Swap
+  app.post("/api/ai-tools/face-swap", isAuthenticated, async (req: any, res) => {
+    try {
+      const { sourceImageUrl, targetImageUrl } = req.body;
+      const predictionId = await aiToolsService.faceSwap(sourceImageUrl, targetImageUrl);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Face swap error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Background Removal
+  app.post("/api/ai-tools/remove-background", isAuthenticated, async (req: any, res) => {
+    try {
+      const { imageUrl } = req.body;
+      const result = await aiToolsService.removeBackground(imageUrl);
+      res.json({ imageData: result });
+    } catch (error: any) {
+      console.error("Background removal error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Lip Sync
+  app.post("/api/ai-tools/lip-sync", isAuthenticated, async (req: any, res) => {
+    try {
+      const { videoUrl, audioUrl } = req.body;
+      const predictionId = await aiToolsService.lipSync(videoUrl, audioUrl);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Lip sync error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Image Upscaling
+  app.post("/api/ai-tools/upscale", isAuthenticated, async (req: any, res) => {
+    try {
+      const { imageUrl, scale } = req.body;
+      const predictionId = await aiToolsService.upscaleImage(imageUrl, scale);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Image upscale error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Style Transfer
+  app.post("/api/ai-tools/style-transfer", isAuthenticated, async (req: any, res) => {
+    try {
+      const { contentImageUrl, styleImageUrl } = req.body;
+      const predictionId = await aiToolsService.styleTransfer(contentImageUrl, styleImageUrl);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Style transfer error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Inpainting
+  app.post("/api/ai-tools/inpaint", isAuthenticated, async (req: any, res) => {
+    try {
+      const { imageUrl, maskUrl, prompt } = req.body;
+      const predictionId = await aiToolsService.inpaint(imageUrl, maskUrl, prompt);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Inpaint error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Outpainting
+  app.post("/api/ai-tools/outpaint", isAuthenticated, async (req: any, res) => {
+    try {
+      const { imageUrl, prompt, direction } = req.body;
+      const predictionId = await aiToolsService.outpaint(imageUrl, prompt, direction);
+      res.json({ predictionId, status: "processing" });
+    } catch (error: any) {
+      console.error("Outpaint error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get Replicate Status (for async tools)
+  app.get("/api/ai-tools/status/:predictionId", isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await aiToolsService.getReplicateStatus(req.params.predictionId);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Tool status error:", error);
       res.status(500).json({ error: error.message });
     }
   });
