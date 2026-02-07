@@ -20,6 +20,7 @@ import { a2eService } from "./a2e";
 import { heygenService } from "./heygenService";
 import { wanService } from "./wanService";
 import { lateService } from "./lateService";
+import { batchQueueService } from "./batchQueueService";
 import { pexelsService } from "./pexels";
 import { steveAIService } from "./steveai";
 import { gettyService } from "./getty";
@@ -8746,6 +8747,83 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Batch Queue Processing API routes
+  app.post("/api/batch/create", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { briefId, jobType, priority, totalItems, jobData } = req.body;
+
+      if (!jobType || !totalItems || !jobData) {
+        return res.status(400).json({ 
+          error: "jobType, totalItems, and jobData are required" 
+        });
+      }
+
+      const jobId = await batchQueueService.createBatchJob({
+        userId,
+        briefId,
+        jobType,
+        priority,
+        totalItems,
+        jobData,
+      });
+
+      res.json({ jobId, message: "Batch job created successfully" });
+    } catch (error: any) {
+      console.error("Batch create error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/batch/:jobId", isAuthenticated, async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const status = await batchQueueService.getBatchJobStatus(jobId);
+
+      if (!status) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      res.json(status);
+    } catch (error: any) {
+      console.error("Batch status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/batch/user/jobs", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const status = req.query.status as any;
+      const jobs = await batchQueueService.listUserJobs(userId, status);
+
+      res.json({ jobs });
+    } catch (error: any) {
+      console.error("Batch list error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/batch/:jobId/process", isAuthenticated, async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      await batchQueueService.processJob(jobId);
+
+      res.json({ message: "Job processing started" });
+    } catch (error: any) {
+      console.error("Batch process error:", error);
       res.status(500).json({ error: error.message });
     }
   });
