@@ -660,7 +660,7 @@ export const stockActors = pgTable("stock_actors", {
   ageRange: text("age_range"), // "20s", "30s", "40s", "50s+"
   ethnicity: varchar("ethnicity", { length: 50 }),
   style: varchar("style", { length: 50 }), // "ugc_bedroom", "influencer", "street", "podcast"
-  isStock: text("is_stock").notNull().default("true"), // "true" for platform stock, "false" for user custom
+  isStock: integer("is_stock").notNull().default(1), // 1 for platform stock, 0 for user custom (using integer for SQLite compatibility)
   userId: varchar("user_id").references(() => users.id), // null for stock, set for custom
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -6,7 +6,7 @@
 
 import { db } from "./db";
 import { batchJobs, generatedContent } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export type BatchJobType = 
@@ -155,29 +155,33 @@ class BatchQueueService {
     userId: string,
     status?: "queued" | "processing" | "completed" | "failed"
   ): Promise<BatchJobStatus[]> {
+    // Build query with optional status filter
     let query = db
       .select()
       .from(batchJobs)
       .where(eq(batchJobs.userId, userId));
 
-    const jobs = await query;
+    // Apply status filter at database level for performance
+    const jobs = status 
+      ? await db.select().from(batchJobs).where(
+          sql`${batchJobs.userId} = ${userId} AND ${batchJobs.status} = ${status}`
+        )
+      : await query;
 
-    return jobs
-      .filter((job) => !status || job.status === status)
-      .map((job) => ({
-        id: job.id,
-        status: job.status as any,
-        progress:
-          job.totalItems > 0
-            ? Math.round((job.completedItems / job.totalItems) * 100)
-            : 0,
-        totalItems: job.totalItems,
-        completedItems: job.completedItems,
-        failedItems: job.failedItems,
-        results: job.results,
-        errorMessage: job.errorMessage || undefined,
-        estimatedCompletionAt: job.estimatedCompletionAt || undefined,
-      }));
+    return jobs.map((job) => ({
+      id: job.id,
+      status: job.status as any,
+      progress:
+        job.totalItems > 0
+          ? Math.round((job.completedItems / job.totalItems) * 100)
+          : 0,
+      totalItems: job.totalItems,
+      completedItems: job.completedItems,
+      failedItems: job.failedItems,
+      results: job.results,
+      errorMessage: job.errorMessage || undefined,
+      estimatedCompletionAt: job.estimatedCompletionAt || undefined,
+    }));
   }
 
   /**

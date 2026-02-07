@@ -15,7 +15,7 @@ if (process.env.FAL_KEY) {
 
 export interface WanVideoRequest {
   prompt: string;
-  duration?: 5 | 10 | 15; // seconds
+  duration?: 5 | 10 | 15; // Only 5, 10, or 15 seconds supported
   resolution?: "480p" | "720p" | "1080p";
   model?: "wan2.1-t2v" | "wan2.2-t2v";
   aspectRatio?: "16:9" | "9:16" | "1:1";
