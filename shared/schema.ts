@@ -384,7 +384,7 @@ export interface PlatformConfig {
   platform: string;
   enabled: boolean;
   connected: boolean;
-  accountId?: string; // socialAccounts.id if connected
+  accountId?: string; // UUID string from socialAccounts.id
   accountHandle?: string; // Display name like @mybrand
   frequency?: 'Daily' | 'Weekly' | '3x per week' | 'Bi-weekly' | 'Monthly';
   times?: string[]; // e.g., ['Morning', 'Afternoon']

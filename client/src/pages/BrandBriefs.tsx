@@ -203,15 +203,21 @@ export default function BrandBriefs() {
   };
 
   // Helper function to disconnect a platform
-  const handleDisconnectPlatform = (platformName: string) => {
+  const handleDisconnectPlatform = async (platformName: string) => {
     const connectedAccount = isPlatformConnected(platformName);
     if (connectedAccount) {
-      // TODO: Call delete API
-      updatePlatformConfig(platformName, { 
-        connected: false, 
-        accountId: undefined, 
-        accountHandle: undefined 
-      });
+      try {
+        await apiRequest("DELETE", `/api/social-accounts/${connectedAccount.id}`);
+        queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+        updatePlatformConfig(platformName, { 
+          connected: false, 
+          accountId: undefined, 
+          accountHandle: undefined 
+        });
+        toast({ title: `${platformName} account disconnected` });
+      } catch (error) {
+        toast({ title: "Failed to disconnect account", variant: "destructive" });
+      }
     }
   };
 
@@ -852,8 +858,8 @@ export default function BrandBriefs() {
                             </div>
                           </div>
 
-                          {/* Platform-specific Settings (Collapsible) */}
-                          {isSelected && config && (platformInfo.hasSettings || true) && (
+                          {/* Platform-specific Settings (Always show for selected platforms) */}
+                          {isSelected && config && (
                             <div className="mt-3 pt-3 border-t space-y-2" onClick={(e) => e.stopPropagation()}>
                               {/* Posting Frequency */}
                               <div className="space-y-1">
@@ -907,17 +913,17 @@ export default function BrandBriefs() {
                                     Format Settings
                                   </CollapsibleTrigger>
                                   <CollapsibleContent className="mt-2 space-y-2">
-                                    {['Feed', 'Reels', 'Stories'].map((format) => (
+                                    {(['Feed', 'Reels', 'Stories'] as const).map((format) => (
                                       <div key={format} className="flex items-center gap-2">
                                         <Switch
-                                          checked={config.settings?.instagramFormats?.includes(format as any) ?? true}
+                                          checked={config.settings?.instagramFormats?.includes(format) ?? true}
                                           onCheckedChange={(checked) => {
                                             const current = config.settings?.instagramFormats || ['Feed', 'Reels', 'Stories'];
                                             const updated = checked
                                               ? [...current, format]
                                               : current.filter(f => f !== format);
                                             updatePlatformConfig(platformInfo.name, {
-                                              settings: { ...config.settings, instagramFormats: updated as any }
+                                              settings: { ...config.settings, instagramFormats: updated }
                                             });
                                           }}
                                         />
@@ -938,17 +944,17 @@ export default function BrandBriefs() {
                                     Format Settings
                                   </CollapsibleTrigger>
                                   <CollapsibleContent className="mt-2 space-y-2">
-                                    {['Shorts', 'Long-form'].map((format) => (
+                                    {(['Shorts', 'Long-form'] as const).map((format) => (
                                       <div key={format} className="flex items-center gap-2">
                                         <Switch
-                                          checked={config.settings?.youtubeFormats?.includes(format as any) ?? true}
+                                          checked={config.settings?.youtubeFormats?.includes(format) ?? true}
                                           onCheckedChange={(checked) => {
                                             const current = config.settings?.youtubeFormats || ['Shorts', 'Long-form'];
                                             const updated = checked
                                               ? [...current, format]
                                               : current.filter(f => f !== format);
                                             updatePlatformConfig(platformInfo.name, {
-                                              settings: { ...config.settings, youtubeFormats: updated as any }
+                                              settings: { ...config.settings, youtubeFormats: updated }
                                             });
                                           }}
                                         />
@@ -971,9 +977,9 @@ export default function BrandBriefs() {
                                   <CollapsibleContent className="mt-2">
                                     <RadioGroup
                                       value={config.settings?.tiktokMode || 'auto-post'}
-                                      onValueChange={(value) => {
+                                      onValueChange={(value: 'auto-post' | 'draft') => {
                                         updatePlatformConfig(platformInfo.name, {
-                                          settings: { ...config.settings, tiktokMode: value as any }
+                                          settings: { ...config.settings, tiktokMode: value }
                                         });
                                       }}
                                     >
@@ -1004,8 +1010,12 @@ export default function BrandBriefs() {
                 )}
               </div>
 
+              {/* Legacy posting frequency field - kept for backwards compatibility with existing content generation logic */}
               <div className="space-y-2">
-                <Label htmlFor="postingFrequency">Default Posting Frequency (Legacy)</Label>
+                <Label htmlFor="postingFrequency">
+                  Default Posting Frequency
+                  <span className="text-xs text-muted-foreground ml-2">(used by content generation)</span>
+                </Label>
                 <Select name="postingFrequency" value={formPostingFrequency} onValueChange={setFormPostingFrequency} required>
                   <SelectTrigger data-testid="select-frequency">
                     <SelectValue placeholder="Select frequency" />
