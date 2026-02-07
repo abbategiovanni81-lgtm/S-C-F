@@ -120,6 +120,7 @@ export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit
 export const userApiKeys = pgTable("user_api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
+  // Existing keys
   openaiKey: text("openai_key"),
   anthropicKey: text("anthropic_key"),
   elevenlabsKey: text("elevenlabs_key"),
@@ -127,6 +128,24 @@ export const userApiKeys = pgTable("user_api_keys", {
   falKey: text("fal_key"),
   pexelsKey: text("pexels_key"),
   steveaiKey: text("steveai_key"),
+  // New LLM keys
+  grokKey: text("grok_key"),
+  geminiKey: text("gemini_key"),
+  perplexityKey: text("perplexity_key"),
+  // New video generation keys
+  heygenKey: text("heygen_key"),
+  runwayKey: text("runway_key"),
+  klingKey: text("kling_key"),
+  lumaKey: text("luma_key"),
+  // New image generation keys
+  stabilityAiKey: text("stability_ai_key"),
+  ideogramKey: text("ideogram_key"),
+  replicateKey: text("replicate_key"),
+  // New voice keys
+  playhtKey: text("playht_key"),
+  // Aggregator keys
+  openrouterKey: text("openrouter_key"),
+  togetherKey: text("together_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -630,3 +649,59 @@ export const insertBlogSchema = createInsertSchema(blogs).omit({
 
 export type InsertBlog = z.infer<typeof insertBlogSchema>;
 export type Blog = typeof blogs.$inferSelect;
+
+// Stock Actors - Pre-generated AI avatars for UGC-style videos
+export const stockActors = pgTable("stock_actors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 100 }).notNull(),
+  imageUrl: text("image_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  gender: text("gender"), // "male", "female", "non-binary"
+  ageRange: text("age_range"), // "20s", "30s", "40s", "50s+"
+  ethnicity: varchar("ethnicity", { length: 50 }),
+  style: varchar("style", { length: 50 }), // "ugc_bedroom", "influencer", "street", "podcast"
+  isStock: text("is_stock").notNull().default("true"), // "true" for platform stock, "false" for user custom
+  userId: varchar("user_id").references(() => users.id), // null for stock, set for custom
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStockActorSchema = createInsertSchema(stockActors).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStockActor = z.infer<typeof insertStockActorSchema>;
+export type StockActor = typeof stockActors.$inferSelect;
+
+// Batch Jobs - Background processing queue
+export const BATCH_JOB_STATUS = ["queued", "processing", "completed", "failed"] as const;
+export type BatchJobStatus = typeof BATCH_JOB_STATUS[number];
+
+export const batchJobs = pgTable("batch_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  jobType: text("job_type").notNull(), // "video_generation", "image_generation", "carousel_generation", "content_plan"
+  priority: text("priority").notNull().default("standard"), // "express", "standard"
+  status: text("status").notNull().default("queued"),
+  totalItems: integer("total_items").notNull().default(1),
+  completedItems: integer("completed_items").notNull().default(0),
+  failedItems: integer("failed_items").notNull().default(0),
+  jobData: jsonb("job_data").notNull(), // Input data for the job
+  results: jsonb("results"), // Output data from completed job
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  estimatedCompletionAt: timestamp("estimated_completion_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBatchJobSchema = createInsertSchema(batchJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBatchJob = z.infer<typeof insertBatchJobSchema>;
+export type BatchJob = typeof batchJobs.$inferSelect;
