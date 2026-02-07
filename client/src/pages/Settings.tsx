@@ -13,6 +13,8 @@ import { Settings as SettingsIcon, Key, Youtube, User, LogOut, Check, X, Loader2
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import { BYOKSettings } from "@/components/BYOKSettings";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function Settings() {
   const { user, logout, hasFullAccess, tier } = useAuth();
@@ -192,6 +194,17 @@ export default function Settings() {
                     <p className="text-muted-foreground" data-testid="text-user-email">
                       {user?.email}
                     </p>
+                  </div>
+                </div>
+                <div className="pt-4 border-t space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold">Appearance</Label>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Choose your preferred theme
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <ThemeToggle />
+                    </div>
                   </div>
                 </div>
                 <div className="pt-4 border-t">
@@ -546,6 +559,10 @@ export default function Settings() {
                 )}
               </CardContent>
             </Card>
+            
+            <div className="mt-6">
+              <BYOKSettings />
+            </div>
           </TabsContent>
 
           <TabsContent value="youtube">
