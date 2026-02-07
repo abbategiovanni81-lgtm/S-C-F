@@ -164,8 +164,33 @@ export default function Accounts() {
   return (
     <Layout title="Accounts">
       <div className="mb-8">
-        <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-page-title">Social Channels</h2>
-        <p className="text-muted-foreground">Add your social media channels to manage content across platforms.</p>
+        {/* Redirect Notice */}
+        <div className="mb-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-600 mb-1">Platform Connections Now Part of Brand Briefs</h3>
+              <p className="text-sm text-blue-600/80 mb-3">
+                Connect your social accounts directly when creating or editing Brand Briefs. This provides better context for content generation and scheduling.
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => window.location.href = '/brand-briefs'}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Go to Brand Briefs
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <h2 className="text-2xl font-display font-bold mb-2" data-testid="text-page-title">Social Channels (Legacy)</h2>
+        <p className="text-muted-foreground">Manage your existing social media channels. New connections should be made in Brand Briefs.</p>
       </div>
 
       {isLoading ? (
