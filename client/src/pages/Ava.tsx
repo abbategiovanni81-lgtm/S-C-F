@@ -9,11 +9,20 @@ import { toast } from "sonner";
 
 const DEMO_USER_ID = "demo-user";
 
+interface Session {
+  id: string;
+  userId: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export default function Ava() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Fetch all sessions
-  const { data: sessions = [] } = useQuery({
+  const { data: sessions = [] } = useQuery<Session[]>({
     queryKey: [`/api/ava/sessions?userId=${DEMO_USER_ID}`],
   });
 
@@ -67,7 +76,7 @@ export default function Ava() {
           </Button>
 
           <div className="space-y-2">
-            {sessions.map((session: any) => (
+            {sessions.map((session: Session) => (
               <Card
                 key={session.id}
                 className={`cursor-pointer transition-colors ${

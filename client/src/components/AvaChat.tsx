@@ -33,7 +33,7 @@ export function AvaChat({ sessionId, userId }: AvaChatProps) {
   const queryClient = useQueryClient();
 
   // Fetch session and messages
-  const { data: sessionData } = useQuery({
+  const { data: sessionData } = useQuery<{ session: any; messages: Message[] }>({
     queryKey: [`/api/ava/sessions/${sessionId}`],
     refetchInterval: 3000, // Poll every 3 seconds
   });
