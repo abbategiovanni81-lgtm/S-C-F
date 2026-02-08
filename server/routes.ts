@@ -35,6 +35,7 @@ import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadCli
 import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVideo, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
+import { registerAvaRoutes } from "./routes/ava";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -108,6 +109,9 @@ export async function registerRoutes(
   
   // Setup authentication (must be before other routes)
   await setupAuth(app);
+
+  // Register Ava chat routes
+  registerAvaRoutes(app);
 
   // TikTok domain verification file
   app.get("/tiktokflGMKAz0e5DhGPBYtGheu6I4jtpHnLHs.txt", (req, res) => {

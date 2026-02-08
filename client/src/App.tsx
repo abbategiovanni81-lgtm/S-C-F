@@ -31,11 +31,13 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import Ava from "@/pages/Ava";
 
 function AuthenticatedRoutes() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/ava" component={Ava} />
       <Route path="/brand-briefs" component={BrandBriefs} />
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
