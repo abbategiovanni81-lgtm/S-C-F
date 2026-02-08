@@ -630,3 +630,76 @@ export const insertBlogSchema = createInsertSchema(blogs).omit({
 
 export type InsertBlog = z.infer<typeof insertBlogSchema>;
 export type Blog = typeof blogs.$inferSelect;
+
+// Ava Chat Sessions - conversational content creation
+export const AVA_SESSION_STATUS = ["active", "completed", "archived"] as const;
+export type AvaSessionStatus = typeof AVA_SESSION_STATUS[number];
+
+export const avaChatSessions = pgTable("ava_chat_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title"), // Auto-generated or user-set title
+  status: text("status").notNull().default("active"), // "active", "completed", "archived"
+  metadata: jsonb("metadata"), // Session context, preferences, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAvaChatSessionSchema = createInsertSchema(avaChatSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAvaChatSession = z.infer<typeof insertAvaChatSessionSchema>;
+export type AvaChatSession = typeof avaChatSessions.$inferSelect;
+
+// Ava Chat Messages - individual messages in a conversation
+export const AVA_MESSAGE_ROLE = ["user", "assistant", "system"] as const;
+export type AvaMessageRole = typeof AVA_MESSAGE_ROLE[number];
+
+export const AVA_MESSAGE_TYPE = ["text", "content_plan", "progress", "preview", "schedule"] as const;
+export type AvaMessageType = typeof AVA_MESSAGE_TYPE[number];
+
+export const avaChatMessages = pgTable("ava_chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => avaChatSessions.id),
+  role: text("role").notNull(), // "user", "assistant", "system"
+  messageType: text("message_type").notNull().default("text"), // "text", "content_plan", "progress", "preview", "schedule"
+  content: text("content").notNull(), // Text content or JSON stringified data
+  metadata: jsonb("metadata"), // Additional data like attachments, card data, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAvaChatMessageSchema = createInsertSchema(avaChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAvaChatMessage = z.infer<typeof insertAvaChatMessageSchema>;
+export type AvaChatMessage = typeof avaChatMessages.$inferSelect;
+
+// Ava Content Plans - structured plans before generation
+export const AVA_PLAN_STATUS = ["draft", "approved", "generating", "completed", "cancelled"] as const;
+export type AvaPlanStatus = typeof AVA_PLAN_STATUS[number];
+
+export const avaContentPlans = pgTable("ava_content_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => avaChatSessions.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  contentType: text("content_type").notNull(), // "reel", "ugc_ad", "blog", "caption", "carousel", etc.
+  status: text("status").notNull().default("draft"), // "draft", "approved", "generating", "completed", "cancelled"
+  planData: jsonb("plan_data").notNull(), // Structured plan: scenes, slides, sections, etc.
+  generatedContentId: varchar("generated_content_id").references(() => generatedContent.id), // Link to final content
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAvaContentPlanSchema = createInsertSchema(avaContentPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAvaContentPlan = z.infer<typeof insertAvaContentPlanSchema>;
+export type avaContentPlan = typeof avaContentPlans.$inferSelect;
