@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, beatSyncAnalysis, viralityScores, reelTemplates, contentPlans, ugcAdProjects, ugcAdScenes, brandTrackingScores, brandCharacters } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray } from "drizzle-orm";
@@ -8738,6 +8738,328 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
+  // NEW FEATURE ENDPOINTS
+  // ========================================
+
+  // BeatSync Engine endpoints
+  app.post("/api/beatsync/analyze", isAuthenticated, async (req, res) => {
+    try {
+      const { audioPath } = req.body;
+      const { beatSyncEngine } = await import("./beatSync");
+      const analysis = await beatSyncEngine.analyzeAudio(audioPath);
+      
+      // Save analysis to database
+      const [savedAnalysis] = await db.insert(beatSyncAnalysis).values({
+        userId: req.user!.id,
+        audioUrl: audioPath,
+        duration: analysis.duration,
+        tempo: analysis.tempo,
+        beats: analysis.beats,
+        segments: analysis.segments,
+        analysisMetadata: analysis.analysisMetadata,
+      }).returning();
+      
+      res.json(savedAnalysis);
+    } catch (error: any) {
+      console.error("BeatSync analysis error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Virality Scoring endpoints
+  app.post("/api/virality/score", isAuthenticated, async (req, res) => {
+    try {
+      const { videoUrl, transcript, thumbnailUrl } = req.body;
+      const { createViralityScoringEngine } = await import("./viralityScoring");
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const engine = createViralityScoringEngine(openaiKey);
+      const score = await engine.scoreVideo(videoUrl, transcript, thumbnailUrl);
+      
+      // Save to database
+      const [savedScore] = await db.insert(viralityScores).values({
+        userId: req.user!.id,
+        videoUrl,
+        thumbnailUrl,
+        predictedCTR: score.predictedCTR,
+        engagementScore: score.engagementScore,
+        hookScore: score.hookScore,
+        retentionScore: score.retentionScore,
+        viralityFactors: score.viralityFactors,
+        recommendations: score.recommendations,
+      }).returning();
+      
+      res.json(savedScore);
+    } catch (error: any) {
+      console.error("Virality scoring error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Reel Template Generator endpoints
+  app.post("/api/reel-templates/analyze", isAuthenticated, async (req, res) => {
+    try {
+      const { videoUrl, videoPath, transcript } = req.body;
+      const { createReelTemplateGenerator } = await import("./reelTemplateGenerator");
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const generator = createReelTemplateGenerator(openaiKey);
+      const template = await generator.analyzeReelForTemplate(videoUrl, videoPath, transcript);
+      
+      // Save template to database
+      const [savedTemplate] = await db.insert(reelTemplates).values({
+        userId: req.user!.id,
+        name: template.name,
+        sourceVideoUrl: template.sourceVideoUrl,
+        duration: template.duration,
+        structure: template.structure,
+        transitions: template.transitions,
+        audioTiming: template.audioTiming,
+        visualStyle: template.visualStyle,
+        textOverlays: template.textOverlays,
+        pacing: template.pacing,
+        isPublic: "false",
+        timesUsed: 0,
+      }).returning();
+      
+      res.json(savedTemplate);
+    } catch (error: any) {
+      console.error("Reel template generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Content Calendar endpoints
+  app.post("/api/content-calendar/generate", isAuthenticated, async (req, res) => {
+    try {
+      const { briefId, weekStartDate } = req.body;
+      const { createContentCalendarEngine } = await import("./contentCalendar");
+      
+      // Get brand brief
+      const [brief] = await db.select().from(brandBriefs).where(eq(brandBriefs.id, briefId)).limit(1);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const engine = createContentCalendarEngine(openaiKey);
+      const plan = await engine.generateWeeklyPlan(brief, new Date(weekStartDate));
+      
+      // Save plan to database
+      const [savedPlan] = await db.insert(contentPlans).values({
+        userId: req.user!.id,
+        briefId,
+        weekStartDate: plan.weekStartDate,
+        weekEndDate: plan.weekEndDate,
+        planData: { days: plan.days, theme: plan.theme, brandFocus: plan.brandFocus },
+        autoFilled: "true",
+        status: "draft",
+      }).returning();
+      
+      res.json(savedPlan);
+    } catch (error: any) {
+      console.error("Content calendar generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // UGC Ad Creator endpoints
+  app.post("/api/ugc-ads/generate", isAuthenticated, async (req, res) => {
+    try {
+      const { productName, productDescription, targetAudience, adGoal, briefId } = req.body;
+      const { createUGCAdCreator } = await import("./ugcAdCreator");
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const creator = createUGCAdCreator(openaiKey);
+      const adStructure = await creator.generateAdStructure(
+        productName,
+        productDescription,
+        targetAudience,
+        adGoal
+      );
+      
+      // Save project to database
+      const [project] = await db.insert(ugcAdProjects).values({
+        userId: req.user!.id,
+        briefId,
+        name: adStructure.name,
+        productName: adStructure.productName,
+        targetAudience: adStructure.targetAudience,
+        adGoal: adStructure.adGoal,
+        status: "draft",
+      }).returning();
+      
+      // Save scenes
+      for (const scene of adStructure.scenes) {
+        await db.insert(ugcAdScenes).values({
+          projectId: project.id,
+          sceneNumber: scene.sceneNumber,
+          sceneType: scene.sceneType,
+          duration: scene.duration,
+          script: scene.script,
+          visualPrompt: scene.visualPrompt,
+          avatarMode: scene.avatarMode,
+          status: "pending",
+        });
+      }
+      
+      res.json(project);
+    } catch (error: any) {
+      console.error("UGC ad generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Brand Tracking endpoints
+  app.post("/api/brand-tracking/analyze", isAuthenticated, async (req, res) => {
+    try {
+      const { contentId, briefId } = req.body;
+      const { createBrandTrackingEngine } = await import("./brandTracking");
+      
+      // Get content and brief
+      const [content] = await db.select().from(generatedContent).where(eq(generatedContent.id, contentId)).limit(1);
+      const [brief] = await db.select().from(brandBriefs).where(eq(brandBriefs.id, briefId)).limit(1);
+      
+      if (!content || !brief) {
+        return res.status(404).json({ error: "Content or brief not found" });
+      }
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const engine = createBrandTrackingEngine(openaiKey);
+      const analysis = await engine.analyzeContentConsistency(
+        { script: content.script || undefined, caption: content.caption || undefined },
+        brief
+      );
+      
+      // Save to database
+      const [savedScore] = await db.insert(brandTrackingScores).values({
+        userId: req.user!.id,
+        briefId,
+        contentId,
+        voiceConsistencyScore: analysis.voiceConsistencyScore,
+        visualConsistencyScore: analysis.visualConsistencyScore,
+        messagingAlignmentScore: analysis.messagingAlignmentScore,
+        overallBrandScore: analysis.overallBrandScore,
+        deviations: analysis.deviations,
+        recommendations: analysis.recommendations,
+      }).returning();
+      
+      res.json(savedScore);
+    } catch (error: any) {
+      console.error("Brand tracking error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Character Consistency endpoints
+  app.post("/api/characters/create", isAuthenticated, async (req, res) => {
+    try {
+      const { briefId, characterType } = req.body;
+      const { createCharacterConsistencyEngine } = await import("./characterConsistency");
+      
+      const [brief] = await db.select().from(brandBriefs).where(eq(brandBriefs.id, briefId)).limit(1);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const engine = createCharacterConsistencyEngine(openaiKey);
+      const character = await engine.createCharacterFromBrief(brief, characterType);
+      
+      // Save to database
+      const [savedCharacter] = await db.insert(brandCharacters).values({
+        userId: req.user!.id,
+        briefId,
+        name: character.name,
+        description: character.description,
+        visualPrompt: character.visualPrompt,
+        styleGuide: character.styleGuide,
+        referenceImages: character.referenceImages,
+        generatedImages: [],
+        isActive: "true",
+      }).returning();
+      
+      res.json(savedCharacter);
+    } catch (error: any) {
+      console.error("Character creation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Smart Engine Routing endpoint
+  app.post("/api/engine-routing/select", isAuthenticated, async (req, res) => {
+    try {
+      const { taskType, prioritizeQuality, prioritizeSpeed, prioritizeCost } = req.body;
+      const { smartEngineRouter } = await import("./smartEngineRouter");
+      
+      const user = req.user!;
+      const decision = smartEngineRouter.selectEngine({
+        taskType,
+        userTier: user.tier,
+        prioritizeQuality,
+        prioritizeSpeed,
+        prioritizeCost,
+      });
+      
+      res.json(decision);
+    } catch (error: any) {
+      console.error("Engine routing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Text-Based Video Editing endpoint
+  app.post("/api/video-editing/text-based", isAuthenticated, async (req, res) => {
+    try {
+      const { videoPath, transcript, selectedText, outputPath } = req.body;
+      const { createTextBasedVideoEditor } = await import("./textBasedVideoEditor");
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      
+      const editor = createTextBasedVideoEditor(openaiKey);
+      await editor.editByTranscript(videoPath, transcript, selectedText, outputPath);
+      
+      res.json({ success: true, outputPath });
+    } catch (error: any) {
+      console.error("Text-based editing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // B-Roll Insertion endpoint
+  app.post("/api/broll/generate-plan", isAuthenticated, async (req, res) => {
+    try {
+      const { script, videoDuration, transcript } = req.body;
+      const { createBRollEngine } = await import("./brollInsertion");
+      
+      const userKeys = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.user!.id)).limit(1);
+      const openaiKey = userKeys[0]?.openaiKey || process.env.OPENAI_API_KEY;
+      const pexelsKey = userKeys[0]?.pexelsKey || process.env.PEXELS_API_KEY;
+      
+      const engine = createBRollEngine(openaiKey, pexelsKey);
+      const plan = await engine.generateBRollPlan(script, videoDuration, transcript);
+      
+      res.json(plan);
+    } catch (error: any) {
+      console.error("B-roll generation error:", error);
       res.status(500).json({ error: error.message });
     }
   });

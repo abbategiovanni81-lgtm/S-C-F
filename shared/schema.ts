@@ -630,3 +630,235 @@ export const insertBlogSchema = createInsertSchema(blogs).omit({
 
 export type InsertBlog = z.infer<typeof insertBlogSchema>;
 export type Blog = typeof blogs.$inferSelect;
+
+// BeatSync Analysis Results - music beat detection and synchronization
+export const beatSyncAnalysis = pgTable("beat_sync_analysis", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  audioUrl: text("audio_url").notNull(),
+  duration: integer("duration").notNull(), // in seconds
+  tempo: integer("tempo"), // BPM (beats per minute)
+  beats: jsonb("beats"), // Array of beat timestamps [{time: 1.2, strength: 0.8}, ...]
+  segments: jsonb("segments"), // Audio segments with energy levels [{start: 0, end: 5, energy: "high"}, ...]
+  analysisMetadata: jsonb("analysis_metadata"), // FFmpeg analysis output
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBeatSyncAnalysisSchema = createInsertSchema(beatSyncAnalysis).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBeatSyncAnalysis = z.infer<typeof insertBeatSyncAnalysisSchema>;
+export type BeatSyncAnalysis = typeof beatSyncAnalysis.$inferSelect;
+
+// Virality Scoring - CTR and engagement predictions
+export const viralityScores = pgTable("virality_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  contentId: varchar("content_id").references(() => generatedContent.id),
+  videoUrl: text("video_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  predictedCTR: integer("predicted_ctr"), // Predicted click-through rate (0-100)
+  engagementScore: integer("engagement_score"), // Overall engagement prediction (0-100)
+  hookScore: integer("hook_score"), // First 3 seconds effectiveness (0-100)
+  retentionScore: integer("retention_score"), // Predicted retention rate (0-100)
+  viralityFactors: jsonb("virality_factors"), // {pacing, editing, audio, visuals, etc.}
+  recommendations: text("recommendations").array(), // Improvement suggestions
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertViralityScoreSchema = createInsertSchema(viralityScores).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertViralityScore = z.infer<typeof insertViralityScoreSchema>;
+export type ViralityScore = typeof viralityScores.$inferSelect;
+
+// Reel Templates - extracted from analyzed viral content
+export const reelTemplates = pgTable("reel_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  sourceVideoUrl: text("source_video_url"),
+  duration: integer("duration").notNull(), // Total duration in seconds
+  structure: jsonb("structure").notNull(), // [{scene: 1, start: 0, end: 3, type: "hook"}, ...]
+  transitions: jsonb("transitions"), // [{at: 3, type: "cut", style: "hard"}, ...]
+  audioTiming: jsonb("audio_timing"), // Beat markers, music cues
+  visualStyle: jsonb("visual_style"), // Color grading, effects, filters
+  textOverlays: jsonb("text_overlays"), // [{start: 0, end: 2, text: "...", position: "center"}, ...]
+  pacing: text("pacing"), // "fast", "medium", "slow"
+  isPublic: text("is_public").notNull().default("false"), // Can others use this template?
+  timesUsed: integer("times_used").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReelTemplateSchema = createInsertSchema(reelTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertReelTemplate = z.infer<typeof insertReelTemplateSchema>;
+export type ReelTemplate = typeof reelTemplates.$inferSelect;
+
+// Content Calendar Plans - AI-generated weekly content planning
+export const contentPlans = pgTable("content_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").notNull().references(() => brandBriefs.id),
+  weekStartDate: timestamp("week_start_date").notNull(),
+  weekEndDate: timestamp("week_end_date").notNull(),
+  planData: jsonb("plan_data").notNull(), // Daily content suggestions with types, topics, hooks
+  autoFilled: text("auto_filled").notNull().default("false"), // Was this AI-generated?
+  status: text("status").notNull().default("draft"), // "draft", "active", "completed"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertContentPlanSchema = createInsertSchema(contentPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertContentPlan = z.infer<typeof insertContentPlanSchema>;
+export type ContentPlan = typeof contentPlans.$inferSelect;
+
+// UGC Ad Scenes - multi-scene video ad builder
+export const ugcAdProjects = pgTable("ugc_ad_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").references(() => brandBriefs.id),
+  name: text("name").notNull(),
+  productName: text("product_name"),
+  productUrl: text("product_url"),
+  targetAudience: text("target_audience"),
+  adGoal: text("ad_goal"), // "awareness", "conversion", "engagement"
+  status: text("status").notNull().default("draft"), // "draft", "processing", "completed"
+  finalVideoUrl: text("final_video_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const ugcAdScenes = pgTable("ugc_ad_scenes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => ugcAdProjects.id),
+  sceneNumber: integer("scene_number").notNull(),
+  sceneType: text("scene_type").notNull(), // "hook", "problem", "solution", "cta"
+  duration: integer("duration").notNull(), // in seconds
+  script: text("script"),
+  visualPrompt: text("visual_prompt"),
+  avatarMode: text("avatar_mode"), // "talking_head", "voiceover", "text_only"
+  videoUrl: text("video_url"),
+  status: text("status").notNull().default("pending"), // "pending", "processing", "completed"
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUgcAdProjectSchema = createInsertSchema(ugcAdProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertUgcAdSceneSchema = createInsertSchema(ugcAdScenes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUgcAdProject = z.infer<typeof insertUgcAdProjectSchema>;
+export type UgcAdProject = typeof ugcAdProjects.$inferSelect;
+export type InsertUgcAdScene = z.infer<typeof insertUgcAdSceneSchema>;
+export type UgcAdScene = typeof ugcAdScenes.$inferSelect;
+
+// Brand Tracking - LLM-based brand consistency monitoring
+export const brandTrackingScores = pgTable("brand_tracking_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").notNull().references(() => brandBriefs.id),
+  contentId: varchar("content_id").references(() => generatedContent.id),
+  voiceConsistencyScore: integer("voice_consistency_score"), // 0-100
+  visualConsistencyScore: integer("visual_consistency_score"), // 0-100
+  messagingAlignmentScore: integer("messaging_alignment_score"), // 0-100
+  overallBrandScore: integer("overall_brand_score"), // 0-100
+  deviations: jsonb("deviations"), // List of detected inconsistencies
+  recommendations: text("recommendations").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBrandTrackingScoreSchema = createInsertSchema(brandTrackingScores).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBrandTrackingScore = z.infer<typeof insertBrandTrackingScoreSchema>;
+export type BrandTrackingScore = typeof brandTrackingScores.$inferSelect;
+
+// Character Consistency - brand-specific character/avatar definitions
+export const brandCharacters = pgTable("brand_characters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  briefId: varchar("brief_id").notNull().references(() => brandBriefs.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  visualPrompt: text("visual_prompt").notNull(), // AI prompt for consistent generation
+  styleGuide: jsonb("style_guide"), // {clothing, colors, accessories, pose, etc.}
+  referenceImages: text("reference_images").array(), // URLs to example images
+  generatedImages: text("generated_images").array(), // URLs to generated variations
+  isActive: text("is_active").notNull().default("true"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBrandCharacterSchema = createInsertSchema(brandCharacters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBrandCharacter = z.infer<typeof insertBrandCharacterSchema>;
+export type BrandCharacter = typeof brandCharacters.$inferSelect;
+
+// Webhook Queue - database-backed webhook processing
+export const webhookQueue = pgTable("webhook_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  webhookType: text("webhook_type").notNull(), // "stripe", "youtube", "a2e", etc.
+  payload: jsonb("payload").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "processing", "completed", "failed"
+  retryCount: integer("retry_count").notNull().default(0),
+  lastError: text("last_error"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertWebhookQueueSchema = createInsertSchema(webhookQueue).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertWebhookQueue = z.infer<typeof insertWebhookQueueSchema>;
+export type WebhookQueue = typeof webhookQueue.$inferSelect;
+
+// Smart Engine Routing Configuration
+export const engineRoutingConfig = pgTable("engine_routing_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  engineName: text("engine_name").notNull().unique(), // "openai", "sora", "a2e", etc.
+  taskType: text("task_type").notNull(), // "video_generation", "image_generation", "transcription"
+  tierAvailability: text("tier_availability").array().notNull(), // ["premium", "pro", "studio"]
+  costPerUnit: integer("cost_per_unit"), // Cost in cents
+  qualityScore: integer("quality_score"), // 0-100, for ranking
+  speedScore: integer("speed_score"), // 0-100, for ranking
+  isActive: text("is_active").notNull().default("true"),
+  priority: integer("priority").notNull().default(50), // Higher = preferred
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertEngineRoutingConfigSchema = createInsertSchema(engineRoutingConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertEngineRoutingConfig = z.infer<typeof insertEngineRoutingConfigSchema>;
+export type EngineRoutingConfig = typeof engineRoutingConfig.$inferSelect;
