@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { db } from "../db";
 import { avaChatSessions, avaChatMessages, avaContentPlans, brandBriefs } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { 
   generateAvaResponse, 
   createContentPlan, 
@@ -70,7 +70,7 @@ export function registerAvaRoutes(app: Express) {
 
       const messages = await db.query.avaChatMessages.findMany({
         where: eq(avaChatMessages.sessionId, sessionId),
-        orderBy: [avaChatMessages.createdAt],
+        orderBy: [asc(avaChatMessages.createdAt)],
       });
 
       res.json({ session, messages });
@@ -110,7 +110,7 @@ export function registerAvaRoutes(app: Express) {
       // Get conversation history
       const previousMessages = await db.query.avaChatMessages.findMany({
         where: eq(avaChatMessages.sessionId, sessionId),
-        orderBy: [avaChatMessages.createdAt],
+        orderBy: [asc(avaChatMessages.createdAt)],
       });
 
       // Get user's brand brief if available
@@ -314,7 +314,7 @@ export function registerAvaRoutes(app: Express) {
       // Get conversation history
       const previousMessages = await db.query.avaChatMessages.findMany({
         where: eq(avaChatMessages.sessionId, sessionId),
-        orderBy: [avaChatMessages.createdAt],
+        orderBy: [asc(avaChatMessages.createdAt)],
       });
 
       const context = {

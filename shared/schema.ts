@@ -702,4 +702,4 @@ export const insertAvaContentPlanSchema = createInsertSchema(avaContentPlans).om
 });
 
 export type InsertAvaContentPlan = z.infer<typeof insertAvaContentPlanSchema>;
-export type avaContentPlan = typeof avaContentPlans.$inferSelect;
+export type AvaContentPlan = typeof avaContentPlans.$inferSelect;

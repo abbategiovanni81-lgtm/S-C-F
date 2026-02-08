@@ -55,7 +55,8 @@ export default function Ava() {
     } else if (!activeSessionId && sessions.length === 0 && !createSessionMutation.isPending) {
       createSessionMutation.mutate();
     }
-  }, [sessions, activeSessionId, createSessionMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions, activeSessionId]);
 
   const handleNewChat = () => {
     createSessionMutation.mutate();
