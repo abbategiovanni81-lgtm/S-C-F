@@ -100,6 +100,8 @@ export class WebhookQueueService {
 
   /**
    * Handle processing errors with retry logic
+   * Note: Retries are handled by setting status back to "pending"
+   * The periodic processor will pick them up automatically
    */
   private async handleProcessingError(job: WebhookJob, errorMessage: string): Promise<void> {
     const newRetryCount = job.retryCount + 1;
@@ -115,7 +117,7 @@ export class WebhookQueueService {
         })
         .where(eq(webhookQueue.id, job.id));
     } else {
-      // Schedule retry
+      // Mark as pending for retry - processor will pick it up
       await db
         .update(webhookQueue)
         .set({
@@ -124,11 +126,6 @@ export class WebhookQueueService {
           retryCount: newRetryCount,
         })
         .where(eq(webhookQueue.id, job.id));
-
-      // Wait before retry
-      setTimeout(() => {
-        this.processJob({ ...job, retryCount: newRetryCount });
-      }, this.retryDelayMs * newRetryCount);
     }
   }
 
@@ -211,9 +208,12 @@ export class WebhookQueueService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
 
+    const { sql } = await import("drizzle-orm");
     const result = await db
       .delete(webhookQueue)
-      .where(eq(webhookQueue.status, "completed"))
+      .where(
+        sql`${webhookQueue.status} = 'completed' AND ${webhookQueue.processedAt} < ${cutoffDate}`
+      )
       .returning();
 
     return result.length;

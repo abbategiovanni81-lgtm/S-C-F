@@ -240,7 +240,9 @@ export class SmartEngineRouter {
     score += engine.speedScore * speedWeight;
     
     // Invert cost for scoring (lower cost = higher score)
-    const costScore = Math.max(0, 100 - engine.costPerUnit / 10);
+    // Divide by 10 to normalize cost values to 0-100 range
+    const COST_NORMALIZATION_FACTOR = 10;
+    const costScore = Math.max(0, 100 - engine.costPerUnit / COST_NORMALIZATION_FACTOR);
     score += costScore * costWeight;
 
     return score;

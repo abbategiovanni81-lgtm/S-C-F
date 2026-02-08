@@ -21,7 +21,7 @@ interface ViralityAnalysis {
  * Predicts CTR and engagement metrics for content
  */
 export class ViralityScoringEngine {
-  private openai: OpenAI;
+  private openai: OpenAI | null = null;
 
   constructor(apiKey?: string) {
     if (apiKey) {
@@ -37,6 +37,10 @@ export class ViralityScoringEngine {
     transcript?: string,
     thumbnailUrl?: string
   ): Promise<ViralityAnalysis> {
+    if (!this.openai) {
+      throw new Error("OpenAI API key not configured");
+    }
+    
     try {
       const analysisPrompt = this.buildAnalysisPrompt(transcript, !!thumbnailUrl);
       
@@ -73,6 +77,10 @@ export class ViralityScoringEngine {
     clarity: number;
     recommendations: string[];
   }> {
+    if (!this.openai) {
+      throw new Error("OpenAI API key not configured");
+    }
+    
     try {
       const response = await this.openai.chat.completions.create({
         model: "gpt-4",
@@ -105,6 +113,10 @@ export class ViralityScoringEngine {
     thumbnailScore: number;
     recommendations: string[];
   }> {
+    if (!this.openai) {
+      throw new Error("OpenAI API key not configured");
+    }
+    
     try {
       const prompt = `Analyze this video title for click-through rate potential: "${title}"\n${
         thumbnailUrl ? `Thumbnail provided at: ${thumbnailUrl}\n` : ""

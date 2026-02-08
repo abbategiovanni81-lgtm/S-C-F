@@ -2,6 +2,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs/promises";
+import os from "os";
 
 const execAsync = promisify(exec);
 
@@ -104,7 +105,7 @@ export class BeatSyncEngine {
     sampleRate: number;
   }> {
     // Create temporary raw audio file
-    const tempDir = "/tmp/beatsync";
+    const tempDir = path.join(os.tmpdir(), "beatsync");
     await fs.mkdir(tempDir, { recursive: true });
     const rawFile = path.join(tempDir, `audio_${Date.now()}.raw`);
     

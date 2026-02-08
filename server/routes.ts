@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, beatSyncAnalysis, viralityScores, reelTemplates, contentPlans, ugcAdProjects, ugcAdScenes, brandTrackingScores, brandCharacters } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray } from "drizzle-orm";
@@ -8754,7 +8754,7 @@ Requirements:
       const analysis = await beatSyncEngine.analyzeAudio(audioPath);
       
       // Save analysis to database
-      const [savedAnalysis] = await db.insert(require("@shared/schema").beatSyncAnalysis).values({
+      const [savedAnalysis] = await db.insert(beatSyncAnalysis).values({
         userId: req.user!.id,
         audioUrl: audioPath,
         duration: analysis.duration,
@@ -8784,7 +8784,7 @@ Requirements:
       const score = await engine.scoreVideo(videoUrl, transcript, thumbnailUrl);
       
       // Save to database
-      const [savedScore] = await db.insert(require("@shared/schema").viralityScores).values({
+      const [savedScore] = await db.insert(viralityScores).values({
         userId: req.user!.id,
         videoUrl,
         thumbnailUrl,
@@ -8816,7 +8816,7 @@ Requirements:
       const template = await generator.analyzeReelForTemplate(videoUrl, videoPath, transcript);
       
       // Save template to database
-      const [savedTemplate] = await db.insert(require("@shared/schema").reelTemplates).values({
+      const [savedTemplate] = await db.insert(reelTemplates).values({
         userId: req.user!.id,
         name: template.name,
         sourceVideoUrl: template.sourceVideoUrl,
@@ -8857,7 +8857,7 @@ Requirements:
       const plan = await engine.generateWeeklyPlan(brief, new Date(weekStartDate));
       
       // Save plan to database
-      const [savedPlan] = await db.insert(require("@shared/schema").contentPlans).values({
+      const [savedPlan] = await db.insert(contentPlans).values({
         userId: req.user!.id,
         briefId,
         weekStartDate: plan.weekStartDate,
@@ -8892,7 +8892,7 @@ Requirements:
       );
       
       // Save project to database
-      const [project] = await db.insert(require("@shared/schema").ugcAdProjects).values({
+      const [project] = await db.insert(ugcAdProjects).values({
         userId: req.user!.id,
         briefId,
         name: adStructure.name,
@@ -8904,7 +8904,7 @@ Requirements:
       
       // Save scenes
       for (const scene of adStructure.scenes) {
-        await db.insert(require("@shared/schema").ugcAdScenes).values({
+        await db.insert(ugcAdScenes).values({
           projectId: project.id,
           sceneNumber: scene.sceneNumber,
           sceneType: scene.sceneType,
@@ -8947,7 +8947,7 @@ Requirements:
       );
       
       // Save to database
-      const [savedScore] = await db.insert(require("@shared/schema").brandTrackingScores).values({
+      const [savedScore] = await db.insert(brandTrackingScores).values({
         userId: req.user!.id,
         briefId,
         contentId,
@@ -8984,7 +8984,7 @@ Requirements:
       const character = await engine.createCharacterFromBrief(brief, characterType);
       
       // Save to database
-      const [savedCharacter] = await db.insert(require("@shared/schema").brandCharacters).values({
+      const [savedCharacter] = await db.insert(brandCharacters).values({
         userId: req.user!.id,
         briefId,
         name: character.name,
