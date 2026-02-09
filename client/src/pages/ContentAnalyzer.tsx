@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,6 +159,7 @@ export default function ContentAnalyzer() {
       "Generating recommendations..."
     ]
   });
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Generate Content dialog state
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -225,18 +226,30 @@ export default function ContentAnalyzer() {
     },
     onMutate: () => {
       if (enhancedMode) {
-        setAnalysisProgress({ ...analysisProgress, active: true, currentStep: 0 });
+        setAnalysisProgress(prev => ({ ...prev, active: true, currentStep: 0 }));
       }
     },
     onSuccess: (data) => {
+      // Clear the progress interval if it exists
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
       setAnalysis(data);
       setCurrentAnalysisIndex(0);
       setSaved(false);
-      setAnalysisProgress({ ...analysisProgress, active: false, currentStep: 0 });
+      setAnalysisProgress(prev => ({ ...prev, active: false, currentStep: 0 }));
       toast({ title: `Analysis complete! Analyzed ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}.` });
     },
     onError: (error: any) => {
-      setAnalysisProgress({ ...analysisProgress, active: false, currentStep: 0 });
+      // Clear the progress interval if it exists
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
+      setAnalysisProgress(prev => ({ ...prev, active: false, currentStep: 0 }));
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
     },
   });
@@ -578,15 +591,24 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
     
     // Start step-by-step progress for enhanced mode
     if (enhancedMode) {
-      setAnalysisProgress({ ...analysisProgress, active: true, currentStep: 0 });
+      setAnalysisProgress(prev => ({ ...prev, active: true, currentStep: 0 }));
+      
+      // Clear any existing interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
       
       // Simulate step progress (2.5 seconds per step)
-      const stepInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev.currentStep < prev.steps.length - 1) {
             return { ...prev, currentStep: prev.currentStep + 1 };
           }
-          clearInterval(stepInterval);
+          // Clear interval when all steps are done
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
           return prev;
         });
       }, 2500);
@@ -1217,7 +1239,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                                   <div className="flex flex-wrap gap-1 mt-2">
                                     {set.map((tag, j) => (
                                       <Badge key={j} variant="outline" className="text-xs">
-                                        #{tag}
+                                        {tag}
                                       </Badge>
                                     ))}
                                   </div>
