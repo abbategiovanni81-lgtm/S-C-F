@@ -630,3 +630,169 @@ export const insertBlogSchema = createInsertSchema(blogs).omit({
 
 export type InsertBlog = z.infer<typeof insertBlogSchema>;
 export type Blog = typeof blogs.$inferSelect;
+
+// Image Workshop - Master Prompts for batch image processing
+export const masterPrompts = pgTable("master_prompts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // "Interior", "Portrait", "Product", "Lifestyle"
+  prompt: text("prompt").notNull(), // The AI transformation prompt
+  negativePrompt: text("negative_prompt"),
+  thumbnailUrl: text("thumbnail_url"), // Example result image
+  requiredTier: text("required_tier").notNull().default("free"), // "free", "core", "premium", "pro"
+  isActive: text("is_active").notNull().default("true"),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertMasterPromptSchema = createInsertSchema(masterPrompts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertMasterPrompt = z.infer<typeof insertMasterPromptSchema>;
+export type MasterPrompt = typeof masterPrompts.$inferSelect;
+
+// Image Workshop - Style Packs for face-swap photo collections
+export const stylePacks = pgTable("style_packs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // "Virals", "Luxury", "Seasonal", "Professional"
+  thumbnailUrl: text("thumbnail_url"),
+  requiredTier: text("required_tier").notNull().default("core"), // "core", "premium", "pro"
+  isActive: text("is_active").notNull().default("true"),
+  sortOrder: integer("sort_order").default(0),
+  templateCount: integer("template_count").default(0), // Number of templates in pack
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertStylePackSchema = createInsertSchema(stylePacks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStylePack = z.infer<typeof insertStylePackSchema>;
+export type StylePack = typeof stylePacks.$inferSelect;
+
+// Image Workshop - Template images within a style pack
+export const stylePackTemplates = pgTable("style_pack_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  packId: varchar("pack_id").notNull().references(() => stylePacks.id),
+  name: text("name").notNull(),
+  templateImageUrl: text("template_image_url").notNull(), // The base image with face to swap
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStylePackTemplateSchema = createInsertSchema(stylePackTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStylePackTemplate = z.infer<typeof insertStylePackTemplateSchema>;
+export type StylePackTemplate = typeof stylePackTemplates.$inferSelect;
+
+// Image Workshop - Batch image processing jobs
+export const BATCH_JOB_STATUS = ["queued", "processing", "completed", "failed", "partial"] as const;
+export type BatchJobStatus = typeof BATCH_JOB_STATUS[number];
+
+export const batchImageJobs = pgTable("batch_image_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  promptId: varchar("prompt_id").notNull().references(() => masterPrompts.id),
+  status: text("status").notNull().default("queued"),
+  totalImages: integer("total_images").notNull().default(0),
+  completedImages: integer("completed_images").notNull().default(0),
+  failedImages: integer("failed_images").notNull().default(0),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertBatchImageJobSchema = createInsertSchema(batchImageJobs).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertBatchImageJob = z.infer<typeof insertBatchImageJobSchema>;
+export type BatchImageJob = typeof batchImageJobs.$inferSelect;
+
+// Image Workshop - Individual images in a batch job
+export const IMAGE_JOB_STATUS = ["queued", "processing", "completed", "failed"] as const;
+export type ImageJobStatus = typeof IMAGE_JOB_STATUS[number];
+
+export const imageJobItems = pgTable("image_job_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  batchJobId: varchar("batch_job_id").notNull().references(() => batchImageJobs.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  sourceImageUrl: text("source_image_url").notNull(),
+  resultImageUrl: text("result_image_url"),
+  status: text("status").notNull().default("queued"),
+  errorMessage: text("error_message"),
+  processingMetadata: jsonb("processing_metadata"), // API request/response details
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertImageJobItemSchema = createInsertSchema(imageJobItems).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertImageJobItem = z.infer<typeof insertImageJobItemSchema>;
+export type ImageJobItem = typeof imageJobItems.$inferSelect;
+
+// Image Workshop - Style pack face-swap jobs
+export const stylePackJobs = pgTable("style_pack_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  packId: varchar("pack_id").notNull().references(() => stylePacks.id),
+  faceImageUrl: text("face_image_url").notNull(), // User's uploaded face photo
+  status: text("status").notNull().default("queued"),
+  totalSwaps: integer("total_swaps").notNull().default(0),
+  completedSwaps: integer("completed_swaps").notNull().default(0),
+  failedSwaps: integer("failed_swaps").notNull().default(0),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertStylePackJobSchema = createInsertSchema(stylePackJobs).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertStylePackJob = z.infer<typeof insertStylePackJobSchema>;
+export type StylePackJob = typeof stylePackJobs.$inferSelect;
+
+// Image Workshop - Individual face swaps in a style pack job
+export const faceSwapItems = pgTable("face_swap_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").notNull().references(() => stylePackJobs.id),
+  templateId: varchar("template_id").notNull().references(() => stylePackTemplates.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  resultImageUrl: text("result_image_url"),
+  status: text("status").notNull().default("queued"),
+  errorMessage: text("error_message"),
+  processingMetadata: jsonb("processing_metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const insertFaceSwapItemSchema = createInsertSchema(faceSwapItems).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export type InsertFaceSwapItem = z.infer<typeof insertFaceSwapItemSchema>;
+export type FaceSwapItem = typeof faceSwapItems.$inferSelect;
