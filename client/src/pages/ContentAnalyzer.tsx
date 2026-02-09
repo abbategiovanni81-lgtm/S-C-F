@@ -28,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 const DEMO_USER_ID = "demo-user";
+const MAX_FILES = 10;
+const PROGRESS_STEP_DURATION_MS = 2500;
 
 interface ContentAnalysis {
   whyThisWorked: string[];
@@ -549,8 +551,6 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
   });
 
   // Post Analyzer handlers
-  const MAX_FILES = 10;
-
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
@@ -608,7 +608,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
         clearInterval(progressIntervalRef.current);
       }
       
-      // Simulate step progress (2.5 seconds per step)
+      // Simulate step progress
       progressIntervalRef.current = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev.currentStep < prev.steps.length - 1) {
@@ -621,7 +621,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
           }
           return prev;
         });
-      }, 2500);
+      }, PROGRESS_STEP_DURATION_MS);
     }
     
     analyzeMutation.mutate({
