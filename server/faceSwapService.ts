@@ -1,8 +1,10 @@
 // Face Swap Service
 // This service handles face swapping using external API
+// NOTE: The specific face swap API provider needs to be selected and integrated
+// This is a placeholder implementation that follows a common face swap API pattern
 
 const FACE_SWAP_API_KEY = process.env.FACE_SWAP_API_KEY;
-const FACE_SWAP_BASE_URL = "https://api.faceswap.ai/v1"; // Placeholder URL - update with actual endpoint
+const FACE_SWAP_BASE_URL = "https://api.faceswap.ai/v1"; // TODO: Update with actual face swap provider endpoint
 
 interface FaceSwapRequest {
   sourceImageUrl: string; // Face to extract

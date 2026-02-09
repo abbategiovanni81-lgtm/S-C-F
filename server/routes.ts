@@ -8833,6 +8833,15 @@ Requirements:
       // Start async processing (fire and forget)
       processBatchImages(batchJob.id, promptId, imageUrls, userId).catch(err => {
         console.error("Batch processing error:", err);
+        // Update batch job to failed status
+        db.update(batchImageJobs)
+          .set({ 
+            status: "failed",
+            errorMessage: err.message,
+            completedAt: new Date(),
+          })
+          .where(eq(batchImageJobs.id, batchJob.id))
+          .catch(updateErr => console.error("Failed to update batch job status:", updateErr));
       });
       
       res.json({ batchJobId: batchJob.id });

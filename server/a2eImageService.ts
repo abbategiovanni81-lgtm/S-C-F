@@ -1,8 +1,10 @@
 // A2E Nano Banana Pro Image Processing Service
 // This service handles image transformations using A2E's Nano Banana Pro API
+// NOTE: The API URL and integration details need to be confirmed with A2E documentation
+// This is a placeholder implementation that follows the expected API pattern
 
 const A2E_NANO_API_KEY = process.env.A2E_API_KEY;
-const A2E_NANO_BASE_URL = "https://api.a2e.ai/nano-banana-pro"; // Placeholder URL - update with actual endpoint
+const A2E_NANO_BASE_URL = "https://api.a2e.ai/nano-banana-pro"; // TODO: Update with actual A2E Nano Banana Pro endpoint
 
 interface NanoBananaProRequest {
   imageUrl: string;

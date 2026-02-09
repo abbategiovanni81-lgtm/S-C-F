@@ -32,26 +32,44 @@ export function BatchUploader({ prompt, onBack }: BatchUploaderProps) {
 
     try {
       // Upload images to server
-      const uploadPromises = fileArray.map(async (file) => {
-        const formData = new FormData();
-        formData.append("file", file);
+      const uploadPromises = acceptedFiles.map(async (file) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
 
-        const response = await fetch("/api/upload/image", {
-          method: "POST",
-          body: formData,
-        });
+          const response = await fetch("/api/upload/image", {
+            method: "POST",
+            body: formData,
+          });
 
-        if (!response.ok) {
-          throw new Error("Upload failed");
+          if (!response.ok) {
+            throw new Error("Upload failed");
+          }
+
+          const data = await response.json();
+          return { status: 'fulfilled', value: data.imageUrl };
+        } catch (error) {
+          console.error("Upload error for file:", file.name, error);
+          return { status: 'rejected', reason: error };
         }
-
-        const data = await response.json();
-        return data.imageUrl;
       });
 
-      const urls = await Promise.all(uploadPromises);
-      setUploadedImages((prev) => [...prev, ...urls]);
-      toast.success(`${fileArray.length} image(s) uploaded`);
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results
+        .filter((r) => r.status === 'fulfilled')
+        .map((r) => (r as { status: 'fulfilled'; value: string }).value);
+      
+      const failedCount = results.filter((r) => r.status === 'rejected').length;
+      
+      setUploadedImages((prev) => [...prev, ...successfulUploads]);
+      
+      if (successfulUploads.length > 0) {
+        toast.success(`${successfulUploads.length} image(s) uploaded successfully`);
+      }
+      
+      if (failedCount > 0) {
+        toast.error(`${failedCount} image(s) failed to upload`);
+      }
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Failed to upload some images");
