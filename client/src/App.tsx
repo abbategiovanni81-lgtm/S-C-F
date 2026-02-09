@@ -31,6 +31,7 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import ImageWorkshop from "@/pages/ImageWorkshop";
 
 function AuthenticatedRoutes() {
   return (
@@ -52,6 +53,7 @@ function AuthenticatedRoutes() {
       <Route path="/accounts" component={Accounts} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/ai-engines" component={AIEngines} />
+      <Route path="/image-workshop" component={ImageWorkshop} />
       <Route path="/settings" component={Settings} />
       <Route path="/how-to" component={HowTo} />
       <Route path="/creator-studio" component={CreatorStudio} />

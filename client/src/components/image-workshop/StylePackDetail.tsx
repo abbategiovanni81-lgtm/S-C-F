@@ -17,10 +17,11 @@ export function StylePackDetail({ pack, onBack }: StylePackDetailProps) {
   const [showUploader, setShowUploader] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: templates = [], isLoading } = useQuery<{ templates: StylePackTemplate[] }>({
+  const { data, isLoading } = useQuery<{ templates: StylePackTemplate[] }>({
     queryKey: [`/api/image-workshop/style-pack/${pack.id}/templates`],
-    select: (data) => data.templates,
   });
+
+  const templates = data?.templates || [];
 
   const processMutation = useMutation({
     mutationFn: async (faceUrl: string) => {

@@ -11,16 +11,16 @@ export function StylePackBrowser() {
   const [selectedPack, setSelectedPack] = useState<StylePack | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
-  const { data: packs = [], isLoading } = useQuery<{ packs: StylePack[] }>({
+  const { data, isLoading } = useQuery<{ packs: StylePack[] }>({
     queryKey: ["/api/image-workshop/style-packs"],
-    select: (data) => data,
   });
 
-  const categories = ["all", ...Array.from(new Set(packs.packs?.map((p) => p.category) || []))];
+  const packs = data?.packs || [];
+  const categories = ["all", ...Array.from(new Set(packs.map((p: StylePack) => p.category)))];
 
   const filteredPacks = categoryFilter === "all"
-    ? packs.packs || []
-    : packs.packs?.filter((p) => p.category === categoryFilter) || [];
+    ? packs
+    : packs.filter((p: StylePack) => p.category === categoryFilter);
 
   if (isLoading) {
     return (
@@ -50,7 +50,7 @@ export function StylePackBrowser() {
 
       {/* Category filters */}
       <div className="flex gap-2 flex-wrap">
-        {categories.map((category) => (
+        {categories.map((category: string) => (
           <Button
             key={category}
             variant={categoryFilter === category ? "default" : "outline"}
@@ -64,14 +64,14 @@ export function StylePackBrowser() {
 
       {/* Pack grid - Netflix style rows */}
       <div className="space-y-8">
-        {Array.from(new Set(filteredPacks.map(p => p.category))).map((category) => {
-          const categoryPacks = filteredPacks.filter(p => p.category === category);
+        {Array.from(new Set(filteredPacks.map((p: StylePack) => p.category))).map((category: string) => {
+          const categoryPacks = filteredPacks.filter((p: StylePack) => p.category === category);
           
           return (
             <div key={category}>
               <h3 className="text-xl font-semibold mb-4">{category}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {categoryPacks.map((pack) => (
+                {categoryPacks.map((pack: StylePack) => (
                   <Card
                     key={pack.id}
                     className="cursor-pointer hover:border-primary transition-all hover:scale-105"

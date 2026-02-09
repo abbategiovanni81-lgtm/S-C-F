@@ -15,14 +15,13 @@ export function MasterPromptGrid() {
 
   const { data: prompts = [], isLoading } = useQuery<{ prompts: MasterPrompt[] }>({
     queryKey: ["/api/image-workshop/master-prompts"],
-    select: (data) => data,
   });
 
-  const categories = ["all", ...Array.from(new Set(prompts.prompts?.map((p) => p.category) || []))];
+  const categories = ["all", ...Array.from(new Set(prompts?.prompts?.map((p) => p.category) || []))];
 
   const filteredPrompts = categoryFilter === "all"
-    ? prompts.prompts || []
-    : prompts.prompts?.filter((p) => p.category === categoryFilter) || [];
+    ? prompts?.prompts || []
+    : prompts?.prompts?.filter((p) => p.category === categoryFilter) || [];
 
   const handleSelectPrompt = (prompt: MasterPrompt) => {
     setSelectedPrompt(prompt);
@@ -62,7 +61,7 @@ export function MasterPromptGrid() {
 
       {/* Category filters */}
       <div className="flex gap-2 flex-wrap">
-        {categories.map((category) => (
+        {categories.map((category: string) => (
           <Button
             key={category}
             variant={categoryFilter === category ? "default" : "outline"}
@@ -76,7 +75,7 @@ export function MasterPromptGrid() {
 
       {/* Prompt grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredPrompts.map((prompt) => (
+        {filteredPrompts.map((prompt: MasterPrompt) => (
           <Card
             key={prompt.id}
             className="cursor-pointer hover:border-primary transition-colors"
