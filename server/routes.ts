@@ -8742,5 +8742,669 @@ Requirements:
     }
   });
 
+  // ========== Image Workshop Routes ==========
+  
+  // Get all master prompts (filtered by tier access)
+  app.get("/api/image-workshop/master-prompts", isAuthenticated, async (req, res) => {
+    try {
+      const { masterPrompts } = await import("@shared/schema");
+      const userTier = (req.user as any)?.tier || "free";
+      
+      const allPrompts = await db.select().from(masterPrompts)
+        .where(eq(masterPrompts.isActive, "true"))
+        .orderBy(masterPrompts.sortOrder);
+      
+      // Filter by user's tier access
+      const accessiblePrompts = allPrompts.filter(prompt => {
+        const tierOrder = ["free", "core", "premium", "pro"];
+        const userTierIndex = tierOrder.indexOf(userTier);
+        const promptTierIndex = tierOrder.indexOf(prompt.requiredTier);
+        return userTierIndex >= promptTierIndex;
+      });
+      
+      res.json({ prompts: accessiblePrompts });
+    } catch (error: any) {
+      console.error("Error fetching master prompts:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Submit batch image processing job
+  app.post("/api/image-workshop/batch-process", isAuthenticated, async (req, res) => {
+    try {
+      const { batchImageJobs, imageJobItems, masterPrompts } = await import("@shared/schema");
+      const { promptId, imageUrls } = req.body;
+      
+      if (!promptId || !imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+        return res.status(400).json({ error: "promptId and imageUrls array required" });
+      }
+      
+      if (imageUrls.length > 20) {
+        return res.status(400).json({ error: "Maximum 20 images per batch" });
+      }
+      
+      const userId = (req.user as any).id;
+      const userTier = (req.user as any)?.tier || "free";
+      
+      // Check tier limits
+      const tierLimits: Record<string, number> = {
+        free: 5,
+        core: 50,
+        premium: 200,
+        pro: -1, // unlimited
+      };
+      
+      const limit = tierLimits[userTier] || 5;
+      if (limit !== -1 && imageUrls.length > limit) {
+        return res.status(403).json({ 
+          error: `Your tier allows ${limit} images per batch. Upgrade for more.` 
+        });
+      }
+      
+      // Get prompt
+      const prompt = await db.select().from(masterPrompts)
+        .where(eq(masterPrompts.id, promptId))
+        .limit(1);
+      
+      if (!prompt.length) {
+        return res.status(404).json({ error: "Prompt not found" });
+      }
+      
+      // Create batch job
+      const [batchJob] = await db.insert(batchImageJobs).values({
+        userId,
+        promptId,
+        status: "queued",
+        totalImages: imageUrls.length,
+        completedImages: 0,
+        failedImages: 0,
+      }).returning();
+      
+      // Create individual job items
+      const items = imageUrls.map((url: string) => ({
+        batchJobId: batchJob.id,
+        userId,
+        sourceImageUrl: url,
+        status: "queued" as const,
+      }));
+      
+      await db.insert(imageJobItems).values(items);
+      
+      // Start async processing (fire and forget)
+      processBatchImages(batchJob.id, promptId, imageUrls, userId).catch(err => {
+        console.error("Batch processing error:", err);
+      });
+      
+      res.json({ batchJobId: batchJob.id });
+    } catch (error: any) {
+      console.error("Error creating batch job:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get batch job status
+  app.get("/api/image-workshop/batch-job/:jobId", isAuthenticated, async (req, res) => {
+    try {
+      const { batchImageJobs, imageJobItems } = await import("@shared/schema");
+      const { jobId } = req.params;
+      const userId = (req.user as any).id;
+      
+      const job = await db.select().from(batchImageJobs)
+        .where(eq(batchImageJobs.id, jobId))
+        .limit(1);
+      
+      if (!job.length || job[0].userId !== userId) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      const items = await db.select().from(imageJobItems)
+        .where(eq(imageJobItems.batchJobId, jobId));
+      
+      res.json({ job: job[0], items });
+    } catch (error: any) {
+      console.error("Error fetching batch job:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Retry failed image in batch
+  app.post("/api/image-workshop/retry-image/:itemId", isAuthenticated, async (req, res) => {
+    try {
+      const { imageJobItems, masterPrompts, batchImageJobs } = await import("@shared/schema");
+      const { itemId } = req.params;
+      const userId = (req.user as any).id;
+      
+      const item = await db.select().from(imageJobItems)
+        .where(eq(imageJobItems.id, itemId))
+        .limit(1);
+      
+      if (!item.length || item[0].userId !== userId) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      
+      if (item[0].status !== "failed") {
+        return res.status(400).json({ error: "Can only retry failed items" });
+      }
+      
+      // Get batch job and prompt
+      const job = await db.select().from(batchImageJobs)
+        .where(eq(batchImageJobs.id, item[0].batchJobId))
+        .limit(1);
+      
+      if (!job.length) {
+        return res.status(404).json({ error: "Batch job not found" });
+      }
+      
+      // Reset item status
+      await db.update(imageJobItems)
+        .set({ status: "queued", errorMessage: null })
+        .where(eq(imageJobItems.id, itemId));
+      
+      // Retry processing
+      processSingleImage(itemId, job[0].promptId, item[0].sourceImageUrl).catch(err => {
+        console.error("Retry processing error:", err);
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error retrying image:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get all style packs (filtered by tier access)
+  app.get("/api/image-workshop/style-packs", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePacks } = await import("@shared/schema");
+      const userTier = (req.user as any)?.tier || "free";
+      
+      const allPacks = await db.select().from(stylePacks)
+        .where(eq(stylePacks.isActive, "true"))
+        .orderBy(stylePacks.sortOrder);
+      
+      // Filter by user's tier access
+      const tierOrder = ["free", "core", "premium", "pro"];
+      const userTierIndex = tierOrder.indexOf(userTier);
+      
+      const accessiblePacks = allPacks.filter(pack => {
+        const packTierIndex = tierOrder.indexOf(pack.requiredTier);
+        return userTierIndex >= packTierIndex;
+      });
+      
+      res.json({ packs: accessiblePacks });
+    } catch (error: any) {
+      console.error("Error fetching style packs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get templates for a style pack
+  app.get("/api/image-workshop/style-pack/:packId/templates", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePackTemplates } = await import("@shared/schema");
+      const { packId } = req.params;
+      
+      const templates = await db.select().from(stylePackTemplates)
+        .where(eq(stylePackTemplates.packId, packId))
+        .orderBy(stylePackTemplates.sortOrder);
+      
+      res.json({ templates });
+    } catch (error: any) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Submit style pack face swap job
+  app.post("/api/image-workshop/style-pack-swap", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePackJobs, faceSwapItems, stylePacks, stylePackTemplates } = await import("@shared/schema");
+      const { packId, faceImageUrl } = req.body;
+      
+      if (!packId || !faceImageUrl) {
+        return res.status(400).json({ error: "packId and faceImageUrl required" });
+      }
+      
+      const userId = (req.user as any).id;
+      const userTier = (req.user as any)?.tier || "free";
+      
+      // Check tier limits
+      const tierLimits: Record<string, number> = {
+        free: 0,
+        core: 2,
+        premium: 10,
+        pro: -1, // unlimited
+      };
+      
+      const limit = tierLimits[userTier] || 0;
+      if (limit === 0) {
+        return res.status(403).json({ 
+          error: "Style packs require at least Core tier. Upgrade to continue." 
+        });
+      }
+      
+      // Get pack and templates
+      const pack = await db.select().from(stylePacks)
+        .where(eq(stylePacks.id, packId))
+        .limit(1);
+      
+      if (!pack.length) {
+        return res.status(404).json({ error: "Style pack not found" });
+      }
+      
+      const templates = await db.select().from(stylePackTemplates)
+        .where(eq(stylePackTemplates.packId, packId));
+      
+      if (templates.length === 0) {
+        return res.status(400).json({ error: "Style pack has no templates" });
+      }
+      
+      // Create style pack job
+      const [job] = await db.insert(stylePackJobs).values({
+        userId,
+        packId,
+        faceImageUrl,
+        status: "queued",
+        totalSwaps: templates.length,
+        completedSwaps: 0,
+        failedSwaps: 0,
+      }).returning();
+      
+      // Create face swap items
+      const items = templates.map(template => ({
+        jobId: job.id,
+        templateId: template.id,
+        userId,
+        status: "queued" as const,
+      }));
+      
+      await db.insert(faceSwapItems).values(items);
+      
+      // Start async processing
+      processStylePackSwaps(job.id, faceImageUrl, templates).catch(err => {
+        console.error("Style pack processing error:", err);
+      });
+      
+      res.json({ jobId: job.id });
+    } catch (error: any) {
+      console.error("Error creating style pack job:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get style pack job status
+  app.get("/api/image-workshop/style-pack-job/:jobId", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePackJobs, faceSwapItems } = await import("@shared/schema");
+      const { jobId } = req.params;
+      const userId = (req.user as any).id;
+      
+      const job = await db.select().from(stylePackJobs)
+        .where(eq(stylePackJobs.id, jobId))
+        .limit(1);
+      
+      if (!job.length || job[0].userId !== userId) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      const items = await db.select().from(faceSwapItems)
+        .where(eq(faceSwapItems.jobId, jobId));
+      
+      res.json({ job: job[0], items });
+    } catch (error: any) {
+      console.error("Error fetching style pack job:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get all user's Image Workshop jobs
+  app.get("/api/image-workshop/jobs", isAuthenticated, async (req, res) => {
+    try {
+      const { batchImageJobs, stylePackJobs } = await import("@shared/schema");
+      const userId = (req.user as any).id;
+      
+      const batchJobs = await db.select().from(batchImageJobs)
+        .where(eq(batchImageJobs.userId, userId))
+        .orderBy(sql`${batchImageJobs.createdAt} DESC`)
+        .limit(50);
+      
+      const styleJobs = await db.select().from(stylePackJobs)
+        .where(eq(stylePackJobs.userId, userId))
+        .orderBy(sql`${stylePackJobs.createdAt} DESC`)
+        .limit(50);
+      
+      res.json({ batchJobs, styleJobs });
+    } catch (error: any) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Create master prompt
+  app.post("/api/admin/image-workshop/master-prompt", isAuthenticated, async (req, res) => {
+    try {
+      const { masterPrompts } = await import("@shared/schema");
+      const userEmail = (req.user as any)?.email;
+      
+      if (userEmail !== OWNER_EMAIL) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { name, description, category, prompt, negativePrompt, thumbnailUrl, requiredTier, sortOrder } = req.body;
+      
+      if (!name || !description || !category || !prompt) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const [newPrompt] = await db.insert(masterPrompts).values({
+        name,
+        description,
+        category,
+        prompt,
+        negativePrompt: negativePrompt || null,
+        thumbnailUrl: thumbnailUrl || null,
+        requiredTier: requiredTier || "free",
+        isActive: "true",
+        sortOrder: sortOrder || 0,
+      }).returning();
+      
+      res.json({ prompt: newPrompt });
+    } catch (error: any) {
+      console.error("Error creating master prompt:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Create style pack
+  app.post("/api/admin/image-workshop/style-pack", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePacks } = await import("@shared/schema");
+      const userEmail = (req.user as any)?.email;
+      
+      if (userEmail !== OWNER_EMAIL) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { name, description, category, thumbnailUrl, requiredTier, sortOrder } = req.body;
+      
+      if (!name || !description || !category) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const [newPack] = await db.insert(stylePacks).values({
+        name,
+        description,
+        category,
+        thumbnailUrl: thumbnailUrl || null,
+        requiredTier: requiredTier || "core",
+        isActive: "true",
+        sortOrder: sortOrder || 0,
+        templateCount: 0,
+      }).returning();
+      
+      res.json({ pack: newPack });
+    } catch (error: any) {
+      console.error("Error creating style pack:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Admin: Add template to style pack
+  app.post("/api/admin/image-workshop/style-pack-template", isAuthenticated, async (req, res) => {
+    try {
+      const { stylePackTemplates, stylePacks } = await import("@shared/schema");
+      const userEmail = (req.user as any)?.email;
+      
+      if (userEmail !== OWNER_EMAIL) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      const { packId, name, templateImageUrl, sortOrder } = req.body;
+      
+      if (!packId || !name || !templateImageUrl) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const [newTemplate] = await db.insert(stylePackTemplates).values({
+        packId,
+        name,
+        templateImageUrl,
+        sortOrder: sortOrder || 0,
+      }).returning();
+      
+      // Update template count
+      await db.update(stylePacks)
+        .set({ 
+          templateCount: sql`${stylePacks.templateCount} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(stylePacks.id, packId));
+      
+      res.json({ template: newTemplate });
+    } catch (error: any) {
+      console.error("Error adding template:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
+}
+
+// Async processing functions for Image Workshop
+
+async function processBatchImages(batchJobId: string, promptId: string, imageUrls: string[], userId: string) {
+  const { a2eImageService } = await import("./a2eImageService");
+  const { batchImageJobs, imageJobItems, masterPrompts } = await import("@shared/schema");
+  
+  try {
+    // Update batch status
+    await db.update(batchImageJobs)
+      .set({ status: "processing" })
+      .where(eq(batchImageJobs.id, batchJobId));
+    
+    // Get prompt details
+    const prompt = await db.select().from(masterPrompts)
+      .where(eq(masterPrompts.id, promptId))
+      .limit(1);
+    
+    if (!prompt.length) {
+      throw new Error("Prompt not found");
+    }
+    
+    // Get all items
+    const items = await db.select().from(imageJobItems)
+      .where(eq(imageJobItems.batchJobId, batchJobId));
+    
+    // Process each image
+    for (const item of items) {
+      await processSingleImage(item.id, promptId, item.sourceImageUrl);
+    }
+    
+    // Update batch status
+    const updatedItems = await db.select().from(imageJobItems)
+      .where(eq(imageJobItems.batchJobId, batchJobId));
+    
+    const completed = updatedItems.filter(i => i.status === "completed").length;
+    const failed = updatedItems.filter(i => i.status === "failed").length;
+    const status = failed === updatedItems.length ? "failed" : 
+                   completed === updatedItems.length ? "completed" : "partial";
+    
+    await db.update(batchImageJobs)
+      .set({ 
+        status,
+        completedImages: completed,
+        failedImages: failed,
+        completedAt: new Date(),
+      })
+      .where(eq(batchImageJobs.id, batchJobId));
+    
+  } catch (error: any) {
+    console.error("Batch processing error:", error);
+    await db.update(batchImageJobs)
+      .set({ 
+        status: "failed",
+        errorMessage: error.message,
+        completedAt: new Date(),
+      })
+      .where(eq(batchImageJobs.id, batchJobId));
+  }
+}
+
+async function processSingleImage(itemId: string, promptId: string, sourceImageUrl: string) {
+  const { a2eImageService } = await import("./a2eImageService");
+  const { imageJobItems, masterPrompts } = await import("@shared/schema");
+  
+  try {
+    // Update item status
+    await db.update(imageJobItems)
+      .set({ status: "processing" })
+      .where(eq(imageJobItems.id, itemId));
+    
+    // Get prompt
+    const prompt = await db.select().from(masterPrompts)
+      .where(eq(masterPrompts.id, promptId))
+      .limit(1);
+    
+    if (!prompt.length) {
+      throw new Error("Prompt not found");
+    }
+    
+    // Call A2E service
+    const result = await a2eImageService.processImage({
+      imageUrl: sourceImageUrl,
+      prompt: prompt[0].prompt,
+      negativePrompt: prompt[0].negativePrompt || undefined,
+    });
+    
+    // Poll for completion if needed
+    let finalResult = result;
+    if (result.status === "queued" || result.status === "processing") {
+      // Wait for completion (with timeout)
+      let attempts = 0;
+      while (attempts < 60 && (finalResult.status === "queued" || finalResult.status === "processing")) {
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+        finalResult = await a2eImageService.getStatus(result.requestId);
+        attempts++;
+      }
+    }
+    
+    if (finalResult.status === "completed" && finalResult.resultUrl) {
+      await db.update(imageJobItems)
+        .set({ 
+          status: "completed",
+          resultImageUrl: finalResult.resultUrl,
+          processingMetadata: finalResult as any,
+          completedAt: new Date(),
+        })
+        .where(eq(imageJobItems.id, itemId));
+    } else {
+      throw new Error(finalResult.errorMessage || "Processing failed");
+    }
+    
+  } catch (error: any) {
+    console.error("Single image processing error:", error);
+    await db.update(imageJobItems)
+      .set({ 
+        status: "failed",
+        errorMessage: error.message,
+        completedAt: new Date(),
+      })
+      .where(eq(imageJobItems.id, itemId));
+  }
+}
+
+async function processStylePackSwaps(jobId: string, faceImageUrl: string, templates: any[]) {
+  const { faceSwapService } = await import("./faceSwapService");
+  const { stylePackJobs, faceSwapItems } = await import("@shared/schema");
+  
+  try {
+    // Update job status
+    await db.update(stylePackJobs)
+      .set({ status: "processing" })
+      .where(eq(stylePackJobs.id, jobId));
+    
+    // Get all swap items
+    const items = await db.select().from(faceSwapItems)
+      .where(eq(faceSwapItems.jobId, jobId));
+    
+    // Process each swap
+    for (const item of items) {
+      const template = templates.find(t => t.id === item.templateId);
+      if (!template) continue;
+      
+      try {
+        await db.update(faceSwapItems)
+          .set({ status: "processing" })
+          .where(eq(faceSwapItems.id, item.id));
+        
+        // Call face swap service
+        const result = await faceSwapService.swapFace({
+          sourceImageUrl: faceImageUrl,
+          targetImageUrl: template.templateImageUrl,
+        });
+        
+        // Poll for completion
+        let finalResult = result;
+        if (result.status === "queued" || result.status === "processing") {
+          let attempts = 0;
+          while (attempts < 60 && (finalResult.status === "queued" || finalResult.status === "processing")) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            finalResult = await faceSwapService.getStatus(result.requestId);
+            attempts++;
+          }
+        }
+        
+        if (finalResult.status === "completed" && finalResult.resultUrl) {
+          await db.update(faceSwapItems)
+            .set({ 
+              status: "completed",
+              resultImageUrl: finalResult.resultUrl,
+              processingMetadata: finalResult as any,
+              completedAt: new Date(),
+            })
+            .where(eq(faceSwapItems.id, item.id));
+        } else {
+          throw new Error(finalResult.errorMessage || "Face swap failed");
+        }
+        
+      } catch (error: any) {
+        console.error("Face swap error:", error);
+        await db.update(faceSwapItems)
+          .set({ 
+            status: "failed",
+            errorMessage: error.message,
+            completedAt: new Date(),
+          })
+          .where(eq(faceSwapItems.id, item.id));
+      }
+    }
+    
+    // Update job status
+    const updatedItems = await db.select().from(faceSwapItems)
+      .where(eq(faceSwapItems.jobId, jobId));
+    
+    const completed = updatedItems.filter(i => i.status === "completed").length;
+    const failed = updatedItems.filter(i => i.status === "failed").length;
+    const status = failed === updatedItems.length ? "failed" : 
+                   completed === updatedItems.length ? "completed" : "partial";
+    
+    await db.update(stylePackJobs)
+      .set({ 
+        status,
+        completedSwaps: completed,
+        failedSwaps: failed,
+        completedAt: new Date(),
+      })
+      .where(eq(stylePackJobs.id, jobId));
+    
+  } catch (error: any) {
+    console.error("Style pack processing error:", error);
+    await db.update(stylePackJobs)
+      .set({ 
+        status: "failed",
+        errorMessage: error.message,
+        completedAt: new Date(),
+      })
+      .where(eq(stylePackJobs.id, jobId));
+  }
 }
