@@ -937,37 +937,37 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Viral Potential</span>
-                                <span className="text-sm font-bold text-primary">{analysis.scores.viralPotential}/10</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.viralPotential}/100</span>
                               </div>
-                              <Progress value={analysis.scores.viralPotential * 10} className="h-2" />
+                              <Progress value={analysis.scores.viralPotential} className="h-2" />
                             </div>
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Hook Strength</span>
-                                <span className="text-sm font-bold text-primary">{analysis.scores.hook}/10</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.hook}/100</span>
                               </div>
-                              <Progress value={analysis.scores.hook * 10} className="h-2" />
+                              <Progress value={analysis.scores.hook} className="h-2" />
                             </div>
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Body Content</span>
-                                <span className="text-sm font-bold text-primary">{analysis.scores.body}/10</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.body}/100</span>
                               </div>
-                              <Progress value={analysis.scores.body * 10} className="h-2" />
+                              <Progress value={analysis.scores.body} className="h-2" />
                             </div>
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Visual Quality</span>
-                                <span className="text-sm font-bold text-primary">{analysis.scores.visual}/10</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.visual}/100</span>
                               </div>
-                              <Progress value={analysis.scores.visual * 10} className="h-2" />
+                              <Progress value={analysis.scores.visual} className="h-2" />
                             </div>
                             <div>
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Competitive Analysis</span>
-                                <span className="text-sm font-bold text-primary">{analysis.scores.competitiveAnalysis}/10</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.competitiveAnalysis}/100</span>
                               </div>
-                              <Progress value={analysis.scores.competitiveAnalysis * 10} className="h-2" />
+                              <Progress value={analysis.scores.competitiveAnalysis} className="h-2" />
                             </div>
                           </div>
                         </CardContent>
