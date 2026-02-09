@@ -8,6 +8,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Constants
+const QUALITY_VARIANCE_SCALE_FACTOR = 2; // Scale factor for displaying quality variance on progress bar
+
 interface BatchScorecardCardProps {
   overallScore: number;
   batchSize: number;
@@ -107,7 +110,7 @@ export function BatchScorecardCard({
             <div className="text-xs text-gray-600 font-medium">Quality Variance</div>
             <div className="flex items-center gap-2">
               <Progress 
-                value={Math.min(100, consistencyReport.qualityVariance * 2)} 
+                value={Math.min(100, consistencyReport.qualityVariance * QUALITY_VARIANCE_SCALE_FACTOR)} 
                 className="h-1.5 flex-1" 
               />
               <span className={cn(

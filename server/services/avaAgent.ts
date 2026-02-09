@@ -6,6 +6,9 @@ import { storage } from "../storage";
  * Provides content analysis and comparison capabilities for the Ava AI chat
  */
 
+// Constants
+const DUPLICATE_SIMILARITY_THRESHOLD = 0.7; // 70% word overlap threshold for duplicate detection
+
 export interface CompactAnalysisResult {
   viralPotential: number;
   scores: {
@@ -325,7 +328,7 @@ export async function checkBatchConsistency(
       const words2 = title2.split(/\s+/);
       const commonWords = words1.filter(w => words2.includes(w));
       
-      if (commonWords.length >= Math.min(words1.length, words2.length) * 0.7) {
+      if (commonWords.length >= Math.min(words1.length, words2.length) * DUPLICATE_SIMILARITY_THRESHOLD) {
         duplicates.push(`"${items[i].title}" and "${items[j].title}"`);
       }
     }

@@ -29,7 +29,7 @@ import { useLocation } from "wouter";
 
 const DEMO_USER_ID = "demo-user";
 const MAX_FILES = 10;
-const PROGRESS_STEP_DURATION_MS = 2500;
+const ANALYSIS_PROGRESS_STEP_INTERVAL_MS = 2500; // Duration for each analysis progress step
 
 interface ContentAnalysis {
   whyThisWorked: string[];
@@ -621,7 +621,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
           }
           return prev;
         });
-      }, PROGRESS_STEP_DURATION_MS);
+      }, ANALYSIS_PROGRESS_STEP_INTERVAL_MS);
     }
     
     analyzeMutation.mutate({

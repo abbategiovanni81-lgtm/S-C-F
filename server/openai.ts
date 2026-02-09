@@ -1,5 +1,8 @@
 import OpenAI from "openai";
 
+// Configuration constants
+const MAX_ENHANCED_ANALYSIS_TOKENS = 4000; // Token limit for enhanced analysis to ensure comprehensive feedback
+
 export const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -1594,7 +1597,7 @@ Respond in JSON format:
       },
     ],
     response_format: { type: "json_object" },
-    max_completion_tokens: 4000,
+    max_completion_tokens: MAX_ENHANCED_ANALYSIS_TOKENS,
   });
 
   const content = response.choices[0]?.message?.content;
