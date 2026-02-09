@@ -12,13 +12,16 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, 
   RefreshCw, Save, CheckCircle, X, Plus, Search, Youtube, Trash2, BarChart2, FileText, 
-  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen
+  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen,
+  ChevronDown, ChevronUp
 } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +53,28 @@ interface ContentAnalysis {
     platform: string;
     format: string;
     captionAngle: string;
+  };
+}
+
+interface EnhancedContentAnalysis extends ContentAnalysis {
+  scores: {
+    viralPotential: number;
+    hook: number;
+    body: number;
+    visual: number;
+    competitiveAnalysis: number;
+  };
+  detailedFeedback: {
+    viralPotential: { summary: string; strengths: string[]; improvements: string[] };
+    hook: { summary: string; strengths: string[]; improvements: string[] };
+    body: { summary: string; strengths: string[]; improvements: string[] };
+    visual: { summary: string; strengths: string[]; improvements: string[] };
+    competitiveAnalysis: { summary: string; strengths: string[]; improvements: string[] };
+  };
+  suggestions: {
+    captionVariations: string[];
+    hashtagSets: string[][];
+    alternativeHooks: string[];
   };
 }
 
@@ -123,6 +148,17 @@ export default function ContentAnalyzer() {
   const [selectedBriefId, setSelectedBriefId] = useState<string>("");
   const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null);
   const [saved, setSaved] = useState(false);
+  const [enhancedMode, setEnhancedMode] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState({
+    active: false,
+    currentStep: 0,
+    steps: [
+      "Analyzing visual elements...",
+      "Evaluating hook strength...",
+      "Scoring content structure...",
+      "Generating recommendations..."
+    ]
+  });
 
   // Generate Content dialog state
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -166,7 +202,7 @@ export default function ContentAnalyzer() {
 
   // Post Analyzer mutations
   const analyzeMutation = useMutation({
-    mutationFn: async ({ files, briefId }: { files: File[]; briefId?: string }) => {
+    mutationFn: async ({ files, briefId, enhanced }: { files: File[]; briefId?: string; enhanced?: boolean }) => {
       const formData = new FormData();
       files.forEach((file) => {
         formData.append("images", file);
@@ -174,7 +210,10 @@ export default function ContentAnalyzer() {
       if (briefId) {
         formData.append("briefId", briefId);
       }
-      const res = await fetch("/api/analyze-content", {
+      
+      const endpoint = enhanced ? "/api/analyze-content-enhanced" : "/api/analyze-content";
+      
+      const res = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -184,13 +223,20 @@ export default function ContentAnalyzer() {
       }
       return res.json();
     },
+    onMutate: () => {
+      if (enhancedMode) {
+        setAnalysisProgress({ ...analysisProgress, active: true, currentStep: 0 });
+      }
+    },
     onSuccess: (data) => {
       setAnalysis(data);
       setCurrentAnalysisIndex(0);
       setSaved(false);
+      setAnalysisProgress({ ...analysisProgress, active: false, currentStep: 0 });
       toast({ title: `Analysis complete! Analyzed ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}.` });
     },
     onError: (error: any) => {
+      setAnalysisProgress({ ...analysisProgress, active: false, currentStep: 0 });
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
     },
   });
@@ -522,11 +568,34 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
     }
   }, [selectedFiles, analysis, currentAnalysisIndex]);
 
+  // Type guard to check if analysis is enhanced
+  const isEnhancedAnalysis = (analysis: ContentAnalysis | null): analysis is EnhancedContentAnalysis => {
+    return analysis !== null && 'scores' in analysis;
+  };
+
   const handleAnalyze = () => {
     if (selectedFiles.length === 0) return;
+    
+    // Start step-by-step progress for enhanced mode
+    if (enhancedMode) {
+      setAnalysisProgress({ ...analysisProgress, active: true, currentStep: 0 });
+      
+      // Simulate step progress (2.5 seconds per step)
+      const stepInterval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev.currentStep < prev.steps.length - 1) {
+            return { ...prev, currentStep: prev.currentStep + 1 };
+          }
+          clearInterval(stepInterval);
+          return prev;
+        });
+      }, 2500);
+    }
+    
     analyzeMutation.mutate({
       files: selectedFiles,
       briefId: selectedBriefId && selectedBriefId !== "none" ? selectedBriefId : undefined,
+      enhanced: enhancedMode,
     });
   };
 
@@ -786,6 +855,36 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         </Select>
                       </div>
 
+                      <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <Label htmlFor="enhanced-mode" className="text-sm font-medium cursor-pointer">
+                            Enhanced Analysis with Scoring
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Get detailed scores, feedback, and advanced suggestions
+                          </p>
+                        </div>
+                        <Switch
+                          id="enhanced-mode"
+                          checked={enhancedMode}
+                          onCheckedChange={setEnhancedMode}
+                          data-testid="switch-enhanced-mode"
+                        />
+                      </div>
+
+                      {analysisProgress.active && (
+                        <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {analysisProgress.steps[analysisProgress.currentStep]}
+                          </div>
+                          <Progress 
+                            value={(analysisProgress.currentStep + 1) / analysisProgress.steps.length * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
                         <ResponsiveTooltip content="Analyze content">
                           <Button
@@ -802,7 +901,7 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                             ) : (
                               <>
                                 <Sparkles className="w-4 h-4 mr-2" />
-                                Analyze Content
+                                {enhancedMode ? "Enhanced Analysis" : "Analyze Content"}
                               </>
                             )}
                           </Button>
@@ -823,6 +922,58 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
               <div className="space-y-4">
                 {analysis ? (
                   <>
+                    {/* Enhanced Analysis Scores Section */}
+                    {isEnhancedAnalysis(analysis) && (
+                      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <BarChart2 className="w-5 h-5 text-primary" />
+                            Content Scores
+                            <Badge variant="secondary" className="ml-2">Enhanced</Badge>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Viral Potential</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.viralPotential}/10</span>
+                              </div>
+                              <Progress value={analysis.scores.viralPotential * 10} className="h-2" />
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Hook Strength</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.hook}/10</span>
+                              </div>
+                              <Progress value={analysis.scores.hook * 10} className="h-2" />
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Body Content</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.body}/10</span>
+                              </div>
+                              <Progress value={analysis.scores.body * 10} className="h-2" />
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Visual Quality</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.visual}/10</span>
+                              </div>
+                              <Progress value={analysis.scores.visual * 10} className="h-2" />
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Competitive Analysis</span>
+                                <span className="text-sm font-bold text-primary">{analysis.scores.competitiveAnalysis}/10</span>
+                              </div>
+                              <Progress value={analysis.scores.competitiveAnalysis * 10} className="h-2" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     <Card>
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
@@ -841,6 +992,60 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         </ul>
                       </CardContent>
                     </Card>
+
+                    {/* Enhanced Detailed Feedback Section */}
+                    {isEnhancedAnalysis(analysis) && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <FileText className="w-5 h-5 text-blue-500" />
+                            Detailed Feedback
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {Object.entries(analysis.detailedFeedback).map(([key, feedback]) => (
+                            <Collapsible key={key}>
+                              <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                                <span className="font-medium capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="mt-2 p-4 border rounded-lg space-y-3">
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground mb-1">Summary</p>
+                                  <p className="text-sm">{feedback.summary}</p>
+                                </div>
+                                {feedback.strengths.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">Strengths</p>
+                                    <ul className="space-y-1">
+                                      {feedback.strengths.map((strength, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                          <span>{strength}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {feedback.improvements.length > 0 && (
+                                  <div>
+                                    <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">Areas for Improvement</p>
+                                    <ul className="space-y-1">
+                                      {feedback.improvements.map((improvement, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                          <TrendingUp className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                                          <span>{improvement}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </CollapsibleContent>
+                            </Collapsible>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <Card>
                       <CardHeader className="pb-3">
@@ -964,6 +1169,85 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         </div>
                       </CardContent>
                     </Card>
+
+                    {/* Enhanced Suggestions Section */}
+                    {isEnhancedAnalysis(analysis) && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Lightbulb className="w-5 h-5 text-yellow-500" />
+                            Advanced Suggestions
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {/* Caption Variations */}
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="font-medium">Caption Variations</span>
+                                <Badge variant="secondary">{analysis.suggestions.captionVariations.length}</Badge>
+                              </div>
+                              <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 space-y-2">
+                              {analysis.suggestions.captionVariations.map((caption, i) => (
+                                <div key={i} className="p-3 border rounded-lg text-sm bg-background">
+                                  <span className="text-xs font-medium text-muted-foreground">Option {i + 1}</span>
+                                  <p className="mt-1">{caption}</p>
+                                </div>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          {/* Hashtag Sets */}
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <Target className="w-4 h-4" />
+                                <span className="font-medium">Hashtag Sets</span>
+                                <Badge variant="secondary">{analysis.suggestions.hashtagSets.length}</Badge>
+                              </div>
+                              <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 space-y-2">
+                              {analysis.suggestions.hashtagSets.map((set, i) => (
+                                <div key={i} className="p-3 border rounded-lg bg-background">
+                                  <span className="text-xs font-medium text-muted-foreground">Set {i + 1}</span>
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {set.map((tag, j) => (
+                                      <Badge key={j} variant="outline" className="text-xs">
+                                        #{tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+
+                          {/* Alternative Hooks */}
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
+                              <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                <span className="font-medium">Alternative Hooks</span>
+                                <Badge variant="secondary">{analysis.suggestions.alternativeHooks.length}</Badge>
+                              </div>
+                              <ChevronDown className="w-4 h-4 transition-transform duration-200" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2 space-y-2">
+                              {analysis.suggestions.alternativeHooks.map((hook, i) => (
+                                <div key={i} className="p-3 border rounded-lg text-sm bg-background">
+                                  <span className="text-xs font-medium text-muted-foreground">Hook {i + 1}</span>
+                                  <p className="mt-1">{hook}</p>
+                                </div>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </CardContent>
+                      </Card>
+                    )}
 
                     <Card>
                       <CardHeader className="pb-3">

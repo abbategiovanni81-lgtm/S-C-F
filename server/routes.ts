@@ -8851,5 +8851,100 @@ Requirements:
     }
   });
 
+  // ============================================================================
+  // Ava Agent Analysis Endpoints
+  // ============================================================================
+
+  // Analyze content with Ava agent (compact analysis for chat)
+  app.post("/api/ava/analyze-content", requireAuth, analyzeUpload.single("image"), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const file = req.file as Express.Multer.File;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const { briefId } = req.body;
+      const imageBase64 = file.buffer.toString("base64");
+      const mimeType = file.mimetype;
+
+      const { analyzeContent } = await import("./services/avaAgent");
+      const analysis = await analyzeContent(imageBase64, mimeType, briefId, userId);
+
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Ava content analysis error:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze content" });
+    }
+  });
+
+  // Compare two pieces of content
+  app.post("/api/ava/compare-content", requireAuth, analyzeUpload.array("images", 2), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length !== 2) {
+        return res.status(400).json({ error: "Exactly 2 image files required for comparison" });
+      }
+
+      const { briefId } = req.body;
+
+      const { compareContent } = await import("./services/avaAgent");
+      const comparison = await compareContent(
+        files[0].buffer.toString("base64"),
+        files[0].mimetype,
+        files[1].buffer.toString("base64"),
+        files[1].mimetype,
+        briefId,
+        userId
+      );
+
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("Ava content comparison error:", error);
+      res.status(500).json({ error: error.message || "Failed to compare content" });
+    }
+  });
+
+  // Batch analyze multiple content items
+  app.post("/api/ava/batch-analyze", requireAuth, analyzeUpload.array("images", 20), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const files = req.files as Express.Multer.File[];
+      
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
+      }
+
+      const { briefId, titles } = req.body;
+      
+      // Parse titles if provided as JSON string
+      let parsedTitles: string[] = [];
+      try {
+        parsedTitles = titles ? JSON.parse(titles) : [];
+      } catch (e) {
+        parsedTitles = [];
+      }
+
+      // Build items array
+      const items = files.map((file, index) => ({
+        id: `item-${index}`,
+        title: parsedTitles[index] || `Content ${index + 1}`,
+        imageBase64: file.buffer.toString("base64"),
+        mimeType: file.mimetype,
+      }));
+
+      const { batchAnalyze } = await import("./services/avaAgent");
+      const batchResult = await batchAnalyze(items, briefId, userId);
+
+      res.json(batchResult);
+    } catch (error: any) {
+      console.error("Ava batch analysis error:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze batch" });
+    }
+  });
+
   return httpServer;
 }
