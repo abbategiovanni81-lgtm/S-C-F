@@ -33,6 +33,7 @@ import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
 import ViralForecaster from "@/pages/ViralForecaster";
 import KeywordsTrends from "@/pages/KeywordsTrends";
+import AvaToolsDemo from "@/pages/AvaToolsDemo";
 
 function AuthenticatedRoutes() {
   return (
@@ -43,6 +44,7 @@ function AuthenticatedRoutes() {
       <Route path="/content-analyzer" component={ContentAnalyzer} />
       <Route path="/tools/viral-forecaster" component={ViralForecaster} />
       <Route path="/tools/keywords-trends" component={KeywordsTrends} />
+      <Route path="/tools/ava-demo" component={AvaToolsDemo} />
       <Route path="/content-comparison" component={ContentComparison} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
