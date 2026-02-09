@@ -31,6 +31,8 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import ViralForecaster from "@/pages/ViralForecaster";
+import KeywordsTrends from "@/pages/KeywordsTrends";
 
 function AuthenticatedRoutes() {
   return (
@@ -39,6 +41,8 @@ function AuthenticatedRoutes() {
       <Route path="/brand-briefs" component={BrandBriefs} />
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
+      <Route path="/tools/viral-forecaster" component={ViralForecaster} />
+      <Route path="/tools/keywords-trends" component={KeywordsTrends} />
       <Route path="/content-comparison" component={ContentComparison} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />

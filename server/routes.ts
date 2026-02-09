@@ -8742,5 +8742,178 @@ Requirements:
     }
   });
 
+  // ===== AVA AI TOOLS =====
+  
+  app.post("/api/ava/generate-hooks", isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, platform, tone, targetAudience } = req.body;
+      
+      if (!topic || !platform) {
+        return res.status(400).json({ error: "topic and platform are required" });
+      }
+
+      const { generateHooks } = await import("./avaService");
+      const hooks = await generateHooks({ topic, platform, tone, targetAudience });
+      
+      res.json({ hooks });
+    } catch (error: any) {
+      console.error("Generate hooks error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/generate-script", isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, platform, tone, length, targetAudience } = req.body;
+      
+      if (!topic || !platform || !length) {
+        return res.status(400).json({ error: "topic, platform, and length are required" });
+      }
+
+      const { generateScript } = await import("./avaService");
+      const script = await generateScript({ topic, platform, tone, length, targetAudience });
+      
+      res.json({ script });
+    } catch (error: any) {
+      console.error("Generate script error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/generate-captions", isAuthenticated, async (req: any, res) => {
+    try {
+      const { contentTopic, contentType, platform, tone, includeHashtags } = req.body;
+      
+      if (!contentTopic || !contentType || !platform) {
+        return res.status(400).json({ error: "contentTopic, contentType, and platform are required" });
+      }
+
+      const { generateCaptions } = await import("./avaService");
+      const captions = await generateCaptions({ 
+        contentTopic, 
+        contentType, 
+        platform, 
+        tone, 
+        includeHashtags 
+      });
+      
+      res.json({ captions });
+    } catch (error: any) {
+      console.error("Generate captions error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/generate-hashtags", isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, niche, platform, count, style } = req.body;
+      
+      if (!topic || !niche || !platform) {
+        return res.status(400).json({ error: "topic, niche, and platform are required" });
+      }
+
+      const { generateHashtags } = await import("./avaService");
+      const hashtags = await generateHashtags({ topic, niche, platform, count, style });
+      
+      res.json({ hashtags });
+    } catch (error: any) {
+      console.error("Generate hashtags error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/generate-ideas", isAuthenticated, async (req: any, res) => {
+    try {
+      const { niche, platform, trendingTopics, targetAudience, count } = req.body;
+      
+      if (!niche || !platform) {
+        return res.status(400).json({ error: "niche and platform are required" });
+      }
+
+      const { generateIdeas } = await import("./avaService");
+      const ideas = await generateIdeas({ 
+        niche, 
+        platform, 
+        trendingTopics, 
+        targetAudience, 
+        count 
+      });
+      
+      res.json({ ideas });
+    } catch (error: any) {
+      console.error("Generate ideas error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/generate-carousel", isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, slideCount, tone, targetAudience } = req.body;
+      
+      if (!topic || !slideCount) {
+        return res.status(400).json({ error: "topic and slideCount are required" });
+      }
+
+      const { generateCarouselSlides } = await import("./avaService");
+      const slides = await generateCarouselSlides({ 
+        topic, 
+        slideCount, 
+        tone, 
+        targetAudience 
+      });
+      
+      res.json({ slides });
+    } catch (error: any) {
+      console.error("Generate carousel error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/viral-forecast", isAuthenticated, async (req: any, res) => {
+    try {
+      const { topic, country, platform, contentType } = req.body;
+      
+      if (!topic) {
+        return res.status(400).json({ error: "topic is required" });
+      }
+
+      const { getViralForecast } = await import("./avaService");
+      const forecast = await getViralForecast({ 
+        topic, 
+        country, 
+        platform, 
+        contentType 
+      });
+      
+      res.json({ forecast });
+    } catch (error: any) {
+      console.error("Viral forecast error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/ava/best-time-to-post", isAuthenticated, async (req: any, res) => {
+    try {
+      const { platform, targetAudience, contentType, timezone } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({ error: "platform is required" });
+      }
+
+      const { getBestTimeToPost } = await import("./avaService");
+      const schedule = await getBestTimeToPost({ 
+        platform, 
+        targetAudience, 
+        contentType, 
+        timezone 
+      });
+      
+      res.json({ schedule });
+    } catch (error: any) {
+      console.error("Best time to post error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }
