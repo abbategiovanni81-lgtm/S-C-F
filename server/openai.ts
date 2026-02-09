@@ -1250,6 +1250,49 @@ export interface ContentAnalysisResult {
   };
 }
 
+// Enhanced Content Analysis with Scoring System
+export interface EnhancedContentAnalysisResult extends ContentAnalysisResult {
+  scores: {
+    viralPotential: number; // 0-100
+    hook: number; // 0-100
+    body: number; // 0-100
+    visual: number; // 0-100
+    competitiveAnalysis: number; // 0-100
+  };
+  detailedFeedback: {
+    viralPotential: {
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    hook: {
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    body: {
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    visual: {
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
+    competitiveAnalysis: {
+      summary: string;
+      strengths: string[];
+      improvements: string[];
+    };
+  };
+  suggestions: {
+    captionVariations: string[];
+    hashtagSets: string[][];
+    alternativeHooks: string[];
+  };
+}
+
 export interface TrendingContext {
   topics: { topic: string; keywords?: string[]; engagement?: number }[];
   highEngagementThemes: string[];
@@ -1375,6 +1418,191 @@ Respond in JSON format:
   }
 
   return JSON.parse(content) as ContentAnalysisResult;
+}
+
+// Enhanced analysis function with detailed scoring and feedback
+export async function analyzeViralContentEnhanced(
+  imageBase64: string,
+  mimeType: string,
+  brandBrief?: { brandVoice: string; targetAudience: string; contentGoals: string; name?: string },
+  trendingContext?: TrendingContext,
+  additionalImages?: Array<{ base64: string; mimeType: string }>
+): Promise<EnhancedContentAnalysisResult> {
+  let brandContext = "";
+  
+  if (brandBrief) {
+    brandContext = `\n\nBrand Context for Personalized Adaptation:
+- Brand Name: ${brandBrief.name || "Your Brand"}
+- Brand Voice: ${brandBrief.brandVoice}
+- Target Audience: ${brandBrief.targetAudience}
+- Content Goals: ${brandBrief.contentGoals}
+
+IMPORTANT: All adaptation suggestions should be tailored specifically for this brand's voice and audience. The topic suggestions should directly relate to what ${brandBrief.name || "this brand"}'s followers would find valuable.`;
+  } else {
+    brandContext = "\n\nNo brand brief provided - provide generic adaptation advice.";
+  }
+
+  let trendingSection = "";
+  if (trendingContext && (trendingContext.topics.length > 0 || trendingContext.highEngagementThemes.length > 0)) {
+    trendingSection = `\n\nTRENDING IN YOUR NICHE (use these to make topic suggestions more relevant):`;
+    if (trendingContext.topics.length > 0) {
+      trendingSection += `\n- Trending Topics: ${trendingContext.topics.map(t => t.topic).join(", ")}`;
+    }
+    if (trendingContext.highEngagementThemes.length > 0) {
+      trendingSection += `\n- High-Engagement Themes: ${trendingContext.highEngagementThemes.join(", ")}`;
+    }
+    trendingSection += `\n\nIncorporate these trending topics/themes into your topic suggestions and trendingAngle recommendation.`;
+  }
+
+  const systemPrompt = `You are an expert social media analyst who breaks down viral content with detailed scoring and actionable feedback. Analyze the screenshot of a social media post and provide a comprehensive breakdown with numerical scores and structured feedback.${brandContext}${trendingSection}`;
+
+  const userPrompt = `Analyze this viral/successful social media post screenshot and provide detailed insights with scoring:
+
+SCORING SYSTEM (0-100 for each):
+1. **Viral Potential Score** - Overall likelihood to go viral based on hooks, emotion, shareability
+2. **Hook Score** - Opening attention-grabber effectiveness (first 3 seconds/lines)
+3. **Body Score** - Middle content value, structure, pacing, retention
+4. **Visual Score** - Visual elements, aesthetics, colors, text overlays, composition
+5. **Competitive Analysis Score** - How it compares to trending content in the niche
+
+For each section, provide:
+- A numerical score (0-100)
+- A summary paragraph of the analysis
+- 2-3 specific strengths (bullet points)
+- 2-3 actionable improvements (bullet points)
+
+ALSO INCLUDE (from original analysis):
+- Why This Worked (2-3 bullets on emotion, hook, audience appeal)
+- Visual Breakdown (camera, text, colors, framing)
+- Content Structure (opening, middle, payoff)
+- Adaptation for Brand (structure, topic, tone${trendingContext ? ", trending angle" : ""})
+- 3 Hook Rewrites in brand voice
+- Post Advice (platform, format, caption angle)
+
+ADDITIONAL SUGGESTIONS:
+- 3-5 caption variations optimized for engagement
+- 3 sets of hashtags (5-7 hashtags each, varying from broad to niche)
+- 3 alternative hook angles
+
+Respond in JSON format:
+{
+  "scores": {
+    "viralPotential": 85,
+    "hook": 90,
+    "body": 80,
+    "visual": 88,
+    "competitiveAnalysis": 82
+  },
+  "detailedFeedback": {
+    "viralPotential": {
+      "summary": "Comprehensive analysis paragraph...",
+      "strengths": ["strength 1", "strength 2", "strength 3"],
+      "improvements": ["improvement 1", "improvement 2"]
+    },
+    "hook": {
+      "summary": "Hook analysis paragraph...",
+      "strengths": ["strength 1", "strength 2"],
+      "improvements": ["improvement 1", "improvement 2"]
+    },
+    "body": {
+      "summary": "Body content analysis...",
+      "strengths": ["strength 1", "strength 2"],
+      "improvements": ["improvement 1", "improvement 2"]
+    },
+    "visual": {
+      "summary": "Visual analysis...",
+      "strengths": ["strength 1", "strength 2"],
+      "improvements": ["improvement 1", "improvement 2"]
+    },
+    "competitiveAnalysis": {
+      "summary": "Competitive positioning...",
+      "strengths": ["strength 1", "strength 2"],
+      "improvements": ["improvement 1", "improvement 2"]
+    }
+  },
+  "whyThisWorked": ["bullet 1", "bullet 2", "bullet 3"],
+  "visualBreakdown": {
+    "camera": "description",
+    "text": "text overlays",
+    "colors": "color palette",
+    "framing": "composition"
+  },
+  "contentStructure": {
+    "openingLine": "the hook",
+    "middleIdea": "value content",
+    "payoff": "CTA/payoff"
+  },
+  "adaptationForMyChannel": {
+    "sameStructure": "how to use same structure",
+    "differentTopic": "topic suggestions for brand",
+    "myTone": "brand voice adaptation"${trendingContext ? `,
+    "trendingAngle": "incorporate trending topics"` : ""}
+  },
+  "hookRewrites": ["hook 1", "hook 2", "hook 3"],
+  "postAdvice": {
+    "platform": "platforms",
+    "format": "format recommendation",
+    "captionAngle": "caption strategy"
+  },
+  "suggestions": {
+    "captionVariations": ["caption 1", "caption 2", "caption 3", "caption 4", "caption 5"],
+    "hashtagSets": [
+      ["#hashtag1", "#hashtag2", "#hashtag3", "#hashtag4", "#hashtag5"],
+      ["#hashtag6", "#hashtag7", "#hashtag8", "#hashtag9", "#hashtag10"],
+      ["#hashtag11", "#hashtag12", "#hashtag13", "#hashtag14", "#hashtag15"]
+    ],
+    "alternativeHooks": ["hook angle 1", "hook angle 2", "hook angle 3"]
+  }
+}`;
+
+  // Build image content array
+  const imageContent: Array<{ type: "image_url"; image_url: { url: string } }> = [
+    {
+      type: "image_url",
+      image_url: {
+        url: `data:${mimeType};base64,${imageBase64}`,
+      },
+    },
+  ];
+  
+  // Add additional images if provided
+  if (additionalImages && additionalImages.length > 0) {
+    for (const img of additionalImages) {
+      imageContent.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${img.mimeType};base64,${img.base64}`,
+        },
+      });
+    }
+  }
+
+  const multiImageNote = additionalImages && additionalImages.length > 0 
+    ? `\n\nNote: You are analyzing ${1 + additionalImages.length} related screenshots. Look for patterns and common elements across all images to provide comprehensive insights.`
+    : "";
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt + multiImageNote },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          ...imageContent,
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: 4000,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("No analysis generated from OpenAI");
+  }
+
+  return JSON.parse(content) as EnhancedContentAnalysisResult;
 }
 
 export interface AnalyticsExtractionResult {

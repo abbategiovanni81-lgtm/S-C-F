@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, editImage, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
+import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, analyzeViralContentEnhanced, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, editImage, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext, type EnhancedContentAnalysisResult } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -868,6 +868,115 @@ export async function registerRoutes(
       res.json(analysis);
     } catch (error: any) {
       console.error("Error analyzing content:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze content" });
+    }
+  });
+
+  // Enhanced content analyzer with detailed scoring
+  app.post("/api/analyze-content-enhanced", requireAuth, analyzeUpload.array("images", 10), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
+      }
+
+      const { briefId } = req.body;
+      let brandBrief = undefined;
+      let trendingContext: TrendingContext | undefined = undefined;
+
+      if (briefId) {
+        const brief = await storage.getBrandBrief(briefId);
+        // Verify brief belongs to user
+        if (brief && brief.userId === userId) {
+          brandBrief = {
+            name: brief.name,
+            brandVoice: brief.brandVoice,
+            targetAudience: brief.targetAudience,
+            contentGoals: brief.contentGoals,
+          };
+          
+          // Fetch trending topics for this specific brief
+          const trendingTopics = await storage.getTrendingTopics(undefined, briefId);
+          
+          // Fetch recent listening hits for this brief
+          const listeningHits = await storage.getListeningHitsByBrief(briefId);
+          
+          // Extract high-engagement themes from listening hits
+          const highEngagementThemes: string[] = [];
+          const keywordCounts: Record<string, number> = {};
+          
+          // Sort by engagement and take top hits
+          const sortedHits = [...listeningHits]
+            .sort((a, b) => (b.engagementScore || 0) - (a.engagementScore || 0))
+            .slice(0, 30);
+          
+          for (const hit of sortedHits) {
+            // Use matchedKeywords if available
+            if (hit.matchedKeywords && hit.matchedKeywords.length > 0) {
+              for (const keyword of hit.matchedKeywords) {
+                keywordCounts[keyword] = (keywordCounts[keyword] || 0) + (hit.engagementScore || 1);
+              }
+            } else if (hit.postContent) {
+              // Fallback: extract key phrases from post content
+              const words = hit.postContent.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, " ")
+                .split(/\s+/)
+                .filter(w => w.length > 4);
+              const uniqueWords = [...new Set(words)].slice(0, 5);
+              for (const word of uniqueWords) {
+                keywordCounts[word] = (keywordCounts[word] || 0) + (hit.engagementScore || 1);
+              }
+            }
+          }
+          
+          // Get top 5 themes weighted by engagement
+          const sortedThemes = Object.entries(keywordCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([keyword]) => keyword);
+          highEngagementThemes.push(...sortedThemes);
+          
+          // Also use brand brief content pillars if no listening data
+          if (highEngagementThemes.length === 0 && brief.contentGoals) {
+            const goalWords = brief.contentGoals.toLowerCase()
+              .replace(/[^a-z0-9\s]/g, " ")
+              .split(/\s+/)
+              .filter(w => w.length > 4)
+              .slice(0, 3);
+            highEngagementThemes.push(...goalWords);
+          }
+          
+          // Build trending context - always include if brief is selected
+          trendingContext = {
+            topics: trendingTopics.slice(0, 5).map(t => ({
+              topic: t.topic,
+              keywords: t.keywords || undefined,
+              engagement: t.engagementTotal || undefined,
+            })),
+            highEngagementThemes,
+          };
+        }
+      }
+
+      // Analyze all images and combine insights
+      const allImagesBase64 = files.map(f => ({
+        base64: f.buffer.toString("base64"),
+        mimeType: f.mimetype,
+      }));
+
+      // Analyze the first image as primary, pass all images for comprehensive analysis
+      const primaryImage = allImagesBase64[0];
+      const analysis = await analyzeViralContentEnhanced(
+        primaryImage.base64, 
+        primaryImage.mimeType, 
+        brandBrief, 
+        trendingContext,
+        allImagesBase64.length > 1 ? allImagesBase64.slice(1) : undefined
+      );
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Error analyzing content (enhanced):", error);
       res.status(500).json({ error: error.message || "Failed to analyze content" });
     }
   });
