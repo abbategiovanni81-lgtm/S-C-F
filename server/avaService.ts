@@ -137,9 +137,44 @@ export interface BestTimeResponse {
 }
 
 /**
+ * Helper function to safely parse OpenAI JSON responses
+ */
+function safeParseJSON(content: string | null | undefined, fallback: any = {}): any {
+  if (!content) {
+    console.error("OpenAI response content is empty");
+    return fallback;
+  }
+  
+  try {
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Failed to parse OpenAI JSON response:", error);
+    return fallback;
+  }
+}
+
+/**
+ * Check if Ava is configured properly
+ */
+export function isAvaConfigured(): boolean {
+  return !!process.env.OPENAI_API_KEY;
+}
+
+/**
+ * Validate API key before making calls
+ */
+function validateApiKey(): void {
+  if (!isAvaConfigured()) {
+    throw new Error("OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.");
+  }
+}
+
+/**
  * Generate 3 hook variations for content
  */
 export async function generateHooks(request: HookRequest): Promise<Hook[]> {
+  validateApiKey();
+  
   const systemPrompt = `You are an expert content creator specializing in viral hooks. Generate 3 unique, attention-grabbing hooks for ${request.platform} content.
   
 Consider:
@@ -150,24 +185,31 @@ Consider:
 
 Return hooks as JSON array with: text, type, estimatedEngagement (1-10 score)`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Topic: ${request.topic}` }
-    ],
-    temperature: 0.9,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Topic: ${request.topic}` }
+      ],
+      temperature: 0.9,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.hooks || [];
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { hooks: [] });
+    return response.hooks || [];
+  } catch (error: any) {
+    console.error("Error generating hooks:", error);
+    throw new Error(`Failed to generate hooks: ${error.message}`);
+  }
 }
 
 /**
  * Generate a full timed script with sections
  */
 export async function generateScript(request: ScriptRequest): Promise<Script> {
+  validateApiKey();
+  
   const durationMap = {
     short: { total: 30, hook: 3, intro: 5, buildup: 15, punchline: 5, cta: 2 },
     medium: { total: 60, hook: 5, intro: 8, buildup: 35, punchline: 8, cta: 4 },
@@ -193,34 +235,41 @@ Sections:
 
 Return as JSON with sections array containing: name, duration, content, timing`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Topic: ${request.topic}` }
-    ],
-    temperature: 0.8,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Topic: ${request.topic}` }
+      ],
+      temperature: 0.8,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  
-  // Calculate word count
-  const wordCount = response.sections?.reduce((acc: number, section: any) => {
-    return acc + (section.content?.split(/\s+/).length || 0);
-  }, 0) || 0;
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { sections: [] });
+    
+    // Calculate word count
+    const wordCount = response.sections?.reduce((acc: number, section: any) => {
+      return acc + (section.content?.split(/\s+/).length || 0);
+    }, 0) || 0;
 
-  return {
-    sections: response.sections || [],
-    totalDuration: durations.total,
-    wordCount
-  };
+    return {
+      sections: response.sections || [],
+      totalDuration: durations.total,
+      wordCount
+    };
+  } catch (error: any) {
+    console.error("Error generating script:", error);
+    throw new Error(`Failed to generate script: ${error.message}`);
+  }
 }
 
 /**
  * Generate 3 caption variations with hashtags
  */
 export async function generateCaptions(request: CaptionRequest): Promise<Caption[]> {
+  validateApiKey();
+  
   const systemPrompt = `You are a social media copywriter specializing in ${request.platform}. Generate 3 unique caption variations.
 
 Requirements:
@@ -237,24 +286,31 @@ Variations:
 
 Return as JSON array with: text, hashtagCount, characterCount, variation`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate captions for: ${request.contentTopic}` }
-    ],
-    temperature: 0.85,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate captions for: ${request.contentTopic}` }
+      ],
+      temperature: 0.85,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.captions || [];
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { captions: [] });
+    return response.captions || [];
+  } catch (error: any) {
+    console.error("Error generating captions:", error);
+    throw new Error(`Failed to generate captions: ${error.message}`);
+  }
 }
 
 /**
  * Generate niche and topic-based hashtags
  */
 export async function generateHashtags(request: HashtagRequest): Promise<Hashtag[]> {
+  validateApiKey();
+  
   const count = request.count || 15;
   const style = request.style || "balanced";
 
@@ -277,24 +333,31 @@ Requirements:
 
 Return as JSON array with: tag (without #), category, estimatedReach`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate hashtags for: ${request.topic} in ${request.niche}` }
-    ],
-    temperature: 0.75,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate hashtags for: ${request.topic} in ${request.niche}` }
+      ],
+      temperature: 0.75,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.hashtags || [];
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { hashtags: [] });
+    return response.hashtags || [];
+  } catch (error: any) {
+    console.error("Error generating hashtags:", error);
+    throw new Error(`Failed to generate hashtags: ${error.message}`);
+  }
 }
 
 /**
  * Generate content ideas with engagement estimates
  */
 export async function generateIdeas(request: IdeaRequest): Promise<ContentIdea[]> {
+  validateApiKey();
+  
   const count = request.count || 5;
   const trending = request.trendingTopics?.join(", ") || "current trends";
 
@@ -315,24 +378,31 @@ For each idea provide:
 
 Return as JSON array with these fields`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate content ideas for: ${request.niche}` }
-    ],
-    temperature: 0.9,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate content ideas for: ${request.niche}` }
+      ],
+      temperature: 0.9,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.ideas || [];
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { ideas: [] });
+    return response.ideas || [];
+  } catch (error: any) {
+    console.error("Error generating ideas:", error);
+    throw new Error(`Failed to generate ideas: ${error.message}`);
+  }
 }
 
 /**
  * Generate carousel slides
  */
 export async function generateCarouselSlides(request: CarouselRequest): Promise<CarouselSlide[]> {
+  validateApiKey();
+  
   const systemPrompt = `You are a carousel content designer. Create ${request.slideCount} slides for an Instagram/LinkedIn carousel.
 
 Requirements:
@@ -350,24 +420,31 @@ For each slide provide:
 
 Return as JSON array with these fields`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Create carousel about: ${request.topic}` }
-    ],
-    temperature: 0.8,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Create carousel about: ${request.topic}` }
+      ],
+      temperature: 0.8,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.slides || [];
+    const response = safeParseJSON(completion.choices[0]?.message?.content, { slides: [] });
+    return response.slides || [];
+  } catch (error: any) {
+    console.error("Error generating carousel slides:", error);
+    throw new Error(`Failed to generate carousel slides: ${error.message}`);
+  }
 }
 
 /**
  * Get viral forecast for content idea
  */
 export async function getViralForecast(request: ViralForecastRequest): Promise<ViralForecast> {
+  validateApiKey();
+  
   const systemPrompt = `You are a viral content analyst. Analyze the viral potential of a content idea.
 
 Requirements:
@@ -386,24 +463,38 @@ Provide detailed forecast with:
 
 Return as JSON object with these fields`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Forecast viral potential for: ${request.topic}` }
-    ],
-    temperature: 0.7,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Forecast viral potential for: ${request.topic}` }
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.forecast || response;
+    const response = safeParseJSON(completion.choices[0]?.message?.content, {
+      viralPotential: 5,
+      audienceSize: "50K-200K",
+      demographics: { primaryAge: "18-34", genderSplit: "50/50", interests: [] },
+      competitionLevel: "Medium",
+      recommendations: [],
+      bestTimeToPost: "Weekdays 9AM-5PM"
+    });
+    return response.forecast || response;
+  } catch (error: any) {
+    console.error("Error getting viral forecast:", error);
+    throw new Error(`Failed to get viral forecast: ${error.message}`);
+  }
 }
 
 /**
  * Get best time to post recommendations
  */
 export async function getBestTimeToPost(request: BestTimeRequest): Promise<BestTimeResponse> {
+  validateApiKey();
+  
   const systemPrompt = `You are a social media timing expert. Recommend optimal posting times.
 
 Requirements:
@@ -425,20 +516,25 @@ Base recommendations on:
 
 Return as JSON object with these fields`;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: `Best posting times for ${request.platform}` }
-    ],
-    temperature: 0.6,
-    response_format: { type: "json_object" }
-  });
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Best posting times for ${request.platform}` }
+      ],
+      temperature: 0.6,
+      response_format: { type: "json_object" }
+    });
 
-  const response = JSON.parse(completion.choices[0].message.content || "{}");
-  return response.schedule || response;
-}
-
-export function isAvaConfigured(): boolean {
-  return !!process.env.OPENAI_API_KEY;
+    const response = safeParseJSON(completion.choices[0]?.message?.content, {
+      recommendations: [],
+      peakEngagementWindow: "Weekdays 9AM-12PM",
+      avoidTimes: []
+    });
+    return response.schedule || response;
+  } catch (error: any) {
+    console.error("Error getting best time to post:", error);
+    throw new Error(`Failed to get best time to post: ${error.message}`);
+  }
 }

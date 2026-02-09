@@ -45,6 +45,7 @@ export default function KeywordsTrends() {
       const keywordData: KeywordData[] = data.hashtags.map((tag: any) => ({
         keyword: tag.tag,
         popularity: tag.estimatedReach === "High" ? 9 : tag.estimatedReach === "Medium" ? 6 : 4,
+        // TODO: Replace mock competition score with real data from keyword research API
         competition: Math.floor(Math.random() * 10) + 1, // Mock competition score
         trend: Math.random() > 0.5 ? "rising" : "stable",
         category: tag.category || "general"
