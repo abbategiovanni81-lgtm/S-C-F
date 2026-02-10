@@ -826,21 +826,40 @@ Analyze any viral content to understand why it worked. You can upload screenshot
 3. Paste the URL in the URL field
 4. AI fetches the video, extracts transcript (for YouTube), and analyzes everything
 
-For both methods, AI provides:
+**Option 3: Batch Analysis (NEW)**
+1. Collect multiple URLs (up to 10 at once)
+2. Go to Content Analyzer
+3. Use Batch Analysis feature
+4. Paste all URLs at once
+5. AI analyzes all content and finds common patterns
+6. Get a summary of winning strategies across all analyzed content
+
+For all methods, AI provides:
 - Hook Analysis - Why the opening grabbed attention
 - Visual Breakdown - What makes the image/video effective
 - Structure Analysis - How the content flows
 - Engagement Drivers - What makes people comment/share
 - Adaptation Ideas - How YOU could create something similar
+- **Style Extraction (NEW)** - Extract and apply visual/content styles
+- **Common Patterns (NEW)** - Find patterns across multiple pieces
 - **Generate Content** - Turn insights into new content
 - **Create Blog Post** - Convert analysis into a blog article
+
+### "What is Style Extraction?"
+Extract the complete style profile from any viral content:
+- Visual style (colors, framing, camera work)
+- Content tone and structure
+- Hook and pacing patterns
+- Application tips for your own content
+
+Use this to maintain brand consistency while adopting proven strategies.
 
 ### "What platforms support URL analysis?"
 - **YouTube** - Full analysis with transcript extraction, engagement metrics
 - **TikTok** - Video analysis with caption, audio, engagement data
 - **Instagram** - Post analysis (Reels, images, carousels)
 
-Best for: Learning from successful creators, building a library of proven tactics, improving your content strategy, quickly analyzing competitor content without screenshots
+Best for: Learning from successful creators, building a library of proven tactics, improving your content strategy, quickly analyzing competitor content without screenshots, finding patterns across multiple viral posts
 
 ---
 
@@ -923,6 +942,53 @@ Stock Image Search:
 4. Select and use in your content
 
 Best for: Carousel backgrounds, social post visuals, when you don't have photos
+
+---
+
+## IMAGE WORKSHOP - Advanced Image Creation & Editing (NEW)
+
+### "What is Image Workshop?"
+Image Workshop is your standalone advanced image creation, editing, and enhancement hub. Create professional images with multiple AI models, edit with reference images, and upscale to high resolution.
+
+### "How do I use Image Workshop?"
+Access it from the sidebar navigation. Three main tabs:
+
+**Generate Tab:**
+1. Select AI model:
+   - GPT Image-1 (Fast, good quality)
+   - Nano Banana Pro (Premium quality, 1K/2K/4K)
+   - Flux 2 Pro (Photorealistic)
+   - Seedream 4.5 (Creative styles)
+2. Write your prompt
+3. Choose resolution (1K/2K/4K)
+4. Select aspect ratio (Square/Portrait/Landscape)
+5. Optional: Upload reference image for style matching
+6. Generate and download
+
+**Edit Tab:**
+1. Upload source image (image to modify)
+2. Upload reference image (style to apply)
+3. Describe edits you want
+4. AI modifies your image based on reference
+5. Download edited result
+
+**Enhance Tab:**
+1. Upload any image
+2. Click Upscale
+3. AI enhances to higher resolution (up to 4K)
+4. Download enhanced image
+
+### "What AI models are available?"
+- **GPT Image-1** - OpenAI's DALL-E, fast and reliable
+- **Nano Banana Pro** - Premium quality with 1K/2K/4K options
+- **Flux 2 Pro** - Best for photorealistic images
+- **Seedream 4.5** - Creative and artistic styles
+
+### "What's the difference between Editor and Image Workshop?"
+- **Editor** - Quick edits within content workflow (edit image, create variation, animate)
+- **Image Workshop** - Standalone advanced creation tool with multiple models, reference images, and upscaling
+
+Best for: Creating high-quality brand assets, editing product photos, creating carousel images, upscaling low-res images, experimenting with different AI models
 
 ---
 

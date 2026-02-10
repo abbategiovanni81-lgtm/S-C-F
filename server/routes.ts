@@ -7915,7 +7915,7 @@ Focus on virality, relatability, and calls to action.`
   // Help chatbot endpoint
   app.post("/api/help-chat", async (req, res) => {
     try {
-      const { message, history = [] } = req.body;
+      const { message, history = [], workflowState } = req.body;
       
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Message is required" });
@@ -7924,10 +7924,7 @@ Focus on virality, relatability, and calls to action.`
       const { openai } = await import("./openai");
       const { HELP_KNOWLEDGE_BASE } = await import("./helpKnowledgeBase");
 
-      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
-        {
-          role: "system",
-          content: `You are a helpful assistant for SocialCommand, a social media management platform. Your job is to help users understand how to use the platform's features.
+      let systemPrompt = `You are Ava, a helpful and friendly assistant for SocialCommand, a social media management platform. Your job is to help users understand how to use the platform's features and guide them through content creation workflows.
 
 Use the following knowledge base to answer questions. Be friendly, concise, and helpful. If a question is outside the platform's features, politely redirect to relevant features.
 
@@ -7938,8 +7935,19 @@ Guidelines:
 - Use simple, everyday language
 - Suggest specific steps when explaining how to do something
 - If unsure, recommend checking the relevant section or ask for clarification
-- Never make up features that don't exist`
-        },
+- Never make up features that don't exist`;
+
+      // Add workflow guidance if user is in a workflow
+      if (workflowState) {
+        systemPrompt += `\n\nThe user is currently in an active workflow at step: ${workflowState.currentStep}. Provide contextual guidance for their current step and suggest next actions. When appropriate, include a workflowSuggestion in your response with an action button.`;
+      }
+
+      // Detect if user wants to create content with more specific patterns
+      const contentCreationKeywords = ['create content', 'make a post', 'generate content', 'new post', 'create video', 'make video'];
+      const wantsToCreate = contentCreationKeywords.some(keyword => message.toLowerCase().includes(keyword));
+
+      const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
+        { role: "system", content: systemPrompt },
         ...history.slice(-10).map((h: { role: string; content: string }) => ({
           role: h.role as "user" | "assistant",
           content: h.content,
@@ -7956,7 +7964,16 @@ Guidelines:
 
       const reply = response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response. Please try again.";
       
-      res.json({ reply });
+      // Add workflow suggestion if appropriate
+      let workflowSuggestion = undefined;
+      if (wantsToCreate && !workflowState) {
+        workflowSuggestion = {
+          action: "Start Content Creation Workflow",
+          step: "select-action"
+        };
+      }
+
+      res.json({ reply, workflowSuggestion });
     } catch (error: any) {
       console.error("Help chat error:", error);
       res.status(500).json({ error: "Sorry, I'm having trouble responding. Please try again." });
@@ -8738,6 +8755,246 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Image Workshop API endpoints
+  app.post("/api/image-workshop/generate", isAuthenticated, async (req, res) => {
+    try {
+      const { prompt, model, resolution, aspectRatio, referenceImage } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      let imageUrl: string;
+
+      // For now, use the existing image generation logic
+      // In a future enhancement, add support for other models (Nano Banana, Flux 2 Pro, etc.)
+      if (model === "gpt-image-1" || !model) {
+        const size = aspectRatio === "portrait" ? "1024x1792" : 
+                     aspectRatio === "landscape" ? "1792x1024" : "1024x1024";
+        
+        const dalleImage = await generateDalleImage(prompt, size);
+        imageUrl = await downloadAndSaveMedia(dalleImage, "image");
+      } else {
+        // TODO: Integrate other models (Nano Banana Pro, Flux 2 Pro, Seedream)
+        // For now, fallback to DALL-E
+        const size = aspectRatio === "portrait" ? "1024x1792" : 
+                     aspectRatio === "landscape" ? "1792x1024" : "1024x1024";
+        const dalleImage = await generateDalleImage(prompt, size);
+        imageUrl = await downloadAndSaveMedia(dalleImage, "image");
+      }
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ imageUrl });
+    } catch (error: any) {
+      console.error("Image Workshop generate error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/image-workshop/edit", isAuthenticated, async (req, res) => {
+    try {
+      const { sourceImage, referenceImage, prompt } = req.body;
+
+      if (!sourceImage || !referenceImage) {
+        return res.status(400).json({ error: "Source and reference images are required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      // Use OpenAI image editing
+      const editedImageUrl = await editImage(sourceImage, prompt || "Edit this image based on the reference");
+      const savedUrl = await downloadAndSaveMedia(editedImageUrl, "image");
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ imageUrl: savedUrl });
+    } catch (error: any) {
+      console.error("Image Workshop edit error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/image-workshop/upscale", isAuthenticated, async (req, res) => {
+    try {
+      const { imageUrl } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Image URL is required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      // TODO: Integrate actual upscaling service (e.g., Real-ESRGAN via Replicate or A2E)
+      // For now, return the same image (placeholder)
+      // In production, this would call an upscaling API
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ 
+        imageUrl,
+        message: "Upscaling feature coming soon. Using original image."
+      });
+    } catch (error: any) {
+      console.error("Image Workshop upscale error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Enhanced Content Analyzer - Batch Analysis
+  app.post("/api/content-analyzer/batch", isAuthenticated, async (req, res) => {
+    try {
+      const { urls, briefId } = req.body;
+
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: "URLs array is required" });
+      }
+
+      if (urls.length > 10) {
+        return res.status(400).json({ error: "Maximum 10 URLs per batch" });
+      }
+
+      // Check quota for each URL
+      for (const url of urls) {
+        await assertQuota(req.user!.id, "analysis");
+      }
+
+      const results = [];
+      
+      for (const url of urls) {
+        try {
+          // Analyze each URL individually
+          const analysis = await analyzeViralContent(url, briefId);
+          results.push({
+            url,
+            success: true,
+            analysis
+          });
+          
+          // Increment usage for each successful analysis
+          await incrementUsage(req.user!.id, "analysis", 1);
+        } catch (error: any) {
+          results.push({
+            url,
+            success: false,
+            error: error.message
+          });
+        }
+      }
+
+      // Extract common patterns across successful analyses
+      const successfulAnalyses = results.filter(r => r.success).map(r => r.analysis);
+      const commonPatterns = extractCommonPatterns(successfulAnalyses);
+
+      res.json({ 
+        results,
+        commonPatterns,
+        summary: {
+          total: urls.length,
+          successful: successfulAnalyses.length,
+          failed: urls.length - successfulAnalyses.length
+        }
+      });
+    } catch (error: any) {
+      console.error("Batch analysis error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Helper function to extract common patterns
+  function extractCommonPatterns(analyses: any[]): any {
+    if (analyses.length === 0) return null;
+
+    // Extract common hooks, themes, and strategies
+    const allHooks = analyses.flatMap(a => a.hookRewrites || []);
+    const allThemes = analyses.flatMap(a => a.whyThisWorked || []);
+    
+    // Deduplicate first, then take top items
+    const uniqueHooks = [...new Set(allHooks)];
+    const uniqueThemes = [...new Set(allThemes)];
+    
+    return {
+      commonHookTypes: uniqueHooks.slice(0, 5),
+      commonThemes: uniqueThemes.slice(0, 5),
+      recommendations: [
+        uniqueHooks.length > 0 ? `Focus on hooks similar to: "${uniqueHooks[0]}"` : "Focus on hooks that create curiosity and urgency",
+        uniqueThemes.length > 0 ? `Apply successful strategy: ${uniqueThemes[0]}` : "Use visual variety to maintain engagement",
+        "Include clear call-to-actions",
+        "Test different formats based on platform"
+      ]
+    };
+  }
+
+  // Enhanced Content Analyzer - Style Extraction
+  app.post("/api/content-analyzer/extract-style", isAuthenticated, async (req, res) => {
+    try {
+      const { url, briefId } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      await assertQuota(req.user!.id, "analysis");
+
+      const analysis = await analyzeViralContent(url, briefId);
+      
+      // Extract style patterns
+      const styleProfile = {
+        visual: {
+          colors: analysis.visualBreakdown?.colors || "Not analyzed",
+          framing: analysis.visualBreakdown?.framing || "Not analyzed",
+          camera: analysis.visualBreakdown?.camera || "Not analyzed"
+        },
+        content: {
+          tone: analysis.adaptationForMyChannel?.myTone || "Not specified",
+          structure: analysis.contentStructure || {},
+          hookStyle: analysis.hookRewrites?.[0] || "Not analyzed"
+        },
+        posting: {
+          platform: analysis.postAdvice?.platform || "Not specified",
+          format: analysis.postAdvice?.format || "Not specified",
+          captionAngle: analysis.postAdvice?.captionAngle || "Not specified"
+        },
+        applicationTips: [
+          "Use similar visual style for brand consistency",
+          "Adapt the hook structure to your content",
+          "Maintain the same pacing and energy level",
+          "Apply the color palette to your brand"
+        ]
+      };
+
+      await incrementUsage(req.user!.id, "analysis", 1);
+
+      res.json({ styleProfile });
+    } catch (error: any) {
+      console.error("Style extraction error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
       res.status(500).json({ error: error.message });
     }
   });
