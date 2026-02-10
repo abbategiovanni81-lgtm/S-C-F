@@ -7942,8 +7942,8 @@ Guidelines:
         systemPrompt += `\n\nThe user is currently in an active workflow at step: ${workflowState.currentStep}. Provide contextual guidance for their current step and suggest next actions. When appropriate, include a workflowSuggestion in your response with an action button.`;
       }
 
-      // Detect if user wants to create content
-      const contentCreationKeywords = ['create', 'make', 'generate', 'build', 'start', 'new content'];
+      // Detect if user wants to create content with more specific patterns
+      const contentCreationKeywords = ['create content', 'make a post', 'generate content', 'new post', 'create video', 'make video'];
       const wantsToCreate = contentCreationKeywords.some(keyword => message.toLowerCase().includes(keyword));
 
       const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -8933,12 +8933,16 @@ Requirements:
     const allHooks = analyses.flatMap(a => a.hookRewrites || []);
     const allThemes = analyses.flatMap(a => a.whyThisWorked || []);
     
+    // Deduplicate first, then take top items
+    const uniqueHooks = [...new Set(allHooks)];
+    const uniqueThemes = [...new Set(allThemes)];
+    
     return {
-      commonHookTypes: [...new Set(allHooks.slice(0, 5))],
-      commonThemes: [...new Set(allThemes.slice(0, 5))],
+      commonHookTypes: uniqueHooks.slice(0, 5),
+      commonThemes: uniqueThemes.slice(0, 5),
       recommendations: [
-        "Focus on hooks that create curiosity and urgency",
-        "Use visual variety to maintain engagement",
+        uniqueHooks.length > 0 ? `Focus on hooks similar to: "${uniqueHooks[0]}"` : "Focus on hooks that create curiosity and urgency",
+        uniqueThemes.length > 0 ? `Apply successful strategy: ${uniqueThemes[0]}` : "Use visual variety to maintain engagement",
         "Include clear call-to-actions",
         "Test different formats based on platform"
       ]

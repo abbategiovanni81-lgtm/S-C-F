@@ -25,16 +25,38 @@ export default function ImageWorkshop() {
   const [aspectRatio, setAspectRatio] = useState<"square" | "portrait" | "landscape">("square");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
-  // Simple file upload handler
+  // File upload handler with validation
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setImage: (url: string) => void) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPEG, PNG, GIF, or WebP image.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const generateImageMutation = useMutation({
