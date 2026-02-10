@@ -12,9 +12,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Wand2, Upload, Download, Sparkles, ImageIcon, 
-  Maximize2, Palette, Replace, Scissors, Trash2 
+  Maximize2, Palette, Replace, Trash2 
 } from "lucide-react";
-import { ObjectUploader } from "@/components/ObjectUploader";
 
 export default function ImageWorkshop() {
   const { toast } = useToast();
@@ -25,6 +24,18 @@ export default function ImageWorkshop() {
   const [resolution, setResolution] = useState<"1k" | "2k" | "4k">("1k");
   const [aspectRatio, setAspectRatio] = useState<"square" | "portrait" | "landscape">("square");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+
+  // Simple file upload handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, setImage: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const generateImageMutation = useMutation({
     mutationFn: async (params: {
@@ -257,11 +268,14 @@ export default function ImageWorkshop() {
 
                   <div>
                     <Label>Reference Image (Optional)</Label>
-                    <ObjectUploader
-                      onUploadComplete={(path) => setReferenceImage(path)}
-                      accept="image/*"
-                      label="Upload Reference"
-                    />
+                    <div className="mt-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, setReferenceImage)}
+                        className="cursor-pointer"
+                      />
+                    </div>
                     {referenceImage && (
                       <div className="mt-2 relative">
                         <img
@@ -344,11 +358,14 @@ export default function ImageWorkshop() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Source Image</Label>
-                  <ObjectUploader
-                    onUploadComplete={(path) => setSelectedImage(path)}
-                    accept="image/*"
-                    label="Upload Source Image"
-                  />
+                  <div className="mt-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, setSelectedImage)}
+                      className="cursor-pointer"
+                    />
+                  </div>
                   {selectedImage && (
                     <img
                       src={selectedImage}
@@ -360,11 +377,14 @@ export default function ImageWorkshop() {
 
                 <div>
                   <Label>Reference Image</Label>
-                  <ObjectUploader
-                    onUploadComplete={(path) => setReferenceImage(path)}
-                    accept="image/*"
-                    label="Upload Reference Image"
-                  />
+                  <div className="mt-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, setReferenceImage)}
+                      className="cursor-pointer"
+                    />
+                  </div>
                   {referenceImage && (
                     <img
                       src={referenceImage}
@@ -435,11 +455,14 @@ export default function ImageWorkshop() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Image to Upscale</Label>
-                  <ObjectUploader
-                    onUploadComplete={(path) => setSelectedImage(path)}
-                    accept="image/*"
-                    label="Upload Image"
-                  />
+                  <div className="mt-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, setSelectedImage)}
+                      className="cursor-pointer"
+                    />
+                  </div>
                   {selectedImage && (
                     <img
                       src={selectedImage}
