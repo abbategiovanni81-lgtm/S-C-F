@@ -8742,5 +8742,108 @@ Requirements:
     }
   });
 
+  // Image Workshop API endpoints
+  app.post("/api/image-workshop/generate", isAuthenticated, async (req, res) => {
+    try {
+      const { prompt, model, resolution, aspectRatio, referenceImage } = req.body;
+
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      let imageUrl: string;
+
+      // For now, use the existing image generation logic
+      // In a future enhancement, add support for other models (Nano Banana, Flux 2 Pro, etc.)
+      if (model === "gpt-image-1" || !model) {
+        const size = aspectRatio === "portrait" ? "1024x1792" : 
+                     aspectRatio === "landscape" ? "1792x1024" : "1024x1024";
+        
+        const dalleImage = await generateDalleImage(prompt, size);
+        imageUrl = await downloadAndSaveMedia(dalleImage, "image");
+      } else {
+        // TODO: Integrate other models (Nano Banana Pro, Flux 2 Pro, Seedream)
+        // For now, fallback to DALL-E
+        const size = aspectRatio === "portrait" ? "1024x1792" : 
+                     aspectRatio === "landscape" ? "1792x1024" : "1024x1024";
+        const dalleImage = await generateDalleImage(prompt, size);
+        imageUrl = await downloadAndSaveMedia(dalleImage, "image");
+      }
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ imageUrl });
+    } catch (error: any) {
+      console.error("Image Workshop generate error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/image-workshop/edit", isAuthenticated, async (req, res) => {
+    try {
+      const { sourceImage, referenceImage, prompt } = req.body;
+
+      if (!sourceImage || !referenceImage) {
+        return res.status(400).json({ error: "Source and reference images are required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      // Use OpenAI image editing
+      const editedImageUrl = await editImage(sourceImage, prompt || "Edit this image based on the reference");
+      const savedUrl = await downloadAndSaveMedia(editedImageUrl, "image");
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ imageUrl: savedUrl });
+    } catch (error: any) {
+      console.error("Image Workshop edit error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/image-workshop/upscale", isAuthenticated, async (req, res) => {
+    try {
+      const { imageUrl } = req.body;
+
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Image URL is required" });
+      }
+
+      // Check quota
+      await assertQuota(req.user!.id, "image");
+
+      // TODO: Integrate actual upscaling service (e.g., Real-ESRGAN via Replicate or A2E)
+      // For now, return the same image (placeholder)
+      // In production, this would call an upscaling API
+
+      // Increment usage
+      await incrementUsage(req.user!.id, "image", 1);
+
+      res.json({ 
+        imageUrl,
+        message: "Upscaling feature coming soon. Using original image."
+      });
+    } catch (error: any) {
+      console.error("Image Workshop upscale error:", error);
+      if (error instanceof QuotaExceededError) {
+        return res.status(403).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return httpServer;
 }

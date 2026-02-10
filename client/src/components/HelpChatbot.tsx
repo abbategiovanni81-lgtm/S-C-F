@@ -3,15 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Send, Loader2, User } from "lucide-react";
+import { X, Send, Loader2, User, Sparkles } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import avaAvatar from "@assets/generated_images/hybrid_ai_human_avatar.png";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import { useWorkflow } from "@/lib/workflowContext";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  workflowSuggestion?: {
+    action: string;
+    step: string;
+  };
 }
 
 function formatChatMessage(text: string): React.ReactNode {
@@ -58,22 +63,29 @@ export function HelpChatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hey! I'm Ava, your AI guide to SocialCommand. Ask me anything - how to create content, which tools to use, tips for your niche, or any platform questions!",
+      content: "Hey! I'm Ava, your AI guide to SocialCommand. 👋\n\nI can help you:\n• **Create content** - Guide you step-by-step\n• **Answer questions** - Explain features\n• **Give tips** - Best practices for your niche\n\nWhat would you like to do?",
     },
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { workflowState, isInWorkflow, setIsInWorkflow } = useWorkflow();
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
       const res = await apiRequest("POST", "/api/help-chat", {
         message,
         history: messages,
+        workflowState: isInWorkflow ? workflowState : undefined,
       });
       return res.json();
     },
     onSuccess: (data) => {
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      const newMessage: Message = {
+        role: "assistant",
+        content: data.reply,
+        workflowSuggestion: data.workflowSuggestion,
+      };
+      setMessages((prev) => [...prev, newMessage]);
     },
     onError: () => {
       setMessages((prev) => [
@@ -157,15 +169,31 @@ export function HelpChatbot() {
                       <img src={avaAvatar} alt="Ava" className="w-full h-full object-cover" />
                     </div>
                   )}
-                  <div
-                    className={`rounded-lg px-3 py-2 max-w-[85%] text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                    data-testid={`message-${msg.role}-${i}`}
-                  >
-                    {msg.role === "assistant" ? formatChatMessage(msg.content) : msg.content}
+                  <div className="flex flex-col max-w-[85%]">
+                    <div
+                      className={`rounded-lg px-3 py-2 text-sm ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                      data-testid={`message-${msg.role}-${i}`}
+                    >
+                      {msg.role === "assistant" ? formatChatMessage(msg.content) : msg.content}
+                    </div>
+                    {msg.workflowSuggestion && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 text-xs"
+                        onClick={() => {
+                          setIsInWorkflow(true);
+                          setIsOpen(false);
+                        }}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        {msg.workflowSuggestion.action}
+                      </Button>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">

@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WorkflowProvider } from "@/lib/workflowContext";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
@@ -31,6 +32,7 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import ImageWorkshop from "@/pages/ImageWorkshop";
 
 function AuthenticatedRoutes() {
   return (
@@ -40,6 +42,7 @@ function AuthenticatedRoutes() {
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
       <Route path="/content-comparison" component={ContentComparison} />
+      <Route path="/image-workshop" component={ImageWorkshop} />
       <Route path="/edit-merge" component={EditMerge} />
       <Route path="/edit-merge/:contentId" component={EditMerge} />
       <Route path="/editor" component={Editor} />
@@ -97,10 +100,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <WorkflowProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </WorkflowProvider>
     </QueryClientProvider>
   );
 }
