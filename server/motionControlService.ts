@@ -4,6 +4,8 @@ export interface MotionControlModel {
   description: string;
   supportedFormats: string[];
   maxDuration?: number; // in seconds
+  endpoint: string; // Full endpoint path
+  statusPath: string; // Path for status checking
 }
 
 export const MOTION_CONTROL_MODELS: MotionControlModel[] = [
@@ -13,6 +15,8 @@ export const MOTION_CONTROL_MODELS: MotionControlModel[] = [
     description: "High-quality character animation with precise motion transfer. Best for realistic human movements.",
     supportedFormats: ["mp4", "mov"],
     maxDuration: 30,
+    endpoint: "fal-ai/bytedance/dreamactor/v2",
+    statusPath: "bytedance/dreamactor",
   },
   {
     id: "kling-motion-control",
@@ -20,6 +24,8 @@ export const MOTION_CONTROL_MODELS: MotionControlModel[] = [
     description: "Advanced motion control for dynamic character animations. Supports complex motion patterns.",
     supportedFormats: ["mp4", "mov"],
     maxDuration: 60,
+    endpoint: "fal-ai/kling-video/v2.6/pro/motion-control",
+    statusPath: "kling-video",
   },
 ];
 
@@ -52,15 +58,12 @@ export class MotionControlService {
     return MOTION_CONTROL_MODELS;
   }
 
-  private getModelEndpoint(model: string): string {
-    switch (model) {
-      case "dreamactor":
-        return "fal-ai/bytedance/dreamactor/v2";
-      case "kling-motion-control":
-        return "fal-ai/kling-video/v2.6/pro/motion-control";
-      default:
-        throw new Error(`Unknown model: ${model}`);
+  private getModelConfig(modelId: string): MotionControlModel {
+    const model = MOTION_CONTROL_MODELS.find(m => m.id === modelId);
+    if (!model) {
+      throw new Error(`Unknown model: ${modelId}`);
     }
+    return model;
   }
 
   async submitMotionControl(request: MotionControlRequest): Promise<{ requestId: string }> {
@@ -68,14 +71,14 @@ export class MotionControlService {
       throw new Error("Fal.ai API key not configured. Please add FAL_API_KEY to your environment.");
     }
 
-    const endpoint = this.getModelEndpoint(request.model);
+    const modelConfig = this.getModelConfig(request.model);
     
     const payload = {
       character_image_url: request.characterImageUrl,
       motion_video_url: request.motionVideoUrl,
     };
 
-    const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+    const response = await fetch(`${this.baseUrl}/${modelConfig.endpoint}`, {
       method: "POST",
       headers: {
         "Authorization": `Key ${this.apiKey}`,
@@ -98,10 +101,9 @@ export class MotionControlService {
       throw new Error("Fal.ai API key not configured.");
     }
 
-    // Get the base model path for status check
-    const modelPath = model === "dreamactor" ? "bytedance/dreamactor" : "kling-video";
+    const modelConfig = this.getModelConfig(model);
     
-    const response = await fetch(`${this.baseUrl}/fal-ai/${modelPath}/requests/${requestId}/status`, {
+    const response = await fetch(`${this.baseUrl}/fal-ai/${modelConfig.statusPath}/requests/${requestId}/status`, {
       headers: {
         "Authorization": `Key ${this.apiKey}`,
       },
@@ -117,7 +119,7 @@ export class MotionControlService {
     
     if (data.status === "COMPLETED") {
       // Fetch the actual result
-      const resultResponse = await fetch(`${this.baseUrl}/fal-ai/${modelPath}/requests/${requestId}`, {
+      const resultResponse = await fetch(`${this.baseUrl}/fal-ai/${modelConfig.statusPath}/requests/${requestId}`, {
         headers: {
           "Authorization": `Key ${this.apiKey}`,
         },

@@ -47,6 +47,8 @@ interface MotionJob {
 }
 
 // Hardcoded motion templates as placeholders
+// Note: These are placeholder templates. In production, actual template videos
+// and thumbnails should be added to the public/motion-templates directory.
 const MOTION_TEMPLATES = [
   { id: "1", name: "Dance Move 1", thumbnail: "/motion-templates/dance1.jpg", previewVideo: "" },
   { id: "2", name: "Dance Move 2", thumbnail: "/motion-templates/dance2.jpg", previewVideo: "" },
@@ -199,6 +201,8 @@ export default function MotionControl() {
 
   const getTierLimit = () => {
     if (!user?.tier) return 0;
+    // Note: These limits are duplicated from TIER_LIMITS in shared/models/auth.ts
+    // They are used here for display purposes only. Actual enforcement happens on backend.
     const limits: Record<string, number> = {
       free: 0,
       core: -1, // unlimited

@@ -8801,7 +8801,8 @@ Requirements:
         falRequestId: requestId,
       }).returning();
 
-      // Increment usage
+      // Increment usage - if this fails, the error will be caught and returned to the user
+      // The job record will still exist in "queued" status, which is acceptable
       await incrementUsage(userId, "motionControlJobs", 1);
 
       res.json({ 
@@ -8859,7 +8860,12 @@ Requirements:
 
             // Update job status if changed
             if (result.status !== job.status) {
-              const updateData: any = { status: result.status };
+              const updateData: {
+                status: typeof result.status;
+                outputVideoUrl?: string;
+                completedAt?: Date;
+                errorMessage?: string;
+              } = { status: result.status };
               
               if (result.status === "completed" && result.videoUrl) {
                 updateData.outputVideoUrl = result.videoUrl;
