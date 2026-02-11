@@ -79,8 +79,9 @@ export default function MotionControl() {
   // Fetch user's jobs
   const { data: jobsData, refetch: refetchJobs } = useQuery<{ jobs: MotionJob[] }>({
     queryKey: ["/api/motion-control/jobs"],
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Auto-refresh if there are pending/processing jobs
+      const data = query.state.data;
       const hasPendingJobs = data?.jobs?.some(
         job => job.status === "queued" || job.status === "processing"
       );
