@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film, HardDrive, Search, GripVertical, Edit, Download, Send } from "lucide-react";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film, HardDrive, Search, GripVertical, Download, Send } from "lucide-react";
 import type { GeneratedContent, BrandBrief, ScenePrompt, Storyboard, SceneMetadata } from "@shared/schema";
 import { VideoEditor, ProcessingOverlay } from "@/components/VideoEditor";
 import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
@@ -809,11 +809,14 @@ export default function EditMerge() {
       const newScene = await res.json();
       
       // Start generating 4 video options
-      handleGenerateSceneOptions(newScene.id);
+      const cleanup = await handleGenerateSceneOptions(newScene.id);
       
       setSceneInput("");
       queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
       toast({ title: "Scene added!", description: "Generating video options..." });
+      
+      // Store cleanup function for later use (e.g., when component unmounts)
+      return cleanup;
     } catch (error: any) {
       toast({ title: "Failed to add scene", description: error.message, variant: "destructive" });
     }
@@ -830,8 +833,8 @@ export default function EditMerge() {
       });
       if (!res.ok) throw new Error("Failed to generate videos");
       
-      // Poll for completion
-      pollSceneGeneration(sceneId);
+      // Poll for completion and return cleanup function
+      return pollSceneGeneration(sceneId);
     } catch (error: any) {
       toast({ title: "Failed to generate videos", description: error.message, variant: "destructive" });
     }
@@ -853,7 +856,10 @@ export default function EditMerge() {
           queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
           
           // Show video options modal
-          const scene = storyboardScenes.find(s => s.id === sceneId);
+          const updatedScenes = await queryClient.fetchQuery({ 
+            queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] 
+          }) as SceneMetadata[];
+          const scene = updatedScenes.find(s => s.id === sceneId);
           if (scene && scene.videoOptions) {
             setCurrentSceneOptions({ sceneId, options: scene.videoOptions });
             setShowVideoOptions(true);
@@ -865,6 +871,9 @@ export default function EditMerge() {
         clearInterval(pollInterval);
       }
     }, 5000);
+    
+    // Cleanup function to prevent memory leaks
+    return () => clearInterval(pollInterval);
   };
 
   const handleSelectVideoOption = async (optionIndex: number) => {
@@ -1576,7 +1585,11 @@ export default function EditMerge() {
                   <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                     Build multi-scene videos from scratch. Add scene descriptions and we'll generate 4 options for each.
                   </p>
-                  <Button onClick={currentStoryboard ? () => {} : handleCreateStoryboard} size="lg">
+                  <Button 
+                    onClick={handleCreateStoryboard} 
+                    size="lg"
+                    disabled={!!currentStoryboard}
+                  >
                     {currentStoryboard ? "Add First Scene Below" : "Start Now"}
                   </Button>
                 </CardContent>
@@ -1628,17 +1641,6 @@ export default function EditMerge() {
                             
                             {/* Actions */}
                             <div className="flex items-center gap-2">
-                              <ResponsiveTooltip content="Edit scene">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => {
-                                    // TODO: Add edit functionality
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </ResponsiveTooltip>
                               <ResponsiveTooltip content="Delete scene">
                                 <Button 
                                   variant="ghost" 
