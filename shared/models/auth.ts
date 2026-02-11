@@ -35,6 +35,7 @@ export const TIER_LIMITS = {
     socialListeningKeywords: 0,
     socialChannels: 0,    // No social channels
     contentComparisons: 0, // No access - paid tiers only
+    motionControlJobs: 0, // blocked
     usesAppApis: false,
     allowedApis: ["openai", "claude", "pexels"], // Only these APIs
     steveAIVideos: 0,
@@ -53,6 +54,7 @@ export const TIER_LIMITS = {
     socialListeningKeywords: -1,
     socialChannels: 1,    // 1 social channel
     contentComparisons: 1, // 1 per month
+    motionControlJobs: -1, // Unlimited with own API
     usesAppApis: false,   // Must use own APIs
     allowedApis: ["all"], // All APIs allowed
     steveAIVideos: 0,     // Own API if they get one
@@ -71,6 +73,7 @@ export const TIER_LIMITS = {
     socialListeningKeywords: 4,
     socialChannels: 6,    // 6 social channels (major platforms covered)
     contentComparisons: -1, // Unlimited - drives engagement
+    motionControlJobs: 10, // 10 motion control jobs
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
@@ -89,6 +92,7 @@ export const TIER_LIMITS = {
     socialListeningKeywords: 8,
     socialChannels: 8,    // 8 social channels (every platform covered)
     contentComparisons: -1, // Unlimited - drives engagement
+    motionControlJobs: 25, // 25 motion control jobs
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 0,
@@ -108,6 +112,7 @@ export const TIER_LIMITS = {
     socialListeningKeywords: 12,
     socialChannels: 10,   // All 10 social channels
     contentComparisons: -1, // Unlimited
+    motionControlJobs: 40, // 40 motion control jobs
     usesAppApis: true,
     allowedApis: ["all"],
     steveAIVideos: 120,   // 120 min long-form video (+20%)
@@ -176,6 +181,7 @@ export const usagePeriods = pgTable("usage_periods", {
   soraVideosUsed: integer("sora_videos_used").notNull().default(0),     // OpenAI Sora videos
   socialListeningUsed: integer("social_listening_used").notNull().default(0),
   contentComparisonsUsed: integer("content_comparisons_used").notNull().default(0),
+  motionControlJobsUsed: integer("motion_control_jobs_used").notNull().default(0), // Motion Control jobs
   topupMultiplier: real("topup_multiplier").notNull().default(0), // Sum of all top-ups (0.4 per £10)
   // Creator Studio usage
   voiceClonesUsed: integer("voice_clones_used").notNull().default(0),

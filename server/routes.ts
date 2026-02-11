@@ -2,10 +2,10 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
-import { eq, sql, inArray } from "drizzle-orm";
+import { eq, sql, inArray, desc } from "drizzle-orm";
 import { users, OWNER_EMAIL, TIER_LIMITS, usagePeriods, usageTopups, type TierType } from "@shared/models/auth";
 import { getUncachableStripeClient, getStripePublishableKey, getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -35,6 +35,7 @@ import { processVideoForClips, processVideoForClipsFromPath, extractAndUploadCli
 import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVideo, createSoraImageToVideo, remixSoraVideo } from "./soraService";
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
+import { motionControlService } from "./motionControlService";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -8738,6 +8739,163 @@ Requirements:
       });
     } catch (error: any) {
       console.error("Drive select video error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Motion Control routes
+  app.get("/api/motion-control/models", isAuthenticated, async (req, res) => {
+    try {
+      const models = motionControlService.getModels();
+      res.json({ models });
+    } catch (error: any) {
+      console.error("Motion control models error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/motion-control/generate", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const { characterImageUrl, motionVideoUrl, model } = req.body;
+
+      if (!characterImageUrl || !motionVideoUrl || !model) {
+        return res.status(400).json({ 
+          error: "characterImageUrl, motionVideoUrl, and model are required" 
+        });
+      }
+
+      // Check if service is configured
+      if (!motionControlService.isConfigured()) {
+        return res.status(503).json({ 
+          error: "Motion control service is not configured. Please contact support." 
+        });
+      }
+
+      // Check quota
+      try {
+        await assertQuota(userId, "motionControlJobs", 1);
+      } catch (error) {
+        if (error instanceof QuotaExceededError) {
+          return res.status(403).json({ 
+            error: "Motion control quota exceeded. Please upgrade your plan." 
+          });
+        }
+        throw error;
+      }
+
+      // Submit job to Fal.ai
+      const { requestId } = await motionControlService.submitMotionControl({
+        characterImageUrl,
+        motionVideoUrl,
+        model,
+      });
+
+      // Create job record in database
+      const [job] = await db.insert(motionJobs).values({
+        userId,
+        status: "queued",
+        model,
+        characterImageUrl,
+        motionVideoUrl,
+        falRequestId: requestId,
+      }).returning();
+
+      // Increment usage - if this fails, the error will be caught and returned to the user
+      // The job record will still exist in "queued" status, which is acceptable
+      await incrementUsage(userId, "motionControlJobs", 1);
+
+      res.json({ 
+        jobId: job.id,
+        status: job.status,
+        message: "Motion control job submitted successfully"
+      });
+    } catch (error: any) {
+      console.error("Motion control generate error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motion-control/jobs", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      
+      const jobs = await db.select()
+        .from(motionJobs)
+        .where(eq(motionJobs.userId, userId))
+        .orderBy(desc(motionJobs.createdAt));
+
+      res.json({ jobs });
+    } catch (error: any) {
+      console.error("Motion control jobs list error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/motion-control/jobs/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const jobId = req.params.id;
+
+      const [job] = await db.select()
+        .from(motionJobs)
+        .where(eq(motionJobs.id, jobId));
+
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      if (job.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+
+      // If job is still processing, check status with Fal.ai
+      if (job.status === "queued" || job.status === "processing") {
+        if (job.falRequestId) {
+          try {
+            const result = await motionControlService.checkStatus(
+              job.falRequestId, 
+              job.model
+            );
+
+            // Update job status if changed
+            if (result.status !== job.status) {
+              const updateData: {
+                status: typeof result.status;
+                outputVideoUrl?: string;
+                completedAt?: Date;
+                errorMessage?: string;
+              } = { status: result.status };
+              
+              if (result.status === "completed" && result.videoUrl) {
+                updateData.outputVideoUrl = result.videoUrl;
+                updateData.completedAt = new Date();
+              } else if (result.status === "failed") {
+                updateData.errorMessage = result.errorMessage || "Unknown error";
+                updateData.completedAt = new Date();
+              }
+
+              await db.update(motionJobs)
+                .set(updateData)
+                .where(eq(motionJobs.id, jobId));
+
+              // Fetch updated job
+              const [updatedJob] = await db.select()
+                .from(motionJobs)
+                .where(eq(motionJobs.id, jobId));
+
+              return res.json({ job: updatedJob });
+            }
+          } catch (error) {
+            console.error("Error checking job status:", error);
+            // Return current job data if status check fails
+          }
+        }
+      }
+
+      res.json({ job });
+    } catch (error: any) {
+      console.error("Motion control job status error:", error);
       res.status(500).json({ error: error.message });
     }
   });

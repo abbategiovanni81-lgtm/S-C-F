@@ -630,3 +630,30 @@ export const insertBlogSchema = createInsertSchema(blogs).omit({
 
 export type InsertBlog = z.infer<typeof insertBlogSchema>;
 export type Blog = typeof blogs.$inferSelect;
+
+// Motion Control Jobs - track user's motion control video generation jobs
+export const MOTION_JOB_STATUS = ["queued", "processing", "completed", "failed"] as const;
+export type MotionJobStatus = typeof MOTION_JOB_STATUS[number];
+
+export const motionJobs = pgTable("motion_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("queued"), // "queued", "processing", "completed", "failed"
+  model: text("model").notNull(), // "dreamactor", "kling-motion-control"
+  characterImageUrl: text("character_image_url").notNull(), // User's character image
+  motionVideoUrl: text("motion_video_url").notNull(), // Reference motion video
+  outputVideoUrl: text("output_video_url"), // Generated result
+  falRequestId: text("fal_request_id"), // Fal.ai request ID for tracking
+  errorMessage: text("error_message"), // Error details if failed
+  processingTime: integer("processing_time"), // Processing time in seconds
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"), // When job completed
+});
+
+export const insertMotionJobSchema = createInsertSchema(motionJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMotionJob = z.infer<typeof insertMotionJobSchema>;
+export type MotionJob = typeof motionJobs.$inferSelect;
