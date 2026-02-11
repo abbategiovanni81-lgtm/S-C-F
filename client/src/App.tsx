@@ -31,6 +31,7 @@ import Editor from "@/pages/Editor";
 import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
+import MotionControl from "@/pages/MotionControl";
 
 function AuthenticatedRoutes() {
   return (
@@ -58,6 +59,7 @@ function AuthenticatedRoutes() {
       <Route path="/admin" component={Admin} />
       <Route path="/reddit" component={RedditManager} />
       <Route path="/video-to-clips" component={VideoToClips} />
+      <Route path="/motion-control" component={MotionControl} />
       <Route component={NotFound} />
     </Switch>
   );
