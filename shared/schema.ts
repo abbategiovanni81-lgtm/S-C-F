@@ -657,3 +657,53 @@ export const insertMotionJobSchema = createInsertSchema(motionJobs).omit({
 
 export type InsertMotionJob = z.infer<typeof insertMotionJobSchema>;
 export type MotionJob = typeof motionJobs.$inferSelect;
+
+// Storyboards - user-created multi-scene video projects
+export const STORYBOARD_STATUS = ["draft", "processing", "completed", "failed"] as const;
+export type StoryboardStatus = typeof STORYBOARD_STATUS[number];
+
+export const ASPECT_RATIOS = ["9:16", "16:9"] as const;
+export type AspectRatio = typeof ASPECT_RATIOS[number];
+
+export const storyboards = pgTable("storyboards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title"),
+  status: text("status").notNull().default("draft"),
+  aspectRatio: text("aspect_ratio").notNull().default("9:16"),
+  finalVideoUrl: text("final_video_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertStoryboardSchema = createInsertSchema(storyboards).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertStoryboard = z.infer<typeof insertStoryboardSchema>;
+export type Storyboard = typeof storyboards.$inferSelect;
+
+// Scene Metadata - individual scenes within a storyboard
+export const scenesMetadata = pgTable("scenes_metadata", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  storyboardId: varchar("storyboard_id").notNull().references(() => storyboards.id, { onDelete: "cascade" }),
+  sceneNumber: integer("scene_number").notNull(),
+  prompt: text("prompt").notNull(),
+  duration: integer("duration").notNull().default(5),
+  videoUrl: text("video_url"),
+  videoOptions: text("video_options").array(), // URLs of the 4 generated options
+  selectedOptionIndex: integer("selected_option_index"), // Which of the 4 options was selected (0-3)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSceneMetadataSchema = createInsertSchema(scenesMetadata).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSceneMetadata = z.infer<typeof insertSceneMetadataSchema>;
+export type SceneMetadata = typeof scenesMetadata.$inferSelect;
