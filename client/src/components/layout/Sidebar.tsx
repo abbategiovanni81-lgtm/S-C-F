@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { icon: Film, label: "Video to Clips", href: "/video-to-clips" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
-  { icon: Users, label: "Accounts", href: "/accounts" },
+  { icon: Users, label: "Accounts (Legacy)", href: "/accounts" }, // Platform connections now in Brand Briefs
   { icon: MessageSquare, label: "Reddit A2E", href: "/reddit" },
   { icon: Cpu, label: "AI Engines", href: "/ai-engines" },
   { icon: Settings, label: "Settings", href: "/settings" },

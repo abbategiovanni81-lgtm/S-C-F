@@ -8,19 +8,48 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload, Globe, HardDrive, Wand2 } from "lucide-react";
+import { Video, Image, Layout as LayoutIcon, Type, User, Film, Mic, ImagePlus, Trash2, Upload, Globe, HardDrive, Wand2, Twitter, Linkedin, Instagram, Facebook, Youtube, CloudSun, MessageCircle, Pin, MessageSquare, Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Sparkles, Edit2, Loader2, Lightbulb } from "lucide-react";
-import type { BrandBrief, BrandAsset, AssetType, ASSET_TYPES } from "@shared/schema";
+import type { BrandBrief, BrandAsset, AssetType, ASSET_TYPES, PlatformConfig as PlatformConfigType, SocialAccount } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 
-const PLATFORMS = ["Instagram", "TikTok", "YouTube", "Twitter", "LinkedIn", "Facebook"];
+interface PlatformInfo {
+  name: string;
+  icon: any;
+  color: string;
+  hoverColor: string;
+  textColor: string;
+  bgLight: string;
+  oauth: boolean;
+  oauthUrl?: string;
+  authType?: "oauth" | "password";
+  hasSettings?: boolean;
+}
+
+const PLATFORM_INFO: PlatformInfo[] = [
+  { name: "Instagram", icon: Instagram, color: "bg-pink-500", hoverColor: "hover:bg-pink-600", textColor: "text-pink-500", bgLight: "bg-pink-500/10", oauth: true, oauthUrl: "/api/auth/facebook", hasSettings: true },
+  { name: "TikTok", icon: null, color: "bg-black", hoverColor: "hover:bg-gray-800", textColor: "text-black dark:text-white", bgLight: "bg-black/10 dark:bg-white/10", oauth: true, oauthUrl: "/api/auth/tiktok", hasSettings: true },
+  { name: "YouTube", icon: Youtube, color: "bg-red-500", hoverColor: "hover:bg-red-600", textColor: "text-red-500", bgLight: "bg-red-500/10", oauth: true, oauthUrl: "/api/youtube/connect", hasSettings: true },
+  { name: "Facebook", icon: Facebook, color: "bg-blue-600", hoverColor: "hover:bg-blue-700", textColor: "text-blue-600", bgLight: "bg-blue-600/10", oauth: true, oauthUrl: "/api/auth/facebook", hasSettings: false },
+  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-700", hoverColor: "hover:bg-blue-800", textColor: "text-blue-700", bgLight: "bg-blue-700/10", oauth: true, oauthUrl: "/api/auth/linkedin", hasSettings: false },
+  { name: "Twitter", icon: Twitter, color: "bg-sky-500", hoverColor: "hover:bg-sky-600", textColor: "text-sky-500", bgLight: "bg-sky-500/10", oauth: true, oauthUrl: "/api/auth/twitter", hasSettings: false },
+  { name: "Threads", icon: MessageCircle, color: "bg-gray-900", hoverColor: "hover:bg-gray-800", textColor: "text-gray-900 dark:text-white", bgLight: "bg-gray-900/10", oauth: true, oauthUrl: "/api/auth/threads", hasSettings: false },
+  { name: "Pinterest", icon: Pin, color: "bg-red-600", hoverColor: "hover:bg-red-700", textColor: "text-red-600", bgLight: "bg-red-600/10", oauth: true, oauthUrl: "/api/auth/pinterest", hasSettings: false },
+  { name: "Bluesky", icon: CloudSun, color: "bg-sky-400", hoverColor: "hover:bg-sky-500", textColor: "text-sky-400", bgLight: "bg-sky-400/10", oauth: false, authType: "password", hasSettings: false },
+  { name: "Reddit", icon: MessageSquare, color: "bg-orange-500", hoverColor: "hover:bg-orange-600", textColor: "text-orange-500", bgLight: "bg-orange-500/10", oauth: true, oauthUrl: "/api/reddit/auth", hasSettings: false },
+  { name: "Google Business", icon: Globe, color: "bg-green-600", hoverColor: "hover:bg-green-700", textColor: "text-green-600", bgLight: "bg-green-600/10", oauth: true, oauthUrl: "/api/auth/google-business", hasSettings: false },
+];
+
 const FREQUENCIES = ["Daily", "3x per week", "Weekly", "Bi-weekly", "Monthly"];
+const POSTING_TIMES = ["Morning", "Afternoon", "Evening", "Custom"];
 const ASSET_TYPE_OPTIONS = [
   { value: "screenshot", label: "Screenshot" },
   { value: "product", label: "Product Photo" },
@@ -70,6 +99,10 @@ export default function BrandBriefs() {
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [uploadingAsset, setUploadingAsset] = useState(false);
   
+  // Platform configuration state
+  const [platformConfigs, setPlatformConfigs] = useState<PlatformConfigType[]>([]);
+  const [expandedPlatformSettings, setExpandedPlatformSettings] = useState<string | null>(null);
+  
   const generateSlug = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   };
@@ -111,6 +144,82 @@ export default function BrandBriefs() {
   const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
   });
+
+  // Fetch user's connected social accounts
+  const { data: connectedAccounts = [] } = useQuery<SocialAccount[]>({
+    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+  });
+
+  // Helper function to check if a platform is connected
+  const isPlatformConnected = (platformName: string): SocialAccount | undefined => {
+    return connectedAccounts.find(
+      account => account.platform.toLowerCase() === platformName.toLowerCase() && 
+      account.isConnected === "connected"
+    );
+  };
+
+  // Helper function to toggle platform selection
+  const togglePlatformConfig = (platformName: string) => {
+    setPlatformConfigs(prev => {
+      const exists = prev.find(p => p.platform === platformName);
+      if (exists) {
+        // Remove platform
+        return prev.filter(p => p.platform !== platformName);
+      } else {
+        // Add platform with default config
+        const connectedAccount = isPlatformConnected(platformName);
+        return [...prev, {
+          platform: platformName,
+          enabled: true,
+          connected: !!connectedAccount,
+          accountId: connectedAccount?.id,
+          accountHandle: connectedAccount?.accountHandle || undefined,
+          frequency: 'Daily' as const,
+          times: ['Morning'],
+          settings: {},
+        }];
+      }
+    });
+  };
+
+  // Helper function to update platform config
+  const updatePlatformConfig = (platformName: string, updates: Partial<PlatformConfigType>) => {
+    setPlatformConfigs(prev => 
+      prev.map(p => p.platform === platformName ? { ...p, ...updates } : p)
+    );
+  };
+
+  // Helper function to connect a platform via OAuth
+  const handleConnectPlatform = (platformName: string) => {
+    const platformInfo = PLATFORM_INFO.find(p => p.name === platformName);
+    if (platformInfo?.oauthUrl) {
+      // Store current form state before OAuth redirect
+      sessionStorage.setItem('brandBriefFormState', JSON.stringify({
+        formName, formAccountType, formBrandVoice, formTargetAudience,
+        formContentGoals, formPostingFrequency, platformConfigs
+      }));
+      window.location.href = platformInfo.oauthUrl;
+    }
+  };
+
+  // Helper function to disconnect a platform
+  const handleDisconnectPlatform = async (platformName: string) => {
+    const connectedAccount = isPlatformConnected(platformName);
+    if (connectedAccount) {
+      try {
+        await apiRequest("DELETE", `/api/social-accounts/${connectedAccount.id}`);
+        queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+        updatePlatformConfig(platformName, { 
+          connected: false, 
+          accountId: undefined, 
+          accountHandle: undefined 
+        });
+        toast({ title: `${platformName} account disconnected` });
+      } catch (error) {
+        toast({ title: "Failed to disconnect account", variant: "destructive" });
+      }
+    }
+  };
 
   const createBriefMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -214,18 +323,13 @@ export default function BrandBriefs() {
       contentGoals: formContentGoals || formData.get("contentGoals"),
       linksToInclude: formData.get("linksToInclude") || null,
       postingFrequency: formPostingFrequency || formData.get("postingFrequency"),
-      platforms: selectedPlatforms,
+      platforms: platformConfigs.map(p => p.platform),
+      platformConfigs: platformConfigs,
     }, {
       onSuccess: () => {
         resetFormFields();
       }
     });
-  };
-
-  const togglePlatform = (platform: string) => {
-    setSelectedPlatforms((prev) =>
-      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
-    );
   };
 
   const handleGenerateContent = (briefId: string, topic?: string) => {
@@ -373,6 +477,20 @@ export default function BrandBriefs() {
   const handleEditBrief = (brief: BrandBrief) => {
     setEditingBrief(brief);
     setEditPlatforms(brief.platforms);
+    // Initialize platform configs from brief
+    if (brief.platformConfigs && Array.isArray(brief.platformConfigs)) {
+      setPlatformConfigs(brief.platformConfigs as PlatformConfigType[]);
+    } else {
+      // Legacy briefs without platformConfigs - create basic configs
+      setPlatformConfigs(brief.platforms.map(platform => ({
+        platform,
+        enabled: true,
+        connected: !!isPlatformConnected(platform),
+        frequency: brief.postingFrequency as any || 'Daily',
+        times: ['Morning'],
+        settings: {},
+      })));
+    }
     setEditDialogOpen(true);
   };
 
@@ -380,6 +498,25 @@ export default function BrandBriefs() {
     setEditPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
     );
+    // Also update platformConfigs
+    setPlatformConfigs(prev => {
+      const exists = prev.find(p => p.platform === platform);
+      if (exists) {
+        return prev.filter(p => p.platform !== platform);
+      } else {
+        const connectedAccount = isPlatformConnected(platform);
+        return [...prev, {
+          platform,
+          enabled: true,
+          connected: !!connectedAccount,
+          accountId: connectedAccount?.id,
+          accountHandle: connectedAccount?.accountHandle || undefined,
+          frequency: 'Daily' as const,
+          times: ['Morning'],
+          settings: {},
+        }];
+      }
+    });
   };
 
   const handleAnalyzeWebsite = async () => {
@@ -437,6 +574,8 @@ export default function BrandBriefs() {
     setFormContentGoals("");
     setFormPostingFrequency("");
     setSelectedPlatforms([]);
+    setPlatformConfigs([]);
+    setExpandedPlatformSettings(null);
   };
 
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -454,7 +593,8 @@ export default function BrandBriefs() {
         contentGoals: formData.get("editContentGoals"),
         linksToInclude: formData.get("editLinksToInclude") || null,
         postingFrequency: formData.get("editPostingFrequency"),
-        platforms: editPlatforms,
+        platforms: platformConfigs.map(p => p.platform),
+        platformConfigs: platformConfigs,
       },
     });
   };
@@ -637,25 +777,245 @@ export default function BrandBriefs() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Platforms</Label>
-                <div className="flex flex-wrap gap-2">
-                  {PLATFORMS.map((platform) => (
-                    <Badge
-                      key={platform}
-                      variant={selectedPlatforms.includes(platform) ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => togglePlatform(platform)}
-                      data-testid={`badge-platform-${platform}`}
-                    >
-                      {platform}
-                    </Badge>
-                  ))}
+              {/* Platforms & Posting Schedule Section */}
+              <div className="space-y-4 border-t pt-4">
+                <div>
+                  <Label className="text-lg font-semibold">Platforms & Posting Schedule</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select platforms, connect accounts, and set posting frequency
+                  </p>
                 </div>
+
+                {/* Platform Selection Grid (2-column) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {PLATFORM_INFO.map((platformInfo) => {
+                    const config = platformConfigs.find(p => p.platform === platformInfo.name);
+                    const isSelected = !!config;
+                    const connectedAccount = isPlatformConnected(platformInfo.name);
+                    const isConnected = !!connectedAccount;
+                    const IconComponent = platformInfo.icon;
+
+                    return (
+                      <Card 
+                        key={platformInfo.name}
+                        className={`relative cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'ring-2 ring-primary bg-primary/5' 
+                            : 'hover:border-primary/50'
+                        }`}
+                        onClick={() => togglePlatformConfig(platformInfo.name)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            {/* Platform Icon */}
+                            <div className={`w-10 h-10 rounded-lg ${platformInfo.bgLight} flex items-center justify-center flex-shrink-0 ${platformInfo.textColor}`}>
+                              {IconComponent ? (
+                                <IconComponent className="w-5 h-5" />
+                              ) : (
+                                <span className="font-bold">T</span>
+                              )}
+                            </div>
+                            
+                            {/* Platform Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-medium text-sm">{platformInfo.name}</h4>
+                                {isSelected && (
+                                  <Check className="w-4 h-4 text-primary flex-shrink-0" />
+                                )}
+                              </div>
+                              
+                              {/* Connection Status */}
+                              {isSelected && (
+                                <div className="mt-1 flex items-center gap-2">
+                                  {isConnected ? (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 flex items-center gap-1">
+                                        <Check className="w-3 h-3" />
+                                        Connected
+                                      </span>
+                                      {connectedAccount?.accountHandle && (
+                                        <span className="text-xs text-muted-foreground">
+                                          @{connectedAccount.accountHandle}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-6 text-xs"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleConnectPlatform(platformInfo.name);
+                                      }}
+                                    >
+                                      Connect
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Platform-specific Settings (Always show for selected platforms) */}
+                          {isSelected && config && (
+                            <div className="mt-3 pt-3 border-t space-y-2" onClick={(e) => e.stopPropagation()}>
+                              {/* Posting Frequency */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">Posting Frequency</Label>
+                                <Select 
+                                  value={config.frequency || 'Daily'} 
+                                  onValueChange={(value) => updatePlatformConfig(platformInfo.name, { frequency: value as any })}
+                                >
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {FREQUENCIES.map((freq) => (
+                                      <SelectItem key={freq} value={freq}>{freq}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Posting Times */}
+                              <div className="space-y-1">
+                                <Label className="text-xs">Preferred Times</Label>
+                                <div className="flex flex-wrap gap-1">
+                                  {POSTING_TIMES.map((time) => (
+                                    <Badge
+                                      key={time}
+                                      variant={config.times?.includes(time) ? "default" : "outline"}
+                                      className="cursor-pointer text-xs py-0 h-6"
+                                      onClick={() => {
+                                        const currentTimes = config.times || [];
+                                        const newTimes = currentTimes.includes(time)
+                                          ? currentTimes.filter(t => t !== time)
+                                          : [...currentTimes, time];
+                                        updatePlatformConfig(platformInfo.name, { times: newTimes });
+                                      }}
+                                    >
+                                      {time}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Platform-Specific Settings */}
+                              {platformInfo.name === 'Instagram' && (
+                                <Collapsible
+                                  open={expandedPlatformSettings === 'Instagram'}
+                                  onOpenChange={(open) => setExpandedPlatformSettings(open ? 'Instagram' : null)}
+                                >
+                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    {expandedPlatformSettings === 'Instagram' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                    Format Settings
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-2 space-y-2">
+                                    {(['Feed', 'Reels', 'Stories'] as const).map((format) => (
+                                      <div key={format} className="flex items-center gap-2">
+                                        <Switch
+                                          checked={config.settings?.instagramFormats?.includes(format) ?? true}
+                                          onCheckedChange={(checked) => {
+                                            const current = config.settings?.instagramFormats || ['Feed', 'Reels', 'Stories'];
+                                            const updated = checked
+                                              ? [...current, format]
+                                              : current.filter(f => f !== format);
+                                            updatePlatformConfig(platformInfo.name, {
+                                              settings: { ...config.settings, instagramFormats: updated }
+                                            });
+                                          }}
+                                        />
+                                        <Label className="text-xs">{format}</Label>
+                                      </div>
+                                    ))}
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+
+                              {platformInfo.name === 'YouTube' && (
+                                <Collapsible
+                                  open={expandedPlatformSettings === 'YouTube'}
+                                  onOpenChange={(open) => setExpandedPlatformSettings(open ? 'YouTube' : null)}
+                                >
+                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    {expandedPlatformSettings === 'YouTube' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                    Format Settings
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-2 space-y-2">
+                                    {(['Shorts', 'Long-form'] as const).map((format) => (
+                                      <div key={format} className="flex items-center gap-2">
+                                        <Switch
+                                          checked={config.settings?.youtubeFormats?.includes(format) ?? true}
+                                          onCheckedChange={(checked) => {
+                                            const current = config.settings?.youtubeFormats || ['Shorts', 'Long-form'];
+                                            const updated = checked
+                                              ? [...current, format]
+                                              : current.filter(f => f !== format);
+                                            updatePlatformConfig(platformInfo.name, {
+                                              settings: { ...config.settings, youtubeFormats: updated }
+                                            });
+                                          }}
+                                        />
+                                        <Label className="text-xs">{format}</Label>
+                                      </div>
+                                    ))}
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+
+                              {platformInfo.name === 'TikTok' && (
+                                <Collapsible
+                                  open={expandedPlatformSettings === 'TikTok'}
+                                  onOpenChange={(open) => setExpandedPlatformSettings(open ? 'TikTok' : null)}
+                                >
+                                  <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                                    {expandedPlatformSettings === 'TikTok' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                    Post Settings
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent className="mt-2">
+                                    <RadioGroup
+                                      value={config.settings?.tiktokMode || 'auto-post'}
+                                      onValueChange={(value: 'auto-post' | 'draft') => {
+                                        updatePlatformConfig(platformInfo.name, {
+                                          settings: { ...config.settings, tiktokMode: value }
+                                        });
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <RadioGroupItem value="auto-post" id={`${platformInfo.name}-auto`} />
+                                        <Label htmlFor={`${platformInfo.name}-auto`} className="text-xs">Auto-post</Label>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <RadioGroupItem value="draft" id={`${platformInfo.name}-draft`} />
+                                        <Label htmlFor={`${platformInfo.name}-draft`} className="text-xs">Save as Draft</Label>
+                                      </div>
+                                    </RadioGroup>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                {platformConfigs.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Click platforms above to enable them
+                  </p>
+                )}
               </div>
 
+              {/* Legacy posting frequency field - kept for backwards compatibility with existing content generation logic */}
               <div className="space-y-2">
-                <Label htmlFor="postingFrequency">Posting Frequency</Label>
+                <Label htmlFor="postingFrequency">
+                  Default Posting Frequency
+                  <span className="text-xs text-muted-foreground ml-2">(used by content generation)</span>
+                </Label>
                 <Select name="postingFrequency" value={formPostingFrequency} onValueChange={setFormPostingFrequency} required>
                   <SelectTrigger data-testid="select-frequency">
                     <SelectValue placeholder="Select frequency" />
@@ -677,7 +1037,7 @@ export default function BrandBriefs() {
                   </Button>
                 </ResponsiveTooltip>
                 <ResponsiveTooltip content="Save new brief">
-                  <Button type="submit" disabled={createBriefMutation.isPending || selectedPlatforms.length === 0} data-testid="button-submit-brief">
+                  <Button type="submit" disabled={createBriefMutation.isPending || platformConfigs.length === 0} data-testid="button-submit-brief">
                     {createBriefMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                     Create Brief
                   </Button>
@@ -1266,15 +1626,15 @@ export default function BrandBriefs() {
               <div className="space-y-2">
                 <Label>Platforms</Label>
                 <div className="flex flex-wrap gap-2">
-                  {PLATFORMS.map((platform) => (
+                  {PLATFORM_INFO.map((platformInfo) => (
                     <Badge
-                      key={platform}
-                      variant={editPlatforms.includes(platform) ? "default" : "outline"}
+                      key={platformInfo.name}
+                      variant={editPlatforms.includes(platformInfo.name) ? "default" : "outline"}
                       className="cursor-pointer"
-                      onClick={() => toggleEditPlatform(platform)}
-                      data-testid={`badge-edit-platform-${platform}`}
+                      onClick={() => toggleEditPlatform(platformInfo.name)}
+                      data-testid={`badge-edit-platform-${platformInfo.name}`}
                     >
-                      {platform}
+                      {platformInfo.name}
                     </Badge>
                   ))}
                 </div>

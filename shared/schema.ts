@@ -28,6 +28,7 @@ export const brandBriefs = pgTable("brand_briefs", {
   linksToInclude: text("links_to_include"),
   postingFrequency: text("posting_frequency").notNull(),
   platforms: text("platforms").array().notNull(),
+  platformConfigs: jsonb("platform_configs"), // Stores detailed platform settings
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -377,6 +378,27 @@ export type InsertGeneratedContent = z.infer<typeof insertGeneratedContentSchema
 export type GeneratedContent = typeof generatedContent.$inferSelect;
 export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
 export type SocialAccount = typeof socialAccounts.$inferSelect;
+
+// Platform configuration types for brand briefs
+export interface PlatformConfig {
+  platform: string;
+  enabled: boolean;
+  connected: boolean;
+  accountId?: string; // UUID string from socialAccounts.id
+  accountHandle?: string; // Display name like @mybrand
+  frequency?: 'Daily' | 'Weekly' | '3x per week' | 'Bi-weekly' | 'Monthly';
+  times?: string[]; // e.g., ['Morning', 'Afternoon']
+  settings?: PlatformSpecificSettings;
+}
+
+export interface PlatformSpecificSettings {
+  // Instagram
+  instagramFormats?: ('Feed' | 'Reels' | 'Stories')[];
+  // YouTube
+  youtubeFormats?: ('Shorts' | 'Long-form')[];
+  // TikTok
+  tiktokMode?: 'auto-post' | 'draft';
+}
 
 // Reddit Subreddits for auto-posting
 export const redditSubreddits = pgTable("reddit_subreddits", {
