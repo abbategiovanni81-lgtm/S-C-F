@@ -38,6 +38,7 @@ import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriv
 import { motionControlService } from "./motionControlService";
 
 const objectStorageService = new ObjectStorageService();
+const DEMO_USER_ID = "demo-user";
 
 // Helper to download external URLs and save to cloud storage for persistence
 async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image" | "audio"): Promise<string> {
@@ -9195,7 +9196,7 @@ Requirements:
       );
       
       const results = await Promise.all(promises);
-      const videoOptions = results.map(r => r.requestId);
+      const videoOptions = results.map(r => r.requestId).filter((id): id is string => !!id);
       
       // Update scene with video option request IDs
       const [updated] = await db.update(scenesMetadata)
@@ -9240,16 +9241,16 @@ Requirements:
       }
       
       // Check status of all 4 video generations
-      const statusPromises = scene.videoOptions.map(requestId => 
-        falService.getVideoStatus(requestId)
+      const statusPromises = scene.videoOptions.map((requestId: string) => 
+        falService.checkVideoStatus(requestId)
       );
       
       const statuses = await Promise.all(statusPromises);
       
       // Update scene if all videos are completed
-      const allCompleted = statuses.every(s => s.status === "completed");
+      const allCompleted = statuses.every((s: any) => s.status === "completed");
       if (allCompleted) {
-        const videoUrls = statuses.map(s => s.videoUrl).filter(Boolean) as string[];
+        const videoUrls = statuses.map((s: any) => s.videoUrl).filter(Boolean) as string[];
         
         // Save videos to persistent storage
         const savedUrls = await Promise.all(

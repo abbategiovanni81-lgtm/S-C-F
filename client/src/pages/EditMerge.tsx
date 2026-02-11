@@ -6,11 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
-import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film, HardDrive, Search } from "lucide-react";
-import type { GeneratedContent, BrandBrief, ScenePrompt } from "@shared/schema";
+import { Video, Play, Pause, Loader2, ArrowUp, ArrowDown, Wand2, Check, RefreshCw, Volume2, Scissors, Upload, Trash2, FileVideo, Image as ImageIcon, CheckCircle, ArrowRight, LayoutGrid, Plus, X, Film, HardDrive, Search, GripVertical, Edit, Download, Send } from "lucide-react";
+import type { GeneratedContent, BrandBrief, ScenePrompt, Storyboard, SceneMetadata } from "@shared/schema";
 import { VideoEditor, ProcessingOverlay } from "@/components/VideoEditor";
 import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
 import { Input } from "@/components/ui/input";
@@ -50,6 +51,18 @@ export default function EditMerge() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
 
+  // Storyboard mode state
+  const [mode, setMode] = useState<"queue" | "storyboard">("queue");
+  const [currentStoryboard, setCurrentStoryboard] = useState<Storyboard | null>(null);
+  const [storyboardScenes, setStoryboardScenes] = useState<SceneMetadata[]>([]);
+  const [sceneInput, setSceneInput] = useState("");
+  const [showVideoOptions, setShowVideoOptions] = useState(false);
+  const [currentSceneOptions, setCurrentSceneOptions] = useState<{
+    sceneId: string;
+    options: string[];
+  } | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
+
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
   });
@@ -57,6 +70,31 @@ export default function EditMerge() {
   const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
     queryKey: ["/api/content?status=approved"],
   });
+
+  // Storyboard queries
+  const { data: storyboards = [] } = useQuery<Storyboard[]>({
+    queryKey: ["/api/storyboards"],
+    enabled: mode === "storyboard",
+  });
+
+  // Auto-create or select storyboard when switching to storyboard mode
+  useEffect(() => {
+    if (mode === "storyboard" && storyboards.length > 0 && !currentStoryboard) {
+      setCurrentStoryboard(storyboards[0]);
+    }
+  }, [mode, storyboards, currentStoryboard]);
+
+  // Fetch scenes when storyboard is selected
+  const { data: scenes = [] } = useQuery<SceneMetadata[]>({
+    queryKey: ["/api/storyboards", currentStoryboard?.id, "scenes"],
+    enabled: mode === "storyboard" && !!currentStoryboard,
+  });
+
+  useEffect(() => {
+    if (scenes) {
+      setStoryboardScenes(scenes);
+    }
+  }, [scenes]);
 
   // Auto-select content when contentId is in URL
   useEffect(() => {
@@ -730,6 +768,166 @@ export default function EditMerge() {
     }
   };
 
+  // Storyboard handlers
+  const handleCreateStoryboard = async () => {
+    try {
+      const res = await fetch("/api/storyboards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: "New Storyboard",
+          aspectRatio,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create storyboard");
+      const newStoryboard = await res.json();
+      setCurrentStoryboard(newStoryboard);
+      queryClient.invalidateQueries({ queryKey: ["/api/storyboards"] });
+      toast({ title: "Storyboard created!" });
+    } catch (error: any) {
+      toast({ title: "Failed to create storyboard", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleAddScene = async () => {
+    if (!sceneInput.trim() || !currentStoryboard) return;
+    
+    try {
+      const nextSceneNumber = storyboardScenes.length + 1;
+      const res = await fetch(`/api/storyboards/${currentStoryboard.id}/scenes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          sceneNumber: nextSceneNumber,
+          prompt: sceneInput,
+          duration: 5,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add scene");
+      const newScene = await res.json();
+      
+      // Start generating 4 video options
+      handleGenerateSceneOptions(newScene.id);
+      
+      setSceneInput("");
+      queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
+      toast({ title: "Scene added!", description: "Generating video options..." });
+    } catch (error: any) {
+      toast({ title: "Failed to add scene", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleGenerateSceneOptions = async (sceneId: string) => {
+    if (!currentStoryboard) return;
+    
+    try {
+      const res = await fetch(`/api/storyboards/${currentStoryboard.id}/scenes/${sceneId}/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to generate videos");
+      
+      // Poll for completion
+      pollSceneGeneration(sceneId);
+    } catch (error: any) {
+      toast({ title: "Failed to generate videos", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const pollSceneGeneration = async (sceneId: string) => {
+    if (!currentStoryboard) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/storyboards/${currentStoryboard.id}/scenes/${sceneId}/status`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to check status");
+        const { statuses, allCompleted } = await res.json();
+        
+        if (allCompleted) {
+          clearInterval(pollInterval);
+          queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
+          
+          // Show video options modal
+          const scene = storyboardScenes.find(s => s.id === sceneId);
+          if (scene && scene.videoOptions) {
+            setCurrentSceneOptions({ sceneId, options: scene.videoOptions });
+            setShowVideoOptions(true);
+          }
+          
+          toast({ title: "Videos generated!", description: "Select your preferred option." });
+        }
+      } catch (error) {
+        clearInterval(pollInterval);
+      }
+    }, 5000);
+  };
+
+  const handleSelectVideoOption = async (optionIndex: number) => {
+    if (!currentStoryboard || !currentSceneOptions) return;
+    
+    try {
+      const selectedUrl = currentSceneOptions.options[optionIndex];
+      const res = await fetch(`/api/storyboards/${currentStoryboard.id}/scenes/${currentSceneOptions.sceneId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          videoUrl: selectedUrl,
+          selectedOptionIndex: optionIndex,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to select video");
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
+      setShowVideoOptions(false);
+      setCurrentSceneOptions(null);
+      toast({ title: "Video selected!" });
+    } catch (error: any) {
+      toast({ title: "Failed to select video", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteScene = async (sceneId: string) => {
+    if (!currentStoryboard) return;
+    
+    try {
+      const res = await fetch(`/api/storyboards/${currentStoryboard.id}/scenes/${sceneId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete scene");
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/storyboards", currentStoryboard.id, "scenes"] });
+      toast({ title: "Scene deleted!" });
+    } catch (error: any) {
+      toast({ title: "Failed to delete scene", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleExportStoryboard = async () => {
+    if (!currentStoryboard) return;
+    
+    try {
+      const res = await fetch(`/api/storyboards/${currentStoryboard.id}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to export storyboard");
+      
+      const updated = await res.json();
+      setCurrentStoryboard(updated);
+      toast({ title: "Export started!", description: "Your video is being merged..." });
+    } catch (error: any) {
+      toast({ title: "Export failed", description: error.message, variant: "destructive" });
+    }
+  };
+
   return (
     <Layout title="Edit & Merge">
       {videoEditorOpen && selectedContent && (
@@ -761,24 +959,39 @@ export default function EditMerge() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold font-display" data-testid="text-page-title">Edit & Merge</h1>
-            <p className="text-muted-foreground mt-1">Generate video clips for each scene, reorder, and merge with voiceover</p>
+            <p className="text-muted-foreground mt-1">
+              {mode === "queue" 
+                ? "Generate video clips for each scene, reorder, and merge with voiceover"
+                : "Create multi-scene videos from scratch with AI-generated clips"}
+            </p>
           </div>
-          <Select value={filterBrief} onValueChange={setFilterBrief}>
-            <SelectTrigger className="w-[200px]" data-testid="select-filter-brief">
-              <SelectValue placeholder="Filter by brief" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Briefs</SelectItem>
-              {briefs.map((brief) => (
-                <SelectItem key={brief.id} value={brief.id}>
-                  {brief.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as "queue" | "storyboard")}>
+              <TabsList>
+                <TabsTrigger value="queue">From Queue</TabsTrigger>
+                <TabsTrigger value="storyboard">Storyboard</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {mode === "queue" && (
+              <Select value={filterBrief} onValueChange={setFilterBrief}>
+                <SelectTrigger className="w-[200px]" data-testid="select-filter-brief">
+                  <SelectValue placeholder="Filter by brief" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Briefs</SelectItem>
+                  {briefs.map((brief) => (
+                    <SelectItem key={brief.id} value={brief.id}>
+                      {brief.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {mode === "queue" ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1">
             <Card>
               <CardHeader>
@@ -1351,7 +1564,202 @@ export default function EditMerge() {
             )}
           </div>
         </div>
+        ) : (
+          // Storyboard Mode
+          <div className="space-y-6">
+            {!currentStoryboard || storyboardScenes.length === 0 ? (
+              // Empty state
+              <Card className="border-dashed">
+                <CardContent className="py-16 text-center">
+                  <Film className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Create Your Storyboard</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Build multi-scene videos from scratch. Add scene descriptions and we'll generate 4 options for each.
+                  </p>
+                  <Button onClick={currentStoryboard ? () => {} : handleCreateStoryboard} size="lg">
+                    {currentStoryboard ? "Add First Scene Below" : "Start Now"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              // Scenes grid
+              <div className="space-y-4">
+                {storyboardScenes.map((scene, index) => (
+                  <Card key={scene.id} className="overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Drag Handle */}
+                        <div className="cursor-grab active:cursor-grabbing text-muted-foreground">
+                          <GripVertical className="w-5 h-5" />
+                        </div>
+                        
+                        {/* Video Thumbnail */}
+                        <div className="relative w-32 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                          {scene.videoUrl ? (
+                            <video 
+                              src={scene.videoUrl} 
+                              className="w-full h-full object-cover"
+                              muted
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            </div>
+                          )}
+                          {scene.videoUrl && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 hover:opacity-100 transition-opacity">
+                              <Play className="w-8 h-8 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Scene Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline">Scene {scene.sceneNumber}</Badge>
+                                <Badge variant="secondary">{scene.duration}s</Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {scene.prompt}
+                              </p>
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="flex items-center gap-2">
+                              <ResponsiveTooltip content="Edit scene">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    // TODO: Add edit functionality
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                              </ResponsiveTooltip>
+                              <ResponsiveTooltip content="Delete scene">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDeleteScene(scene.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </ResponsiveTooltip>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+            
+            {/* Bottom Action Bar */}
+            {currentStoryboard && storyboardScenes.length > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Aspect Ratio:</span>
+                      <Tabs value={aspectRatio} onValueChange={(v) => setAspectRatio(v as "9:16" | "16:9")}>
+                        <TabsList className="h-9">
+                          <TabsTrigger value="9:16" className="text-xs">9:16</TabsTrigger>
+                          <TabsTrigger value="16:9" className="text-xs">16:9</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" onClick={handleExportStoryboard}>
+                        <Download className="w-4 h-4 mr-2" />
+                        Export
+                      </Button>
+                      <Button variant="outline">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button>
+                        <Send className="w-4 h-4 mr-2" />
+                        Post
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {/* Fixed Scene Input Bar */}
+            {currentStoryboard && (
+              <Card className="fixed bottom-6 left-6 right-6 z-10 shadow-lg">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Input
+                      value={sceneInput}
+                      onChange={(e) => setSceneInput(e.target.value)}
+                      placeholder="Describe your next scene... (e.g., 'A sunset over the ocean')"
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAddScene();
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={handleAddScene}
+                      disabled={!sceneInput.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Scene
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
+      
+      {/* Video Options Picker Modal */}
+      <Dialog open={showVideoOptions} onOpenChange={setShowVideoOptions}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Select Video Option</DialogTitle>
+            <DialogDescription>
+              Choose your preferred video from the 4 generated options
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            {currentSceneOptions?.options.map((videoUrl, index) => (
+              <button
+                key={index}
+                onClick={() => handleSelectVideoOption(index)}
+                className="relative aspect-video bg-muted rounded-lg overflow-hidden hover:ring-2 hover:ring-primary transition-all group"
+              >
+                <video 
+                  src={videoUrl}
+                  className="w-full h-full object-cover"
+                  muted
+                  loop
+                  autoPlay
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-white rounded-full p-3">
+                    <Check className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+                <div className="absolute top-2 right-2">
+                  <Badge>Option {index + 1}</Badge>
+                </div>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <GoogleDriveBrowser
         open={showDriveBrowser}
