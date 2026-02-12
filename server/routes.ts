@@ -9369,7 +9369,7 @@ Requirements:
       }
 
       // TODO: Implement HeyGen video generation
-      res.status(501).json({ error: "HeyGen integration coming soon" });
+      res.status(501).json({ error: "HeyGen video generation is not yet implemented" });
     } catch (error: any) {
       console.error("Error generating HeyGen video:", error);
       res.status(500).json({ error: error.message });
@@ -9399,7 +9399,7 @@ Requirements:
       }
 
       // TODO: Implement Wan video generation
-      res.status(501).json({ error: "Wan integration coming soon" });
+      res.status(501).json({ error: "Wan video generation is not yet implemented" });
     } catch (error: any) {
       console.error("Error generating Wan video:", error);
       res.status(500).json({ error: error.message });
@@ -9429,7 +9429,7 @@ Requirements:
       }
 
       // TODO: Implement Late video generation
-      res.status(501).json({ error: "Late integration coming soon" });
+      res.status(501).json({ error: "Late video generation is not yet implemented" });
     } catch (error: any) {
       console.error("Error generating Late video:", error);
       res.status(500).json({ error: error.message });
@@ -9453,7 +9453,7 @@ Requirements:
       }
 
       // TODO: Implement batch processing system
-      res.status(501).json({ error: "Batch processing coming soon" });
+      res.status(501).json({ error: "Batch processing is not yet implemented" });
     } catch (error: any) {
       console.error("Error creating batch:", error);
       res.status(500).json({ error: error.message });
@@ -9470,7 +9470,7 @@ Requirements:
       }
 
       // TODO: Implement batch status checking
-      res.status(501).json({ error: "Batch processing coming soon" });
+      res.status(501).json({ error: "Batch status checking is not yet implemented" });
     } catch (error: any) {
       console.error("Error checking batch status:", error);
       res.status(500).json({ error: error.message });
