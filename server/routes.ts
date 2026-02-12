@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray, desc } from "drizzle-orm";
@@ -38,6 +38,7 @@ import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriv
 import { motionControlService } from "./motionControlService";
 
 const objectStorageService = new ObjectStorageService();
+const DEMO_USER_ID = "demo-user";
 
 // Helper to download external URLs and save to cloud storage for persistence
 async function downloadAndSaveMedia(externalUrl: string, type: "video" | "image" | "audio"): Promise<string> {
@@ -8896,6 +8897,442 @@ Requirements:
       res.json({ job });
     } catch (error: any) {
       console.error("Motion control job status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===============================================
+  // STORYBOARD ROUTES
+  // ===============================================
+
+  // Get all storyboards for a user
+  app.get("/api/storyboards", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const userStoryboards = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.userId, userId))
+        .orderBy(desc(storyboards.updatedAt));
+      
+      res.json(userStoryboards);
+    } catch (error: any) {
+      console.error("Error fetching storyboards:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get a specific storyboard with all its scenes
+  app.get("/api/storyboards/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const scenes = await db.select()
+        .from(scenesMetadata)
+        .where(eq(scenesMetadata.storyboardId, id))
+        .orderBy(scenesMetadata.sceneNumber);
+      
+      res.json({ ...storyboard, scenes });
+    } catch (error: any) {
+      console.error("Error fetching storyboard:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create a new storyboard
+  app.post("/api/storyboards", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const data = insertStoryboardSchema.parse({
+        ...req.body,
+        userId,
+      });
+      
+      const [newStoryboard] = await db.insert(storyboards)
+        .values(data)
+        .returning();
+      
+      res.json(newStoryboard);
+    } catch (error: any) {
+      console.error("Error creating storyboard:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update a storyboard
+  app.patch("/api/storyboards/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const [updated] = await db.update(storyboards)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(storyboards.id, id))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating storyboard:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a storyboard
+  app.delete("/api/storyboards/:id", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      // Cascading delete will handle scenes
+      await db.delete(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting storyboard:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all scenes for a storyboard
+  app.get("/api/storyboards/:id/scenes", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const scenes = await db.select()
+        .from(scenesMetadata)
+        .where(eq(scenesMetadata.storyboardId, id))
+        .orderBy(scenesMetadata.sceneNumber);
+      
+      res.json(scenes);
+    } catch (error: any) {
+      console.error("Error fetching scenes:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add a scene to a storyboard
+  app.post("/api/storyboards/:id/scenes", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const data = insertSceneMetadataSchema.parse({
+        ...req.body,
+        storyboardId: id,
+      });
+      
+      const [newScene] = await db.insert(scenesMetadata)
+        .values(data)
+        .returning();
+      
+      res.json(newScene);
+    } catch (error: any) {
+      console.error("Error creating scene:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: fromZodError(error).message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update a scene
+  app.patch("/api/storyboards/:storyboardId/scenes/:sceneId", requireAuth, async (req: any, res) => {
+    try {
+      const { storyboardId, sceneId } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, storyboardId));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const [updated] = await db.update(scenesMetadata)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(scenesMetadata.id, sceneId))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating scene:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete a scene
+  app.delete("/api/storyboards/:storyboardId/scenes/:sceneId", requireAuth, async (req: any, res) => {
+    try {
+      const { storyboardId, sceneId } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, storyboardId));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      await db.delete(scenesMetadata)
+        .where(eq(scenesMetadata.id, sceneId));
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting scene:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Generate video options for a scene (4 parallel generations)
+  app.post("/api/storyboards/:storyboardId/scenes/:sceneId/generate", requireAuth, async (req: any, res) => {
+    try {
+      const { storyboardId, sceneId } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, storyboardId));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const [scene] = await db.select()
+        .from(scenesMetadata)
+        .where(eq(scenesMetadata.id, sceneId));
+      
+      if (!scene) {
+        return res.status(404).json({ error: "Scene not found" });
+      }
+      
+      // Generate 4 video options in parallel
+      const promises = Array(4).fill(null).map(() => 
+        falService.generateVideo({
+          prompt: scene.prompt,
+          aspectRatio: storyboard.aspectRatio as "9:16" | "16:9",
+          duration: scene.duration,
+        })
+      );
+      
+      const results = await Promise.all(promises);
+      const videoOptions = results.map(r => r.requestId).filter((id): id is string => !!id);
+      
+      // Update scene with video option request IDs
+      const [updated] = await db.update(scenesMetadata)
+        .set({ 
+          videoOptions,
+          updatedAt: new Date() 
+        })
+        .where(eq(scenesMetadata.id, sceneId))
+        .returning();
+      
+      res.json({ scene: updated, requestIds: videoOptions });
+    } catch (error: any) {
+      console.error("Error generating scene videos:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Check status of video generation for a scene
+  app.get("/api/storyboards/:storyboardId/scenes/:sceneId/status", requireAuth, async (req: any, res) => {
+    try {
+      const { storyboardId, sceneId } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, storyboardId));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const [scene] = await db.select()
+        .from(scenesMetadata)
+        .where(eq(scenesMetadata.id, sceneId));
+      
+      if (!scene || !scene.videoOptions) {
+        return res.status(404).json({ error: "Scene or video options not found" });
+      }
+      
+      // Check status of all 4 video generations
+      const statusPromises = scene.videoOptions.map((requestId: string) => 
+        falService.checkVideoStatus(requestId)
+      );
+      
+      const statuses = await Promise.all(statusPromises);
+      
+      // Update scene if all videos are completed
+      const allCompleted = statuses.every((s: any) => s.status === "completed");
+      if (allCompleted) {
+        const videoUrls = statuses.map((s: any) => s.videoUrl).filter(Boolean) as string[];
+        
+        // Save videos to persistent storage
+        const savedUrls = await Promise.all(
+          videoUrls.map(url => downloadAndSaveMedia(url, "video"))
+        );
+        
+        await db.update(scenesMetadata)
+          .set({ 
+            videoOptions: savedUrls,
+            updatedAt: new Date() 
+          })
+          .where(eq(scenesMetadata.id, sceneId));
+      }
+      
+      res.json({ statuses, allCompleted });
+    } catch (error: any) {
+      console.error("Error checking scene video status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export storyboard as final video (merge all scenes)
+  app.post("/api/storyboards/:id/export", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id || DEMO_USER_ID;
+      
+      const [storyboard] = await db.select()
+        .from(storyboards)
+        .where(eq(storyboards.id, id));
+      
+      if (!storyboard) {
+        return res.status(404).json({ error: "Storyboard not found" });
+      }
+      
+      if (storyboard.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      const scenes = await db.select()
+        .from(scenesMetadata)
+        .where(eq(scenesMetadata.storyboardId, id))
+        .orderBy(scenesMetadata.sceneNumber);
+      
+      // Get selected video URLs from each scene
+      const videoUrls = scenes
+        .map(scene => scene.videoUrl)
+        .filter(Boolean) as string[];
+      
+      if (videoUrls.length === 0) {
+        return res.status(400).json({ error: "No videos to export" });
+      }
+      
+      // Use existing video merge functionality
+      const mergeResult = await fetch(`${req.protocol}://${req.get('host')}/api/video/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clips: videoUrls,
+          aspectRatio: storyboard.aspectRatio,
+        }),
+      });
+      
+      if (!mergeResult.ok) {
+        throw new Error("Failed to merge videos");
+      }
+      
+      const { videoUrl: finalVideoUrl } = await mergeResult.json();
+      
+      // Update storyboard with final video
+      const [updated] = await db.update(storyboards)
+        .set({ 
+          finalVideoUrl,
+          status: "completed",
+          updatedAt: new Date() 
+        })
+        .where(eq(storyboards.id, id))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error exporting storyboard:", error);
       res.status(500).json({ error: error.message });
     }
   });
