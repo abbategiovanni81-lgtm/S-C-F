@@ -128,6 +128,9 @@ export const userApiKeys = pgTable("user_api_keys", {
   falKey: text("fal_key"),
   pexelsKey: text("pexels_key"),
   steveaiKey: text("steveai_key"),
+  heygenKey: text("heygen_key"),
+  wanKey: text("wan_key"),
+  lateKey: text("late_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
