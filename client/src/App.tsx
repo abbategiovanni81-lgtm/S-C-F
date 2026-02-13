@@ -32,12 +32,14 @@ import BlogStudio from "@/pages/BlogStudio";
 import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
 import MotionControl from "@/pages/MotionControl";
+import ContentCalendar from "@/pages/ContentCalendar";
 
 function AuthenticatedRoutes() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/brand-briefs" component={BrandBriefs} />
+      <Route path="/content-calendar" component={ContentCalendar} />
       <Route path="/content-queue" component={ContentQueue} />
       <Route path="/content-analyzer" component={ContentAnalyzer} />
       <Route path="/content-comparison" component={ContentComparison} />

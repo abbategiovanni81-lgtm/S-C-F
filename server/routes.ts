@@ -8902,6 +8902,122 @@ Requirements:
   });
 
   // ===============================================
+  // CONTENT CALENDAR ROUTES
+  // ===============================================
+  
+  // Generate weekly content calendar
+  app.post("/api/content-calendar/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { brandBriefId, platforms, postingFrequency, brandVoice, targetAudience, contentGoals } = req.body;
+      
+      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+        return res.status(400).json({ error: "Platforms array is required" });
+      }
+      
+      if (!postingFrequency) {
+        return res.status(400).json({ error: "Posting frequency is required" });
+      }
+      
+      let briefData: { brandVoice: string; targetAudience: string; contentGoals: string };
+      
+      // Load brand brief if ID provided
+      if (brandBriefId) {
+        const brief = await storage.getBrandBrief(brandBriefId);
+        if (!brief) {
+          return res.status(404).json({ error: "Brand brief not found" });
+        }
+        briefData = {
+          brandVoice: brief.brandVoice,
+          targetAudience: brief.targetAudience,
+          contentGoals: brief.contentGoals,
+        };
+      } else {
+        // Use manually provided data
+        if (!brandVoice || !targetAudience || !contentGoals) {
+          return res.status(400).json({ 
+            error: "If brandBriefId is not provided, brandVoice, targetAudience, and contentGoals are required" 
+          });
+        }
+        briefData = { brandVoice, targetAudience, contentGoals };
+      }
+      
+      // Generate content calendar using OpenAI
+      const systemPrompt = `You are a social media content strategist. Generate a weekly content calendar plan in JSON format.
+      
+Brand Voice: ${briefData.brandVoice}
+Target Audience: ${briefData.targetAudience}
+Content Goals: ${briefData.contentGoals}
+Platforms: ${platforms.join(", ")}
+Posting Frequency: ${postingFrequency}
+
+Return a JSON object with this structure:
+{
+  "days": {
+    "monday": [{ "platform": "instagram", "contentFormat": "Reel", "topic": "...", "hook": "...", "bestTime": "7 PM - 9 PM" }],
+    "tuesday": [...],
+    "wednesday": [...],
+    "thursday": [...],
+    "friday": [...],
+    "saturday": [...],
+    "sunday": [...]
+  }
+}
+
+Each post should include:
+- platform: one of the requested platforms
+- contentFormat: type of content (Reel, Story, Post, Video, Tweet, etc.)
+- topic: the main topic/theme
+- hook: an engaging opening line or hook
+- bestTime: recommended posting time for that platform
+
+Distribute posts across the week based on the posting frequency.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Generate a weekly content calendar plan" }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8,
+      });
+      
+      const content = response.choices[0].message.content;
+      if (!content) {
+        throw new Error("No content returned from OpenAI");
+      }
+      
+      const plan = JSON.parse(content);
+      res.json(plan);
+    } catch (error: any) {
+      console.error("Error generating content calendar:", error);
+      res.status(500).json({ error: error.message || "Failed to generate content calendar" });
+    }
+  });
+  
+  // Get best posting times for a platform
+  app.get("/api/content-calendar/best-times/:platform", isAuthenticated, async (req: any, res) => {
+    const { platform } = req.params;
+    
+    const bestTimes: Record<string, string> = {
+      tiktok: "6 PM - 9 PM",
+      instagram: "11 AM - 1 PM, 7 PM - 9 PM",
+      youtube: "2 PM - 4 PM",
+      twitter: "9 AM - 11 AM",
+      linkedin: "7 AM - 10 AM",
+      facebook: "1 PM - 4 PM",
+      pinterest: "8 PM - 11 PM",
+    };
+    
+    const time = bestTimes[platform.toLowerCase()];
+    if (!time) {
+      return res.status(404).json({ error: "Platform not found" });
+    }
+    
+    res.json({ platform: platform.toLowerCase(), bestTime: time });
+  });
+
+  // ===============================================
   // STORYBOARD ROUTES
   // ===============================================
 
