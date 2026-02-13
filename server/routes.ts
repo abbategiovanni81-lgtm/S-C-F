@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray, desc } from "drizzle-orm";
@@ -7459,6 +7459,161 @@ Provide analysis in this JSON structure:
 
   // ==================== VIDEO TO CLIPS ====================
   
+  // Async function to process video job in background
+  async function processVideoJobAsync(
+    jobId: string,
+    userId: string,
+    videoUrl: string,
+    clipCount: number,
+    minDuration: number,
+    maxDuration: number
+  ) {
+    try {
+      // Update status to downloading
+      await db.update(videoJobs)
+        .set({ status: 'downloading', progress: 10 })
+        .where(eq(videoJobs.id, jobId));
+
+      // Download video from cloud storage to temp file
+      const tempVideoPath = path.join(os.tmpdir(), `video-${jobId}.mp4`);
+      
+      // If videoUrl is a cloud storage path, download it
+      if (videoUrl.startsWith('/objects/')) {
+        const filename = videoUrl.replace('/objects/', '');
+        const downloadStream = await objectStorageService.downloadObject(filename);
+        const writeStream = fs.createWriteStream(tempVideoPath);
+        
+        await new Promise((resolve, reject) => {
+          downloadStream.pipe(writeStream);
+          downloadStream.on('error', reject);
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
+        });
+      } else {
+        // For other URLs, fetch and save
+        const response = await fetch(videoUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to download video: ${response.statusText}`);
+        }
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(tempVideoPath, buffer);
+      }
+
+      // Update status to transcribing
+      await db.update(videoJobs)
+        .set({ status: 'transcribing', progress: 30 })
+        .where(eq(videoJobs.id, jobId));
+
+      // Process video with AI
+      const result = await processVideoForClipsFromPath(
+        tempVideoPath,
+        userId,
+        [],
+        `Generate ${clipCount} clips with duration between ${minDuration} and ${maxDuration} seconds`
+      );
+
+      // Update status to analyzing
+      await db.update(videoJobs)
+        .set({ 
+          status: 'analyzing', 
+          progress: 60,
+          transcript: result.transcript,
+          duration: result.duration
+        })
+        .where(eq(videoJobs.id, jobId));
+
+      // Filter clips based on duration requirements
+      let filteredClips = result.clips.filter(clip => {
+        const duration = clip.endTime - clip.startTime;
+        return duration >= minDuration && duration <= maxDuration;
+      });
+
+      // Sort by score and take top N clips
+      filteredClips = filteredClips
+        .sort((a, b) => (b.score || 0) - (a.score || 0))
+        .slice(0, clipCount);
+
+      // Update status to extracting
+      await db.update(videoJobs)
+        .set({ status: 'extracting', progress: 70 })
+        .where(eq(videoJobs.id, jobId));
+
+      // Extract actual video clips
+      for (let i = 0; i < filteredClips.length; i++) {
+        const clip = filteredClips[i];
+        try {
+          const extracted = await extractAndUploadClip(
+            tempVideoPath,
+            userId,
+            i,
+            clip.startTime,
+            clip.endTime
+          );
+
+          // Save clip to database
+          await db.insert(videoClips).values({
+            jobId,
+            userId,
+            title: clip.title,
+            transcript: clip.transcript,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            score: clip.score,
+            clipPath: extracted.clipPath,
+            thumbnailPath: extracted.thumbnailPath,
+            status: 'ready',
+          });
+
+          // Update progress
+          const clipProgress = 70 + ((i + 1) / filteredClips.length) * 25;
+          await db.update(videoJobs)
+            .set({ progress: Math.round(clipProgress) })
+            .where(eq(videoJobs.id, jobId));
+        } catch (extractError) {
+          console.error(`Error extracting clip ${i}:`, extractError);
+          // Still save the clip info without video URL
+          await db.insert(videoClips).values({
+            jobId,
+            userId,
+            title: clip.title,
+            transcript: clip.transcript,
+            startTime: clip.startTime,
+            endTime: clip.endTime,
+            score: clip.score,
+            status: 'failed',
+          });
+        }
+      }
+
+      // Mark job as completed
+      await db.update(videoJobs)
+        .set({ 
+          status: 'completed', 
+          progress: 100,
+          completedAt: new Date()
+        })
+        .where(eq(videoJobs.id, jobId));
+
+      // Cleanup temp file
+      try {
+        fs.unlinkSync(tempVideoPath);
+      } catch (e) {
+        console.error('Cleanup error:', e);
+      }
+
+    } catch (error: any) {
+      console.error(`Job ${jobId} processing error:`, error);
+      
+      // Mark job as failed
+      await db.update(videoJobs)
+        .set({ 
+          status: 'failed',
+          errorMessage: error.message
+        })
+        .where(eq(videoJobs.id, jobId));
+    }
+  }
+  
   // Multer config for video uploads - use disk storage to avoid memory issues with large files
   const videoToClipsTempDir = os.tmpdir();
   const videoToClipsUpload = multer({
@@ -7759,8 +7914,80 @@ Provide analysis in this JSON structure:
     }
   });
 
-  // Upload, analyze, and extract clips in one step
-  app.post("/api/video-to-clips/process", isAuthenticated, videoToClipsUpload.single("video"), async (req: any, res) => {
+  // Process video - supports both new async API (JSON with videoUrl) and old sync API (multipart upload)
+  app.post("/api/video-to-clips/process", isAuthenticated, async (req: any, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    
+    // New API: JSON body with videoUrl
+    if (contentType.includes('application/json')) {
+      try {
+        const userId = getUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { videoUrl, clipCount = 5, minDuration = 10, maxDuration = 30 } = req.body;
+        
+        if (!videoUrl) {
+          return res.status(400).json({ error: "videoUrl is required" });
+        }
+
+        // Validate settings
+        if (clipCount < 1 || clipCount > 20) {
+          return res.status(400).json({ error: "clipCount must be between 1 and 20" });
+        }
+        if (minDuration < 5 || minDuration > 15) {
+          return res.status(400).json({ error: "minDuration must be between 5 and 15 seconds" });
+        }
+        if (maxDuration < 15 || maxDuration > 60) {
+          return res.status(400).json({ error: "maxDuration must be between 15 and 60 seconds" });
+        }
+        if (minDuration >= maxDuration) {
+          return res.status(400).json({ error: "minDuration must be less than maxDuration" });
+        }
+
+        // Create job in database
+        const [job] = await db
+          .insert(videoJobs)
+          .values({
+            userId,
+            sourceType: 'upload',
+            sourceUrl: videoUrl,
+            videoPath: videoUrl,
+            status: 'pending',
+            progress: 0,
+            suggestions: [],
+            customPrompt: `Generate ${clipCount} clips with duration between ${minDuration} and ${maxDuration} seconds`,
+          })
+          .returning();
+
+        // Process video asynchronously (non-blocking)
+        processVideoJobAsync(job.id, userId, videoUrl, clipCount, minDuration, maxDuration)
+          .catch(err => console.error(`Async job ${job.id} failed:`, err));
+
+        // Return job ID immediately
+        res.json({
+          jobId: job.id,
+          status: 'pending',
+          message: 'Video processing started',
+        });
+      } catch (error: any) {
+        console.error("Process endpoint error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    } else {
+      // Old API: Multipart file upload - use multer middleware
+      videoToClipsUpload.single("video")(req, res, (err: any) => {
+        if (err) {
+          return res.status(400).json({ error: err.message });
+        }
+        handleOldProcessApi(req, res);
+      });
+    }
+  });
+
+  // Handler for old synchronous process API (backward compatibility)
+  async function handleOldProcessApi(req: any, res: any) {
     let tempDir: string | null = null;
     
     try {
@@ -7864,6 +8091,81 @@ Provide analysis in this JSON structure:
           console.error("Cleanup error:", e);
         }
       }
+    }
+  }
+
+  // Get status of a video processing job
+  app.get("/api/video-to-clips/status/:jobId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { jobId } = req.params;
+      
+      const [job] = await db
+        .select()
+        .from(videoJobs)
+        .where(eq(videoJobs.id, jobId))
+        .limit(1);
+
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      // Verify the job belongs to the user
+      if (job.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      res.json({
+        jobId: job.id,
+        status: job.status,
+        progress: job.progress || 0,
+        errorMessage: job.errorMessage,
+        createdAt: job.createdAt,
+        completedAt: job.completedAt,
+      });
+    } catch (error: any) {
+      console.error("Job status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all clips for the authenticated user
+  app.get("/api/video-to-clips/clips", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const clips = await db
+        .select()
+        .from(videoClips)
+        .where(eq(videoClips.userId, userId))
+        .orderBy(desc(videoClips.createdAt));
+
+      // Format clips for frontend
+      const formattedClips = clips.map(clip => ({
+        id: clip.id,
+        jobId: clip.jobId,
+        title: clip.title,
+        transcript: clip.transcript,
+        startTime: clip.startTime,
+        endTime: clip.endTime,
+        score: clip.score,
+        videoUrl: clip.clipPath ? (clip.clipPath.startsWith('/objects') ? clip.clipPath : `/objects/${clip.clipPath}`) : undefined,
+        thumbnailUrl: clip.thumbnailPath ? (clip.thumbnailPath.startsWith('/objects') ? clip.thumbnailPath : `/objects/${clip.thumbnailPath}`) : undefined,
+        status: clip.status,
+        createdAt: clip.createdAt,
+      }));
+
+      res.json({ clips: formattedClips });
+    } catch (error: any) {
+      console.error("Clips fetch error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

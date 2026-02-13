@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
@@ -10,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause, Link2, Info, Edit, Loader2 } from "lucide-react";
+import { Upload, Video, Sparkles, Lightbulb, Clock, Download, Send, Play, Pause, Link2, Info, Edit, Loader2, Settings as SettingsIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClipSuggestion {
   id: string;
@@ -41,13 +44,16 @@ const defaultSuggestions: ClipSuggestion[] = [
 
 export default function VideoToClips() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const [uploadedVideo, setUploadedVideo] = useState<File | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [showAnalyzingModal, setShowAnalyzingModal] = useState(false);
   const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStep, setAnalysisStep] = useState("");
   const [selectedSuggestions, setSelectedSuggestions] = useState<string[]>([]);
@@ -57,12 +63,81 @@ export default function VideoToClips() {
   const [urlInput, setUrlInput] = useState("");
   const [isUrlProcessing, setIsUrlProcessing] = useState(false);
 
+  // New settings state
+  const [clipCount, setClipCount] = useState(5);
+  const [minDuration, setMinDuration] = useState(10);
+  const [maxDuration, setMaxDuration] = useState(30);
+
   const [sourceVideoPath, setSourceVideoPath] = useState<string | null>(null);
   const [editingClip, setEditingClip] = useState<GeneratedClip | null>(null);
   const [editHook, setEditHook] = useState("");
   const [editCaption, setEditCaption] = useState("");
   const [editHashtags, setEditHashtags] = useState("");
   const queryClient = useQueryClient();
+
+  // Poll job status - stop when completed or failed
+  const { data: jobStatus } = useQuery<{
+    jobId: string;
+    status: string;
+    progress: number;
+    errorMessage?: string;
+    createdAt: Date;
+    completedAt?: Date;
+  }>({
+    queryKey: [`/api/video-to-clips/status/${jobId}`],
+    enabled: !!jobId && jobId !== null,
+    refetchInterval: (data) => {
+      if (!jobId) return false;
+      if (!data) return 3000;
+      return (data.status !== 'completed' && data.status !== 'failed') ? 3000 : false;
+    },
+  });
+
+  // Stop polling when job is completed and fetch clips
+  const shouldFetchClips = jobStatus?.status === 'completed';
+  
+  const { data: clipsData, isLoading: isLoadingClips } = useQuery<{
+    clips: GeneratedClip[];
+  }>({
+    queryKey: ['/api/video-to-clips/clips'],
+    enabled: shouldFetchClips,
+  });
+
+  // Update progress and step from job status (use useEffect to avoid render loops)
+  useEffect(() => {
+    if (jobStatus) {
+      if (jobStatus.progress !== analysisProgress) {
+        setAnalysisProgress(jobStatus.progress || 0);
+      }
+      if (jobStatus.status !== analysisStep) {
+        const statusMessages: Record<string, string> = {
+          pending: 'Preparing to process...',
+          downloading: 'Downloading video...',
+          transcribing: 'Transcribing audio with AI...',
+          analyzing: 'Analyzing for best clips...',
+          extracting: 'Extracting video clips...',
+          completed: 'Processing complete!',
+          failed: 'Processing failed',
+        };
+        setAnalysisStep(statusMessages[jobStatus.status] || jobStatus.status);
+      }
+    }
+  }, [jobStatus]);
+
+  // When job completes and clips are available, update UI (use useEffect)
+  useEffect(() => {
+    if (shouldFetchClips && clipsData?.clips) {
+      if (generatedClips.length === 0 && clipsData.clips.length > 0) {
+        setGeneratedClips(clipsData.clips);
+        setShowAnalyzingModal(false);
+        setJobId(null);
+        toast({ 
+          title: "Clips generated!", 
+          description: `Found ${clipsData.clips.length} clips using AI` 
+        });
+      }
+    }
+  }, [shouldFetchClips, clipsData, generatedClips.length, toast]);
 
   const handleDownload = async (clip: GeneratedClip) => {
     if (!clip.videoUrl) {
@@ -84,6 +159,47 @@ export default function VideoToClips() {
     setEditCaption(clip.caption || clip.transcript || "");
     setEditHashtags(clip.hashtags?.join(" ") || "");
   };
+
+  // Mutation to upload video file
+  const uploadVideoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("video", file);
+      
+      const res = await fetch("/api/video-to-clips/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(error.error || "Upload failed");
+      }
+      return res.json();
+    },
+  });
+
+  // Mutation to start processing job
+  const processVideoMutation = useMutation({
+    mutationFn: async (params: { videoUrl: string; clipCount: number; minDuration: number; maxDuration: number }) => {
+      const res = await apiRequest("POST", "/api/video-to-clips/process", params);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setJobId(data.jobId);
+      setShowAnalyzingModal(true);
+      setAnalysisProgress(0);
+      setAnalysisStep("Starting video processing...");
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Processing failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    },
+  });
 
   const generateCaptionMutation = useMutation({
     mutationFn: async (transcript: string) => {
@@ -266,7 +382,7 @@ export default function VideoToClips() {
     }
 
     setUploadedVideo(file);
-    setShowSuggestionsModal(true);
+    setShowSettingsModal(true);
   };
 
   const handleGenerateClips = async () => {
@@ -275,35 +391,30 @@ export default function VideoToClips() {
       return;
     }
     
-    setShowSuggestionsModal(false);
-    setShowAnalyzingModal(true);
-    setAnalysisProgress(0);
-    setAnalysisStep("Starting AI analysis...");
-    
-    const steps = [
-      "Uploading video...", 
-      "Extracting audio...", 
-      "Transcribing with Whisper AI...", 
-      "Analyzing for best clips...",
-      "Finalizing results..."
-    ];
-    let stepIndex = 0;
-    
-    const interval = setInterval(() => {
-      stepIndex = Math.min(stepIndex + 1, steps.length - 1);
-      setAnalysisStep(steps[stepIndex]);
-      setAnalysisProgress(prev => Math.min(prev + 15, 90));
-    }, 3000);
-    
     try {
-      await processMutation.mutateAsync({
-        file: uploadedVideo,
-        suggestions: selectedSuggestions,
-        customPrompt,
+      setShowSettingsModal(false);
+      setShowAnalyzingModal(true);
+      setAnalysisProgress(0);
+      setAnalysisStep("Uploading video...");
+      
+      // Step 1: Upload video to get URL
+      const uploadResult = await uploadVideoMutation.mutateAsync(uploadedVideo);
+      
+      // Step 2: Start processing with the video URL
+      await processVideoMutation.mutateAsync({
+        videoUrl: uploadResult.videoUrl,
+        clipCount,
+        minDuration,
+        maxDuration,
       });
-    } finally {
-      clearInterval(interval);
-      setAnalysisProgress(100);
+      
+    } catch (error: any) {
+      setShowAnalyzingModal(false);
+      toast({ 
+        title: "Processing failed", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     }
   };
 
@@ -436,64 +547,84 @@ export default function VideoToClips() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {generatedClips.map((clip, index) => (
-                <Card key={clip.id} className="bg-slate-800/50 border-slate-700 overflow-hidden">
-                  <div className="aspect-[9/16] bg-slate-900 relative">
-                    {clip.videoUrl ? (
-                      <video
-                        src={clip.videoUrl}
-                        className="w-full h-full object-cover"
-                        poster={clip.thumbnailUrl}
-                        controls
-                        playsInline
-                        preload="metadata"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
-                        <Video className="w-12 h-12 text-slate-600 mb-2" />
-                        <p className="text-xs text-slate-500">Clip ready for extraction</p>
-                        <p className="text-xs text-slate-600 mt-1">{clip.startTime}s - {clip.endTime}s</p>
+              {isLoadingClips ? (
+                // Show loading skeletons while fetching clips
+                Array.from({ length: clipCount }).map((_, i) => (
+                  <Card key={i} className="bg-slate-800/50 border-slate-700 overflow-hidden">
+                    <div className="aspect-[9/16] bg-slate-900">
+                      <Skeleton className="w-full h-full" />
+                    </div>
+                    <CardContent className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-5/6" />
+                      <div className="flex gap-2 mt-3">
+                        <Skeleton className="h-8 flex-1" />
+                        <Skeleton className="h-8 flex-1" />
                       </div>
-                    )}
-                    <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
-                      {Math.round(clip.endTime - clip.startTime)}s
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                generatedClips.map((clip, index) => (
+                  <Card key={clip.id} className="bg-slate-800/50 border-slate-700 overflow-hidden">
+                    <div className="aspect-[9/16] bg-slate-900 relative">
+                      {clip.videoUrl ? (
+                        <video
+                          src={clip.videoUrl}
+                          className="w-full h-full object-cover"
+                          poster={clip.thumbnailUrl}
+                          controls
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
+                          <Video className="w-12 h-12 text-slate-600 mb-2" />
+                          <p className="text-xs text-slate-500">Clip ready for extraction</p>
+                          <p className="text-xs text-slate-600 mt-1">{clip.startTime}s - {clip.endTime}s</p>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white font-medium">
+                        {Math.round(clip.endTime - clip.startTime)}s
+                      </div>
+                      <div className="absolute top-2 left-2 bg-purple-500/80 px-2 py-1 rounded text-xs text-white font-medium">
+                        Clip {index + 1}
+                      </div>
                     </div>
-                    <div className="absolute top-2 left-2 bg-purple-500/80 px-2 py-1 rounded text-xs text-white font-medium">
-                      Clip {index + 1}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-white mb-2 line-clamp-2">{clip.title}</h4>
-                    <p className="text-sm text-slate-400 line-clamp-2 mb-3">{clip.transcript}</p>
-                    <div className="flex gap-2">
-                      <ResponsiveTooltip content="Download clip">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1" 
-                          onClick={() => handleDownload(clip)}
-                          disabled={!clip.videoUrl}
-                          data-testid={`button-download-${clip.id}`}
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          Download
-                        </Button>
-                      </ResponsiveTooltip>
-                      <ResponsiveTooltip content="Edit and queue">
-                        <Button 
-                          size="sm" 
-                          className="flex-1 bg-purple-600 hover:bg-purple-700" 
-                          onClick={() => openEditModal(clip)}
-                          data-testid={`button-queue-${clip.id}`}
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          Edit & Queue
-                        </Button>
-                      </ResponsiveTooltip>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-white mb-2 line-clamp-2">{clip.title}</h4>
+                      <p className="text-sm text-slate-400 line-clamp-2 mb-3">{clip.transcript}</p>
+                      <div className="flex gap-2">
+                        <ResponsiveTooltip content="Download clip">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="flex-1" 
+                            onClick={() => handleDownload(clip)}
+                            disabled={!clip.videoUrl}
+                            data-testid={`button-download-${clip.id}`}
+                          >
+                            <Download className="w-4 h-4 mr-1" />
+                            Download
+                          </Button>
+                        </ResponsiveTooltip>
+                        <ResponsiveTooltip content="Edit and queue">
+                          <Button 
+                            size="sm" 
+                            className="flex-1 bg-purple-600 hover:bg-purple-700" 
+                            onClick={() => openEditModal(clip)}
+                            data-testid={`button-queue-${clip.id}`}
+                          >
+                            <Edit className="w-4 h-4 mr-1" />
+                            Edit & Queue
+                          </Button>
+                        </ResponsiveTooltip>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -514,6 +645,75 @@ export default function VideoToClips() {
               </div>
               <Progress value={analysisProgress} className="h-2 mb-3" />
               <p className="text-center text-slate-400 text-sm">{analysisStep}</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
+          <DialogContent className="bg-slate-900 border-slate-700 sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-white text-center text-xl flex items-center justify-center gap-2">
+                <SettingsIcon className="w-5 h-5" />
+                Video Processing Settings
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-6">
+              <div>
+                <Label className="text-slate-300 mb-2 block">Number of Clips (1-20)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={clipCount}
+                  onChange={(e) => setClipCount(Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))}
+                  className="bg-slate-800 border-slate-700 text-white"
+                  data-testid="input-clip-count"
+                />
+                <p className="text-xs text-slate-500 mt-1">How many clips to generate from your video</p>
+              </div>
+
+              <div>
+                <Label className="text-slate-300 mb-2 block">Min Duration (5-15 seconds)</Label>
+                <Input
+                  type="number"
+                  min={5}
+                  max={15}
+                  value={minDuration}
+                  onChange={(e) => setMinDuration(Math.max(5, Math.min(15, parseInt(e.target.value) || 10)))}
+                  className="bg-slate-800 border-slate-700 text-white"
+                  data-testid="input-min-duration"
+                />
+                <p className="text-xs text-slate-500 mt-1">Minimum clip length in seconds</p>
+              </div>
+
+              <div>
+                <Label className="text-slate-300 mb-2 block">Max Duration (15-60 seconds)</Label>
+                <Input
+                  type="number"
+                  min={15}
+                  max={60}
+                  value={maxDuration}
+                  onChange={(e) => setMaxDuration(Math.max(15, Math.min(60, parseInt(e.target.value) || 30)))}
+                  className="bg-slate-800 border-slate-700 text-white"
+                  data-testid="input-max-duration"
+                />
+                <p className="text-xs text-slate-500 mt-1">Maximum clip length in seconds</p>
+              </div>
+
+              <ResponsiveTooltip content="Start processing video">
+                <Button
+                  onClick={handleGenerateClips}
+                  disabled={uploadVideoMutation.isPending || processVideoMutation.isPending}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  data-testid="button-start-processing"
+                >
+                  {uploadVideoMutation.isPending || processVideoMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2" />Start Processing</>
+                  )}
+                </Button>
+              </ResponsiveTooltip>
             </div>
           </DialogContent>
         </Dialog>
