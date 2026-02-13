@@ -36,7 +36,7 @@ interface Post {
   contentFormat: string;
   topic: string;
   hook: string;
-  bestTime: string;
+  bestTimeToPost: string;
 }
 
 interface WeeklyPlan {
@@ -74,7 +74,7 @@ function PostCard({ post }: PostCardProps) {
       </div>
       <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
         <Clock className="w-3 h-3" />
-        <span>{post.bestTime}</span>
+        <span>{post.bestTimeToPost}</span>
       </div>
     </div>
   );

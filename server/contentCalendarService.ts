@@ -23,21 +23,63 @@ export class ContentCalendarService {
         }>; 
     }> {
         try {
-            const prompt = `Generate a weekly content calendar for a social media marketing strategy. Convert the following details into a detailed JSON: \nBrand Voice: ${input.brandVoice}\nTarget Audience: ${input.targetAudience}\nContent Goals: ${input.contentGoals}\nPlatforms: ${input.platforms.join(", ")}\nPosting Frequency: ${input.postingFrequency}\nExisting Topics: ${input.existingTopics?.join(", ") || "none"}`;
+            const systemPrompt = `You are a social media strategist creating a weekly content calendar. Generate a structured weekly plan with posts distributed across different days and platforms based on the posting frequency.
 
-            const response = await openai.complete({
-                model: "gpt-4o",
-                prompt,
-                max_tokens: 1000,
-                temperature: 0.7,
+Return a JSON object with this exact structure:
+{
+  "weekStarting": "YYYY-MM-DD",
+  "days": [
+    {
+      "day": "Monday",
+      "posts": [
+        {
+          "platform": "instagram",
+          "contentFormat": "video" | "image" | "carousel" | "text",
+          "topic": "Main topic/theme of the post",
+          "hook": "Attention-grabbing opening line",
+          "bestTimeToPost": "12:00 PM - 3:00 PM",
+          "notes": "Additional context or instructions"
+        }
+      ]
+    }
+  ]
+}
+
+Consider the brand voice, target audience, and content goals when creating topics and hooks. Distribute posts evenly across the week based on the posting frequency. Use viral hooks and engaging topics.`;
+
+            const userPrompt = `Generate a weekly content calendar with the following details:
+
+Brand Voice: ${input.brandVoice}
+Target Audience: ${input.targetAudience}
+Content Goals: ${input.contentGoals}
+Platforms: ${input.platforms.join(", ")}
+Posting Frequency: ${input.postingFrequency}
+${input.existingTopics?.length ? `Existing Topics to Avoid: ${input.existingTopics.join(", ")}` : ""}
+
+Create a diverse mix of content formats and topics that align with the brand voice and will resonate with the target audience. Schedule posts at optimal times for each platform.`;
+
+            const response = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                ],
                 response_format: { type: "json_object" },
+                max_completion_tokens: 2000,
+                temperature: 0.7,
             });
 
-            return response;
+            const content = response.choices[0]?.message?.content;
+            if (!content) {
+                throw new Error("No response from OpenAI");
+            }
+
+            const parsedPlan = JSON.parse(content);
+            return parsedPlan;
         } catch (error) {
             console.error("Error generating weekly content calendar:", error);
             return {
-                weekStarting: new Date().toISOString(),
+                weekStarting: new Date().toISOString().split('T')[0],
                 days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => ({
                     day,
                     posts: [],
