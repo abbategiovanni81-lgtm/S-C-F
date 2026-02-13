@@ -36,6 +36,7 @@ import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVide
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 import { motionControlService } from "./motionControlService";
+import { contentCalendarService } from "./contentCalendarService";
 
 const objectStorageService = new ObjectStorageService();
 const DEMO_USER_ID = "demo-user";
@@ -335,6 +336,42 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error updating brand brief:", error);
       res.status(500).json({ error: "Failed to update brand brief" });
+    }
+  });
+
+  // Content Calendar endpoint
+  app.post("/api/content-calendar/generate", requireAuth, async (req: any, res) => {
+    try {
+      const { briefId } = req.body;
+      
+      if (!briefId) {
+        return res.status(400).json({ error: "briefId is required" });
+      }
+      
+      // Get the brand brief
+      const brief = await storage.getBrandBrief(briefId);
+      if (!brief) {
+        return res.status(404).json({ error: "Brand brief not found" });
+      }
+      
+      // Check ownership
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Generate weekly plan
+      const plan = await contentCalendarService.generateWeeklyPlan({
+        brandVoice: brief.brandVoice,
+        targetAudience: brief.targetAudience,
+        contentGoals: brief.contentGoals,
+        platforms: brief.platforms,
+        postingFrequency: brief.postingFrequency,
+      });
+      
+      res.json(plan);
+    } catch (error) {
+      console.error("Error generating content calendar:", error);
+      res.status(500).json({ error: "Failed to generate content calendar" });
     }
   });
 
