@@ -8680,6 +8680,80 @@ Requirements:
     }
   });
 
+  // Thumbnails generation endpoint
+  app.post("/api/thumbnails/generate", isAuthenticated, async (req: any, res) => {
+    try {
+      const { title, description, style, platform } = req.body;
+
+      if (!title || !description || !style || !platform) {
+        return res.status(400).json({ error: "Title, description, style, and platform are required" });
+      }
+
+      // Validate style and platform
+      const validStyles = ["bold", "minimal", "cinematic", "mrbeast"];
+      const validPlatforms = ["youtube", "instagram", "tiktok"];
+      
+      if (!validStyles.includes(style)) {
+        return res.status(400).json({ error: `Invalid style. Must be one of: ${validStyles.join(", ")}` });
+      }
+      
+      if (!validPlatforms.includes(platform)) {
+        return res.status(400).json({ error: `Invalid platform. Must be one of: ${validPlatforms.join(", ")}` });
+      }
+
+      // Construct style-specific prompt
+      let stylePrompt = "";
+      switch (style) {
+        case "bold":
+          stylePrompt = "Create a bold, eye-catching thumbnail with bright vibrant colors, large text overlay area, high contrast design, and energetic feel. ";
+          break;
+        case "minimal":
+          stylePrompt = "Create a minimal, clean thumbnail with plenty of whitespace, simple elegant design, muted professional colors, and a sophisticated aesthetic. ";
+          break;
+        case "cinematic":
+          stylePrompt = "Create a cinematic, dramatic thumbnail with dark moody lighting, film-like composition, rich shadows and highlights, and an epic atmospheric feel. ";
+          break;
+        case "mrbeast":
+          stylePrompt = "Create a MrBeast-style thumbnail with a shocked surprised face expression, bright yellow and red colors, attention-grabbing arrows and circles, high energy dynamic composition, and clickbait appeal. ";
+          break;
+      }
+
+      // Construct full prompt
+      const builtPrompt = `${stylePrompt}Title: "${title}". Description: ${description}. Design a professional thumbnail image suitable for social media.`;
+
+      // Determine size based on platform
+      let size: "1024x1024" | "1536x1024" | "1024x1536";
+      switch (platform) {
+        case "youtube":
+          size = "1536x1024"; // 16:9 landscape
+          break;
+        case "instagram":
+          size = "1024x1024"; // 1:1 square
+          break;
+        case "tiktok":
+          size = "1024x1536"; // 9:16 portrait
+          break;
+        default:
+          size = "1024x1024";
+      }
+
+      // Generate image using DALL-E
+      const result = await generateDalleImage({
+        prompt: builtPrompt,
+        size: size,
+        quality: "high"
+      });
+
+      res.json({
+        imageUrl: result.imageUrl,
+        prompt: builtPrompt
+      });
+    } catch (error: any) {
+      console.error("Thumbnail generation error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate thumbnail" });
+    }
+  });
+
   // Google Drive endpoints for Reel Library (all require authentication)
   app.get("/api/drive/status", isAuthenticated, async (req, res) => {
     try {
