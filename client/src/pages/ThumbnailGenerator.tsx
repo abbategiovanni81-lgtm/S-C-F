@@ -62,16 +62,11 @@ export default function ThumbnailGenerator() {
 
   const generateVariationsMutation = useMutation({
     mutationFn: async (data: { title: string; description: string; style: ThumbnailStyle; platform: Platform }) => {
-      // Generate 3 variations by adding slight variations to the description
-      const variations = [
-        { ...data, description: `${data.description} - variation 1 with different composition` },
-        { ...data, description: `${data.description} - variation 2 with alternative angle` },
-        { ...data, description: `${data.description} - variation 3 with unique perspective` },
-      ];
-
+      // Generate 3 variations by calling the same endpoint multiple times
+      // The AI model's inherent randomness will create natural variations
       const results = await Promise.all(
-        variations.map(async (variation) => {
-          const response = await apiRequest("POST", "/api/thumbnails/generate", variation);
+        [1, 2, 3].map(async () => {
+          const response = await apiRequest("POST", "/api/thumbnails/generate", data);
           return response.json() as Promise<ThumbnailResult>;
         })
       );
@@ -302,11 +297,25 @@ export default function ThumbnailGenerator() {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => {
-                            const link = document.createElement("a");
-                            link.href = thumbnail.imageUrl;
-                            link.download = `thumbnail-${index + 1}.png`;
-                            link.click();
+                          onClick={async () => {
+                            try {
+                              // Fetch the image as a blob to handle CORS issues
+                              const response = await fetch(thumbnail.imageUrl);
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `thumbnail-${index + 1}.png`;
+                              link.click();
+                              window.URL.revokeObjectURL(url);
+                            } catch (error) {
+                              // Fallback to direct download if fetch fails
+                              const link = document.createElement("a");
+                              link.href = thumbnail.imageUrl;
+                              link.download = `thumbnail-${index + 1}.png`;
+                              link.target = "_blank";
+                              link.click();
+                            }
                           }}
                         >
                           <Download className="mr-2 h-4 w-4" />
