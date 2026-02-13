@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -75,52 +75,69 @@ export default function VideoToClips() {
   const [editHashtags, setEditHashtags] = useState("");
   const queryClient = useQueryClient();
 
-  // Poll job status
-  const { data: jobStatus } = useQuery({
+  // Poll job status - stop when completed or failed
+  const { data: jobStatus } = useQuery<{
+    jobId: string;
+    status: string;
+    progress: number;
+    errorMessage?: string;
+    createdAt: Date;
+    completedAt?: Date;
+  }>({
     queryKey: [`/api/video-to-clips/status/${jobId}`],
-    enabled: !!jobId,
-    refetchInterval: jobId ? 3000 : false,
+    enabled: !!jobId && jobId !== null,
+    refetchInterval: (data) => {
+      if (!jobId) return false;
+      if (!data) return 3000;
+      return (data.status !== 'completed' && data.status !== 'failed') ? 3000 : false;
+    },
   });
 
   // Stop polling when job is completed and fetch clips
   const shouldFetchClips = jobStatus?.status === 'completed';
   
-  const { data: clipsData, isLoading: isLoadingClips } = useQuery({
+  const { data: clipsData, isLoading: isLoadingClips } = useQuery<{
+    clips: GeneratedClip[];
+  }>({
     queryKey: ['/api/video-to-clips/clips'],
     enabled: shouldFetchClips,
   });
 
-  // Update progress and step from job status
-  if (jobStatus) {
-    if (jobStatus.progress !== analysisProgress) {
-      setAnalysisProgress(jobStatus.progress || 0);
+  // Update progress and step from job status (use useEffect to avoid render loops)
+  useEffect(() => {
+    if (jobStatus) {
+      if (jobStatus.progress !== analysisProgress) {
+        setAnalysisProgress(jobStatus.progress || 0);
+      }
+      if (jobStatus.status !== analysisStep) {
+        const statusMessages: Record<string, string> = {
+          pending: 'Preparing to process...',
+          downloading: 'Downloading video...',
+          transcribing: 'Transcribing audio with AI...',
+          analyzing: 'Analyzing for best clips...',
+          extracting: 'Extracting video clips...',
+          completed: 'Processing complete!',
+          failed: 'Processing failed',
+        };
+        setAnalysisStep(statusMessages[jobStatus.status] || jobStatus.status);
+      }
     }
-    if (jobStatus.status !== analysisStep) {
-      const statusMessages: Record<string, string> = {
-        pending: 'Preparing to process...',
-        downloading: 'Downloading video...',
-        transcribing: 'Transcribing audio with AI...',
-        analyzing: 'Analyzing for best clips...',
-        extracting: 'Extracting video clips...',
-        completed: 'Processing complete!',
-        failed: 'Processing failed',
-      };
-      setAnalysisStep(statusMessages[jobStatus.status] || jobStatus.status);
-    }
-  }
+  }, [jobStatus]);
 
-  // When job completes and clips are available, update UI
-  if (shouldFetchClips && clipsData?.clips) {
-    if (generatedClips.length === 0 && clipsData.clips.length > 0) {
-      setGeneratedClips(clipsData.clips);
-      setShowAnalyzingModal(false);
-      setJobId(null);
-      toast({ 
-        title: "Clips generated!", 
-        description: `Found ${clipsData.clips.length} clips using AI` 
-      });
+  // When job completes and clips are available, update UI (use useEffect)
+  useEffect(() => {
+    if (shouldFetchClips && clipsData?.clips) {
+      if (generatedClips.length === 0 && clipsData.clips.length > 0) {
+        setGeneratedClips(clipsData.clips);
+        setShowAnalyzingModal(false);
+        setJobId(null);
+        toast({ 
+          title: "Clips generated!", 
+          description: `Found ${clipsData.clips.length} clips using AI` 
+        });
+      }
     }
-  }
+  }, [shouldFetchClips, clipsData, generatedClips.length, toast]);
 
   const handleDownload = async (clip: GeneratedClip) => {
     if (!clip.videoUrl) {

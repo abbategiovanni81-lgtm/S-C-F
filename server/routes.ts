@@ -7942,6 +7942,9 @@ Provide analysis in this JSON structure:
         if (maxDuration < 15 || maxDuration > 60) {
           return res.status(400).json({ error: "maxDuration must be between 15 and 60 seconds" });
         }
+        if (minDuration >= maxDuration) {
+          return res.status(400).json({ error: "minDuration must be less than maxDuration" });
+        }
 
         // Create job in database
         const [job] = await db
