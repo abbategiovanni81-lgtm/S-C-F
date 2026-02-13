@@ -1329,6 +1329,9 @@ Provide analysis in this JSON structure:
         hasFal: !!keys?.falKey,
         hasPexels: !!keys?.pexelsKey,
         hasSteveai: !!keys?.steveaiKey,
+        hasHeygen: !!keys?.heygenKey,
+        hasWan: !!keys?.wanKey,
+        hasLate: !!keys?.lateKey,
       });
     } catch (error: any) {
       console.error("Error fetching user API keys:", error);
@@ -1343,7 +1346,7 @@ Provide analysis in this JSON structure:
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey } = req.body;
+      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey, heygenKey, wanKey, lateKey } = req.body;
       
       // Check if user already has keys
       const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
@@ -1357,6 +1360,9 @@ Provide analysis in this JSON structure:
         if (a2eKey !== undefined) updates.a2eKey = a2eKey || null;
         if (falKey !== undefined) updates.falKey = falKey || null;
         if (pexelsKey !== undefined) updates.pexelsKey = pexelsKey || null;
+        if (heygenKey !== undefined) updates.heygenKey = heygenKey || null;
+        if (wanKey !== undefined) updates.wanKey = wanKey || null;
+        if (lateKey !== undefined) updates.lateKey = lateKey || null;
         
         await db.update(userApiKeys).set(updates).where(eq(userApiKeys.id, existing.id));
       } else {
@@ -1369,6 +1375,9 @@ Provide analysis in this JSON structure:
           a2eKey: a2eKey || null,
           falKey: falKey || null,
           pexelsKey: pexelsKey || null,
+          heygenKey: heygenKey || null,
+          wanKey: wanKey || null,
+          lateKey: lateKey || null,
         });
       }
       
@@ -9333,6 +9342,137 @@ Requirements:
       res.json(updated);
     } catch (error: any) {
       console.error("Error exporting storyboard:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // HeyGen API routes
+  app.post("/api/heygen/generate-video", requireAuth, async (req: any, res) => {
+    try {
+      const { avatarId, script } = req.body;
+      if (!avatarId || !script) {
+        return res.status(400).json({ error: "avatarId and script are required" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get user's HeyGen API key
+      const [apiKeys] = await db.select()
+        .from(userApiKeys)
+        .where(eq(userApiKeys.userId, userId));
+
+      if (!apiKeys?.heygenKey) {
+        return res.status(400).json({ error: "HeyGen API key not configured" });
+      }
+
+      // TODO: Implement HeyGen video generation
+      res.status(501).json({ error: "HeyGen video generation is not yet implemented" });
+    } catch (error: any) {
+      console.error("Error generating HeyGen video:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Wan (Alibaba) API routes
+  app.post("/api/wan/generate-video", requireAuth, async (req: any, res) => {
+    try {
+      const { prompt, duration } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get user's Wan API key
+      const [apiKeys] = await db.select()
+        .from(userApiKeys)
+        .where(eq(userApiKeys.userId, userId));
+
+      if (!apiKeys?.wanKey) {
+        return res.status(400).json({ error: "Wan API key not configured" });
+      }
+
+      // TODO: Implement Wan video generation
+      res.status(501).json({ error: "Wan video generation is not yet implemented" });
+    } catch (error: any) {
+      console.error("Error generating Wan video:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Late API routes (video generation)
+  app.post("/api/late/generate-video", requireAuth, async (req: any, res) => {
+    try {
+      const { prompt, style } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "prompt is required" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get user's Late API key
+      const [apiKeys] = await db.select()
+        .from(userApiKeys)
+        .where(eq(userApiKeys.userId, userId));
+
+      if (!apiKeys?.lateKey) {
+        return res.status(400).json({ error: "Late API key not configured" });
+      }
+
+      // TODO: Implement Late video generation
+      res.status(501).json({ error: "Late video generation is not yet implemented" });
+    } catch (error: any) {
+      console.error("Error generating Late video:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Batch processing routes
+  app.post("/api/batch/create", requireAuth, async (req: any, res) => {
+    try {
+      const { items, operation } = req.body;
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: "items array is required" });
+      }
+      if (!operation) {
+        return res.status(400).json({ error: "operation is required" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // TODO: Implement batch processing system
+      res.status(501).json({ error: "Batch processing is not yet implemented" });
+    } catch (error: any) {
+      console.error("Error creating batch:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/batch/:id/status", requireAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // TODO: Implement batch status checking
+      res.status(501).json({ error: "Batch status checking is not yet implemented" });
+    } catch (error: any) {
+      console.error("Error checking batch status:", error);
       res.status(500).json({ error: error.message });
     }
   });

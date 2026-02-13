@@ -28,6 +28,9 @@ export default function Settings() {
   const [a2eKey, setA2eKey] = useState("");
   const [falKey, setFalKey] = useState("");
   const [pexelsKey, setPexelsKey] = useState("");
+  const [heygenKey, setHeygenKey] = useState("");
+  const [wanKey, setWanKey] = useState("");
+  const [lateKey, setLateKey] = useState("");
 
   const { data: aiStatus } = useQuery({
     queryKey: ["/api/ai-engines/status"],
@@ -49,7 +52,7 @@ export default function Settings() {
   });
 
   const saveKeysMutation = useMutation({
-    mutationFn: async (keys: { openaiKey?: string; anthropicKey?: string; elevenlabsKey?: string; a2eKey?: string; falKey?: string; pexelsKey?: string }) => {
+    mutationFn: async (keys: { openaiKey?: string; anthropicKey?: string; elevenlabsKey?: string; a2eKey?: string; falKey?: string; pexelsKey?: string; heygenKey?: string; wanKey?: string; lateKey?: string }) => {
       const res = await fetch("/api/user/api-keys", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -68,6 +71,9 @@ export default function Settings() {
       setA2eKey("");
       setFalKey("");
       setPexelsKey("");
+      setHeygenKey("");
+      setWanKey("");
+      setLateKey("");
     },
     onError: (error: any) => {
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
@@ -123,6 +129,9 @@ export default function Settings() {
     if (a2eKey) keysToSave.a2eKey = a2eKey;
     if (falKey) keysToSave.falKey = falKey;
     if (pexelsKey) keysToSave.pexelsKey = pexelsKey;
+    if (heygenKey) keysToSave.heygenKey = heygenKey;
+    if (wanKey) keysToSave.wanKey = wanKey;
+    if (lateKey) keysToSave.lateKey = lateKey;
     
     if (Object.keys(keysToSave).length === 0) {
       toast({ title: "No changes", description: "Enter at least one API key to save", variant: "destructive" });
@@ -523,6 +532,60 @@ export default function Settings() {
                             data-testid="input-pexels-key" 
                           />
                           <p className="text-xs text-muted-foreground">For B-Roll stock footage</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>HeyGen API Key</Label>
+                            {userApiKeys?.hasHeygen && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasHeygen ? "••••••••••••" : "Your HeyGen key"}
+                            value={heygenKey}
+                            onChange={(e) => setHeygenKey(e.target.value)}
+                            data-testid="input-heygen-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For avatar-based video generation</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Wan API Key</Label>
+                            {userApiKeys?.hasWan && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasWan ? "••••••••••••" : "Your Wan key"}
+                            value={wanKey}
+                            onChange={(e) => setWanKey(e.target.value)}
+                            data-testid="input-wan-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For Alibaba Wan 2.6 video generation</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Late API Key</Label>
+                            {userApiKeys?.hasLate && (
+                              <Badge variant="outline" className="text-xs">
+                                <Check className="h-3 w-3 mr-1" /> Saved
+                              </Badge>
+                            )}
+                          </div>
+                          <Input 
+                            type="password" 
+                            placeholder={userApiKeys?.hasLate ? "••••••••••••" : "Your Late key"}
+                            value={lateKey}
+                            onChange={(e) => setLateKey(e.target.value)}
+                            data-testid="input-late-key" 
+                          />
+                          <p className="text-xs text-muted-foreground">For Late video generation</p>
                         </div>
                       </>
                     )}
