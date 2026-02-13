@@ -8905,6 +8905,37 @@ Requirements:
   // CONTENT CALENDAR ROUTES
   // ===============================================
   
+  // Content calendar prompt template
+  const CONTENT_CALENDAR_PROMPT_TEMPLATE = `You are a social media content strategist. Generate a weekly content calendar plan in JSON format.
+      
+Brand Voice: {brandVoice}
+Target Audience: {targetAudience}
+Content Goals: {contentGoals}
+Platforms: {platforms}
+Posting Frequency: {postingFrequency}
+
+Return a JSON object with this structure:
+{
+  "days": {
+    "monday": [{ "platform": "instagram", "contentFormat": "Reel", "topic": "...", "hook": "...", "bestTime": "7 PM - 9 PM" }],
+    "tuesday": [...],
+    "wednesday": [...],
+    "thursday": [...],
+    "friday": [...],
+    "saturday": [...],
+    "sunday": [...]
+  }
+}
+
+Each post should include:
+- platform: one of the requested platforms
+- contentFormat: type of content (Reel, Story, Post, Video, Tweet, etc.)
+- topic: the main topic/theme
+- hook: an engaging opening line or hook
+- bestTime: recommended posting time for that platform
+
+Distribute posts across the week based on the posting frequency.`;
+  
   // Generate weekly content calendar
   app.post("/api/content-calendar/generate", isAuthenticated, async (req: any, res) => {
     try {
@@ -8942,35 +8973,12 @@ Requirements:
       }
       
       // Generate content calendar using OpenAI
-      const systemPrompt = `You are a social media content strategist. Generate a weekly content calendar plan in JSON format.
-      
-Brand Voice: ${briefData.brandVoice}
-Target Audience: ${briefData.targetAudience}
-Content Goals: ${briefData.contentGoals}
-Platforms: ${platforms.join(", ")}
-Posting Frequency: ${postingFrequency}
-
-Return a JSON object with this structure:
-{
-  "days": {
-    "monday": [{ "platform": "instagram", "contentFormat": "Reel", "topic": "...", "hook": "...", "bestTime": "7 PM - 9 PM" }],
-    "tuesday": [...],
-    "wednesday": [...],
-    "thursday": [...],
-    "friday": [...],
-    "saturday": [...],
-    "sunday": [...]
-  }
-}
-
-Each post should include:
-- platform: one of the requested platforms
-- contentFormat: type of content (Reel, Story, Post, Video, Tweet, etc.)
-- topic: the main topic/theme
-- hook: an engaging opening line or hook
-- bestTime: recommended posting time for that platform
-
-Distribute posts across the week based on the posting frequency.`;
+      const systemPrompt = CONTENT_CALENDAR_PROMPT_TEMPLATE
+        .replace('{brandVoice}', briefData.brandVoice)
+        .replace('{targetAudience}', briefData.targetAudience)
+        .replace('{contentGoals}', briefData.contentGoals)
+        .replace('{platforms}', platforms.join(", "))
+        .replace('{postingFrequency}', postingFrequency);
 
       const response = await openai.chat.completions.create({
         model: "gpt-4o",

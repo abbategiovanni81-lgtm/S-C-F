@@ -33,6 +33,8 @@ const PLATFORM_COLORS: Record<string, string> = {
   pinterest: "bg-red-100 text-red-700 border-red-200",
 };
 
+const DEFAULT_PLATFORM_COLOR = "bg-gray-100 text-gray-700 border-gray-200";
+
 const DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -51,6 +53,15 @@ interface WeeklyPlan {
   days: {
     [key: string]: Post[];
   };
+}
+
+interface GenerateCalendarRequest {
+  brandBriefId?: string;
+  platforms: string[];
+  postingFrequency: string;
+  brandVoice?: string;
+  targetAudience?: string;
+  contentGoals?: string;
 }
 
 export default function ContentCalendar() {
@@ -73,7 +84,7 @@ export default function ContentCalendar() {
   // Generate plan mutation
   const generatePlan = useMutation({
     mutationFn: async () => {
-      const requestData: any = {
+      const requestData: GenerateCalendarRequest = {
         platforms: selectedPlatforms,
         postingFrequency,
       };
@@ -310,7 +321,7 @@ export default function ContentCalendar() {
                           </p>
                         ) : (
                           posts.map((post, postIndex) => {
-                            const platformColor = PLATFORM_COLORS[post.platform.toLowerCase()] || "bg-gray-100 text-gray-700 border-gray-200";
+                            const platformColor = PLATFORM_COLORS[post.platform.toLowerCase()] || DEFAULT_PLATFORM_COLOR;
                             const icon = PLATFORM_ICONS[post.platform.toLowerCase()];
                             
                             return (
