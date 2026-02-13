@@ -216,7 +216,7 @@ export default function ContentCalendar() {
                       <div className="space-y-3">
                         {posts.length > 0 ? (
                           posts.map((post, index) => (
-                            <PostCard key={index} post={post} />
+                            <PostCard key={`${day}-${post.platform}-${index}`} post={post} />
                           ))
                         ) : (
                           <div className="text-center text-sm text-gray-500 py-4">
