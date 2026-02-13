@@ -9,7 +9,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Calendar, Sparkles, Youtube, Instagram, Video, Twitter, Linkedin, Facebook, Clock, Pin } from "lucide-react";
+import { 
+  Loader2, 
+  Calendar, 
+  Sparkles, 
+  Youtube, 
+  Instagram, 
+  Video, 
+  Twitter, 
+  Linkedin, 
+  Facebook, 
+  Clock, 
+  Pin 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { BrandBrief } from "@shared/schema";
 

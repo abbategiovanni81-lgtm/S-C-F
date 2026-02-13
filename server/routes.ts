@@ -8907,7 +8907,7 @@ Requirements:
   
   // Content calendar prompt template
   const CONTENT_CALENDAR_PROMPT_TEMPLATE = `You are a social media content strategist. Generate a weekly content calendar plan in JSON format.
-      
+
 Brand Voice: {brandVoice}
 Target Audience: {targetAudience}
 Content Goals: {contentGoals}
