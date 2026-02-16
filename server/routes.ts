@@ -12,7 +12,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { runMigrations } from "stripe-replit-sync";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, editImage, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
+import { openai, generateSocialContent, generateContentIdeas, analyzeViralContent, analyzeViralContentEnhanced, extractAnalyticsFromScreenshot, generateReply, analyzePostForListening, generateDalleImage, generateCarouselImage, isDalleConfigured, compareContentToViral, analyzeBrandFromWebsite, analyzeBrandFromSocialProfile, parseAssetTokens, removeAssetTokens, analyzeCarouselStyle, editImage, type ContentGenerationRequest, type ContentComparisonRequest, type CarouselImageRequest, type TrendingContext } from "./openai";
 import { apifyService, APIFY_ACTORS, normalizeApifyItem, extractKeywordsFromBrief, scrapeWebsiteForBrandAnalysis, detectSocialPlatform, scrapeSocialProfile } from "./apify";
 import { elevenlabsService } from "./elevenlabs";
 import { falService } from "./fal";
@@ -860,7 +860,7 @@ export async function registerRoutes(
 
       // Analyze the first image as primary, pass all images for comprehensive analysis
       const primaryImage = allImagesBase64[0];
-      const analysis = await analyzeViralContent(
+      const analysis = await analyzeViralContentEnhanced(
         primaryImage.base64, 
         primaryImage.mimeType, 
         brandBrief, 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,46 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, 
   RefreshCw, Save, CheckCircle, X, Plus, Search, Youtube, Trash2, BarChart2, FileText, 
-  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen
+  TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen, 
+  Flame, Copy, Hash, Zap
 } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 const DEMO_USER_ID = "demo-user";
+
+// Helper functions for score-based styling
+function getScoreColor(score: number): string {
+  if (score >= 9) return "text-green-600 dark:text-green-400";
+  if (score >= 7) return "text-yellow-600 dark:text-yellow-400";
+  if (score >= 4) return "text-orange-500 dark:text-orange-400";
+  return "text-red-500 dark:text-red-400";
+}
+
+function getScoreBgColor(score: number): string {
+  if (score >= 9) return "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800";
+  if (score >= 7) return "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800";
+  if (score >= 4) return "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800";
+  return "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800";
+}
+
+function getScoreBadgeColor(score: number): string {
+  if (score >= 9) return "bg-green-500 text-white";
+  if (score >= 7) return "bg-yellow-500 text-white";
+  if (score >= 4) return "bg-orange-500 text-white";
+  return "bg-red-500 text-white";
+}
+
+// Analysis steps for progress animation
+const ANALYSIS_STEPS = [
+  { label: "Scanning visuals", duration: 2000 },
+  { label: "Analyzing hook", duration: 2500 },
+  { label: "Breaking down body", duration: 2000 },
+  { label: "Scoring visual quality", duration: 2500 },
+  { label: "Running competitive analysis", duration: 3000 },
+  { label: "Generating suggestions", duration: 2000 },
+];
 
 interface ContentAnalysis {
   whyThisWorked: string[];
@@ -50,6 +83,42 @@ interface ContentAnalysis {
     platform: string;
     format: string;
     captionAngle: string;
+  };
+}
+
+// Enhanced analysis interface with scored sections
+interface EnhancedAnalysis extends ContentAnalysis {
+  viralPotentialScore?: number; // Overall score 1-10
+  scoredSections?: {
+    hook: {
+      score: number;
+      strengths: string[];
+      weaknesses: string[];
+      feedback: string;
+    };
+    body: {
+      score: number;
+      strengths: string[];
+      weaknesses: string[];
+      feedback: string;
+    };
+    visual: {
+      score: number;
+      strengths: string[];
+      weaknesses: string[];
+      feedback: string;
+    };
+    competitiveAnalysis: {
+      score: number;
+      vsTopPerformers: string;
+      nicheContext: string;
+      feedback: string;
+    };
+  };
+  suggestedContent?: {
+    captions: string[];
+    hashtags: string[];
+    hookRewrites: string[];
   };
 }
 
@@ -121,8 +190,13 @@ export default function ContentAnalyzer() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [currentAnalysisIndex, setCurrentAnalysisIndex] = useState(0);
   const [selectedBriefId, setSelectedBriefId] = useState<string>("");
-  const [analysis, setAnalysis] = useState<ContentAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<EnhancedAnalysis | null>(null);
   const [saved, setSaved] = useState(false);
+  
+  // Progress animation state
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [showProgressAnimation, setShowProgressAnimation] = useState(false);
 
   // Generate Content dialog state
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
@@ -167,6 +241,11 @@ export default function ContentAnalyzer() {
   // Post Analyzer mutations
   const analyzeMutation = useMutation({
     mutationFn: async ({ files, briefId }: { files: File[]; briefId?: string }) => {
+      // Start progress animation
+      setShowProgressAnimation(true);
+      setAnalysisProgress(0);
+      setCurrentStep(0);
+      
       const formData = new FormData();
       files.forEach((file) => {
         formData.append("images", file);
@@ -185,12 +264,14 @@ export default function ContentAnalyzer() {
       return res.json();
     },
     onSuccess: (data) => {
+      setShowProgressAnimation(false);
       setAnalysis(data);
       setCurrentAnalysisIndex(0);
       setSaved(false);
       toast({ title: `Analysis complete! Analyzed ${selectedFiles.length} image${selectedFiles.length > 1 ? 's' : ''}.` });
     },
     onError: (error: any) => {
+      setShowProgressAnimation(false);
       toast({ title: "Analysis failed", description: error.message, variant: "destructive" });
     },
   });
@@ -489,6 +570,32 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
     },
   });
 
+  // Progress animation effect
+  useEffect(() => {
+    if (!showProgressAnimation) return;
+    
+    let elapsed = 0;
+    const totalDuration = ANALYSIS_STEPS.reduce((sum, step) => sum + step.duration, 0);
+    
+    const interval = setInterval(() => {
+      elapsed += 100;
+      const progress = Math.min((elapsed / totalDuration) * 100, 95); // Cap at 95% until complete
+      setAnalysisProgress(progress);
+      
+      // Update current step
+      let accumulatedTime = 0;
+      for (let i = 0; i < ANALYSIS_STEPS.length; i++) {
+        accumulatedTime += ANALYSIS_STEPS[i].duration;
+        if (elapsed < accumulatedTime) {
+          setCurrentStep(i);
+          break;
+        }
+      }
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, [showProgressAnimation]);
+
   // Post Analyzer handlers
   const MAX_FILES = 10;
 
@@ -537,6 +644,11 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
     setSelectedBriefId("");
     setSaved(false);
     setCurrentAnalysisIndex(0);
+  };
+
+  const handleCopyText = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: `${label} copied to clipboard!` });
   };
 
   // Video Research handlers
@@ -821,8 +933,352 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
               </div>
 
               <div className="space-y-4">
-                {analysis ? (
+                {showProgressAnimation ? (
+                  <Card className="h-full min-h-[500px]">
+                    <CardContent className="pt-8">
+                      <div className="max-w-md mx-auto space-y-6">
+                        {/* Progress Bar */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">Analyzing content...</span>
+                            <span className="text-muted-foreground">{Math.round(analysisProgress)}%</span>
+                          </div>
+                          <Progress value={analysisProgress} className="h-2" />
+                        </div>
+                        
+                        {/* Current Step */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                            <span className="font-medium">{ANALYSIS_STEPS[currentStep]?.label}</span>
+                          </div>
+                          
+                          {/* Steps List */}
+                          <div className="space-y-2">
+                            {ANALYSIS_STEPS.map((step, i) => (
+                              <div 
+                                key={i} 
+                                className={`flex items-center gap-2 text-sm ${
+                                  i < currentStep ? 'text-green-600' : 
+                                  i === currentStep ? 'text-primary' : 
+                                  'text-muted-foreground'
+                                }`}
+                              >
+                                {i < currentStep ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : i === currentStep ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border-2 border-current" />
+                                )}
+                                <span>{step.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* ETA & Notification */}
+                        <div className="pt-4 border-t space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="w-4 h-4" />
+                            <span>Estimated time: {(() => {
+                              const totalDuration = ANALYSIS_STEPS.reduce((sum, s) => sum + s.duration, 0);
+                              const remaining = totalDuration - (analysisProgress * totalDuration / 100);
+                              return Math.max(1, Math.ceil(remaining / 1000));
+                            })()}s</span>
+                          </div>
+                          <div className="flex items-start gap-2 p-3 bg-muted rounded-lg text-sm">
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <span className="text-muted-foreground">We'll notify you when your analysis is ready</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : analysis ? (
                   <>
+                    {/* Viral Potential Score Card */}
+                    {analysis.viralPotentialScore && (
+                      <Card className={`border-2 ${getScoreBgColor(analysis.viralPotentialScore)}`}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Flame className={`w-8 h-8 ${getScoreColor(analysis.viralPotentialScore)}`} />
+                              <div>
+                                <h3 className="text-lg font-semibold">Viral Potential Score</h3>
+                                <p className="text-sm text-muted-foreground">Overall content assessment</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-5xl font-bold ${getScoreColor(analysis.viralPotentialScore)}`}>
+                                {analysis.viralPotentialScore}<span className="text-2xl">/10</span>
+                              </div>
+                              <Badge className={`${getScoreBadgeColor(analysis.viralPotentialScore)} mt-2`}>
+                                {analysis.viralPotentialScore >= 9 ? 'Viral Ready' : 
+                                 analysis.viralPotentialScore >= 7 ? 'Strong' :
+                                 analysis.viralPotentialScore >= 4 ? 'Average' : 'Below Average'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Scored Section Cards */}
+                    {analysis.scoredSections && (
+                      <>
+                        {/* Hook Section */}
+                        <Card className={`border-l-4 ${getScoreBgColor(analysis.scoredSections.hook.score)}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <Zap className="w-5 h-5 text-yellow-500" />
+                                Hook Analysis
+                              </CardTitle>
+                              <Badge className={getScoreBadgeColor(analysis.scoredSections.hook.score)}>
+                                {analysis.scoredSections.hook.score}/10
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">Feedback</p>
+                              <p className="text-sm">{analysis.scoredSections.hook.feedback}</p>
+                            </div>
+                            {analysis.scoredSections.hook.strengths.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">✓ Strengths</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.hook.strengths.map((s, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.scoredSections.hook.weaknesses.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">⚠ Areas for Improvement</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.hook.weaknesses.map((w, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Body Section */}
+                        <Card className={`border-l-4 ${getScoreBgColor(analysis.scoredSections.body.score)}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <FileText className="w-5 h-5 text-blue-500" />
+                                Body Content Analysis
+                              </CardTitle>
+                              <Badge className={getScoreBadgeColor(analysis.scoredSections.body.score)}>
+                                {analysis.scoredSections.body.score}/10
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">Feedback</p>
+                              <p className="text-sm">{analysis.scoredSections.body.feedback}</p>
+                            </div>
+                            {analysis.scoredSections.body.strengths.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">✓ Strengths</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.body.strengths.map((s, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.scoredSections.body.weaknesses.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">⚠ Areas for Improvement</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.body.weaknesses.map((w, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Visual Section */}
+                        <Card className={`border-l-4 ${getScoreBgColor(analysis.scoredSections.visual.score)}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <Camera className="w-5 h-5 text-purple-500" />
+                                Visual Quality Analysis
+                              </CardTitle>
+                              <Badge className={getScoreBadgeColor(analysis.scoredSections.visual.score)}>
+                                {analysis.scoredSections.visual.score}/10
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">Feedback</p>
+                              <p className="text-sm">{analysis.scoredSections.visual.feedback}</p>
+                            </div>
+                            {analysis.scoredSections.visual.strengths.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-green-600 dark:text-green-400 mb-1">✓ Strengths</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.visual.strengths.map((s, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {analysis.scoredSections.visual.weaknesses.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-orange-600 dark:text-orange-400 mb-1">⚠ Areas for Improvement</p>
+                                <ul className="space-y-1">
+                                  {analysis.scoredSections.visual.weaknesses.map((w, i) => (
+                                    <li key={i} className="text-sm text-muted-foreground ml-4">• {w}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {/* Competitive Analysis Section */}
+                        <Card className={`border-l-4 ${getScoreBgColor(analysis.scoredSections.competitiveAnalysis.score)}`}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <TrendingUp className="w-5 h-5 text-green-500" />
+                                Competitive Analysis
+                              </CardTitle>
+                              <Badge className={getScoreBadgeColor(analysis.scoredSections.competitiveAnalysis.score)}>
+                                {analysis.scoredSections.competitiveAnalysis.score}/10
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">Feedback</p>
+                              <p className="text-sm">{analysis.scoredSections.competitiveAnalysis.feedback}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">vs Top Performers</p>
+                              <p className="text-sm">{analysis.scoredSections.competitiveAnalysis.vsTopPerformers}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground mb-1">Niche Context</p>
+                              <p className="text-sm">{analysis.scoredSections.competitiveAnalysis.nicheContext}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
+
+                    {/* Suggested Content Sections */}
+                    {analysis.suggestedContent && (
+                      <>
+                        {/* Suggested Captions */}
+                        {analysis.suggestedContent.captions && analysis.suggestedContent.captions.length > 0 && (
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <MessageSquare className="w-5 h-5 text-indigo-500" />
+                                Suggested Captions
+                              </CardTitle>
+                              <CardDescription>Copy-ready caption variations optimized for engagement</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              {analysis.suggestedContent.captions.map((caption, i) => (
+                                <div key={i} className="p-3 bg-muted rounded-lg flex items-start justify-between gap-3">
+                                  <p className="text-sm flex-1">{caption}</p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleCopyText(caption, 'Caption')}
+                                    className="flex-shrink-0"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Suggested Hashtags */}
+                        {analysis.suggestedContent.hashtags && analysis.suggestedContent.hashtags.length > 0 && (
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <Hash className="w-5 h-5 text-blue-500" />
+                                Suggested Hashtags
+                              </CardTitle>
+                              <CardDescription>Mix of popular and niche-specific tags</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex flex-wrap gap-2">
+                                {analysis.suggestedContent.hashtags.map((tag, i) => (
+                                  <Badge 
+                                    key={i} 
+                                    variant="secondary"
+                                    className="cursor-pointer hover:bg-primary/20"
+                                    onClick={() => handleCopyText(tag, 'Hashtag')}
+                                  >
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCopyText(analysis.suggestedContent!.hashtags.join(' '), 'All hashtags')}
+                                className="mt-3 gap-2"
+                              >
+                                <Copy className="w-4 h-4" />
+                                Copy All
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Suggested Hook Rewrites */}
+                        {analysis.suggestedContent.hookRewrites && analysis.suggestedContent.hookRewrites.length > 0 && (
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <CardTitle className="flex items-center gap-2 text-lg">
+                                <Megaphone className="w-5 h-5 text-orange-500" />
+                                Hook Rewrites
+                              </CardTitle>
+                              <CardDescription>Alternative hooks in different styles</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              {analysis.suggestedContent.hookRewrites.map((hook, i) => (
+                                <div key={i} className="p-3 bg-muted rounded-lg flex items-start justify-between gap-3">
+                                  <p className="text-sm flex-1">{hook}</p>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleCopyText(hook, 'Hook')}
+                                    className="flex-shrink-0"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </CardContent>
+                          </Card>
+                        )}
+                      </>
+                    )}
+
+                    {/* Original Analysis Cards (for backward compatibility) */}
                     <Card>
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-lg">
@@ -939,28 +1395,6 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                               <p className="text-sm text-green-700 dark:text-green-400" data-testid="text-adapt-trending">{analysis.adaptationForMyChannel.trendingAngle}</p>
                             </div>
                           )}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Megaphone className="w-5 h-5 text-orange-500" />
-                          Hook Rewrites
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {analysis.hookRewrites.map((hook, i) => (
-                            <div
-                              key={i}
-                              className="p-3 bg-muted rounded-lg text-sm"
-                              data-testid={`text-hook-${i}`}
-                            >
-                              {hook}
-                            </div>
-                          ))}
                         </div>
                       </CardContent>
                     </Card>
