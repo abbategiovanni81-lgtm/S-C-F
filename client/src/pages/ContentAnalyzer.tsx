@@ -19,7 +19,7 @@ import {
   Upload, Loader2, Sparkles, Camera, Type, Palette, Frame, Lightbulb, Target, Megaphone, 
   RefreshCw, Save, CheckCircle, X, Plus, Search, Youtube, Trash2, BarChart2, FileText, 
   TrendingUp, AlertCircle, GitCompare, Clock, Eye, ThumbsUp, Image, Video, LayoutGrid, MessageSquare, Wand2, BookOpen, 
-  Flame, Copy, Hash, Zap, TrendingDown
+  Flame, Copy, Hash, Zap
 } from "lucide-react";
 import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -981,7 +981,11 @@ Visual notes: ${analysis.visualBreakdown.colors}, ${analysis.visualBreakdown.fra
                         <div className="pt-4 border-t space-y-3">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
-                            <span>Estimated time: {Math.max(1, Math.ceil((ANALYSIS_STEPS.reduce((sum, s) => sum + s.duration, 0) - analysisProgress * ANALYSIS_STEPS.reduce((sum, s) => sum + s.duration, 0) / 100) / 1000))}s</span>
+                            <span>Estimated time: {(() => {
+                              const totalDuration = ANALYSIS_STEPS.reduce((sum, s) => sum + s.duration, 0);
+                              const remaining = totalDuration - (analysisProgress * totalDuration / 100);
+                              return Math.max(1, Math.ceil(remaining / 1000));
+                            })()}s</span>
                           </div>
                           <div className="flex items-start gap-2 p-3 bg-muted rounded-lg text-sm">
                             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
