@@ -25,8 +25,8 @@ export default function BYOKSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State for all API keys
-  const [apiKeys, setApiKeys] = useState<Record<string, string>>({
+  // Initial empty state for API keys
+  const initialApiKeys: Record<string, string> = {
     // Existing providers
     didKey: "",
     creatifyKey: "",
@@ -45,7 +45,10 @@ export default function BYOKSettings() {
     runwayKey: "",
     pikaKey: "",
     klingKey: "",
-  });
+  };
+
+  // State for all API keys
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>(initialApiKeys);
 
   const { data: userApiKeys, isLoading: loadingKeys } = useQuery({
     queryKey: ["/api/settings/api-keys"],
@@ -72,7 +75,7 @@ export default function BYOKSettings() {
       queryClient.invalidateQueries({ queryKey: ["/api/settings/api-keys"] });
       toast({ title: "API keys saved!", description: "Your keys have been securely stored." });
       // Clear all input fields
-      setApiKeys(Object.keys(apiKeys).reduce((acc, key) => ({ ...acc, [key]: "" }), {}));
+      setApiKeys(initialApiKeys);
     },
     onError: (error: any) => {
       toast({ title: "Failed to save", description: error.message, variant: "destructive" });
