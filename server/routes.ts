@@ -9714,6 +9714,10 @@ Requirements:
   });
 
   // URL to Content - Generate content ideas from any URL
+  // Constants for content generation
+  const URL_TO_CONTENT_MAX_INPUT_LENGTH = 10000; // Limit to stay within OpenAI token limits
+  const URL_TO_CONTENT_MAX_RESPONSE_TOKENS = 2000; // Accommodate all 4 content types
+
   app.post("/api/ava/url-to-content", requireAuth, async (req: any, res) => {
     try {
       const { url } = req.body;
@@ -9737,9 +9741,6 @@ Requirements:
       if (!scrapedData.text || scrapedData.text.length < 100) {
         return res.status(400).json({ error: "Could not extract enough content from URL" });
       }
-
-      // Limit content length to stay within OpenAI token limits while providing enough context
-      const MAX_CONTENT_LENGTH = 10000;
       
       // Create a prompt for OpenAI to generate all 4 content types
       const prompt = `You are a content strategist. Based on the following webpage content, generate 4 different types of content that can be created from this source material.
@@ -9747,7 +9748,7 @@ Requirements:
 WEBPAGE CONTENT:
 Title: ${scrapedData.title}
 Description: ${scrapedData.description}
-Main Content: ${scrapedData.text.slice(0, MAX_CONTENT_LENGTH)}
+Main Content: ${scrapedData.text.slice(0, URL_TO_CONTENT_MAX_INPUT_LENGTH)}
 
 Generate the following content types in JSON format:
 
@@ -9796,9 +9797,6 @@ Return ONLY valid JSON in this exact format:
   }
 }`;
 
-      // Max tokens to accommodate all 4 content types (carousel ~500, video script ~300, blog ~400, social ~400, buffer ~400)
-      const MAX_RESPONSE_TOKENS = 2000;
-
       // Call OpenAI to generate content
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -9813,7 +9811,7 @@ Return ONLY valid JSON in this exact format:
           }
         ],
         temperature: 0.8,
-        max_tokens: MAX_RESPONSE_TOKENS,
+        max_tokens: URL_TO_CONTENT_MAX_RESPONSE_TOKENS,
       });
 
       const responseText = completion.choices[0]?.message?.content?.trim() || "";
