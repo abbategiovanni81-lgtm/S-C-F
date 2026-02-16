@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema, insertUserProductSchema, userProducts } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray, desc } from "drizzle-orm";
@@ -426,6 +426,82 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting brand asset:", error);
       res.status(500).json({ error: "Failed to delete brand asset" });
+    }
+  });
+
+  // User Products endpoints
+  app.get("/api/products", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const products = await storage.getProductsByUserId(userId);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  app.post("/api/products", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const result = insertUserProductSchema.safeParse({ ...req.body, userId });
+      if (!result.success) {
+        return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+      
+      const product = await storage.createProduct(result.data);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: "Failed to create product" });
+    }
+  });
+
+  app.put("/api/products/:id", requireAuth, async (req: any, res) => {
+    try {
+      // Check ownership first
+      const existingProduct = await storage.getProductById(req.params.id);
+      
+      if (!existingProduct) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (existingProduct.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const partialSchema = insertUserProductSchema.partial().omit({ userId: true });
+      const result = partialSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+      
+      const product = await storage.updateProduct(req.params.id, result.data);
+      res.json(product);
+    } catch (error) {
+      console.error("Error updating product:", error);
+      res.status(500).json({ error: "Failed to update product" });
+    }
+  });
+
+  app.delete("/api/products/:id", requireAuth, async (req: any, res) => {
+    try {
+      // Check ownership
+      const product = await storage.getProductById(req.params.id);
+      
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteProduct(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ error: "Failed to delete product" });
     }
   });
 
