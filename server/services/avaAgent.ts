@@ -110,13 +110,14 @@ export class AvaAgent {
     yourContent: ContentAnalysisInput,
     competitorUrl: string
   ): Promise<ComparisonResult & { competitorData?: any }> {
-    // For now, we'll accept competitor content directly
-    // In a full implementation, this would scrape the competitor URL
-    // For this minimal implementation, we'll throw an error directing users
-    // to provide the competitor content manually
+    // TODO: Implement competitor URL scraping using existing scraping infrastructure
+    // For now, we'll throw an error directing users to use the comparison feature
+    // with manually provided content or to use the standalone ContentComparison page
     
     throw new Error(
-      "Competitor URL scraping not yet implemented. Please provide competitor content details manually."
+      "Competitor URL scraping is not yet available in the chat interface. " +
+      "Please use the Content Comparison page to analyze competitor posts, " +
+      "or provide the competitor content details directly."
     );
   }
 
@@ -150,8 +151,8 @@ export class AvaAgent {
 
   /**
    * Gets top-performing content for a user
-   * This is a simplified implementation - in production, this would query
-   * analytics data to find the actual top-performing posts
+   * TODO: Implement proper engagement-based sorting using analytics data
+   * Currently returns the most recent content as a placeholder
    */
   private async getTopPerformingContent(userId: string): Promise<any> {
     // Get user's brand briefs
@@ -161,15 +162,15 @@ export class AvaAgent {
       return null;
     }
     
-    // Get content from the first brief as a fallback
+    // TODO: Query analytics snapshots to find actual top-performing content
+    // For now, get content from the first brief as a fallback
     const allContent = await this.storage.getContentByBrief(briefs[0].id);
     
-    // For now, return the most recent content as a placeholder
-    // In production, this would sort by engagement metrics
     if (allContent.length === 0) {
       return null;
     }
     
+    // TODO: Sort by engagement metrics instead of just returning first item
     return allContent[0];
   }
 }

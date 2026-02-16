@@ -37,9 +37,16 @@ export default function AvaAnalysisDemo() {
       toast({ title: "Analysis complete!" });
       
       // Trigger Ava chat to open and display the analysis
-      if ((window as any).avaChat) {
-        (window as any).avaChat.addAnalysisMessage(data as AnalysisCardProps);
-        (window as any).avaChat.openChat();
+      const avaChat = (window as any).avaChat;
+      if (avaChat && typeof avaChat.addAnalysisMessage === 'function') {
+        avaChat.addAnalysisMessage(data as AnalysisCardProps);
+        avaChat.openChat();
+      } else {
+        toast({ 
+          title: "Chat not available", 
+          description: "Please refresh the page and try again",
+          variant: "destructive" 
+        });
       }
     },
     onError: (error: any) => {
@@ -69,13 +76,20 @@ export default function AvaAnalysisDemo() {
       toast({ title: "Comparison complete!" });
       
       // Trigger Ava chat to open and display the comparison
-      if ((window as any).avaChat) {
+      const avaChat = (window as any).avaChat;
+      if (avaChat && typeof avaChat.addComparisonMessage === 'function') {
         const comparisonData: ComparisonCardProps = {
           ...data,
           comparisonType: "own" as const,
         };
-        (window as any).avaChat.addComparisonMessage(comparisonData);
-        (window as any).avaChat.openChat();
+        avaChat.addComparisonMessage(comparisonData);
+        avaChat.openChat();
+      } else {
+        toast({ 
+          title: "Chat not available", 
+          description: "Please refresh the page and try again",
+          variant: "destructive" 
+        });
       }
     },
     onError: (error: any) => {

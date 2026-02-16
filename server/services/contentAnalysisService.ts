@@ -28,7 +28,7 @@ export interface DetailedAnalysis extends ContentScores {
 
 export interface ComparisonResult {
   yourContent: ContentScores;
-  competitorContent: ContentScores;
+  referenceContent: ContentScores;
   differences: {
     hook: number;
     body: number;
@@ -96,7 +96,7 @@ Respond in JSON format:
           },
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 1000,
+        max_completion_tokens: 1500,
         temperature: 0.7,
       });
 
@@ -170,7 +170,7 @@ Respond in JSON format:
     "competitiveScore": number,
     "viralPotential": number
   },
-  "competitorContent": {
+  "referenceContent": {
     "hookScore": number,
     "bodyScore": number,
     "visualScore": number,
@@ -222,7 +222,7 @@ Respond in JSON format:
           competitiveScore: 5,
           viralPotential: 5,
         },
-        competitorContent: {
+        referenceContent: {
           hookScore: 5,
           bodyScore: 5,
           visualScore: 5,
