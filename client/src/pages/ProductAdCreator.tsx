@@ -17,8 +17,11 @@ interface Product {
   image: string;
 }
 
-// Mock products data - in a real app, this would come from GET /api/products
-const MOCK_PRODUCTS: Product[] = [
+// Default product image for new products without a custom image
+const DEFAULT_PRODUCT_IMAGE = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop";
+
+// Initial mock products data - in a real app, this would come from GET /api/products
+const INITIAL_PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Wireless Headphones",
@@ -50,6 +53,7 @@ export default function ProductAdCreator() {
   const [currentStep, setCurrentStep] = useState(1);
   
   // Step 1: Select Product
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [newProductName, setNewProductName] = useState("");
@@ -81,10 +85,10 @@ export default function ProductAdCreator() {
       id: `new-${Date.now()}`,
       name: newProductName,
       category: newProductCategory,
-      image: newProductImage || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
+      image: newProductImage || DEFAULT_PRODUCT_IMAGE,
     };
 
-    MOCK_PRODUCTS.push(newProduct);
+    setProducts([...products, newProduct]);
     setSelectedProduct(newProduct);
     setShowAddProduct(false);
     setNewProductName("");
@@ -98,7 +102,7 @@ export default function ProductAdCreator() {
   };
 
   const canProceedToStep2 = selectedProduct !== null;
-  const canProceedToStep3 = sceneImage && sceneDescription.trim() && scriptVoiceover.trim();
+  const canProceedToStep3 = sceneImage.trim() && sceneDescription.trim() && scriptVoiceover.trim();
 
   const handleNext = () => {
     if (currentStep === 1 && !canProceedToStep2) {
@@ -210,7 +214,7 @@ export default function ProductAdCreator() {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     {/* Product Cards */}
-                    {MOCK_PRODUCTS.map((product) => (
+                    {products.map((product) => (
                       <Card
                         key={product.id}
                         className={cn(
