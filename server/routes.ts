@@ -9860,18 +9860,21 @@ Requirements:
   app.get("/api/ava/conversations", async (req, res) => {
     try {
       // Mock conversations list
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      
       res.json([
         {
           id: "1",
           title: "Content Strategy Discussion",
           lastMessage: "Here are some fresh content ideas...",
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          timestamp: new Date(Date.now() - ONE_HOUR_MS).toISOString(),
         },
         {
           id: "2",
           title: "Reel Script Creation",
           lastMessage: "Great! Let me help you create a Reel...",
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
+          timestamp: new Date(Date.now() - TWO_HOURS_MS).toISOString(),
         }
       ]);
     } catch (error) {

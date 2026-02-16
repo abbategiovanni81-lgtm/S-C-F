@@ -1,5 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Eye, Heart, Share2 } from "lucide-react";
 
 interface AnalysisMetrics {
