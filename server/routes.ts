@@ -9056,6 +9056,30 @@ Requirements:
     }
   });
 
+  // Face Swap tool endpoint (stub with mock data)
+  app.post("/api/tools/face-swap", async (req, res) => {
+    try {
+      const { sourceUrl, faceUrl } = req.body;
+
+      if (!sourceUrl || !faceUrl) {
+        return res.status(400).json({ error: "sourceUrl and faceUrl are required" });
+      }
+
+      // Mock processing delay to simulate AI processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Return mock result URLs
+      // In production, this would use an actual face swap AI service
+      res.json({
+        beforeUrl: sourceUrl,
+        afterUrl: sourceUrl, // For now, return the same image as mock
+      });
+    } catch (error: any) {
+      console.error("Face swap error:", error);
+      res.status(500).json({ error: error.message || "Failed to swap faces" });
+    }
+  });
+
   // Google Drive endpoints for Reel Library (all require authentication)
   app.get("/api/drive/status", isAuthenticated, async (req, res) => {
     try {
