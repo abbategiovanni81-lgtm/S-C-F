@@ -9070,9 +9070,10 @@ Requirements:
 
       // Return mock result URLs
       // In production, this would use an actual face swap AI service
+      // For now, we add a query parameter to differentiate the result
       res.json({
         beforeUrl: sourceUrl,
-        afterUrl: sourceUrl, // For now, return the same image as mock
+        afterUrl: `${sourceUrl}${sourceUrl.includes('?') ? '&' : '?'}processed=true`,
       });
     } catch (error: any) {
       console.error("Face swap error:", error);

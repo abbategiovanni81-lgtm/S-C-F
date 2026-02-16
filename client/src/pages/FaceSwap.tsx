@@ -170,7 +170,12 @@ export default function FaceSwap() {
 
               <div className="flex gap-3 justify-center">
                 <Button
-                  onClick={() => window.open(result.afterUrl, "_blank")}
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = result.afterUrl;
+                    link.download = 'face-swap-result.png';
+                    link.click();
+                  }}
                   className="gap-2"
                   data-testid="download-button"
                 >
@@ -223,11 +228,12 @@ export default function FaceSwap() {
                         src={sourcePreview}
                         controls
                         className="w-full max-h-96 rounded-lg mx-auto"
+                        aria-label="Source video preview"
                       />
                     ) : (
                       <img
                         src={sourcePreview}
-                        alt="Source preview"
+                        alt="Preview of uploaded source image"
                         className="w-full max-h-96 object-contain rounded-lg mx-auto"
                       />
                     )}
@@ -272,7 +278,7 @@ export default function FaceSwap() {
                   <div className="space-y-4">
                     <img
                       src={facePreview}
-                      alt="Face preview"
+                      alt="Preview of uploaded face image"
                       className="w-full max-h-96 object-contain rounded-lg mx-auto"
                     />
                     <p className="text-sm text-muted-foreground">
@@ -317,7 +323,7 @@ export default function FaceSwap() {
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Processing... 30-60 seconds
+                Processing... 30 to 60 seconds
               </>
             ) : (
               <>
