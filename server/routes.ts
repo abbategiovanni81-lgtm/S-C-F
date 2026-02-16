@@ -9717,6 +9717,7 @@ Requirements:
   // Constants for content generation
   const URL_TO_CONTENT_MAX_INPUT_LENGTH = 10000; // Limit to stay within OpenAI token limits
   const URL_TO_CONTENT_MAX_RESPONSE_TOKENS = 2000; // Accommodate all 4 content types
+  const URL_TO_CONTENT_TEMPERATURE = 0.8; // Balance creativity with consistency
 
   app.post("/api/ava/url-to-content", requireAuth, async (req: any, res) => {
     try {
@@ -9810,7 +9811,7 @@ Return ONLY valid JSON in this exact format:
             content: prompt
           }
         ],
-        temperature: 0.8,
+        temperature: URL_TO_CONTENT_TEMPERATURE,
         max_tokens: URL_TO_CONTENT_MAX_RESPONSE_TOKENS,
       });
 

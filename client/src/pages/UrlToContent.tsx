@@ -57,6 +57,7 @@ const PREFILL_CONTENT_KEY = "prefillContent";
 const PREFILL_BLOG_KEY = "prefillBlog";
 
 // Helper function to format video script
+// Uses double newlines to create clear separation between script sections
 function formatVideoScript(videoScript: { hook: string; body: string; cta: string }): string {
   return `${videoScript.hook}\n\n${videoScript.body}\n\n${videoScript.cta}`;
 }
