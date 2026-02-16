@@ -33,6 +33,7 @@ import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
 import MotionControl from "@/pages/MotionControl";
 import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
+import BYOKSettings from "@/pages/BYOKSettings";
 
 function AuthenticatedRoutes() {
   return (
@@ -55,6 +56,7 @@ function AuthenticatedRoutes() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/ai-engines" component={AIEngines} />
       <Route path="/settings" component={Settings} />
+      <Route path="/byok-settings" component={BYOKSettings} />
       <Route path="/how-to" component={HowTo} />
       <Route path="/creator-studio" component={CreatorStudio} />
       <Route path="/admin" component={Admin} />

@@ -1379,6 +1379,88 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // ==================== BYOK SETTINGS API KEYS ====================
+  
+  // Get BYOK Settings API keys
+  app.get("/api/settings/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      
+      // Return boolean flags for all BYOK keys
+      res.json({
+        // Existing providers
+        didKey: !!keys?.didKey,
+        creatifyKey: !!keys?.creatifyKey,
+        openrouterKey: !!keys?.openrouterKey,
+        togetheraiKey: !!keys?.togetheraiKey,
+        // LLM providers
+        anthropicKey: !!keys?.anthropicKey,
+        geminiKey: !!keys?.geminiKey,
+        xaiKey: !!keys?.xaiKey,
+        perplexityKey: !!keys?.perplexityKey,
+        // Image providers
+        stabilityaiKey: !!keys?.stabilityaiKey,
+        replicateKey: !!keys?.replicateKey,
+        ideogramKey: !!keys?.ideogramKey,
+        // Video providers
+        runwayKey: !!keys?.runwayKey,
+        pikaKey: !!keys?.pikaKey,
+        klingKey: !!keys?.klingKey,
+      });
+    } catch (error: any) {
+      console.error("Error fetching BYOK API keys:", error);
+      res.status(500).json({ error: "Failed to fetch API keys" });
+    }
+  });
+
+  // Save BYOK Settings API keys
+  app.post("/api/settings/api-keys", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      const { keys } = req.body; // Array of { name, value } objects
+      
+      if (!Array.isArray(keys) || keys.length === 0) {
+        return res.status(400).json({ error: "Invalid request format" });
+      }
+      
+      // Check if user already has keys
+      const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      
+      // Build updates object from the keys array
+      const updates: any = { updatedAt: new Date() };
+      for (const key of keys) {
+        if (key.name && key.value !== undefined) {
+          updates[key.name] = key.value || null;
+        }
+      }
+      
+      if (existing) {
+        // Update existing keys
+        await db.update(userApiKeys).set(updates).where(eq(userApiKeys.id, existing.id));
+      } else {
+        // Create new keys entry
+        await db.insert(userApiKeys).values({
+          userId,
+          ...updates,
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error saving BYOK API keys:", error);
+      res.status(500).json({ error: "Failed to save API keys" });
+    }
+  });
+
   // ==================== STRIPE ENDPOINTS ====================
   
   // Get Stripe publishable key

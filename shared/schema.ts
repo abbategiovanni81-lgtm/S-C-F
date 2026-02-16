@@ -128,6 +128,23 @@ export const userApiKeys = pgTable("user_api_keys", {
   falKey: text("fal_key"),
   pexelsKey: text("pexels_key"),
   steveaiKey: text("steveai_key"),
+  // Existing providers
+  didKey: text("did_key"),
+  creatifyKey: text("creatify_key"),
+  openrouterKey: text("openrouter_key"),
+  togetheraiKey: text("togetherai_key"),
+  // LLM providers
+  geminiKey: text("gemini_key"),
+  xaiKey: text("xai_key"),
+  perplexityKey: text("perplexity_key"),
+  // Image providers
+  stabilityaiKey: text("stabilityai_key"),
+  replicateKey: text("replicate_key"),
+  ideogramKey: text("ideogram_key"),
+  // Video providers
+  runwayKey: text("runway_key"),
+  pikaKey: text("pika_key"),
+  klingKey: text("kling_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
