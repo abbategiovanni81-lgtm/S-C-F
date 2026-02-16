@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Calendar, Activity, FileText } from "lucide-react";
+import { BarChart3, Calendar, Activity, FileText, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { BrandBrief, GeneratedContent, SocialAccount } from "@shared/schema";
@@ -112,6 +112,30 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Tools Section */}
+      <Card className="border-none shadow-sm mb-8">
+        <CardHeader>
+          <CardTitle className="text-lg font-display">AI Tools</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link href="/face-swap" className="block" data-testid="tool-face-swap">
+              <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 hover:border-purple-500/40 transition-colors cursor-pointer">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <h3 className="font-semibold">Face Swap</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Swap faces in photos and videos with AI precision
+                </p>
+              </div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 border-none shadow-sm">
