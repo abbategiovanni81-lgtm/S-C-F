@@ -34,6 +34,7 @@ import BlogPost from "@/pages/BlogPost";
 import MotionControl from "@/pages/MotionControl";
 import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
 import UGCActorLibrary from "@/pages/UGCActorLibrary";
+import Ava from "@/pages/Ava";
 
 function AuthenticatedRoutes() {
   return (
@@ -64,6 +65,7 @@ function AuthenticatedRoutes() {
       <Route path="/motion-control" component={MotionControl} />
       <Route path="/thumbnail-generator" component={ThumbnailGenerator} />
       <Route path="/ugc-actors" component={UGCActorLibrary} />
+      <Route path="/ava" component={Ava} />
       <Route component={NotFound} />
     </Switch>
   );
