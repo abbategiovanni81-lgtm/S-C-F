@@ -9738,13 +9738,16 @@ Requirements:
         return res.status(400).json({ error: "Could not extract enough content from URL" });
       }
 
+      // Limit content length to stay within OpenAI token limits while providing enough context
+      const MAX_CONTENT_LENGTH = 10000;
+      
       // Create a prompt for OpenAI to generate all 4 content types
       const prompt = `You are a content strategist. Based on the following webpage content, generate 4 different types of content that can be created from this source material.
 
 WEBPAGE CONTENT:
 Title: ${scrapedData.title}
 Description: ${scrapedData.description}
-Main Content: ${scrapedData.text.slice(0, 10000)}
+Main Content: ${scrapedData.text.slice(0, MAX_CONTENT_LENGTH)}
 
 Generate the following content types in JSON format:
 
@@ -9793,6 +9796,9 @@ Return ONLY valid JSON in this exact format:
   }
 }`;
 
+      // Max tokens to accommodate all 4 content types (carousel ~500, video script ~300, blog ~400, social ~400, buffer ~400)
+      const MAX_RESPONSE_TOKENS = 2000;
+
       // Call OpenAI to generate content
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -9807,7 +9813,7 @@ Return ONLY valid JSON in this exact format:
           }
         ],
         temperature: 0.8,
-        max_tokens: 2000,
+        max_tokens: MAX_RESPONSE_TOKENS,
       });
 
       const responseText = completion.choices[0]?.message?.content?.trim() || "";

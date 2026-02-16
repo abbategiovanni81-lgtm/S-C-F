@@ -52,6 +52,15 @@ interface ContentResponse {
   };
 }
 
+// Constants for sessionStorage keys
+const PREFILL_CONTENT_KEY = "prefillContent";
+const PREFILL_BLOG_KEY = "prefillBlog";
+
+// Helper function to format video script
+function formatVideoScript(videoScript: { hook: string; body: string; cta: string }): string {
+  return `${videoScript.hook}\n\n${videoScript.body}\n\n${videoScript.cta}`;
+}
+
 export default function UrlToContent() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -117,7 +126,7 @@ export default function UrlToContent() {
     };
     
     // Store in sessionStorage for the editor to pick up
-    sessionStorage.setItem("prefillContent", JSON.stringify(carouselData));
+    sessionStorage.setItem(PREFILL_CONTENT_KEY, JSON.stringify(carouselData));
     setLocation("/content-queue");
   };
 
@@ -126,11 +135,11 @@ export default function UrlToContent() {
     
     const videoData = {
       contentType: "video",
-      script: `${generatedContent.content.videoScript.hook}\n\n${generatedContent.content.videoScript.body}\n\n${generatedContent.content.videoScript.cta}`,
+      script: formatVideoScript(generatedContent.content.videoScript),
       caption: generatedContent.content.socialCaptions.instagram,
     };
     
-    sessionStorage.setItem("prefillContent", JSON.stringify(videoData));
+    sessionStorage.setItem(PREFILL_CONTENT_KEY, JSON.stringify(videoData));
     setLocation("/content-queue");
   };
 
@@ -143,7 +152,7 @@ export default function UrlToContent() {
       outline: generatedContent.content.blogPost.outline,
     };
     
-    sessionStorage.setItem("prefillBlog", JSON.stringify(blogData));
+    sessionStorage.setItem(PREFILL_BLOG_KEY, JSON.stringify(blogData));
     setLocation("/blog-studio");
   };
 
@@ -155,7 +164,7 @@ export default function UrlToContent() {
       captions: generatedContent.content.socialCaptions,
     };
     
-    sessionStorage.setItem("prefillContent", JSON.stringify(socialData));
+    sessionStorage.setItem(PREFILL_CONTENT_KEY, JSON.stringify(socialData));
     setLocation("/content-queue");
   };
 
