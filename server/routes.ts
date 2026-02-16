@@ -460,11 +460,14 @@ export async function registerRoutes(
   app.put("/api/products/:id", requireAuth, async (req: any, res) => {
     try {
       // Check ownership first
-      const products = await storage.getProductsByUserId(req.userId);
-      const existingProduct = products.find(p => p.id === req.params.id);
+      const existingProduct = await storage.getProductById(req.params.id);
       
       if (!existingProduct) {
         return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (existingProduct.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
       
       const partialSchema = insertUserProductSchema.partial().omit({ userId: true });
@@ -484,11 +487,14 @@ export async function registerRoutes(
   app.delete("/api/products/:id", requireAuth, async (req: any, res) => {
     try {
       // Check ownership
-      const products = await storage.getProductsByUserId(req.userId);
-      const product = products.find(p => p.id === req.params.id);
+      const product = await storage.getProductById(req.params.id);
       
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
+      }
+      
+      if (product.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
       
       await storage.deleteProduct(req.params.id);
