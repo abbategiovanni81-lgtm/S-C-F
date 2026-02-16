@@ -9713,5 +9713,133 @@ Requirements:
     }
   });
 
+  // URL to Content - Generate content ideas from any URL
+  // Constants for content generation
+  const URL_TO_CONTENT_MAX_INPUT_LENGTH = 10000; // Limit to stay within OpenAI token limits
+  const URL_TO_CONTENT_MAX_RESPONSE_TOKENS = 2000; // Accommodate all 4 content types
+  const URL_TO_CONTENT_TEMPERATURE = 0.8; // Balance creativity with consistency
+
+  app.post("/api/ava/url-to-content", requireAuth, async (req: any, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== "string") {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+
+      console.log(`Fetching and analyzing URL: ${url}`);
+
+      // Scrape the URL content using Apify
+      const scrapedData = await scrapeWebsiteForBrandAnalysis(url);
+      
+      if (!scrapedData.text || scrapedData.text.length < 100) {
+        return res.status(400).json({ error: "Could not extract enough content from URL" });
+      }
+      
+      // Create a prompt for OpenAI to generate all 4 content types
+      const prompt = `You are a content strategist. Based on the following webpage content, generate 4 different types of content that can be created from this source material.
+
+WEBPAGE CONTENT:
+Title: ${scrapedData.title}
+Description: ${scrapedData.description}
+Main Content: ${scrapedData.text.slice(0, URL_TO_CONTENT_MAX_INPUT_LENGTH)}
+
+Generate the following content types in JSON format:
+
+1. CAROUSEL: A 5-7 slide Instagram/LinkedIn carousel
+   - slides: array of objects with { headline, subtext, imagePrompt }
+   
+2. VIDEO_SCRIPT: A 30-60 second video script
+   - hook: attention-grabbing opening (10-15 seconds)
+   - body: main content (30-40 seconds)  
+   - cta: call to action (5-10 seconds)
+   
+3. BLOG_POST: A blog article outline
+   - title: compelling blog title
+   - excerpt: 2-3 sentence summary
+   - outline: array of section headings
+   
+4. SOCIAL_CAPTIONS: Social media captions for different platforms
+   - instagram: caption with hashtags
+   - twitter: tweet-length caption
+   - linkedin: professional post
+   - tiktok: short engaging caption
+
+Return ONLY valid JSON in this exact format:
+{
+  "carousel": {
+    "slides": [
+      { "headline": "...", "subtext": "...", "imagePrompt": "..." }
+    ],
+    "theme": "overall theme"
+  },
+  "videoScript": {
+    "hook": "...",
+    "body": "...",
+    "cta": "..."
+  },
+  "blogPost": {
+    "title": "...",
+    "excerpt": "...",
+    "outline": ["heading 1", "heading 2", ...]
+  },
+  "socialCaptions": {
+    "instagram": "...",
+    "twitter": "...",
+    "linkedin": "...",
+    "tiktok": "..."
+  }
+}`;
+
+      // Call OpenAI to generate content
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a content strategist that generates structured content ideas. Always respond with valid JSON only, no markdown formatting."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: URL_TO_CONTENT_TEMPERATURE,
+        max_tokens: URL_TO_CONTENT_MAX_RESPONSE_TOKENS,
+      });
+
+      const responseText = completion.choices[0]?.message?.content?.trim() || "";
+      
+      // Remove markdown code blocks if present
+      let jsonText = responseText;
+      if (jsonText.startsWith("```json")) {
+        jsonText = jsonText.replace(/^```json\s*\n?/, "").replace(/\n?```\s*$/, "");
+      } else if (jsonText.startsWith("```")) {
+        jsonText = jsonText.replace(/^```\s*\n?/, "").replace(/\n?```\s*$/, "");
+      }
+      
+      const generatedContent = JSON.parse(jsonText);
+
+      res.json({
+        sourceUrl: url,
+        sourceTitle: scrapedData.title,
+        content: generatedContent
+      });
+
+    } catch (error: any) {
+      console.error("Error in URL to content:", error);
+      res.status(500).json({ 
+        error: error.message || "Failed to generate content from URL" 
+      });
+    }
+  });
+
   return httpServer;
 }
