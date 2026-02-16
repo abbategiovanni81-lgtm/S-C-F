@@ -33,6 +33,7 @@ import Blogs from "@/pages/Blogs";
 import BlogPost from "@/pages/BlogPost";
 import MotionControl from "@/pages/MotionControl";
 import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
+import ProductAdCreator from "@/pages/ProductAdCreator";
 
 function AuthenticatedRoutes() {
   return (
@@ -62,6 +63,7 @@ function AuthenticatedRoutes() {
       <Route path="/video-to-clips" component={VideoToClips} />
       <Route path="/motion-control" component={MotionControl} />
       <Route path="/thumbnail-generator" component={ThumbnailGenerator} />
+      <Route path="/product-ads" component={ProductAdCreator} />
       <Route component={NotFound} />
     </Switch>
   );
