@@ -8267,6 +8267,66 @@ Guidelines:
     }
   });
 
+  // ============ Ava Agent Analysis Routes ============
+
+  app.post("/api/ava/analyze-content", requireAuth, async (req: any, res) => {
+    try {
+      const { createAvaAgent } = await import("./services/avaAgent");
+      const avaAgent = createAvaAgent(storage);
+      
+      const { contentId, content } = req.body;
+      
+      if (!contentId && !content) {
+        return res.status(400).json({ error: "Either contentId or content must be provided" });
+      }
+
+      const analysis = await avaAgent.analyzeContent({ contentId, content });
+      res.json(analysis);
+    } catch (error: any) {
+      console.error("Ava analyze content error:", error);
+      res.status(500).json({ error: error.message || "Failed to analyze content" });
+    }
+  });
+
+  app.post("/api/ava/compare-own-content", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const { createAvaAgent } = await import("./services/avaAgent");
+      const avaAgent = createAvaAgent(storage);
+      
+      const { yourContent, topContentId } = req.body;
+      
+      if (!yourContent) {
+        return res.status(400).json({ error: "yourContent is required" });
+      }
+
+      const comparison = await avaAgent.compareToOwnContent(userId, yourContent, topContentId);
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("Ava compare own content error:", error);
+      res.status(500).json({ error: error.message || "Failed to compare content" });
+    }
+  });
+
+  app.post("/api/ava/compare-competitor", requireAuth, async (req: any, res) => {
+    try {
+      const { createAvaAgent } = await import("./services/avaAgent");
+      const avaAgent = createAvaAgent(storage);
+      
+      const { yourContent, competitorUrl } = req.body;
+      
+      if (!yourContent || !competitorUrl) {
+        return res.status(400).json({ error: "yourContent and competitorUrl are required" });
+      }
+
+      const comparison = await avaAgent.compareToCompetitor(yourContent, competitorUrl);
+      res.json(comparison);
+    } catch (error: any) {
+      console.error("Ava compare competitor error:", error);
+      res.status(500).json({ error: error.message || "Failed to compare with competitor content" });
+    }
+  });
+
   // ============ Content Analysis Routes ============
 
   // Get all analyzed videos

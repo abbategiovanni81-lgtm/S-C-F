@@ -8,10 +8,14 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import avaAvatar from "@assets/generated_images/hybrid_ai_human_avatar.png";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import { AnalysisCard, type AnalysisCardProps } from "@/components/ava/AnalysisCard";
+import { ComparisonCard, type ComparisonCardProps } from "@/components/ava/ComparisonCard";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  cardType?: "analysis" | "comparison";
+  cardData?: AnalysisCardProps | ComparisonCardProps;
 }
 
 function formatChatMessage(text: string): React.ReactNode {
@@ -63,6 +67,43 @@ export function HelpChatbot() {
   ]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Helper functions to add special message types
+  const addAnalysisMessage = (analysisData: AnalysisCardProps) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Here's my analysis of your content:",
+        cardType: "analysis",
+        cardData: analysisData,
+      },
+    ]);
+  };
+
+  const addComparisonMessage = (comparisonData: ComparisonCardProps) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: "Here's how your content compares:",
+        cardType: "comparison",
+        cardData: comparisonData,
+      },
+    ]);
+  };
+
+  // Expose these functions globally so other components can trigger analysis
+  useEffect(() => {
+    (window as any).avaChat = {
+      addAnalysisMessage,
+      addComparisonMessage,
+      openChat: () => setIsOpen(true),
+    };
+    return () => {
+      delete (window as any).avaChat;
+    };
+  }, []);
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -157,16 +198,24 @@ export function HelpChatbot() {
                       <img src={avaAvatar} alt="Ava" className="w-full h-full object-cover" />
                     </div>
                   )}
-                  <div
-                    className={`rounded-lg px-3 py-2 max-w-[85%] text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                    data-testid={`message-${msg.role}-${i}`}
-                  >
-                    {msg.role === "assistant" ? formatChatMessage(msg.content) : msg.content}
-                  </div>
+                  
+                  {msg.cardType === "analysis" && msg.cardData ? (
+                    <AnalysisCard {...(msg.cardData as AnalysisCardProps)} />
+                  ) : msg.cardType === "comparison" && msg.cardData ? (
+                    <ComparisonCard {...(msg.cardData as ComparisonCardProps)} />
+                  ) : (
+                    <div
+                      className={`rounded-lg px-3 py-2 max-w-[85%] text-sm ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                      data-testid={`message-${msg.role}-${i}`}
+                    >
+                      {msg.role === "assistant" ? formatChatMessage(msg.content) : msg.content}
+                    </div>
+                  )}
+                  
                   {msg.role === "user" && (
                     <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                       <User className="h-4 w-4 text-primary-foreground" />
