@@ -729,3 +729,23 @@ export const insertSceneMetadataSchema = createInsertSchema(scenesMetadata).omit
 
 export type InsertSceneMetadata = z.infer<typeof insertSceneMetadataSchema>;
 export type SceneMetadata = typeof scenesMetadata.$inferSelect;
+
+// User Products - products associated with users
+export const userProducts = pgTable("user_products", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category"),
+  imageUrl: text("image_url"),
+  websiteUrl: text("website_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserProductSchema = createInsertSchema(userProducts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserProduct = z.infer<typeof insertUserProductSchema>;
+export type UserProduct = typeof userProducts.$inferSelect;

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons, editJobs, blogs } from "@shared/schema";
+import { users, brandBriefs, brandAssets, generatedContent, socialAccounts, promptFeedback, analyticsSnapshots, listeningHits, replyDrafts, trendingTopics, listeningScanRuns, scheduledPosts, redditSubreddits, redditPosts, analyzedVideos, videoAnalysisResults, videoComparisons, editJobs, blogs, userProducts } from "@shared/schema";
 import type { 
   User, 
   UpsertUser, 
@@ -38,7 +38,9 @@ import type {
   EditJob,
   InsertEditJob,
   Blog,
-  InsertBlog
+  InsertBlog,
+  UserProduct,
+  InsertUserProduct
 } from "@shared/schema";
 import { eq, and, desc, gte, lte, between, sql, isNull, isNotNull } from "drizzle-orm";
 
@@ -167,6 +169,12 @@ export interface IStorage {
   getPublishedBlogs(): Promise<Blog[]>;
   updateBlog(id: string, data: Partial<InsertBlog>): Promise<Blog | undefined>;
   deleteBlog(id: string): Promise<void>;
+
+  // User Products
+  getProductsByUserId(userId: string): Promise<UserProduct[]>;
+  createProduct(product: InsertUserProduct): Promise<UserProduct>;
+  updateProduct(id: string, product: Partial<InsertUserProduct>): Promise<UserProduct | undefined>;
+  deleteProduct(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -866,6 +874,28 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlog(id: string): Promise<void> {
     await db.delete(blogs).where(eq(blogs.id, id));
+  }
+
+  // User Products methods
+  async getProductsByUserId(userId: string): Promise<UserProduct[]> {
+    return await db.select().from(userProducts).where(eq(userProducts.userId, userId));
+  }
+
+  async createProduct(product: InsertUserProduct): Promise<UserProduct> {
+    const result = await db.insert(userProducts).values(product).returning();
+    return result[0];
+  }
+
+  async updateProduct(id: string, product: Partial<InsertUserProduct>): Promise<UserProduct | undefined> {
+    const result = await db.update(userProducts)
+      .set(product)
+      .where(eq(userProducts.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    await db.delete(userProducts).where(eq(userProducts.id, id));
   }
 }
 
