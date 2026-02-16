@@ -9713,5 +9713,175 @@ Requirements:
     }
   });
 
+  // Ava AI Assistant endpoints
+  app.post("/api/ava/message", async (req, res) => {
+    try {
+      const { message, context } = req.body;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Mock responses based on message content
+      const lowerMessage = message.toLowerCase();
+      
+      // Determine response type based on keywords
+      if (lowerMessage.includes("format") || lowerMessage.includes("choose")) {
+        return res.json({
+          message: "I can help you choose the perfect format! Here are all the content formats I can help you create:",
+          cardType: "formats",
+          cardData: {}
+        });
+      }
+      
+      if (lowerMessage.includes("reel") || lowerMessage.includes("create a reel")) {
+        return res.json({
+          message: "Great! Let me help you create a Reel. Here's a script to get you started:",
+          cardType: "script",
+          cardData: {
+            sections: [
+              { timestamp: "0:00-0:03", content: "Hook: Start with a bold statement or question that grabs attention immediately." },
+              { timestamp: "0:03-0:08", content: "Problem: Highlight the pain point your audience faces." },
+              { timestamp: "0:08-0:20", content: "Solution: Present your unique solution or perspective." },
+              { timestamp: "0:20-0:25", content: "CTA: End with a clear call-to-action - follow, like, or comment." }
+            ]
+          }
+        });
+      }
+      
+      if (lowerMessage.includes("caption") || lowerMessage.includes("write caption")) {
+        return res.json({
+          message: "Here are 3 caption variations for your content:",
+          cardType: "captions",
+          cardData: {
+            captions: [
+              { style: "Engaging", text: "Ever wondered how the pros do it? 🤔 Here's the secret most people miss... Drop a 💯 if this resonates!" },
+              { style: "Professional", text: "Sharing insights on [topic]. This approach has helped countless creators achieve [result]. What's your experience?" },
+              { style: "Conversational", text: "Okay, let's talk about this for a sec... I've been testing this strategy and the results are insane! Who else has tried this? 👇" }
+            ]
+          }
+        });
+      }
+      
+      if (lowerMessage.includes("analyze") || lowerMessage.includes("analysis")) {
+        return res.json({
+          message: "I've analyzed your content! Here's the viral potential breakdown:",
+          cardType: "analysis",
+          cardData: {
+            metrics: {
+              viralPotential: 78,
+              engagementScore: 85,
+              shareability: 72,
+              viewRetention: 81
+            },
+            insights: [
+              "Strong hook in the first 3 seconds",
+              "Content matches current trending topics",
+              "Consider adding more visual variety",
+              "CTA could be more specific"
+            ]
+          }
+        });
+      }
+      
+      if (lowerMessage.includes("idea") || lowerMessage.includes("generate content idea")) {
+        return res.json({
+          message: "Here are some fresh content ideas tailored to your brand:",
+          cardType: "ideas",
+          cardData: {
+            ideas: [
+              { 
+                title: "Behind-the-Scenes Day in Life",
+                description: "Show your authentic process and connect with your audience on a personal level",
+                category: "Lifestyle"
+              },
+              { 
+                title: "Common Mistakes to Avoid",
+                description: "Educational content that positions you as an expert while helping your audience",
+                category: "Educational"
+              },
+              { 
+                title: "Trending Audio Challenge",
+                description: "Leverage current trends to boost discoverability and engagement",
+                category: "Trending"
+              },
+              { 
+                title: "Q&A Session",
+                description: "Answer your audience's most asked questions in a dynamic format",
+                category: "Interactive"
+              }
+            ]
+          }
+        });
+      }
+      
+      if (lowerMessage.includes("hook")) {
+        return res.json({
+          message: "Here are some powerful hooks to start your content:",
+          cardType: "hooks",
+          cardData: {
+            hooks: [
+              { type: "Question", text: "What if I told you there's a better way to do this?" },
+              { type: "Bold Claim", text: "This changed everything for me in just 7 days" },
+              { type: "Curiosity Gap", text: "The secret nobody talks about..." },
+              { type: "Direct Address", text: "Stop doing this right now if you want results" }
+            ]
+          }
+        });
+      }
+      
+      if (lowerMessage.includes("hashtag")) {
+        return res.json({
+          message: "Here are recommended hashtags for your content:",
+          cardType: "hashtags",
+          cardData: {
+            hashtags: [
+              "contentcreator", "socialmedia", "digitalmarketing", 
+              "contentmarketing", "socialmediatips", "contentcreation",
+              "marketingstrategy", "growyourbusiness", "entrepreneurship",
+              "smallbusinesstips", "onlinemarketing", "branding"
+            ]
+          }
+        });
+      }
+
+      // Default response
+      res.json({
+        message: "I'm here to help you create amazing content! I can assist with:\n\n• Choosing the right format for your content\n• Writing scripts and captions\n• Generating content ideas\n• Analyzing viral potential\n• Providing hooks and hashtags\n\nWhat would you like to work on?",
+        cardType: null,
+        cardData: null
+      });
+    } catch (error) {
+      console.error("Error in Ava message endpoint:", error);
+      res.status(500).json({ error: "Failed to process message" });
+    }
+  });
+
+  app.get("/api/ava/conversations", async (req, res) => {
+    try {
+      // Mock conversations list
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      
+      res.json([
+        {
+          id: "1",
+          title: "Content Strategy Discussion",
+          lastMessage: "Here are some fresh content ideas...",
+          timestamp: new Date(Date.now() - ONE_HOUR_MS).toISOString(),
+        },
+        {
+          id: "2",
+          title: "Reel Script Creation",
+          lastMessage: "Great! Let me help you create a Reel...",
+          timestamp: new Date(Date.now() - TWO_HOURS_MS).toISOString(),
+        }
+      ]);
+    } catch (error) {
+      console.error("Error fetching Ava conversations:", error);
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
   return httpServer;
 }
