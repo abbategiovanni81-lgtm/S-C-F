@@ -154,8 +154,15 @@ export class AvaAgent {
    * analytics data to find the actual top-performing posts
    */
   private async getTopPerformingContent(userId: string): Promise<any> {
-    // Get user's generated content
-    const allContent = await this.storage.getAllGeneratedContent(userId);
+    // Get user's brand briefs
+    const briefs = await this.storage.getBrandBriefsByUser(userId);
+    
+    if (briefs.length === 0) {
+      return null;
+    }
+    
+    // Get content from the first brief as a fallback
+    const allContent = await this.storage.getContentByBrief(briefs[0].id);
     
     // For now, return the most recent content as a placeholder
     // In production, this would sort by engagement metrics
