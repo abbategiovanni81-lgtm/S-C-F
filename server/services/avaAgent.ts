@@ -1,0 +1,173 @@
+import { contentAnalysisService, type ContentAnalysisInput, type DetailedAnalysis, type ComparisonResult } from "./contentAnalysisService";
+import type { Storage } from "../storage";
+
+export interface AvaAnalysisRequest {
+  contentId?: string;
+  content?: {
+    hook?: string;
+    script?: string;
+    caption?: string;
+    hashtags?: string[];
+    platform?: string;
+    contentFormat?: string;
+  };
+}
+
+export interface AvaComparisonRequest {
+  yourContent: ContentAnalysisInput;
+  comparisonType: "own" | "competitor";
+  referenceContentId?: string;
+  referenceUrl?: string;
+  referenceContent?: ContentAnalysisInput;
+}
+
+export class AvaAgent {
+  constructor(private storage: Storage) {}
+
+  /**
+   * Analyzes content and returns scoring for Ava chat display
+   */
+  async analyzeContent(request: AvaAnalysisRequest): Promise<DetailedAnalysis> {
+    let input: ContentAnalysisInput;
+
+    if (request.contentId && this.storage) {
+      // Fetch content from database
+      const generatedContent = await this.storage.getGeneratedContent(request.contentId);
+      if (!generatedContent) {
+        throw new Error("Content not found");
+      }
+
+      input = {
+        hook: this.extractHook(generatedContent.script),
+        script: generatedContent.script,
+        caption: generatedContent.caption,
+        hashtags: generatedContent.hashtags || [],
+        platform: generatedContent.platforms?.[0],
+        contentFormat: this.determineFormat(generatedContent),
+      };
+    } else if (request.content) {
+      input = request.content;
+    } else {
+      throw new Error("Either contentId or content must be provided");
+    }
+
+    return await contentAnalysisService.analyzeContent(input);
+  }
+
+  /**
+   * Compares new content against own top-performing posts
+   */
+  async compareToOwnContent(
+    userId: string,
+    yourContent: ContentAnalysisInput,
+    topContentId?: string
+  ): Promise<ComparisonResult> {
+    let referenceContent: ContentAnalysisInput;
+
+    if (topContentId) {
+      // Use specific content for comparison
+      const content = await this.storage.getGeneratedContent(topContentId);
+      if (!content || content.userId !== userId) {
+        throw new Error("Content not found or access denied");
+      }
+
+      referenceContent = {
+        hook: this.extractHook(content.script),
+        script: content.script,
+        caption: content.caption,
+        hashtags: content.hashtags || [],
+        platform: content.platforms?.[0],
+        contentFormat: this.determineFormat(content),
+      };
+    } else {
+      // Find top-performing content automatically
+      const topContent = await this.getTopPerformingContent(userId);
+      if (!topContent) {
+        throw new Error("No top-performing content found for comparison");
+      }
+
+      referenceContent = {
+        hook: this.extractHook(topContent.script),
+        script: topContent.script,
+        caption: topContent.caption,
+        hashtags: topContent.hashtags || [],
+        platform: topContent.platforms?.[0],
+        contentFormat: this.determineFormat(topContent),
+      };
+    }
+
+    return await contentAnalysisService.compareContent(
+      yourContent,
+      referenceContent,
+      "own"
+    );
+  }
+
+  /**
+   * Compares content against a competitor post
+   */
+  async compareToCompetitor(
+    yourContent: ContentAnalysisInput,
+    competitorUrl: string
+  ): Promise<ComparisonResult & { competitorData?: any }> {
+    // For now, we'll accept competitor content directly
+    // In a full implementation, this would scrape the competitor URL
+    // For this minimal implementation, we'll throw an error directing users
+    // to provide the competitor content manually
+    
+    throw new Error(
+      "Competitor URL scraping not yet implemented. Please provide competitor content details manually."
+    );
+  }
+
+  /**
+   * Extracts a hook from the script
+   */
+  private extractHook(script: string): string {
+    if (!script) return "";
+    
+    // Get first sentence or first line
+    const lines = script.split("\n").filter(l => l.trim());
+    if (lines.length === 0) return "";
+    
+    const firstLine = lines[0];
+    const sentences = firstLine.match(/[^.!?]+[.!?]+/g);
+    
+    return sentences?.[0]?.trim() || firstLine.trim();
+  }
+
+  /**
+   * Determines the content format from generated content
+   */
+  private determineFormat(content: any): string {
+    if (content.videoUrl) return "video";
+    if (content.blogBody) return "blog";
+    if (content.generationMetadata?.scenes) {
+      return content.generationMetadata.scenes.length > 1 ? "carousel" : "image";
+    }
+    return "text";
+  }
+
+  /**
+   * Gets top-performing content for a user
+   * This is a simplified implementation - in production, this would query
+   * analytics data to find the actual top-performing posts
+   */
+  private async getTopPerformingContent(userId: string): Promise<any> {
+    // Get user's generated content
+    const allContent = await this.storage.getAllGeneratedContent(userId);
+    
+    // For now, return the most recent content as a placeholder
+    // In production, this would sort by engagement metrics
+    if (allContent.length === 0) {
+      return null;
+    }
+    
+    return allContent[0];
+  }
+}
+
+// Export factory function
+export function createAvaAgent(storage: Storage): AvaAgent {
+  return new AvaAgent(storage);
+}
