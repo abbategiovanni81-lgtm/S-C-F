@@ -19,6 +19,7 @@ import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema
 import { apiRequest } from "@/lib/queryClient";
 
 const DEMO_USER_ID = "demo-user";
+const MAX_SCHEDULE_DAYS = 30;
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -264,6 +265,115 @@ export default function ReadyToPost() {
     },
   });
 
+  // Social posting mutation (using Late.dev or direct APIs)
+  const [socialPostDialogOpen, setSocialPostDialogOpen] = useState(false);
+  const [selectedPlatformAccount, setSelectedPlatformAccount] = useState("");
+  const [postScheduleEnabled, setPostScheduleEnabled] = useState(false);
+  const [postScheduleDate, setPostScheduleDate] = useState("");
+  const [postScheduleTime, setPostScheduleTime] = useState("12:00");
+
+  const socialPostMutation = useMutation({
+    mutationFn: async (data: {
+      accountId: string;
+      text: string;
+      imageUrl?: string;
+      videoUrl?: string;
+      scheduleTime?: string;
+    }) => {
+      const response = await fetch("/api/social/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Post failed");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const platform = socialAccounts.find(a => a.id === selectedPlatformAccount)?.platform || "social media";
+      const postUrl = data.postUrl;
+      
+      toast({
+        title: postScheduleEnabled ? "Post Scheduled!" : "Posted Successfully!",
+        description: postScheduleEnabled 
+          ? `Your content will be posted to ${platform} at the scheduled time.`
+          : postUrl 
+            ? (
+              <div className="flex flex-col gap-2">
+                <span>Your content is now live on {platform}!</span>
+                <a href={postUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                  View Post →
+                </a>
+              </div>
+            )
+            : `Your content is now live on ${platform}!`,
+      });
+      
+      setSocialPostDialogOpen(false);
+      if (selectedContent) {
+        markAsPostedMutation.mutate(selectedContent.id);
+      }
+      setSelectedContent(null);
+      setSelectedPlatformAccount("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Post Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const openSocialPostDialog = (content: GeneratedContent) => {
+    setSelectedContent(content);
+    setSocialPostDialogOpen(true);
+    setPostScheduleEnabled(false);
+    const tomorrow = addDays(new Date(), 1);
+    setPostScheduleDate(format(tomorrow, 'yyyy-MM-dd'));
+    setPostScheduleTime("12:00");
+    
+    // Pre-select first connected account if available
+    const connectedAccounts = socialAccounts.filter(acc => acc.isConnected === "connected");
+    if (connectedAccounts.length > 0) {
+      setSelectedPlatformAccount(connectedAccounts[0].id);
+    }
+  };
+
+  const handleSocialPost = async () => {
+    if (!selectedContent || !selectedPlatformAccount) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a platform account",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const metadata = selectedContent.generationMetadata as any;
+    const videoUrl = getVideoUrl(selectedContent);
+    const imageUrl = metadata?.generatedImageUrl || metadata?.uploadedImageUrl;
+
+    let scheduleTime: string | undefined;
+    if (postScheduleEnabled && postScheduleDate && postScheduleTime) {
+      const [hours, minutes] = postScheduleTime.split(":").map(Number);
+      const date = new Date(postScheduleDate);
+      date.setHours(hours, minutes, 0, 0);
+      scheduleTime = date.toISOString();
+    }
+
+    socialPostMutation.mutate({
+      accountId: selectedPlatformAccount,
+      text: selectedContent.caption || selectedContent.script || "",
+      imageUrl,
+      videoUrl: videoUrl || undefined,
+      scheduleTime,
+    });
+  };
+
   const getBriefName = (briefId: string) => {
     const brief = briefs.find((b) => b.id === briefId);
     return brief?.name || "Unknown Brand";
@@ -301,7 +411,7 @@ export default function ReadyToPost() {
     const scheduledAt = getScheduledDateTime();
     if (!scheduledAt) return true; // No schedule = instant publish
     const minTime = addMinutes(new Date(), 15);
-    const maxTime = addDays(new Date(), 30);
+    const maxTime = addDays(new Date(), MAX_SCHEDULE_DAYS);
     return isAfter(scheduledAt, minTime) && isBefore(scheduledAt, maxTime);
   };
 
@@ -595,10 +705,26 @@ export default function ReadyToPost() {
           {showMarkAsPosted && content.status !== "posted" && (
             <div className="pt-2 border-t space-y-2">
               {/* Social posting options - only for paid users */}
-              {!isFreeUser && hasVideo && (
-                <div>
-                  {hasYouTubeAccounts ? (
-                    <ResponsiveTooltip content="Publish to platform">
+              {!isFreeUser && (
+                <div className="space-y-2">
+                  {/* Post to all platforms button */}
+                  {socialAccounts.filter(acc => acc.isConnected === "connected").length > 0 && (
+                    <ResponsiveTooltip content="Post to social platforms">
+                      <Button
+                        onClick={() => openSocialPostDialog(content)}
+                        className="w-full gap-2"
+                        variant="default"
+                        data-testid={`button-social-post-${content.id}`}
+                      >
+                        <Upload className="w-4 h-4" />
+                        Post to Platform
+                      </Button>
+                    </ResponsiveTooltip>
+                  )}
+                  
+                  {/* YouTube specific button (for video content) */}
+                  {hasVideo && hasYouTubeAccounts && (
+                    <ResponsiveTooltip content="Publish to YouTube">
                       <Button
                         onClick={() => openPublishDialog(content)}
                         className="w-full gap-2 bg-red-600 hover:bg-red-700"
@@ -606,18 +732,6 @@ export default function ReadyToPost() {
                       >
                         <Youtube className="w-4 h-4" />
                         Publish to YouTube
-                      </Button>
-                    </ResponsiveTooltip>
-                  ) : (
-                    <ResponsiveTooltip content="Connect YouTube">
-                      <Button
-                        variant="outline"
-                        onClick={() => window.location.href = "/api/youtube/connect"}
-                        className="w-full gap-2"
-                        data-testid={`button-connect-youtube-${content.id}`}
-                      >
-                        <Youtube className="w-4 h-4" />
-                        Connect YouTube to Publish
                       </Button>
                     </ResponsiveTooltip>
                   )}
@@ -953,7 +1067,7 @@ export default function ReadyToPost() {
                       value={scheduleDate}
                       onChange={(e) => setScheduleDate(e.target.value)}
                       min={format(new Date(), 'yyyy-MM-dd')}
-                      max={format(addDays(new Date(), 30), 'yyyy-MM-dd')}
+                      max={format(addDays(new Date(), MAX_SCHEDULE_DAYS), 'yyyy-MM-dd')}
                       data-testid="input-schedule-date"
                     />
                   </div>
@@ -1036,6 +1150,132 @@ export default function ReadyToPost() {
                 )}
               </Button>
             </ResponsiveTooltip>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Social Posting Dialog */}
+      <Dialog open={socialPostDialogOpen} onOpenChange={setSocialPostDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Post to Social Platform</DialogTitle>
+            <DialogDescription>
+              Choose a platform and schedule your post
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform-account">Platform</Label>
+              <Select
+                value={selectedPlatformAccount}
+                onValueChange={setSelectedPlatformAccount}
+              >
+                <SelectTrigger data-testid="select-platform-account">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {socialAccounts
+                    .filter(acc => acc.isConnected === "connected")
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.platform} - {account.accountName || account.accountHandle || "Account"}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedContent && (
+              <div className="space-y-2">
+                <Label>Content Preview</Label>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm">
+                  {selectedContent.caption || selectedContent.script || "No caption available"}
+                </div>
+              </div>
+            )}
+
+            <div className="border rounded-lg p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <div>
+                    <Label htmlFor="post-schedule-toggle" className="text-sm font-medium">Schedule for Later</Label>
+                    <p className="text-xs text-muted-foreground">Post at a specific time</p>
+                  </div>
+                </div>
+                <Switch
+                  id="post-schedule-toggle"
+                  checked={postScheduleEnabled}
+                  onCheckedChange={setPostScheduleEnabled}
+                  data-testid="switch-post-schedule-enabled"
+                />
+              </div>
+
+              {postScheduleEnabled && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="post-schedule-date">Date</Label>
+                    <Input
+                      id="post-schedule-date"
+                      type="date"
+                      value={postScheduleDate}
+                      onChange={(e) => setPostScheduleDate(e.target.value)}
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      max={format(addDays(new Date(), MAX_SCHEDULE_DAYS), 'yyyy-MM-dd')}
+                      data-testid="input-post-schedule-date"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="post-schedule-time">Time</Label>
+                    <Input
+                      id="post-schedule-time"
+                      type="time"
+                      value={postScheduleTime}
+                      onChange={(e) => setPostScheduleTime(e.target.value)}
+                      data-testid="input-post-schedule-time"
+                    />
+                  </div>
+                  <div className="col-span-2 text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Your timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSocialPostDialogOpen(false)}
+              disabled={socialPostMutation.isPending}
+              data-testid="button-cancel-social-post"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSocialPost}
+              disabled={socialPostMutation.isPending || !selectedPlatformAccount}
+              data-testid="button-confirm-social-post"
+            >
+              {socialPostMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {postScheduleEnabled ? "Scheduling..." : "Posting..."}
+                </>
+              ) : postScheduleEnabled ? (
+                <>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Post
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Post Now
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

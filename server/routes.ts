@@ -36,6 +36,7 @@ import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVide
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 import { motionControlService } from "./motionControlService";
+import { createLateDevPost, getLateDevPostStatus, mapPlatformToLateDevName } from "./lateDevService";
 
 const objectStorageService = new ObjectStorageService();
 const DEMO_USER_ID = "demo-user";
@@ -1335,6 +1336,10 @@ Provide analysis in this JSON structure:
           steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
         };
         
+        // Check for Late.dev API key from user settings
+        const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+        baseEngines.late = { configured: !!keys?.lateKey, name: "Late.dev Social" };
+        
         // Studio tier gets Getty Images
         if (isStudioTier) {
           baseEngines.getty = { configured: gettyService.isConfigured(), name: "Getty Images" };
@@ -1355,6 +1360,7 @@ Provide analysis in this JSON structure:
           fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
           pexels: { configured: !!keys?.pexelsKey, name: "Pexels B-Roll" },
           steveai: { configured: !!keys?.steveaiKey, name: "Steve AI Video" },
+          late: { configured: !!keys?.lateKey, name: "Late.dev Social" },
         });
       } else {
         // Not authenticated - show all as not configured
@@ -1367,6 +1373,7 @@ Provide analysis in this JSON structure:
           fal: { configured: false, name: "Fal.ai Video/Image" },
           pexels: { configured: false, name: "Pexels B-Roll" },
           steveai: { configured: false, name: "Steve AI Video" },
+          late: { configured: false, name: "Late.dev Social" },
         });
       }
     } catch (error: any) {
@@ -1394,6 +1401,7 @@ Provide analysis in this JSON structure:
         hasFal: !!keys?.falKey,
         hasPexels: !!keys?.pexelsKey,
         hasSteveai: !!keys?.steveaiKey,
+        hasLate: !!keys?.lateKey,
       });
     } catch (error: any) {
       console.error("Error fetching user API keys:", error);
@@ -1408,7 +1416,7 @@ Provide analysis in this JSON structure:
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey } = req.body;
+      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey, lateKey } = req.body;
       
       // Check if user already has keys
       const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
@@ -1422,6 +1430,7 @@ Provide analysis in this JSON structure:
         if (a2eKey !== undefined) updates.a2eKey = a2eKey || null;
         if (falKey !== undefined) updates.falKey = falKey || null;
         if (pexelsKey !== undefined) updates.pexelsKey = pexelsKey || null;
+        if (lateKey !== undefined) updates.lateKey = lateKey || null;
         
         await db.update(userApiKeys).set(updates).where(eq(userApiKeys.id, existing.id));
       } else {
@@ -1434,6 +1443,7 @@ Provide analysis in this JSON structure:
           a2eKey: a2eKey || null,
           falKey: falKey || null,
           pexelsKey: pexelsKey || null,
+          lateKey: lateKey || null,
         });
       }
       
@@ -5416,7 +5426,7 @@ Provide analysis in this JSON structure:
   app.post("/api/social/post", requireAuth, async (req: any, res) => {
     try {
       const userId = req.userId;
-      const { accountId, text, imageUrl, videoUrl, title, description } = req.body;
+      const { accountId, text, imageUrl, videoUrl, scheduleTime } = req.body;
 
       if (!accountId) {
         return res.status(400).json({ error: "Account ID is required" });
@@ -5427,6 +5437,49 @@ Provide analysis in this JSON structure:
         return res.status(404).json({ error: "Account not found" });
       }
 
+      // Check if user has Late.dev API key
+      const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      const lateApiKey = userKeys?.lateKey;
+
+      // If Late.dev key is available, use Late.dev API
+      if (lateApiKey) {
+        try {
+          const mediaUrls: string[] = [];
+          if (imageUrl) mediaUrls.push(imageUrl);
+          if (videoUrl) mediaUrls.push(videoUrl);
+
+          const lateDevRequest = {
+            content: text,
+            mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+            scheduledFor: scheduleTime || undefined,
+            platforms: [{
+              platform: mapPlatformToLateDevName(account.platform),
+              accountId: account.platformAccountId || accountId,
+            }],
+          };
+
+          const result = await createLateDevPost(lateApiKey, lateDevRequest);
+          
+          // Extract post URL from platform results
+          const platformResult = result.platformResults?.[0];
+          const postUrl = platformResult?.postUrl || result.url;
+
+          return res.json({ 
+            success: true, 
+            postId: result.id,
+            postUrl,
+            status: result.status,
+            platform: account.platform,
+            usedLateDevApi: true,
+          });
+        } catch (lateError: any) {
+          console.error("Late.dev API error:", lateError);
+          // Fall back to direct platform API if Late.dev fails
+          console.log("Falling back to direct platform API");
+        }
+      }
+
+      // Direct platform API fallback (original implementation)
       if (!account.accessToken) {
         return res.status(401).json({ error: "Account not connected. Please reconnect." });
       }
@@ -5520,6 +5573,32 @@ Provide analysis in this JSON structure:
     } catch (error: any) {
       console.error("Social post error:", error);
       res.status(500).json({ error: error.message || "Failed to post to social platform" });
+    }
+  });
+
+  // ============================================
+  // SOCIAL POST STATUS ENDPOINT
+  // ============================================
+  
+  app.get("/api/social/post/:id/status", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const postId = req.params.id;
+
+      // Get user's Late.dev API key
+      const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+      const lateApiKey = userKeys?.lateKey;
+
+      if (!lateApiKey) {
+        return res.status(400).json({ error: "Late.dev API key not configured" });
+      }
+
+      const status = await getLateDevPostStatus(lateApiKey, postId);
+
+      res.json(status);
+    } catch (error: any) {
+      console.error("Post status error:", error);
+      res.status(500).json({ error: error.message || "Failed to get post status" });
     }
   });
 

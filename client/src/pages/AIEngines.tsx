@@ -25,6 +25,7 @@ interface AIEnginesResponse {
   pexels: AIEngineStatus;
   steveai: AIEngineStatus;
   getty: AIEngineStatus;
+  late: AIEngineStatus;
 }
 
 const ENGINE_INFO: Record<string, { type: string; description: string; logo: string; badge: { bg: string; text: string }; keyName: string; apiKeyField: string; placeholder: string }> = {
@@ -108,6 +109,15 @@ const ENGINE_INFO: Record<string, { type: string; description: string; logo: str
     keyName: "Getty Images API Key",
     apiKeyField: "gettyKey",
     placeholder: "getty_..."
+  },
+  late: {
+    type: "Social Posting",
+    description: "Unified API to post to Instagram, TikTok, Facebook, Twitter, LinkedIn, YouTube, and 5 more platforms.",
+    logo: "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=150&q=80",
+    badge: { bg: "bg-violet-600", text: "LT" },
+    keyName: "Late.dev API Key",
+    apiKeyField: "lateKey",
+    placeholder: "late_..."
   }
 };
 
