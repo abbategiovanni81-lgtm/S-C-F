@@ -51,10 +51,18 @@ export default function MagicClips() {
       return;
     }
 
-    // Basic URL validation
+    // URL validation - ensure it's a YouTube URL
     try {
       const parsedUrl = new URL(url);
-      if (!parsedUrl.hostname.includes('youtube.com') && !parsedUrl.hostname.includes('youtu.be')) {
+      const hostname = parsedUrl.hostname.toLowerCase();
+      // Check if hostname is exactly youtube.com or www.youtube.com or youtu.be
+      const isYouTube = hostname === 'youtube.com' || 
+                       hostname === 'www.youtube.com' || 
+                       hostname === 'youtu.be' ||
+                       hostname === 'www.youtu.be' ||
+                       hostname === 'm.youtube.com';
+      
+      if (!isYouTube) {
         toast({
           title: "Invalid URL",
           description: "Please enter a valid YouTube URL",
