@@ -3959,6 +3959,214 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // Batch Content Creation endpoints
+  app.post("/api/batch/scan-trends", requireAuth, async (req: any, res) => {
+    try {
+      const { platforms, timeframe } = req.body;
+      
+      // Mock trend scanning for now
+      // In production, this would call social listening APIs
+      const mockTopics = [
+        "AI innovation in 2026",
+        "Sustainable business practices",
+        "Remote work productivity",
+        "Digital transformation",
+        "Customer experience trends",
+        "Data privacy importance",
+        "Cloud computing adoption",
+        "E-commerce growth",
+      ];
+
+      // Return a subset based on platforms
+      const topicCount = Math.min(platforms.length * 2, mockTopics.length);
+      const topics = mockTopics.slice(0, topicCount);
+
+      res.json({ topics });
+    } catch (error) {
+      console.error("Error scanning trends:", error);
+      res.status(500).json({ error: "Failed to scan trends" });
+    }
+  });
+
+  app.post("/api/batch/generate-ideas", requireAuth, async (req: any, res) => {
+    try {
+      const { platforms, timeframe, pinnedTopics = [] } = req.body;
+      const userId = req.userId;
+
+      // Get user's briefs for context
+      const briefs = await storage.getBrandBriefsByUser(userId);
+      const brief = briefs[0]; // Use first brief as context
+
+      if (!brief) {
+        return res.status(400).json({ error: "Please create a brand brief first" });
+      }
+
+      // Generate content ideas based on platforms and timeframe
+      const POSTS_PER_WEEK_PER_PLATFORM = 3;
+      const ideasPerPlatform = Math.ceil((timeframe / 7) * POSTS_PER_WEEK_PER_PLATFORM);
+      const ideas = [];
+
+      for (const platform of platforms) {
+        for (let i = 0; i < ideasPerPlatform; i++) {
+          const formats = {
+            instagram: ["Reel", "Story", "Post", "Carousel"],
+            tiktok: ["Short Video", "Tutorial", "Behind-the-Scenes"],
+            twitter: ["Thread", "Tweet", "Poll"],
+            linkedin: ["Article", "Post", "Carousel"],
+            youtube: ["Short", "Video", "Tutorial"],
+          };
+
+          const platformFormats = formats[platform as keyof typeof formats] || ["Post"];
+          const format = platformFormats[Math.floor(Math.random() * platformFormats.length)];
+
+          // Use pinned topic if available, otherwise use content goal
+          const MAX_CONTENT_GOAL_LENGTH = 50;
+          const topicSuffix = pinnedTopics.length > 0 
+            ? pinnedTopics[i % pinnedTopics.length]
+            : brief.contentGoals.substring(0, MAX_CONTENT_GOAL_LENGTH);
+
+          ideas.push({
+            id: `${platform}-${i}-${Date.now()}`,
+            title: `${format} idea for ${platform}: ${topicSuffix}`,
+            format,
+            platform,
+            selected: true,
+          });
+        }
+      }
+
+      res.json({ ideas });
+    } catch (error) {
+      console.error("Error generating ideas:", error);
+      res.status(500).json({ error: "Failed to generate ideas" });
+    }
+  });
+
+  // In-memory job storage (replace with database in production)
+  const batchJobs = new Map<string, any>();
+
+  app.post("/api/batch/generate", requireAuth, async (req: any, res) => {
+    try {
+      const { ideas, platforms, timeframe } = req.body;
+      const userId = req.userId;
+      const jobId = randomUUID();
+
+      // Initialize job
+      batchJobs.set(jobId, {
+        id: jobId,
+        userId,
+        status: "processing",
+        progress: 0,
+        total: ideas.length,
+        completed: 0,
+        items: [],
+        createdAt: new Date(),
+      });
+
+      // Start async processing
+      processGenerationJob(jobId, ideas, userId).catch(error => {
+        console.error("Error in batch generation job:", error);
+        const job = batchJobs.get(jobId);
+        if (job) {
+          job.status = "failed";
+          job.error = error.message;
+        }
+      });
+
+      res.json({ jobId });
+    } catch (error) {
+      console.error("Error starting batch generation:", error);
+      res.status(500).json({ error: "Failed to start batch generation" });
+    }
+  });
+
+  app.get("/api/batch/jobs/:id/status", requireAuth, async (req: any, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = batchJobs.get(jobId);
+
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+
+      // Check ownership
+      if (job.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json({
+        status: job.status,
+        progress: job.progress,
+        items: job.items,
+        error: job.error,
+      });
+    } catch (error) {
+      console.error("Error fetching job status:", error);
+      res.status(500).json({ error: "Failed to fetch job status" });
+    }
+  });
+
+  app.post("/api/batch/items/:id/regenerate", requireAuth, async (req: any, res) => {
+    try {
+      const itemId = req.params.id;
+      
+      // Mock regeneration - in production, call AI service
+      const item = {
+        id: itemId,
+        caption: "Regenerated caption with new variations...",
+        script: "Updated script with fresh content...",
+        hashtags: ["#NewHashtag", "#Regenerated"],
+      };
+
+      res.json({ item });
+    } catch (error) {
+      console.error("Error regenerating item:", error);
+      res.status(500).json({ error: "Failed to regenerate item" });
+    }
+  });
+
+  // Helper function to process batch generation job
+  async function processGenerationJob(jobId: string, ideas: any[], userId: string) {
+    const job = batchJobs.get(jobId);
+    if (!job) return;
+
+    const briefs = await storage.getBrandBriefsByUser(userId);
+    const brief = briefs[0];
+
+    if (!brief) {
+      job.status = "failed";
+      job.error = "No brand brief found";
+      return;
+    }
+
+    const BATCH_ITEM_PROCESSING_DELAY_MS = 500; // Simulated processing delay
+
+    for (let i = 0; i < ideas.length; i++) {
+      const idea = ideas[i];
+      
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, BATCH_ITEM_PROCESSING_DELAY_MS));
+
+      // Generate mock content
+      const item = {
+        id: idea.id,
+        title: idea.title,
+        format: idea.format,
+        status: "generated",
+        caption: `Generated caption for ${idea.title}. This is engaging content optimized for ${idea.platform}.`,
+        script: `Script for ${idea.title}:\n\nHook: [Attention grabber]\nBody: [Main content]\nCTA: [Call to action]`,
+        hashtags: ["#ContentCreation", "#SocialMedia", `#${idea.platform}`],
+      };
+
+      job.items.push(item);
+      job.completed = i + 1;
+      job.progress = Math.round((job.completed / job.total) * 100);
+    }
+
+    job.status = "completed";
+    job.progress = 100;
+  }
+
   // Social Accounts endpoints
   app.get("/api/social-accounts", requireAuth, async (req: any, res) => {
     try {
