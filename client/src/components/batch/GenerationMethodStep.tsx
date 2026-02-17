@@ -59,7 +59,8 @@ export default function GenerationMethodStep({
   };
 
   const pollJobStatus = async (jobId: string) => {
-    const maxAttempts = 120; // 2 minutes max
+    const MAX_POLL_ATTEMPTS = 120; // 2 minutes max
+    const POLL_INTERVAL_MS = 1000; // 1 second
     let attempts = 0;
 
     const poll = async () => {
@@ -89,9 +90,9 @@ export default function GenerationMethodStep({
         }
 
         // Continue polling if still processing
-        if (data.status === "processing" && attempts < maxAttempts) {
+        if (data.status === "processing" && attempts < MAX_POLL_ATTEMPTS) {
           attempts++;
-          setTimeout(poll, 1000);
+          setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (error) {
         console.error("Error polling job status:", error);

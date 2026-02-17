@@ -7,7 +7,7 @@ import { Loader2, TrendingUp, SkipForward, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-interface ContentPlanStepProps {
+interface SocialListeningStepProps {
   batchState: BatchState;
   onUpdateState: (updates: Partial<BatchState>) => void;
 }
@@ -15,7 +15,7 @@ interface ContentPlanStepProps {
 export default function SocialListeningStep({
   batchState,
   onUpdateState,
-}: ContentPlanStepProps) {
+}: SocialListeningStepProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
   const { toast } = useToast();

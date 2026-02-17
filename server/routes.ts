@@ -4002,7 +4002,8 @@ Provide analysis in this JSON structure:
       }
 
       // Generate content ideas based on platforms and timeframe
-      const ideasPerPlatform = Math.ceil((timeframe / 7) * 3); // ~3 posts per week per platform
+      const POSTS_PER_WEEK_PER_PLATFORM = 3;
+      const ideasPerPlatform = Math.ceil((timeframe / 7) * POSTS_PER_WEEK_PER_PLATFORM);
       const ideas = [];
 
       for (const platform of platforms) {
@@ -4018,9 +4019,15 @@ Provide analysis in this JSON structure:
           const platformFormats = formats[platform as keyof typeof formats] || ["Post"];
           const format = platformFormats[Math.floor(Math.random() * platformFormats.length)];
 
+          // Use pinned topic if available, otherwise use content goal
+          const MAX_CONTENT_GOAL_LENGTH = 50;
+          const topicSuffix = pinnedTopics.length > 0 
+            ? pinnedTopics[i % pinnedTopics.length]
+            : brief.contentGoals.substring(0, MAX_CONTENT_GOAL_LENGTH);
+
           ideas.push({
             id: `${platform}-${i}-${Date.now()}`,
-            title: `${format} idea for ${platform}: ${pinnedTopics[i % pinnedTopics.length] || brief.contentGoals.substring(0, 50)}`,
+            title: `${format} idea for ${platform}: ${topicSuffix}`,
             format,
             platform,
             selected: true,
@@ -4132,11 +4139,13 @@ Provide analysis in this JSON structure:
       return;
     }
 
+    const BATCH_ITEM_PROCESSING_DELAY_MS = 500; // Simulated processing delay
+
     for (let i = 0; i < ideas.length; i++) {
       const idea = ideas[i];
       
       // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, BATCH_ITEM_PROCESSING_DELAY_MS));
 
       // Generate mock content
       const item = {

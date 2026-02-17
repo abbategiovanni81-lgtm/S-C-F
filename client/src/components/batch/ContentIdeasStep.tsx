@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ContentPlanStepProps {
+interface ContentIdeasStepProps {
   batchState: BatchState;
   onUpdateState: (updates: Partial<BatchState>) => void;
 }
@@ -18,17 +18,20 @@ interface ContentPlanStepProps {
 export default function ContentIdeasStep({
   batchState,
   onUpdateState,
-}: ContentPlanStepProps) {
+}: ContentIdeasStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState("");
   const { toast } = useToast();
 
+  // Auto-generate ideas on mount if not already generated
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!hasGenerated && !batchState.generatedIdeas) {
       handleGenerateIdeas();
     }
+    // Intentionally only run on mount to avoid re-triggering generation
   }, []);
 
   const handleGenerateIdeas = async () => {

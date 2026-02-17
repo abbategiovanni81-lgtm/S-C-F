@@ -72,7 +72,8 @@ export default function ContentPlanStep({
     onUpdateState({ platforms });
   };
 
-  const estimatedPosts = Math.ceil((batchState.timeframe / 7) * batchState.platforms.length * 3);
+  const POSTS_PER_WEEK_PER_PLATFORM = 3;
+  const estimatedPosts = Math.ceil((batchState.timeframe / 7) * batchState.platforms.length * POSTS_PER_WEEK_PER_PLATFORM);
 
   return (
     <div className="space-y-8">
