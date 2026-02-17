@@ -1,5 +1,32 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield, Wand2, GitCompare, MessageSquare, Film, Type, BookOpen, Move } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calendar,
+  BarChart3,
+  Users,
+  Settings,
+  PlusCircle,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  FileText,
+  CheckSquare,
+  Sparkles,
+  Download,
+  Scissors,
+  Headphones,
+  HelpCircle,
+  Shield,
+  Wand2,
+  GitCompare,
+  MessageSquare,
+  Film,
+  Type,
+  BookOpen,
+  Move,
+  Video,
+  Subtitles
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -17,6 +44,9 @@ const NAV_ITEMS = [
   { icon: Wand2, label: "Creator Studio", href: "/creator-studio" },
   { icon: Move, label: "Motion Control", href: "/motion-control" },
   { icon: Film, label: "Video to Clips", href: "/video-to-clips" },
+  { icon: Sparkles, label: "Magic Clips", href: "/magic-clips" },
+  { icon: Video, label: "Auto-Trim", href: "/auto-trim" },
+  { icon: Subtitles, label: "Caption Styles", href: "/caption-styles" },
   { icon: Calendar, label: "Schedule", href: "/schedule" },
   { icon: BarChart3, label: "Analytics", href: "/analytics" },
   { icon: Users, label: "Accounts (Legacy)", href: "/accounts" }, // Platform connections now in Brand Briefs

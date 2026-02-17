@@ -35,6 +35,9 @@ import MotionControl from "@/pages/MotionControl";
 import ThumbnailGenerator from "@/pages/ThumbnailGenerator";
 import UGCActorLibrary from "@/pages/UGCActorLibrary";
 import AvaAnalysisDemo from "@/pages/AvaAnalysisDemo";
+import MagicClips from "@/pages/MagicClips";
+import AutoTrim from "@/pages/AutoTrim";
+import CaptionStyles from "@/pages/CaptionStyles";
 
 function AuthenticatedRoutes() {
   return (
@@ -66,6 +69,9 @@ function AuthenticatedRoutes() {
       <Route path="/thumbnail-generator" component={ThumbnailGenerator} />
       <Route path="/ugc-actors" component={UGCActorLibrary} />
       <Route path="/ava-demo" component={AvaAnalysisDemo} />
+      <Route path="/magic-clips" component={MagicClips} />
+      <Route path="/auto-trim" component={AutoTrim} />
+      <Route path="/caption-styles" component={CaptionStyles} />
       <Route component={NotFound} />
     </Switch>
   );
