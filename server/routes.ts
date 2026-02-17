@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema, insertUserProductSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray, desc } from "drizzle-orm";
@@ -1235,6 +1235,71 @@ Provide analysis in this JSON structure:
     } catch (error: any) {
       console.error("Error uploading image:", error);
       res.status(500).json({ error: error.message || "Failed to upload image" });
+    }
+  });
+
+  // User Products endpoints
+  // GET /api/products - Fetch user's products
+  app.get("/api/products", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const products = await storage.getUserProducts(userId);
+      res.json(products);
+    } catch (error: any) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // POST /api/products - Create new product with optional image upload
+  // Reuse imageUpload multer configuration (20MB limit)
+  app.post("/api/products", requireAuth, imageUpload.single("image"), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      
+      let imageUrl: string | undefined = undefined;
+
+      // If a file was uploaded, upload to cloud storage
+      if (req.file) {
+        try {
+          // Sanitize filename - use only the extension from original filename
+          const ext = path.extname(req.file.originalname);
+          const filename = `product-${randomUUID()}${ext}`;
+          const result = await objectStorageService.uploadBuffer(
+            req.file.buffer,
+            filename,
+            req.file.mimetype,
+            true
+          );
+          imageUrl = result.objectPath;
+          console.log(`Product image uploaded to cloud storage: ${imageUrl}`);
+        } catch (uploadError: any) {
+          console.error("Failed to upload product image:", uploadError);
+          return res.status(500).json({ error: "Failed to upload product image" });
+        }
+      }
+
+      // Validate request body using Zod schema
+      const productData = {
+        userId,
+        name: req.body.name,
+        description: req.body.description || null,
+        price: req.body.price || null,
+        imageUrl: imageUrl || null,
+      };
+
+      const result = insertUserProductSchema.safeParse(productData);
+      if (!result.success) {
+        return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+
+      // Create product in database
+      const product = await storage.createUserProduct(result.data);
+
+      res.status(201).json(product);
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: "Failed to create product" });
     }
   });
 
