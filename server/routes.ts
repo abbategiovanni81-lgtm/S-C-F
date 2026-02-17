@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema } from "@shared/schema";
+import { insertBrandBriefSchema, insertGeneratedContentSchema, insertSocialAccountSchema, userApiKeys, brandBriefs, generatedContent, socialAccounts, scheduledPosts, motionJobs, insertMotionJobSchema, storyboards, scenesMetadata, insertStoryboardSchema, insertSceneMetadataSchema, videoJobs, videoClips, insertVideoJobSchema, insertVideoClipSchema, insertUserProductSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated } from "./replit_integrations/auth";
 import { db } from "./db";
 import { eq, sql, inArray, desc } from "drizzle-orm";
@@ -1252,24 +1252,19 @@ Provide analysis in this JSON structure:
   });
 
   // POST /api/products - Create new product with optional image upload
-  const productUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-  
-  app.post("/api/products", requireAuth, productUpload.single("image"), async (req: any, res) => {
+  // Reuse imageUpload multer configuration (20MB limit)
+  app.post("/api/products", requireAuth, imageUpload.single("image"), async (req: any, res) => {
     try {
       const userId = req.userId;
       
-      // Validate required fields
-      const { name, description, price } = req.body;
-      if (!name) {
-        return res.status(400).json({ error: "Product name is required" });
-      }
-
       let imageUrl: string | undefined = undefined;
 
       // If a file was uploaded, upload to cloud storage
       if (req.file) {
         try {
-          const filename = `product-${randomUUID()}-${req.file.originalname}`;
+          // Sanitize filename - use only the extension from original filename
+          const ext = path.extname(req.file.originalname);
+          const filename = `product-${randomUUID()}${ext}`;
           const result = await objectStorageService.uploadBuffer(
             req.file.buffer,
             filename,
@@ -1284,14 +1279,22 @@ Provide analysis in this JSON structure:
         }
       }
 
-      // Create product in database
-      const product = await storage.createUserProduct({
+      // Validate request body using Zod schema
+      const productData = {
         userId,
-        name,
-        description: description || null,
-        price: price || null,
+        name: req.body.name,
+        description: req.body.description || null,
+        price: req.body.price || null,
         imageUrl: imageUrl || null,
-      });
+      };
+
+      const result = insertUserProductSchema.safeParse(productData);
+      if (!result.success) {
+        return res.status(400).json({ error: fromZodError(result.error).message });
+      }
+
+      // Create product in database
+      const product = await storage.createUserProduct(result.data);
 
       res.status(201).json(product);
     } catch (error: any) {
