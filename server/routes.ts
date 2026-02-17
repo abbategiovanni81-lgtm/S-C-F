@@ -1238,6 +1238,68 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // User Products endpoints
+  // GET /api/products - Fetch user's products
+  app.get("/api/products", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      const products = await storage.getUserProducts(userId);
+      res.json(products);
+    } catch (error: any) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // POST /api/products - Create new product with optional image upload
+  const productUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+  
+  app.post("/api/products", requireAuth, productUpload.single("image"), async (req: any, res) => {
+    try {
+      const userId = req.userId;
+      
+      // Validate required fields
+      const { name, description, price } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Product name is required" });
+      }
+
+      let imageUrl: string | undefined = undefined;
+
+      // If a file was uploaded, upload to cloud storage
+      if (req.file) {
+        try {
+          const filename = `product-${randomUUID()}-${req.file.originalname}`;
+          const result = await objectStorageService.uploadBuffer(
+            req.file.buffer,
+            filename,
+            req.file.mimetype,
+            true
+          );
+          imageUrl = result.objectPath;
+          console.log(`Product image uploaded to cloud storage: ${imageUrl}`);
+        } catch (uploadError: any) {
+          console.error("Failed to upload product image:", uploadError);
+          return res.status(500).json({ error: "Failed to upload product image" });
+        }
+      }
+
+      // Create product in database
+      const product = await storage.createUserProduct({
+        userId,
+        name,
+        description: description || null,
+        price: price || null,
+        imageUrl: imageUrl || null,
+      });
+
+      res.status(201).json(product);
+    } catch (error: any) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ error: "Failed to create product" });
+    }
+  });
+
   // AI Engine Status endpoints
   app.get("/api/ai-engines/status", async (req: any, res) => {
     try {

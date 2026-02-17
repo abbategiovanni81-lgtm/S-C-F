@@ -38,6 +38,7 @@ import AvaAnalysisDemo from "@/pages/AvaAnalysisDemo";
 import MagicClips from "@/pages/MagicClips";
 import AutoTrim from "@/pages/AutoTrim";
 import CaptionStyles from "@/pages/CaptionStyles";
+import ProductAdCreator from "@/pages/ProductAdCreator";
 
 function AuthenticatedRoutes() {
   return (
@@ -72,6 +73,7 @@ function AuthenticatedRoutes() {
       <Route path="/magic-clips" component={MagicClips} />
       <Route path="/auto-trim" component={AutoTrim} />
       <Route path="/caption-styles" component={CaptionStyles} />
+      <Route path="/product-ad-creator" component={ProductAdCreator} />
       <Route component={NotFound} />
     </Switch>
   );
