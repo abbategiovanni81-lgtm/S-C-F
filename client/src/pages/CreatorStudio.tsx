@@ -858,7 +858,7 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
               variant="outline"
               size="sm"
               onClick={handleSwap}
-              disabled={!sourceImageUrl && !targetVideoUrl}
+              disabled={!sourceImageUrl || !targetVideoUrl}
               className="gap-2"
               data-testid="button-swap-fields"
             >
