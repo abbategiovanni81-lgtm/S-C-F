@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Calendar, Activity, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BarChart3, Calendar, Activity, FileText, Sparkles } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { BrandBrief, GeneratedContent, SocialAccount } from "@shared/schema";
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
+import BatchWizard from "@/components/batch/BatchWizard";
 
 const DEMO_USER_ID = "demo-user";
 
 export default function Dashboard() {
+  const [batchWizardOpen, setBatchWizardOpen] = useState(false);
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
     queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
   });
@@ -159,6 +163,15 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
+              <ResponsiveTooltip content="Create multiple posts at once">
+                <Button
+                  onClick={() => setBatchWizardOpen(true)}
+                  className="w-full p-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center font-medium hover:from-purple-600 hover:to-pink-600 transition-colors"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Batch Content Creation
+                </Button>
+              </ResponsiveTooltip>
               <ResponsiveTooltip content="Define your brand voice">
                 <Link href="/brand-briefs" className="block w-full p-3 rounded-lg bg-primary text-primary-foreground text-center font-medium hover:bg-primary/90 transition-colors" data-testid="button-new-brief">
                   + New Brand Brief
@@ -178,6 +191,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <BatchWizard open={batchWizardOpen} onClose={() => setBatchWizardOpen(false)} />
     </Layout>
   );
 }
