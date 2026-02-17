@@ -791,6 +791,12 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
     }
   };
 
+  const handleSwap = () => {
+    const temp = sourceImageUrl;
+    setSourceImageUrl(targetVideoUrl);
+    setTargetVideoUrl(temp);
+  };
+
   const mutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/creator-studio/face-swap", {
@@ -845,6 +851,22 @@ function FaceSwapTab({ usage }: { usage?: { used: number; limit: number } }) {
           description="Clear front-facing photo of the face to swap in"
           testId="face-swap-source"
         />
+        <div className="flex justify-center -my-2">
+          <ResponsiveTooltip content="Swap source and target">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSwap}
+              disabled={!sourceImageUrl && !targetVideoUrl}
+              className="gap-2"
+              data-testid="button-swap-fields"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Swap
+            </Button>
+          </ResponsiveTooltip>
+        </div>
         <MediaUpload
           value={targetVideoUrl}
           onChange={setTargetVideoUrl}
