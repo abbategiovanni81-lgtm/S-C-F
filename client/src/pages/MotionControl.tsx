@@ -184,12 +184,13 @@ export default function MotionControl() {
     const files = e.dataTransfer.files;
     if (files && files[0]) {
       const file = files[0];
-      if (file.type.startsWith('image/')) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (validTypes.includes(file.type)) {
         imageUpload.uploadFile(file);
       } else {
         toast({
           title: "Invalid file type",
-          description: "Please upload an image file (jpg, png, webp)",
+          description: "Please upload an image file (JPG, PNG, or WEBP)",
           variant: "destructive"
         });
       }
@@ -279,7 +280,7 @@ export default function MotionControl() {
               Motion Control
             </h1>
             <p className="text-slate-300 mt-2 text-lg">
-              Make anyone dance — upload a photo and a motion video
+              Make anyone dance &mdash; upload a photo and a motion video
             </p>
           </div>
 
@@ -352,7 +353,7 @@ export default function MotionControl() {
                       <input
                         id="photo-upload"
                         type="file"
-                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        accept="image/jpeg,image/png,image/webp"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) imageUpload.uploadFile(file);
@@ -557,7 +558,7 @@ export default function MotionControl() {
                           
                           {job.status === "processing" && (
                             <div className="space-y-2">
-                              <Progress value={50} className="h-2" />
+                              <Progress value={undefined} className="h-2" />
                               <p className="text-sm text-slate-400 text-center">
                                 Processing your video...
                               </p>
