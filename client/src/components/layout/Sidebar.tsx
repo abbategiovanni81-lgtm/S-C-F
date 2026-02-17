@@ -25,7 +25,8 @@ import {
   BookOpen,
   Move,
   Video,
-  Subtitles
+  Subtitles,
+  Package
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { icon: Download, label: "Ready to Post", href: "/ready-to-post" },
   { icon: Headphones, label: "Social Listening", href: "/social-listening" },
   { icon: Wand2, label: "Creator Studio", href: "/creator-studio" },
+  { icon: Package, label: "Product Ad Creator", href: "/product-ad-creator" },
   { icon: Move, label: "Motion Control", href: "/motion-control" },
   { icon: Film, label: "Video to Clips", href: "/video-to-clips" },
   { icon: Sparkles, label: "Magic Clips", href: "/magic-clips" },
