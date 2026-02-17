@@ -5361,7 +5361,7 @@ Provide analysis in this JSON structure:
   app.post("/api/social/post", requireAuth, async (req: any, res) => {
     try {
       const userId = req.userId;
-      const { accountId, text, imageUrl, videoUrl, title, description, scheduleTime } = req.body;
+      const { accountId, text, imageUrl, videoUrl, scheduleTime } = req.body;
 
       if (!accountId) {
         return res.status(400).json({ error: "Account ID is required" });

@@ -1,7 +1,7 @@
 /**
  * Late.dev API Service
  * Integration with Late.dev for unified social media posting
- * API Documentation: https://getlate.dev/api/v1/
+ * API Documentation: https://docs.getlate.dev/ (verify URL)
  */
 
 const LATE_API_BASE_URL = "https://api.getlate.dev/api/v1";

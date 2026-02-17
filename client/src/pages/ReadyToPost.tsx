@@ -19,6 +19,7 @@ import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema
 import { apiRequest } from "@/lib/queryClient";
 
 const DEMO_USER_ID = "demo-user";
+const MAX_SCHEDULE_DAYS = 30;
 
 function TikTokIcon({ className }: { className?: string }) {
   return (
@@ -410,7 +411,7 @@ export default function ReadyToPost() {
     const scheduledAt = getScheduledDateTime();
     if (!scheduledAt) return true; // No schedule = instant publish
     const minTime = addMinutes(new Date(), 15);
-    const maxTime = addDays(new Date(), 30);
+    const maxTime = addDays(new Date(), MAX_SCHEDULE_DAYS);
     return isAfter(scheduledAt, minTime) && isBefore(scheduledAt, maxTime);
   };
 
@@ -1066,7 +1067,7 @@ export default function ReadyToPost() {
                       value={scheduleDate}
                       onChange={(e) => setScheduleDate(e.target.value)}
                       min={format(new Date(), 'yyyy-MM-dd')}
-                      max={format(addDays(new Date(), 30), 'yyyy-MM-dd')}
+                      max={format(addDays(new Date(), MAX_SCHEDULE_DAYS), 'yyyy-MM-dd')}
                       data-testid="input-schedule-date"
                     />
                   </div>
@@ -1221,7 +1222,7 @@ export default function ReadyToPost() {
                       value={postScheduleDate}
                       onChange={(e) => setPostScheduleDate(e.target.value)}
                       min={format(new Date(), 'yyyy-MM-dd')}
-                      max={format(addDays(new Date(), 30), 'yyyy-MM-dd')}
+                      max={format(addDays(new Date(), MAX_SCHEDULE_DAYS), 'yyyy-MM-dd')}
                       data-testid="input-post-schedule-date"
                     />
                   </div>
