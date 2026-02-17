@@ -1,5 +1,32 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Calendar, BarChart3, Users, Settings, PlusCircle, ChevronLeft, ChevronRight, Cpu, FileText, CheckSquare, Sparkles, Download, Scissors, Headphones, HelpCircle, Shield, Wand2, GitCompare, MessageSquare, Film, Type, BookOpen, Move, Video, Subtitles } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calendar,
+  BarChart3,
+  Users,
+  Settings,
+  PlusCircle,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  FileText,
+  CheckSquare,
+  Sparkles,
+  Download,
+  Scissors,
+  Headphones,
+  HelpCircle,
+  Shield,
+  Wand2,
+  GitCompare,
+  MessageSquare,
+  Film,
+  Type,
+  BookOpen,
+  Move,
+  Video,
+  Subtitles
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 

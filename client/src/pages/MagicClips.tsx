@@ -23,6 +23,7 @@ export default function MagicClips() {
       return response.json();
     },
     onSuccess: () => {
+      // Intentionally showing error message as backend integration is not complete
       setErrorMessage("Processing engine not connected.");
       toast({
         title: "Processing engine not connected",

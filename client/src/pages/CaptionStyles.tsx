@@ -298,8 +298,8 @@ Let's dive right in and get started.`;
               <div className="flex items-start gap-2">
                 <span className="text-green-500 font-bold">✓</span>
                 <div>
-                  <p className="font-semibold">Caption Generation</p>
-                  <p className="text-muted-foreground">AI-powered caption generation using OpenAI</p>
+                  <p className="font-semibold">Caption Generation (Placeholder)</p>
+                  <p className="text-muted-foreground">Mock caption generation - OpenAI integration pending</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
