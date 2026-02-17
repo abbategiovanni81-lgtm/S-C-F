@@ -1271,6 +1271,10 @@ Provide analysis in this JSON structure:
           steveai: { configured: isStudioTier && steveAIService.isConfigured(), name: "Steve AI Video" },
         };
         
+        // Check for Late.dev API key from user settings
+        const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+        baseEngines.late = { configured: !!keys?.lateKey, name: "Late.dev Social" };
+        
         // Studio tier gets Getty Images
         if (isStudioTier) {
           baseEngines.getty = { configured: gettyService.isConfigured(), name: "Getty Images" };
@@ -1291,6 +1295,7 @@ Provide analysis in this JSON structure:
           fal: { configured: !!keys?.falKey, name: "Fal.ai Video/Image" },
           pexels: { configured: !!keys?.pexelsKey, name: "Pexels B-Roll" },
           steveai: { configured: !!keys?.steveaiKey, name: "Steve AI Video" },
+          late: { configured: !!keys?.lateKey, name: "Late.dev Social" },
         });
       } else {
         // Not authenticated - show all as not configured
@@ -1303,6 +1308,7 @@ Provide analysis in this JSON structure:
           fal: { configured: false, name: "Fal.ai Video/Image" },
           pexels: { configured: false, name: "Pexels B-Roll" },
           steveai: { configured: false, name: "Steve AI Video" },
+          late: { configured: false, name: "Late.dev Social" },
         });
       }
     } catch (error: any) {
