@@ -40,10 +40,11 @@ export interface ZernioPostRequest {
 
 export interface ZernioPlatformStatus {
   platform: string;
-  accountId: string;
+  accountId: string | { _id: string; platform: string; username?: string };
   status: string; // "pending" | "published" | "failed" (per platform)
-  postId?: string;
-  postUrl?: string;
+  publishedAt?: string;
+  platformPostId?: string; // Receipt: the platform's own post id
+  platformPostUrl?: string; // Receipt: public permalink
   error?: string;
 }
 
@@ -72,20 +73,46 @@ async function zernioFetch(apiKey: string, path: string, init?: RequestInit): Pr
       ...(init?.headers || {}),
     },
   });
+  const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || body.message || `Zernio API error ${response.status}`);
+    const err: any = new Error(body.error || body.message || `Zernio API error ${response.status}`);
+    err.status = response.status;
+    err.existingPostId = body.existingPostId; // 409 content-hash dedup
+    throw err;
   }
-  return response.json();
+  return body;
 }
 
-/** Create a post (immediate with publishNow, or scheduled via scheduledFor). */
-export async function createZernioPost(apiKey: string, request: ZernioPostRequest): Promise<ZernioPost> {
-  const body = await zernioFetch(apiKey, "/posts", {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-  const post: ZernioPost | undefined = body.post ?? body;
+/**
+ * Create a post (immediate with publishNow, or scheduled via scheduledFor).
+ *
+ * Duplicate-safety (per Zernio's idempotency contract):
+ * - requestId (pass a stable id per logical post, e.g. our scheduled-post
+ *   row id) is sent as x-request-id: retries within ~5 min return the
+ *   original post instead of double-posting.
+ * - A 409 means Zernio's 24h content-hash dedup caught an identical post
+ *   (e.g. our attempt 1 posted but we crashed before recording it). We
+ *   recover the existing post and return it as the receipt.
+ */
+export async function createZernioPost(
+  apiKey: string,
+  request: ZernioPostRequest,
+  requestId?: string
+): Promise<ZernioPost> {
+  let body: any;
+  try {
+    body = await zernioFetch(apiKey, "/posts", {
+      method: "POST",
+      body: JSON.stringify(request),
+      headers: requestId ? { "x-request-id": requestId } : undefined,
+    });
+  } catch (error: any) {
+    if (error.status === 409 && error.existingPostId) {
+      return getZernioPostStatus(apiKey, error.existingPostId);
+    }
+    throw error;
+  }
+  const post: ZernioPost | undefined = body.existingPost ?? body.post ?? body;
   if (!post || !post._id) {
     throw new Error("Zernio returned no post id receipt");
   }

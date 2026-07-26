@@ -5599,8 +5599,8 @@ Provide analysis in this JSON structure:
 
           return res.json({
             success: true,
-            postId: post._id,
-            postUrl: platformResult?.postUrl,
+            postId: platformResult?.platformPostId || post._id,
+            postUrl: platformResult?.platformPostUrl,
             status: post.status,
             platform: account.platform,
             usedZernioApi: true,

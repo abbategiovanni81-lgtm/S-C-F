@@ -113,6 +113,8 @@ async function dispatchOne(row: DueRow): Promise<void> {
     const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, row.user_id));
     const zernioKey = decryptKey(keys?.lateKey);
     if (zernioKey) {
+      // row.id as x-request-id: a retried attempt within Zernio's
+      // idempotency window returns the original post, never a duplicate
       const post = await createZernioPost(zernioKey, {
         content: content.text,
         mediaItems: inferMediaItems(row.media_url, row.media_type),
@@ -121,13 +123,13 @@ async function dispatchOne(row: DueRow): Promise<void> {
           platform: mapPlatformToZernioName(row.platform),
           accountId: account.platformAccountId || account.id,
         }],
-      });
+      }, row.id);
       const pr = post.platforms?.[0];
       if (pr?.status === "failed" || post.status === "failed") {
         throw new Error(pr?.error || "Zernio reported a failed post");
       }
       // createZernioPost already throws when no _id receipt came back
-      await markPublished(row.id, post._id, pr?.postUrl);
+      await markPublished(row.id, pr?.platformPostId || post._id, pr?.platformPostUrl);
       console.log(`[scheduler] Published ${row.id} to ${row.platform} via Zernio (${post._id})`);
       return;
     }
