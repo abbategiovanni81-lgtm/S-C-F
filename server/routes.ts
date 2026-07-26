@@ -37,6 +37,7 @@ import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from ".
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 import { motionControlService } from "./motionControlService";
 import { createLateDevPost, getLateDevPostStatus, mapPlatformToLateDevName } from "./lateDevService";
+import { publishDirect } from "./publishService";
 
 const objectStorageService = new ObjectStorageService();
 const DEMO_USER_ID = "demo-user";
@@ -5459,6 +5460,33 @@ Provide analysis in this JSON structure:
       const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
       const lateApiKey = userKeys?.lateKey;
 
+      // Future scheduleTime + no Late.dev key: hand off to the scheduler
+      // worker instead of posting now. (With a Late.dev key, the Late branch
+      // below passes scheduledFor natively.)
+      if (!lateApiKey && scheduleTime && new Date(scheduleTime) > new Date()) {
+        const scheduled = await storage.createScheduledPost({
+          userId,
+          accountId,
+          platform: account.platform,
+          scheduledFor: new Date(scheduleTime),
+          timezone: req.body.timezone || "UTC",
+          title: title || null,
+          // Worker mapping: description carries the post text
+          description: text || description || null,
+          mediaUrl: videoUrl || imageUrl || null,
+          mediaType: videoUrl ? "video" : imageUrl ? "image" : "text",
+          status: "scheduled",
+          postType: "autopost",
+        } as any);
+        return res.json({
+          success: true,
+          scheduled: true,
+          scheduledPostId: scheduled.id,
+          scheduledFor: scheduled.scheduledFor,
+          platform: account.platform,
+        });
+      }
+
       // If Late.dev key is available, use Late.dev API
       if (lateApiKey) {
         try {
@@ -5497,97 +5525,20 @@ Provide analysis in this JSON structure:
         }
       }
 
-      // Direct platform API fallback (original implementation)
+      // Direct platform API path (shared with the scheduler worker)
       if (!account.accessToken) {
         return res.status(401).json({ error: "Account not connected. Please reconnect." });
       }
 
-      let result;
-      
-      switch (account.platform) {
-        case "Twitter":
-          result = await socialPlatforms.postToTwitter(account.accessToken, text);
-          break;
-          
-        case "LinkedIn":
-          const authorUrn = `urn:li:person:${account.platformAccountId}`;
-          result = await socialPlatforms.postToLinkedIn(account.accessToken, authorUrn, text, imageUrl);
-          break;
-          
-        case "Bluesky":
-          result = await socialPlatforms.postToBluesky(
-            account.accessToken, 
-            account.platformAccountId!, 
-            text
-          );
-          break;
-          
-        case "Facebook":
-          result = await socialPlatforms.postToFacebookPage(
-            account.accessToken,
-            account.platformAccountId!,
-            text,
-            imageUrl
-          );
-          break;
-          
-        case "Instagram":
-          if (!imageUrl) {
-            return res.status(400).json({ error: "Instagram requires an image" });
-          }
-          result = await socialPlatforms.postToInstagram(
-            account.accessToken,
-            account.platformAccountId!,
-            text,
-            imageUrl
-          );
-          break;
-          
-        case "TikTok":
-          if (!videoUrl) {
-            return res.status(400).json({ error: "TikTok requires a video URL" });
-          }
-          result = await socialPlatforms.initTikTokVideoUpload(
-            account.accessToken,
-            videoUrl,
-            title || text
-          );
-          break;
-          
-        case "Threads":
-          result = await socialPlatforms.postToThreads(
-            account.accessToken,
-            account.platformAccountId!,
-            text,
-            imageUrl
-          );
-          break;
-          
-        case "Pinterest":
-          if (!imageUrl) {
-            return res.status(400).json({ error: "Pinterest requires an image" });
-          }
-          // For Pinterest, we'd need to get the user's boards first
-          // This is a simplified version
-          const boards = await socialPlatforms.getPinterestBoards(account.accessToken);
-          const defaultBoard = boards.items?.[0];
-          if (!defaultBoard) {
-            return res.status(400).json({ error: "No Pinterest boards found" });
-          }
-          result = await socialPlatforms.postToPinterest(
-            account.accessToken,
-            defaultBoard.id,
-            title || "Pin",
-            text || description || "",
-            imageUrl
-          );
-          break;
-          
-        default:
-          return res.status(400).json({ error: `Posting to ${account.platform} not supported` });
-      }
+      const receipt = await publishDirect(account, { text, imageUrl, videoUrl, title, description });
 
-      res.json({ success: true, result, platform: account.platform });
+      res.json({
+        success: true,
+        result: receipt.raw,
+        postId: receipt.postId,
+        postUrl: receipt.postUrl,
+        platform: account.platform,
+      });
     } catch (error: any) {
       console.error("Social post error:", error);
       res.status(500).json({ error: error.message || "Failed to post to social platform" });

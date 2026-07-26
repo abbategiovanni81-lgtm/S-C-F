@@ -357,7 +357,13 @@ export const scheduledPosts = pgTable("scheduled_posts", {
   
   // Notes for manual tracking
   notes: text("notes"),
-  
+
+  // Auto-publish worker fields (postType "autopost" rows only)
+  attempts: integer("attempts").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  publishedPostId: text("published_post_id"), // Receipt: platform's post id
+  publishedUrl: text("published_url"), // Receipt: platform's post URL
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   publishedAt: timestamp("published_at"), // When actually posted
