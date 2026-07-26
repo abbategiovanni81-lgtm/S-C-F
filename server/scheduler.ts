@@ -23,6 +23,7 @@ import { db } from "./db";
 import { storage } from "./storage";
 import { publishDirect } from "./publishService";
 import { createZernioPost, mapPlatformToZernioName, inferMediaItems } from "./zernioService";
+import { decryptKey } from "./keyVault";
 import { userApiKeys } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -110,8 +111,9 @@ async function dispatchOne(row: DueRow): Promise<void> {
     // Zernio path when the user holds a key - post NOW (the worker is the
     // single source of truth for timing; no scheduledFor delegation).
     const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, row.user_id));
-    if (keys?.lateKey) {
-      const post = await createZernioPost(keys.lateKey, {
+    const zernioKey = decryptKey(keys?.lateKey);
+    if (zernioKey) {
+      const post = await createZernioPost(zernioKey, {
         content: content.text,
         mediaItems: inferMediaItems(row.media_url, row.media_type),
         publishNow: true,

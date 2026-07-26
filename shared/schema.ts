@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, jsonb, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -128,10 +128,31 @@ export const userApiKeys = pgTable("user_api_keys", {
   falKey: text("fal_key"),
   pexelsKey: text("pexels_key"),
   steveaiKey: text("steveai_key"),
-  lateKey: text("late_key"),
+  lateKey: text("late_key"), // Zernio key (Zernio = renamed Late.dev)
+  kieKey: text("kie_key"),
+  openrouterKey: text("openrouter_key"),
+  geminiKey: text("gemini_key"),
+  apifyKey: text("apify_key"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// AI model catalog - the engine selectors read THIS table. A model may only
+// be enabled after its routing is smoke-tested (no phantom dropdown entries).
+export const aiModels = pgTable("ai_models", {
+  id: varchar("id").primaryKey(), // e.g. "kie:grok-imagine-i2v"
+  provider: text("provider").notNull(), // "kie" | "fal" | "openrouter" | "openai" | "elevenlabs" | "gemini"
+  providerModelId: text("provider_model_id").notNull(), // id the provider expects
+  modality: text("modality").notNull(), // "text" | "image" | "video" | "audio"
+  displayName: text("display_name").notNull(),
+  costPerCall: text("cost_per_call"), // advisory, user's own account (BYOK)
+  enabled: boolean("enabled").notNull().default(false),
+  isDefault: boolean("is_default").notNull().default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type AiModel = typeof aiModels.$inferSelect;
 
 export const insertUserApiKeysSchema = createInsertSchema(userApiKeys).omit({
   id: true,

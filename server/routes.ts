@@ -38,6 +38,7 @@ import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriv
 import { motionControlService } from "./motionControlService";
 import { createZernioPost, getZernioPostStatus, listZernioAccounts, verifyZernioKey, mapPlatformToZernioName, inferMediaItems } from "./zernioService";
 import { publishDirect } from "./publishService";
+import { encryptKey, decryptKey } from "./keyVault";
 
 const objectStorageService = new ObjectStorageService();
 const DEMO_USER_ID = "demo-user";
@@ -1404,6 +1405,11 @@ Provide analysis in this JSON structure:
         hasPexels: !!keys?.pexelsKey,
         hasSteveai: !!keys?.steveaiKey,
         hasLate: !!keys?.lateKey,
+        hasZernio: !!keys?.lateKey,
+        hasKie: !!keys?.kieKey,
+        hasOpenrouter: !!keys?.openrouterKey,
+        hasGemini: !!keys?.geminiKey,
+        hasApify: !!keys?.apifyKey,
       });
     } catch (error: any) {
       console.error("Error fetching user API keys:", error);
@@ -1418,41 +1424,125 @@ Provide analysis in this JSON structure:
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const { openaiKey, anthropicKey, elevenlabsKey, a2eKey, falKey, pexelsKey, lateKey } = req.body;
-      
-      // Check if user already has keys
-      const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
-      
-      if (existing) {
-        // Update existing keys (only update fields that are provided)
-        const updates: any = { updatedAt: new Date() };
-        if (openaiKey !== undefined) updates.openaiKey = openaiKey || null;
-        if (anthropicKey !== undefined) updates.anthropicKey = anthropicKey || null;
-        if (elevenlabsKey !== undefined) updates.elevenlabsKey = elevenlabsKey || null;
-        if (a2eKey !== undefined) updates.a2eKey = a2eKey || null;
-        if (falKey !== undefined) updates.falKey = falKey || null;
-        if (pexelsKey !== undefined) updates.pexelsKey = pexelsKey || null;
-        if (lateKey !== undefined) updates.lateKey = lateKey || null;
-        
-        await db.update(userApiKeys).set(updates).where(eq(userApiKeys.id, existing.id));
-      } else {
-        // Create new keys entry
-        await db.insert(userApiKeys).values({
-          userId,
-          openaiKey: openaiKey || null,
-          anthropicKey: anthropicKey || null,
-          elevenlabsKey: elevenlabsKey || null,
-          a2eKey: a2eKey || null,
-          falKey: falKey || null,
-          pexelsKey: pexelsKey || null,
-          lateKey: lateKey || null,
-        });
+      // All provider keys are encrypted at rest (keyVault). Write-only:
+      // no route ever returns the stored values.
+      const KEY_FIELDS = [
+        "openaiKey", "anthropicKey", "elevenlabsKey", "a2eKey", "falKey",
+        "pexelsKey", "steveaiKey", "lateKey", "kieKey", "openrouterKey",
+        "geminiKey", "apifyKey",
+      ] as const;
+
+      // Accept zernioKey as an alias for lateKey (Zernio = renamed Late.dev)
+      if (req.body.zernioKey !== undefined && req.body.lateKey === undefined) {
+        req.body.lateKey = req.body.zernioKey;
       }
-      
+
+      const updates: any = {};
+      for (const field of KEY_FIELDS) {
+        const value = req.body[field];
+        if (value !== undefined) {
+          updates[field] = value ? encryptKey(String(value)) : null;
+        }
+      }
+
+      const [existing] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
+
+      if (existing) {
+        await db.update(userApiKeys)
+          .set({ ...updates, updatedAt: new Date() })
+          .where(eq(userApiKeys.id, existing.id));
+      } else {
+        await db.insert(userApiKeys).values({ userId, ...updates });
+      }
+
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error saving user API keys:", error);
       res.status(500).json({ error: "Failed to save API keys" });
+    }
+  });
+
+  // ==================== ENGINE GATEWAY (KIE / fal / OpenRouter) ====================
+
+  // Model catalog for the engine selectors - only enabled (smoke-tested)
+  // models are offered to regular users; the owner sees everything.
+  app.get("/api/models", requireAuth, async (req: any, res) => {
+    try {
+      const { aiModels: aiModelsTable } = await import("@shared/schema");
+      const [user] = await db.select().from(users).where(eq(users.id, req.userId));
+      const rows = await db.select().from(aiModelsTable);
+      const modality = req.query.modality as string | undefined;
+      const visible = rows
+        .filter((m) => (user?.isOwner ? true : m.enabled))
+        .filter((m) => (modality ? m.modality === modality : true));
+      res.json({ models: visible });
+    } catch (error: any) {
+      console.error("Models list error:", error);
+      res.status(500).json({ error: "Failed to list models" });
+    }
+  });
+
+  // Enable/disable a model after smoke-testing (owner only)
+  app.patch("/api/models/:id", requireAuth, async (req: any, res) => {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, req.userId));
+      if (!user?.isOwner) {
+        return res.status(403).json({ error: "Owner access required" });
+      }
+      const { aiModels: aiModelsTable } = await import("@shared/schema");
+      const { enabled, isDefault } = req.body;
+      const updates: any = {};
+      if (enabled !== undefined) updates.enabled = !!enabled;
+      if (isDefault !== undefined) updates.isDefault = !!isDefault;
+      const [updated] = await db.update(aiModelsTable)
+        .set(updates)
+        .where(eq(aiModelsTable.id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ error: "Model not found" });
+      res.json({ model: updated });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to update model" });
+    }
+  });
+
+  // Generate via the gateway with the user's own key (BYOK - no platform
+  // AI spend, so no AI quota here; tiers gate platform features instead)
+  app.post("/api/engines/generate", requireAuth, async (req: any, res) => {
+    try {
+      const { modelId, prompt, imageUrl, options } = req.body;
+      if (!modelId || !prompt) {
+        return res.status(400).json({ error: "modelId and prompt are required" });
+      }
+      const { generateWithModel } = await import("./engines/registry");
+      const result = await generateWithModel(req.userId, modelId, { prompt, imageUrl, options });
+      res.json(result);
+    } catch (error: any) {
+      res.status(error.status || 500).json({ error: error.message || "Generation failed" });
+    }
+  });
+
+  // Poll an async gateway job
+  app.get("/api/engines/jobs/:modelId/:jobId", requireAuth, async (req: any, res) => {
+    try {
+      const { getEngineJobStatus } = await import("./engines/registry");
+      const result = await getEngineJobStatus(req.userId, req.params.modelId, req.params.jobId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(error.status || 500).json({ error: error.message || "Job status failed" });
+    }
+  });
+
+  // Verify a gateway provider key with one cheap authed call
+  app.post("/api/engines/verify/:provider", requireAuth, async (req: any, res) => {
+    try {
+      const { getProvider } = await import("./engines/registry");
+      const { requireUserKey } = await import("./keyVault");
+      const provider = getProvider(req.params.provider);
+      const apiKey = await requireUserKey(req.userId, req.params.provider);
+      const result = await provider.verifyKey(apiKey);
+      res.status(result.ok ? 200 : 401).json(result);
+    } catch (error: any) {
+      res.status(error.status || 500).json({ ok: false, error: error.message });
     }
   });
 
@@ -5458,7 +5548,7 @@ Provide analysis in this JSON structure:
 
       // Check if user has Late.dev API key
       const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
-      const lateApiKey = userKeys?.lateKey;
+      const lateApiKey = decryptKey(userKeys?.lateKey);
 
       // Future scheduleTime + no Late.dev key: hand off to the scheduler
       // worker instead of posting now. (With a Late.dev key, the Late branch
@@ -5553,7 +5643,7 @@ Provide analysis in this JSON structure:
 
       // Get user's Late.dev API key
       const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, userId));
-      const lateApiKey = userKeys?.lateKey;
+      const lateApiKey = decryptKey(userKeys?.lateKey);
 
       if (!lateApiKey) {
         return res.status(400).json({ error: "Zernio API key not configured" });
@@ -5572,10 +5662,11 @@ Provide analysis in this JSON structure:
   app.get("/api/zernio/accounts", requireAuth, async (req: any, res) => {
     try {
       const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.userId));
-      if (!userKeys?.lateKey) {
+      const zernioKey = decryptKey(userKeys?.lateKey);
+      if (!zernioKey) {
         return res.status(400).json({ error: "Zernio API key not configured" });
       }
-      const accounts = await listZernioAccounts(userKeys.lateKey);
+      const accounts = await listZernioAccounts(zernioKey);
       res.json({ accounts });
     } catch (error: any) {
       console.error("Zernio accounts error:", error);
@@ -5587,10 +5678,11 @@ Provide analysis in this JSON structure:
   app.post("/api/zernio/verify", requireAuth, async (req: any, res) => {
     try {
       const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.userId));
-      if (!userKeys?.lateKey) {
+      const zernioKey = decryptKey(userKeys?.lateKey);
+      if (!zernioKey) {
         return res.status(400).json({ error: "Zernio API key not configured" });
       }
-      const result = await verifyZernioKey(userKeys.lateKey);
+      const result = await verifyZernioKey(zernioKey);
       res.json(result);
     } catch (error: any) {
       res.status(401).json({ ok: false, error: error.message || "Zernio key verification failed" });
