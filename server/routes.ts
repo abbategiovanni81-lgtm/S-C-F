@@ -36,7 +36,7 @@ import { isSoraConfigured, createSoraVideo, getSoraVideoStatus, downloadSoraVide
 import { isOpenAITTSConfigured, generateOpenAIVoiceover, OPENAI_VOICES } from "./openaiTtsService";
 import { isGoogleDriveConnected, listDriveFolders, listDriveVideos, downloadDriveVideo, type DriveFile } from "./googleDrive";
 import { motionControlService } from "./motionControlService";
-import { createLateDevPost, getLateDevPostStatus, mapPlatformToLateDevName } from "./lateDevService";
+import { createZernioPost, getZernioPostStatus, listZernioAccounts, verifyZernioKey, mapPlatformToZernioName, inferMediaItems } from "./zernioService";
 import { publishDirect } from "./publishService";
 
 const objectStorageService = new ObjectStorageService();
@@ -5487,40 +5487,37 @@ Provide analysis in this JSON structure:
         });
       }
 
-      // If Late.dev key is available, use Late.dev API
+      // If a Zernio key is available, post via the Zernio aggregator
       if (lateApiKey) {
         try {
-          const mediaUrls: string[] = [];
-          if (imageUrl) mediaUrls.push(imageUrl);
-          if (videoUrl) mediaUrls.push(videoUrl);
-
-          const lateDevRequest = {
+          const post = await createZernioPost(lateApiKey, {
             content: text,
-            mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+            mediaItems: inferMediaItems(videoUrl || imageUrl, videoUrl ? "video" : imageUrl ? "image" : null),
             scheduledFor: scheduleTime || undefined,
+            timezone: req.body.timezone || undefined,
+            publishNow: !scheduleTime,
             platforms: [{
-              platform: mapPlatformToLateDevName(account.platform),
+              platform: mapPlatformToZernioName(account.platform),
               accountId: account.platformAccountId || accountId,
             }],
-          };
-
-          const result = await createLateDevPost(lateApiKey, lateDevRequest);
-          
-          // Extract post URL from platform results
-          const platformResult = result.platformResults?.[0];
-          const postUrl = platformResult?.postUrl || result.url;
-
-          return res.json({ 
-            success: true, 
-            postId: result.id,
-            postUrl,
-            status: result.status,
-            platform: account.platform,
-            usedLateDevApi: true,
           });
-        } catch (lateError: any) {
-          console.error("Late.dev API error:", lateError);
-          // Fall back to direct platform API if Late.dev fails
+
+          const platformResult = post.platforms?.[0];
+          if (platformResult?.status === "failed") {
+            throw new Error(platformResult.error || "Zernio reported a failed post");
+          }
+
+          return res.json({
+            success: true,
+            postId: post._id,
+            postUrl: platformResult?.postUrl,
+            status: post.status,
+            platform: account.platform,
+            usedZernioApi: true,
+          });
+        } catch (zernioError: any) {
+          console.error("Zernio API error:", zernioError);
+          // Fall back to direct platform API if Zernio fails
           console.log("Falling back to direct platform API");
         }
       }
@@ -5559,15 +5556,44 @@ Provide analysis in this JSON structure:
       const lateApiKey = userKeys?.lateKey;
 
       if (!lateApiKey) {
-        return res.status(400).json({ error: "Late.dev API key not configured" });
+        return res.status(400).json({ error: "Zernio API key not configured" });
       }
 
-      const status = await getLateDevPostStatus(lateApiKey, postId);
+      const status = await getZernioPostStatus(lateApiKey, postId);
 
       res.json(status);
     } catch (error: any) {
       console.error("Post status error:", error);
       res.status(500).json({ error: error.message || "Failed to get post status" });
+    }
+  });
+
+  // List the user's connected Zernio accounts (to link them to channels)
+  app.get("/api/zernio/accounts", requireAuth, async (req: any, res) => {
+    try {
+      const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.userId));
+      if (!userKeys?.lateKey) {
+        return res.status(400).json({ error: "Zernio API key not configured" });
+      }
+      const accounts = await listZernioAccounts(userKeys.lateKey);
+      res.json({ accounts });
+    } catch (error: any) {
+      console.error("Zernio accounts error:", error);
+      res.status(500).json({ error: error.message || "Failed to list Zernio accounts" });
+    }
+  });
+
+  // Verify the user's Zernio key with one cheap authed call
+  app.post("/api/zernio/verify", requireAuth, async (req: any, res) => {
+    try {
+      const [userKeys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, req.userId));
+      if (!userKeys?.lateKey) {
+        return res.status(400).json({ error: "Zernio API key not configured" });
+      }
+      const result = await verifyZernioKey(userKeys.lateKey);
+      res.json(result);
+    } catch (error: any) {
+      res.status(401).json({ ok: false, error: error.message || "Zernio key verification failed" });
     }
   });
 

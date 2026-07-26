@@ -226,6 +226,57 @@ export async function getLinkedInUserInfo(accessToken: string) {
   return response.json();
 }
 
+/**
+ * Upload an image to LinkedIn's asset API so posts render it natively.
+ * registerUpload -> PUT binary -> return the asset URN.
+ */
+async function uploadLinkedInImage(accessToken: string, authorUrn: string, mediaUrl: string): Promise<string> {
+  const registerResponse = await fetch("https://api.linkedin.com/v2/assets?action=registerUpload", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+    },
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+        owner: authorUrn,
+        serviceRelationships: [{
+          relationshipType: "OWNER",
+          identifier: "urn:li:userGeneratedContent",
+        }],
+      },
+    }),
+  });
+  if (!registerResponse.ok) {
+    throw new Error(`LinkedIn registerUpload failed: ${await registerResponse.text()}`);
+  }
+  const registered = await registerResponse.json();
+  const uploadUrl = registered?.value?.uploadMechanism?.["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]?.uploadUrl;
+  const asset = registered?.value?.asset;
+  if (!uploadUrl || !asset) {
+    throw new Error("LinkedIn registerUpload returned no upload URL/asset");
+  }
+
+  const imageResponse = await fetch(mediaUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Could not fetch image for LinkedIn upload: ${imageResponse.status}`);
+  }
+  const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+
+  const putResponse = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Authorization": `Bearer ${accessToken}` },
+    body: imageBuffer,
+  });
+  if (!putResponse.ok) {
+    throw new Error(`LinkedIn image upload failed: ${putResponse.status}`);
+  }
+
+  return asset as string;
+}
+
 export async function postToLinkedIn(accessToken: string, authorUrn: string, text: string, mediaUrl?: string) {
   const body: any = {
     author: authorUrn,
@@ -242,9 +293,11 @@ export async function postToLinkedIn(accessToken: string, authorUrn: string, tex
   };
 
   if (mediaUrl) {
+    // Native asset upload - raw originalUrl links don't render as images
+    const assetUrn = await uploadLinkedInImage(accessToken, authorUrn, mediaUrl);
     body.specificContent["com.linkedin.ugc.ShareContent"].media = [{
       status: "READY",
-      originalUrl: mediaUrl,
+      media: assetUrn,
     }];
   }
 

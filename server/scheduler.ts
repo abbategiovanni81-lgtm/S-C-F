@@ -22,7 +22,7 @@ import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { storage } from "./storage";
 import { publishDirect } from "./publishService";
-import { createLateDevPost, mapPlatformToLateDevName } from "./lateDevService";
+import { createZernioPost, mapPlatformToZernioName, inferMediaItems } from "./zernioService";
 import { userApiKeys } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -107,29 +107,26 @@ async function dispatchOne(row: DueRow): Promise<void> {
       videoUrl: row.media_type === "video" ? row.media_url || undefined : undefined,
     };
 
-    // Late.dev/Zernio path when the user holds a key - post NOW (the worker
-    // is the single source of truth for timing; no scheduledFor delegation).
+    // Zernio path when the user holds a key - post NOW (the worker is the
+    // single source of truth for timing; no scheduledFor delegation).
     const [keys] = await db.select().from(userApiKeys).where(eq(userApiKeys.userId, row.user_id));
     if (keys?.lateKey) {
-      const result = await createLateDevPost(keys.lateKey, {
+      const post = await createZernioPost(keys.lateKey, {
         content: content.text,
-        mediaUrls: row.media_url ? [row.media_url] : undefined,
+        mediaItems: inferMediaItems(row.media_url, row.media_type),
+        publishNow: true,
         platforms: [{
-          platform: mapPlatformToLateDevName(row.platform),
+          platform: mapPlatformToZernioName(row.platform),
           accountId: account.platformAccountId || account.id,
         }],
       });
-      const pr = result.platformResults?.[0];
-      if (pr && pr.status === "failed") {
-        throw new Error(pr.error || "Late.dev reported a failed post");
+      const pr = post.platforms?.[0];
+      if (pr?.status === "failed" || post.status === "failed") {
+        throw new Error(pr?.error || "Zernio reported a failed post");
       }
-      // Receipt required: a post without any id is not a success
-      const receiptId = pr?.postId || result.id;
-      if (!receiptId) {
-        throw new Error("Late.dev returned no post id receipt");
-      }
-      await markPublished(row.id, receiptId, pr?.postUrl || result.url);
-      console.log(`[scheduler] Published ${row.id} to ${row.platform} via Late.dev (${receiptId})`);
+      // createZernioPost already throws when no _id receipt came back
+      await markPublished(row.id, post._id, pr?.postUrl);
+      console.log(`[scheduler] Published ${row.id} to ${row.platform} via Zernio (${post._id})`);
       return;
     }
 
