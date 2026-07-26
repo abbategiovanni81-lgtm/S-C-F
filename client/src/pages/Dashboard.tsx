@@ -9,12 +9,10 @@ import type { BrandBrief, GeneratedContent, SocialAccount } from "@shared/schema
 import { ResponsiveTooltip } from "@/components/ui/responsive-tooltip";
 import BatchWizard from "@/components/batch/BatchWizard";
 
-const DEMO_USER_ID = "demo-user";
-
 export default function Dashboard() {
   const [batchWizardOpen, setBatchWizardOpen] = useState(false);
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   const { data: pendingContent = [] } = useQuery<GeneratedContent[]>({
@@ -26,7 +24,7 @@ export default function Dashboard() {
   });
 
   const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
-    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/social-accounts`],
   });
 
   const connectedAccounts = socialAccounts.filter(acc => acc.isConnected === "connected");

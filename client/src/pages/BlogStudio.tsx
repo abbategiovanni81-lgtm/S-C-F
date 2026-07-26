@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import type { BrandBrief, GeneratedContent } from "@shared/schema";
 
-const DEMO_USER_ID = "demo-user";
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -47,7 +45,7 @@ export default function BlogStudio() {
   const [heroImageUrl, setHeroImageUrl] = useState("");
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   // Fetch from content-analysis/videos endpoint (where scraped videos are stored)

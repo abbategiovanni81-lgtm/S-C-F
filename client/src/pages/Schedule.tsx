@@ -32,8 +32,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   facebook: "bg-indigo-100 text-indigo-700 border-indigo-200",
 };
 
-const DEMO_USER_ID = "demo-user-id";
-
 interface SchedulePostCardProps {
   post: ScheduledPost;
   onDelete: (id: string) => void;
@@ -94,9 +92,9 @@ export default function Schedule() {
   });
 
   const { data: scheduledPosts = [], isLoading } = useQuery<ScheduledPost[]>({
-    queryKey: ["/api/scheduled-posts", DEMO_USER_ID, weekStart.toISOString(), weekEnd.toISOString()],
+    queryKey: ["/api/scheduled-posts", weekStart.toISOString(), weekEnd.toISOString()],
     queryFn: async () => {
-      const res = await fetch(`/api/scheduled-posts?userId=${DEMO_USER_ID}&startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
+      const res = await fetch(`/api/scheduled-posts&startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`);
       if (!res.ok) throw new Error("Failed to fetch scheduled posts");
       return res.json();
     },
@@ -147,7 +145,6 @@ export default function Schedule() {
     scheduledFor.setHours(hours, minutes, 0, 0);
 
     createMutation.mutate({
-      userId: DEMO_USER_ID,
       platform: formData.platform,
       scheduledFor: scheduledFor.toISOString(),
       title: formData.title || null,

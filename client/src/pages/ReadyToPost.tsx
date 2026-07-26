@@ -18,7 +18,6 @@ import { format, addMinutes, addDays, isAfter, isBefore } from "date-fns";
 import type { GeneratedContent, BrandBrief, SocialAccount } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
-const DEMO_USER_ID = "demo-user";
 const MAX_SCHEDULE_DAYS = 30;
 
 function TikTokIcon({ className }: { className?: string }) {
@@ -81,7 +80,7 @@ export default function ReadyToPost() {
   });
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({
@@ -97,7 +96,7 @@ export default function ReadyToPost() {
   });
 
   const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
-    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/social-accounts`],
   });
 
   const youtubeAccounts = useMemo(() => 

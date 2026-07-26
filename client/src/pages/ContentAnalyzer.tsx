@@ -25,8 +25,6 @@ import type { BrandBrief } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
-const DEMO_USER_ID = "demo-user";
-
 // Helper functions for score-based styling
 function getScoreColor(score: number): string {
   if (score >= 9) return "text-green-600 dark:text-green-400";
@@ -214,7 +212,7 @@ export default function ContentAnalyzer() {
   const [videoTab, setVideoTab] = useState("videos");
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   const { data: videos = [], isLoading: loadingVideos } = useQuery<AnalyzedVideo[]>({

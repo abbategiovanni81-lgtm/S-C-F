@@ -17,8 +17,6 @@ import { GoogleDriveBrowser } from "@/components/GoogleDriveBrowser";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const DEMO_USER_ID = "demo-user";
-
 interface ClipState {
   id: string;
   sceneNumber?: number;
@@ -64,7 +62,7 @@ export default function EditMerge() {
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
 
   const { data: briefs = [] } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   const { data: approvedContent = [] } = useQuery<GeneratedContent[]>({

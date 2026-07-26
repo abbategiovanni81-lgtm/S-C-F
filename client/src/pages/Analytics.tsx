@@ -48,7 +48,7 @@ export default function Analytics() {
   const [selectedYouTubeAccountId, setSelectedYouTubeAccountId] = useState<string>("");
 
   const { data: accounts = [], isLoading: loadingAccounts } = useQuery<SocialAccount[]>({
-    queryKey: ["/api/social-accounts?userId=demo-user"],
+    queryKey: ["/api/social-accounts"],
   });
 
   // Check for YouTube accounts in database (connected via OAuth or manually added)
@@ -254,7 +254,6 @@ export default function Analytics() {
       try {
         const formData = new FormData();
         formData.append("screenshot", file);
-        formData.append("userId", "demo-user");
         formData.append("accountId", selectedAccountId);
 
         const response = await fetch("/api/analytics/upload", {

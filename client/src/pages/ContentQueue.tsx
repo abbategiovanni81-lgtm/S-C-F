@@ -220,7 +220,7 @@ export default function ContentQueue() {
   });
 
   const { data: socialAccounts = [] } = useQuery<SocialAccount[]>({
-    queryKey: ["/api/social-accounts?userId=demo-user"],
+    queryKey: ["/api/social-accounts"],
   });
 
   const youtubeAccounts = useMemo(() => 

@@ -8,6 +8,9 @@ import bcrypt from "bcryptjs";
 import { authStorage } from "./storage";
 
 export function getSession() {
+  if (!process.env.SESSION_SECRET && process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -17,7 +20,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "socialcommand-secret-key-change-in-production",
+    secret: process.env.SESSION_SECRET || "socialcommand-dev-only-secret",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,

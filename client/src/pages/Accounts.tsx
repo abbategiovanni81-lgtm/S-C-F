@@ -12,8 +12,6 @@ import { Plus, Twitter, Linkedin, Instagram, Facebook, Youtube, Trash2, Loader2,
 import type { SocialAccount } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
-const DEMO_USER_ID = "demo-user";
-
 interface PlatformConfig {
   name: string;
   icon: any;
@@ -53,7 +51,7 @@ export default function Accounts() {
   const { toast } = useToast();
 
   const { data: accounts = [], isLoading } = useQuery<SocialAccount[]>({
-    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/social-accounts`],
   });
 
   const { data: platformStatus } = useQuery<Record<string, boolean>>({
@@ -63,7 +61,6 @@ export default function Accounts() {
   const createMutation = useMutation({
     mutationFn: async (data: { platform: string; accountName: string; accountHandle: string }) => {
       return await apiRequest("POST", "/api/social-accounts", {
-        userId: DEMO_USER_ID,
         platform: data.platform,
         accountName: data.accountName,
         accountHandle: data.accountHandle || null,
@@ -72,7 +69,7 @@ export default function Accounts() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts`] });
       setDialogOpen(false);
       setSelectedPlatform(null);
       setAccountName("");
@@ -85,7 +82,7 @@ export default function Accounts() {
       return await apiRequest("POST", "/api/auth/bluesky", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts`] });
       setDialogOpen(false);
       setShowBlueskyLogin(false);
       setAccountHandle("");
@@ -102,7 +99,7 @@ export default function Accounts() {
       return await apiRequest("DELETE", `/api/social-accounts/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/social-accounts`] });
     },
   });
 

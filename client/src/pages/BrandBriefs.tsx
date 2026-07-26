@@ -60,8 +60,6 @@ const ASSET_TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-const DEMO_USER_ID = "demo-user";
-
 export default function BrandBriefs() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -142,12 +140,12 @@ export default function BrandBriefs() {
   };
 
   const { data: briefs = [], isLoading } = useQuery<BrandBrief[]>({
-    queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/brand-briefs`],
   });
 
   // Fetch user's connected social accounts
   const { data: connectedAccounts = [] } = useQuery<SocialAccount[]>({
-    queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`],
+    queryKey: [`/api/social-accounts`],
   });
 
   // Helper function to check if a platform is connected
@@ -208,7 +206,7 @@ export default function BrandBriefs() {
     if (connectedAccount) {
       try {
         await apiRequest("DELETE", `/api/social-accounts/${connectedAccount.id}`);
-        queryClient.invalidateQueries({ queryKey: [`/api/social-accounts?userId=${DEMO_USER_ID}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/social-accounts`] });
         updatePlatformConfig(platformName, { 
           connected: false, 
           accountId: undefined, 
@@ -227,7 +225,7 @@ export default function BrandBriefs() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs`] });
       setIsDialogOpen(false);
       setSelectedPlatforms([]);
       toast({ title: "Brand brief created successfully!" });
@@ -243,7 +241,7 @@ export default function BrandBriefs() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs?userId=${DEMO_USER_ID}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/brand-briefs`] });
       setEditDialogOpen(false);
       setEditingBrief(null);
       toast({ title: "Brand brief updated successfully!" });
@@ -315,7 +313,6 @@ export default function BrandBriefs() {
     const formData = new FormData(e.currentTarget);
     
     createBriefMutation.mutate({
-      userId: DEMO_USER_ID,
       name: formName || formData.get("name"),
       accountType: formAccountType || formData.get("accountType") || "brand",
       brandVoice: formBrandVoice || formData.get("brandVoice"),

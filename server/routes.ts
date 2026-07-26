@@ -642,10 +642,10 @@ export async function registerRoutes(
   });
 
   // AI Content Generation endpoints
-  app.post("/api/generate-content", async (req, res) => {
+  app.post("/api/generate-content", requireAuth, async (req: any, res) => {
     try {
       const { briefId, contentType = "both", contentFormat = "video", topic, sceneCount, optimizationGoal, carouselMode, extractedStyle, referenceImageUrl, inspirationContext, videoSource } = req.body;
-      
+
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
       }
@@ -654,23 +654,23 @@ export async function registerRoutes(
       if (!brief) {
         return res.status(404).json({ error: "Brand brief not found" });
       }
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
 
-      // Check quota for scripts (only for premium/pro users)
-      const [user] = await db.select().from(users).where(eq(users.id, brief.userId));
-      if (user && (user.tier === "premium" || user.tier === "pro")) {
-        try {
-          await assertQuota(brief.userId, "scripts", 1);
-        } catch (error) {
-          if (error instanceof QuotaExceededError) {
-            return res.status(429).json({ 
-              error: error.message, 
-              quotaExceeded: true,
-              usageType: error.usageType,
-              quota: error.quota 
-            });
-          }
-          throw error;
+      // Check quota for scripts (all tiers - the quota service applies per-tier limits)
+      try {
+        await assertQuota(brief.userId, "scripts", 1);
+      } catch (error) {
+        if (error instanceof QuotaExceededError) {
+          return res.status(429).json({
+            error: error.message,
+            quotaExceeded: true,
+            usageType: error.usageType,
+            quota: error.quota
+          });
         }
+        throw error;
       }
 
       const avoidPatterns = await storage.getAvoidPatternsForBrief(briefId);
@@ -725,10 +725,8 @@ export async function registerRoutes(
         },
       });
 
-      // Increment usage after successful generation
-      if (user && (user.tier === "premium" || user.tier === "pro")) {
-        await incrementUsage(brief.userId, "scripts", 1);
-      }
+      // Increment usage after successful generation (all tiers)
+      await incrementUsage(brief.userId, "scripts", 1);
 
       res.status(201).json({ content, generatedResult: result });
     } catch (error) {
@@ -737,10 +735,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/generate-ideas", async (req, res) => {
+  app.post("/api/generate-ideas", requireAuth, async (req: any, res) => {
     try {
       const { briefId, count = 5 } = req.body;
-      
+
       if (!briefId) {
         return res.status(400).json({ error: "briefId is required" });
       }
@@ -748,6 +746,9 @@ export async function registerRoutes(
       const brief = await storage.getBrandBrief(briefId);
       if (!brief) {
         return res.status(404).json({ error: "Brand brief not found" });
+      }
+      if (brief.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
 
       const ideas = await generateContentIdeas(
@@ -1315,7 +1316,7 @@ Provide analysis in this JSON structure:
       let isStudioTier = false;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro" || user.tier === "studio")) {
+        if (user) {
           usesPlatformKeys = true;
           isStudioTier = user.tier === "studio";
         }
@@ -1385,7 +1386,7 @@ Provide analysis in this JSON structure:
   // User API Keys endpoints
   app.get("/api/user/api-keys", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -1411,7 +1412,7 @@ Provide analysis in this JSON structure:
 
   app.post("/api/user/api-keys", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -1510,7 +1511,7 @@ Provide analysis in this JSON structure:
   // Create checkout session
   app.post("/api/stripe/checkout", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { priceId } = req.body;
 
       if (!priceId) {
@@ -1556,7 +1557,7 @@ Provide analysis in this JSON structure:
   // Create top-up checkout session (one-time payment for extra quota)
   app.post("/api/stripe/topup", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
 
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       if (!user) {
@@ -1616,7 +1617,7 @@ Provide analysis in this JSON structure:
   // Create Creator Studio checkout session (£20/month add-on)
   app.post("/api/stripe/creator-studio", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
 
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       if (!user) {
@@ -1692,7 +1693,7 @@ Provide analysis in this JSON structure:
   // Create customer portal session (manage subscription)
   app.post("/api/stripe/portal", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       
       if (!user?.stripeCustomerId) {
@@ -1923,7 +1924,7 @@ Provide analysis in this JSON structure:
   // Create new blog (admin only)
   app.post("/api/admin/blogs", isAuthenticated, isOwnerMiddleware, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { title, slug, summary, body, heroImageUrl, metaDescription, metaKeywords, authorName, status } = req.body;
 
       if (!title || !slug || !body) {
@@ -2052,7 +2053,7 @@ Provide analysis in this JSON structure:
   // Get current user's usage stats
   app.get("/api/usage/stats", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -2067,7 +2068,7 @@ Provide analysis in this JSON structure:
   // ==================== AI GENERATION ENDPOINTS ====================
 
   // A2E Image Generation
-  app.post("/api/a2e/generate-image", async (req, res) => {
+  app.post("/api/a2e/generate-image", requireAuth, async (req: any, res) => {
     try {
       const { prompt, aspectRatio, style } = req.body;
       if (!prompt) {
@@ -2075,10 +2076,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for images (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -2120,7 +2121,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "dalleImages", 1);
         }
       }
@@ -2175,7 +2176,7 @@ Provide analysis in this JSON structure:
   });
 
   // DALL-E Image Generation
-  app.post("/api/dalle/generate-image", async (req, res) => {
+  app.post("/api/dalle/generate-image", requireAuth, async (req: any, res) => {
     try {
       const { prompt, size, quality, style } = req.body;
       if (!prompt) {
@@ -2183,10 +2184,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for images (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -2228,7 +2229,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "dalleImages", 1);
         }
       }
@@ -2240,7 +2241,7 @@ Provide analysis in this JSON structure:
   });
 
   // GPT-Image Edit API - Modify existing images with AI instructions
-  app.post("/api/dalle/edit-image", async (req, res) => {
+  app.post("/api/dalle/edit-image", requireAuth, async (req: any, res) => {
     try {
       const { imageBase64, prompt, size, quality } = req.body;
       if (!imageBase64 || !prompt) {
@@ -2251,10 +2252,10 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "GPT-Image not configured" });
       }
 
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -2285,7 +2286,7 @@ Provide analysis in this JSON structure:
 
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "dalleImages", 1);
         }
       }
@@ -2297,7 +2298,7 @@ Provide analysis in this JSON structure:
   });
 
   // Carousel Image Generation (with brand assets support)
-  app.post("/api/dalle/generate-carousel-image", async (req, res) => {
+  app.post("/api/dalle/generate-carousel-image", requireAuth, async (req: any, res) => {
     try {
       const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, brandAssetUrl, aspectRatio, extractedStyle, referenceImageUrl } = req.body;
       
@@ -2306,10 +2307,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for images (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -2352,7 +2353,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "dalleImages", 1);
         }
       }
@@ -2365,7 +2366,7 @@ Provide analysis in this JSON structure:
   });
 
   // Enhanced carousel image generation with asset token resolution
-  app.post("/api/dalle/generate-carousel-image-with-assets", async (req, res) => {
+  app.post("/api/dalle/generate-carousel-image-with-assets", requireAuth, async (req: any, res) => {
     try {
       const { slideNumber, totalSlides, textOverlay, brandName, colorScheme, style, aspectRatio, imagePrompt, briefId, extractedStyle, referenceImageUrl } = req.body;
       
@@ -2374,10 +2375,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for images (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -2434,7 +2435,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "dalleImages", 1);
         }
       }
@@ -2467,7 +2468,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/a2e/generate", async (req, res) => {
+  app.post("/api/a2e/generate", requireAuth, async (req: any, res) => {
     try {
       if (!a2eService.isConfigured()) {
         return res.status(400).json({ error: "A2E API not configured" });
@@ -2480,10 +2481,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -2510,7 +2511,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -2521,7 +2522,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/a2e/status/:id", async (req, res) => {
+  app.get("/api/a2e/status/:id", requireAuth, async (req: any, res) => {
     try {
       if (!a2eService.isConfigured()) {
         return res.status(400).json({ error: "A2E API not configured" });
@@ -2547,7 +2548,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/a2e/image-to-video", async (req, res) => {
+  app.post("/api/a2e/image-to-video", requireAuth, async (req: any, res) => {
     try {
       if (!a2eService.isConfigured()) {
         return res.status(400).json({ error: "A2E API not configured" });
@@ -2560,10 +2561,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -2585,7 +2586,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -2597,7 +2598,7 @@ Provide analysis in this JSON structure:
   });
 
   // A2E Scene Video Generation (text-to-image → image-to-video combined)
-  app.post("/api/a2e/generate-scene-video", async (req, res) => {
+  app.post("/api/a2e/generate-scene-video", requireAuth, async (req: any, res) => {
     try {
       if (!a2eService.isConfigured()) {
         return res.status(400).json({ error: "A2E API not configured" });
@@ -2610,10 +2611,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -2653,7 +2654,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -2671,7 +2672,7 @@ Provide analysis in this JSON structure:
   });
 
   // A2E Scene Video Status Check
-  app.get("/api/a2e/scene-video-status/:taskId", async (req, res) => {
+  app.get("/api/a2e/scene-video-status/:taskId", requireAuth, async (req: any, res) => {
     try {
       if (!a2eService.isConfigured()) {
         return res.status(400).json({ error: "A2E API not configured" });
@@ -3071,7 +3072,7 @@ Provide analysis in this JSON structure:
   });
 
   // Pexels Image Search for content generation (returns first matching image)
-  app.post("/api/pexels/search-image", async (req, res) => {
+  app.post("/api/pexels/search-image", requireAuth, async (req: any, res) => {
     try {
       const { prompt } = req.body;
       if (!prompt) {
@@ -3098,7 +3099,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/pexels/search", async (req, res) => {
+  app.get("/api/pexels/search", requireAuth, async (req: any, res) => {
     try {
       const query = req.query.query as string;
       const mediaType = (req.query.type as "photos" | "videos" | "both") || "both";
@@ -3160,7 +3161,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/pexels/curated", async (req, res) => {
+  app.get("/api/pexels/curated", requireAuth, async (req: any, res) => {
     try {
       const perPage = parseInt(req.query.perPage as string) || 12;
       const photos = await pexelsService.getCuratedPhotos(perPage);
@@ -3170,7 +3171,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/pexels/popular-videos", async (req, res) => {
+  app.get("/api/pexels/popular-videos", requireAuth, async (req: any, res) => {
     try {
       const perPage = parseInt(req.query.perPage as string) || 12;
       const videos = await pexelsService.getPopularVideos(perPage);
@@ -3189,7 +3190,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/elevenlabs/voiceover", async (req, res) => {
+  app.post("/api/elevenlabs/voiceover", requireAuth, async (req: any, res) => {
     try {
       const { text, voiceId } = req.body;
       if (!text) {
@@ -3197,10 +3198,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for voiceovers (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "voiceovers", 1);
           } catch (error) {
@@ -3222,7 +3223,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "voiceovers", 1);
         }
       }
@@ -3242,7 +3243,7 @@ Provide analysis in this JSON structure:
     res.json({ voices: OPENAI_VOICES });
   });
 
-  app.post("/api/openai-tts/voiceover", async (req, res) => {
+  app.post("/api/openai-tts/voiceover", requireAuth, async (req: any, res) => {
     try {
       const { text, voice, model, speed } = req.body;
       if (!text) {
@@ -3253,10 +3254,10 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "OpenAI TTS not configured" });
       }
 
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "voiceovers", 1);
           } catch (error) {
@@ -3277,7 +3278,7 @@ Provide analysis in this JSON structure:
 
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "voiceovers", 1);
         }
       }
@@ -3293,7 +3294,7 @@ Provide analysis in this JSON structure:
     res.json({ configured: isSoraConfigured() });
   });
 
-  app.post("/api/sora/generate", async (req, res) => {
+  app.post("/api/sora/generate", requireAuth, async (req: any, res) => {
     try {
       const { prompt, duration: rawDuration, size, model } = req.body;
       if (!prompt) {
@@ -3314,10 +3315,10 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "Sora video generation not configured" });
       }
 
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3338,7 +3339,7 @@ Provide analysis in this JSON structure:
 
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3349,7 +3350,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/sora/status/:videoId", async (req, res) => {
+  app.get("/api/sora/status/:videoId", requireAuth, async (req: any, res) => {
     try {
       const { videoId } = req.params;
       const result = await getSoraVideoStatus(videoId);
@@ -3374,7 +3375,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/sora/image-to-video", async (req, res) => {
+  app.post("/api/sora/image-to-video", requireAuth, async (req: any, res) => {
     try {
       const { prompt, imageUrl, duration: rawDuration, size } = req.body;
       if (!prompt || !imageUrl) {
@@ -3394,10 +3395,10 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "Sora video generation not configured" });
       }
 
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3418,7 +3419,7 @@ Provide analysis in this JSON structure:
 
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3429,7 +3430,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/sora/remix", async (req, res) => {
+  app.post("/api/sora/remix", requireAuth, async (req: any, res) => {
     try {
       const { videoId, prompt } = req.body;
       if (!videoId || !prompt) {
@@ -3440,10 +3441,10 @@ Provide analysis in this JSON structure:
         return res.status(400).json({ error: "Sora video generation not configured" });
       }
 
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3464,7 +3465,7 @@ Provide analysis in this JSON structure:
 
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3475,7 +3476,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/fal/lipsync", async (req, res) => {
+  app.post("/api/fal/lipsync", requireAuth, async (req: any, res) => {
     try {
       const { videoUrl, audioUrl } = req.body;
       if (!videoUrl || !audioUrl) {
@@ -3483,10 +3484,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3508,7 +3509,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3525,7 +3526,7 @@ Provide analysis in this JSON structure:
     { name: 'audio', maxCount: 1 }
   ]);
 
-  app.post("/api/fal/lipsync-upload", lipSyncUpload, async (req, res) => {
+  app.post("/api/fal/lipsync-upload", requireAuth, lipSyncUpload, async (req: any, res) => {
     try {
       const files = req.files as { video?: Express.Multer.File[], audio?: Express.Multer.File[] };
       const { audioUrl } = req.body; // Can pass existing audio URL instead of file
@@ -3539,10 +3540,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3588,7 +3589,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3604,7 +3605,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/fal/status/:requestId", async (req, res) => {
+  app.get("/api/fal/status/:requestId", requireAuth, async (req: any, res) => {
     try {
       const result = await falService.checkStatus(req.params.requestId);
       
@@ -3628,7 +3629,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/fal/generate-video", async (req, res) => {
+  app.post("/api/fal/generate-video", requireAuth, async (req: any, res) => {
     try {
       const { prompt, negativePrompt, aspectRatio, duration, contentId } = req.body;
       if (!prompt) {
@@ -3636,10 +3637,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for videos (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "a2eVideos", 1);
           } catch (error) {
@@ -3661,7 +3662,7 @@ Provide analysis in this JSON structure:
       // Increment usage after successful generation
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           await incrementUsage(userId, "a2eVideos", 1);
         }
       }
@@ -3680,7 +3681,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/fal/video-status/:requestId", async (req, res) => {
+  app.get("/api/fal/video-status/:requestId", requireAuth, async (req: any, res) => {
     try {
       const contentId = req.query.contentId as string | undefined;
       const result = await falService.checkVideoStatus(req.params.requestId);
@@ -3724,7 +3725,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.post("/api/fal/generate-image", async (req, res) => {
+  app.post("/api/fal/generate-image", requireAuth, async (req: any, res) => {
     try {
       const { prompt, negativePrompt, aspectRatio, style } = req.body;
       if (!prompt) {
@@ -3732,10 +3733,10 @@ Provide analysis in this JSON structure:
       }
 
       // Check quota for images (for premium/pro users)
-      const userId = (req.user as any)?.id;
+      const userId = req.userId;
       if (userId) {
         const [user] = await db.select().from(users).where(eq(users.id, userId));
-        if (user && (user.tier === "premium" || user.tier === "pro")) {
+        if (user) {
           try {
             await assertQuota(userId, "dalleImages", 1);
           } catch (error) {
@@ -3778,7 +3779,7 @@ Provide analysis in this JSON structure:
             // Increment usage after successful generation
             if (userId) {
               const [user] = await db.select().from(users).where(eq(users.id, userId));
-              if (user && (user.tier === "premium" || user.tier === "pro")) {
+              if (user) {
                 await incrementUsage(userId, "dalleImages", 1);
               }
             }
@@ -3798,7 +3799,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/fal/image-status/:requestId", async (req, res) => {
+  app.get("/api/fal/image-status/:requestId", requireAuth, async (req: any, res) => {
     try {
       const result = await falService.checkImageStatus(req.params.requestId);
       
@@ -3823,7 +3824,7 @@ Provide analysis in this JSON structure:
   });
 
   // Video merge endpoint - combines clips with optional voiceover using ffmpeg
-  app.post("/api/video/merge", async (req, res) => {
+  app.post("/api/video/merge", requireAuth, async (req: any, res) => {
     try {
       const { contentId, clipUrls, voiceoverUrl } = req.body;
       if (!contentId || !clipUrls || clipUrls.length === 0) {
@@ -3992,7 +3993,7 @@ Provide analysis in this JSON structure:
   });
 
   // Prompt Feedback endpoints
-  app.post("/api/prompt-feedback", async (req, res) => {
+  app.post("/api/prompt-feedback", requireAuth, async (req: any, res) => {
     try {
       const { briefId, contentId, feedbackType, originalPrompt, negativePrompt, rejectionReason, avoidPatterns } = req.body;
       if (!rejectionReason || !feedbackType) {
@@ -4013,7 +4014,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/prompt-feedback/avoid-patterns", async (req, res) => {
+  app.get("/api/prompt-feedback/avoid-patterns", requireAuth, async (req: any, res) => {
     try {
       const briefId = req.query.briefId as string | null;
       const patterns = await storage.getAvoidPatternsForBrief(briefId || null);
@@ -4024,7 +4025,7 @@ Provide analysis in this JSON structure:
   });
 
   // User endpoints (for demo purposes - create a default user)
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", requireAuth, async (req: any, res) => {
     try {
       const user = await storage.createUser(req.body);
       res.status(201).json(user);
@@ -4280,8 +4281,15 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.delete("/api/social-accounts/:id", async (req, res) => {
+  app.delete("/api/social-accounts/:id", requireAuth, async (req: any, res) => {
     try {
+      const existing = await storage.getSocialAccount(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Social account not found" });
+      }
+      if (existing.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       await storage.deleteSocialAccount(req.params.id);
       res.status(204).send();
     } catch (error) {
@@ -4298,7 +4306,7 @@ Provide analysis in this JSON structure:
   });
 
   // Revoke YouTube tokens and reconnect (to get new scopes)
-  app.post("/api/youtube/revoke-and-reconnect/:accountId", async (req: any, res) => {
+  app.post("/api/youtube/revoke-and-reconnect/:accountId", requireAuth, async (req: any, res) => {
     try {
       const userId = getUserId(req);
       if (!userId) {
@@ -4493,7 +4501,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/channel", async (req, res) => {
+  app.get("/api/youtube/channel", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       let accessToken = req.cookies?.youtube_access_token;
@@ -4501,6 +4509,9 @@ Provide analysis in this JSON structure:
       // If accountId provided, use that account's token instead of cookie
       if (accountId) {
         const account = await storage.getSocialAccount(accountId);
+        if (account && account.userId !== req.userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
         if (account && account.accessToken) {
           // Check if token needs refresh
           if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
@@ -4528,7 +4539,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics", async (req, res) => {
+  app.get("/api/youtube/analytics", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       let accessToken = req.cookies?.youtube_access_token;
@@ -4537,6 +4548,9 @@ Provide analysis in this JSON structure:
       // If accountId provided, use that account's token and channel instead of cookie
       if (accountId) {
         const account = await storage.getSocialAccount(accountId);
+        if (account && account.userId !== req.userId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
         if (account) {
           console.log(`[YouTube Analytics] Account ${accountId}: hasAccessToken=${!!account.accessToken}, hasRefreshToken=${!!account.refreshToken}, channelId=${account.platformAccountId}, tokenExpiry=${account.tokenExpiry}`);
           
@@ -4594,9 +4608,13 @@ Provide analysis in this JSON structure:
   async function getYouTubeCredentials(req: any, accountId?: string) {
     let accessToken = req.cookies?.youtube_access_token;
     let channelId = req.cookies?.youtube_channel_id;
-    
+
     if (accountId) {
       const account = await storage.getSocialAccount(accountId);
+      // Treat another user's account as not connected
+      if (account && req.userId && account.userId !== req.userId) {
+        return { accessToken: null, channelId: null };
+      }
       if (account && account.accessToken) {
         // Check if token needs refresh
         if (account.tokenExpiry && new Date(account.tokenExpiry) < new Date()) {
@@ -4619,7 +4637,7 @@ Provide analysis in this JSON structure:
   }
 
   // Advanced YouTube Analytics endpoints
-  app.get("/api/youtube/analytics/traffic-sources", async (req, res) => {
+  app.get("/api/youtube/analytics/traffic-sources", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4634,7 +4652,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics/devices", async (req, res) => {
+  app.get("/api/youtube/analytics/devices", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4649,7 +4667,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics/geography", async (req, res) => {
+  app.get("/api/youtube/analytics/geography", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4664,7 +4682,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics/retention", async (req, res) => {
+  app.get("/api/youtube/analytics/retention", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4679,7 +4697,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics/peak-times", async (req, res) => {
+  app.get("/api/youtube/analytics/peak-times", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4694,7 +4712,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/analytics/top-videos", async (req, res) => {
+  app.get("/api/youtube/analytics/top-videos", requireAuth, async (req: any, res) => {
     try {
       const accountId = req.query.accountId as string;
       const { accessToken, channelId } = await getYouTubeCredentials(req, accountId);
@@ -4709,7 +4727,7 @@ Provide analysis in this JSON structure:
     }
   });
 
-  app.get("/api/youtube/videos", async (req, res) => {
+  app.get("/api/youtube/videos", requireAuth, async (req: any, res) => {
     try {
       const accessToken = req.cookies?.youtube_access_token;
       if (!accessToken) {
@@ -5426,7 +5444,7 @@ Provide analysis in this JSON structure:
   app.post("/api/social/post", requireAuth, async (req: any, res) => {
     try {
       const userId = req.userId;
-      const { accountId, text, imageUrl, videoUrl, scheduleTime } = req.body;
+      const { accountId, text, imageUrl, videoUrl, scheduleTime, title, description } = req.body;
 
       if (!accountId) {
         return res.status(400).json({ error: "Account ID is required" });
@@ -5615,7 +5633,7 @@ Provide analysis in this JSON structure:
     },
   });
 
-  app.post("/api/analytics/upload", analyticsUpload.single("screenshot"), async (req, res) => {
+  app.post("/api/analytics/upload", requireAuth, analyticsUpload.single("screenshot"), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No screenshot file provided" });
@@ -5629,7 +5647,7 @@ Provide analysis in this JSON structure:
 
       // Store the snapshot in the database
       const snapshot = await storage.createAnalyticsSnapshot({
-        userId: req.body.userId || null,
+        userId: req.userId,
         accountId: req.body.accountId || null,
         platform: extracted.platform,
         sourceType: "upload",
@@ -5663,9 +5681,9 @@ Provide analysis in this JSON structure:
   });
 
   // Get all analytics snapshots
-  app.get("/api/analytics/snapshots", async (req, res) => {
+  app.get("/api/analytics/snapshots", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const snapshots = await storage.getAnalyticsSnapshots(userId);
       res.json(snapshots);
     } catch (error: any) {
@@ -5675,9 +5693,9 @@ Provide analysis in this JSON structure:
   });
 
   // Get top performing patterns (for AI learning)
-  app.get("/api/analytics/top-patterns", async (req, res) => {
+  app.get("/api/analytics/top-patterns", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string | undefined;
+      const userId = req.userId;
       const patterns = await storage.getTopPerformingPatterns(userId);
       res.json(patterns);
     } catch (error: any) {
@@ -6688,14 +6706,11 @@ Provide analysis in this JSON structure:
 
   // ==================== SCHEDULED POSTS ====================
 
-  // Get scheduled posts for a user (with optional date range)
-  app.get("/api/scheduled-posts", async (req, res) => {
+  // Get scheduled posts for the authenticated user (with optional date range)
+  app.get("/api/scheduled-posts", requireAuth, async (req: any, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
-      
+      const userId = req.userId;
+
       let startDate: Date | undefined;
       let endDate: Date | undefined;
       
@@ -6715,12 +6730,13 @@ Provide analysis in this JSON structure:
   });
 
   // Create a scheduled post (manual planning or YouTube auto-schedule)
-  app.post("/api/scheduled-posts", async (req, res) => {
+  app.post("/api/scheduled-posts", requireAuth, async (req: any, res) => {
     try {
-      const { userId, platform, scheduledFor, ...rest } = req.body;
-      
-      if (!userId || !platform || !scheduledFor) {
-        return res.status(400).json({ error: "userId, platform, and scheduledFor are required" });
+      const { userId: _ignoredUserId, platform, scheduledFor, ...rest } = req.body;
+      const userId = req.userId;
+
+      if (!platform || !scheduledFor) {
+        return res.status(400).json({ error: "platform and scheduledFor are required" });
       }
 
       const post = await storage.createScheduledPost({
@@ -6738,11 +6754,14 @@ Provide analysis in this JSON structure:
   });
 
   // Get a single scheduled post
-  app.get("/api/scheduled-posts/:id", async (req, res) => {
+  app.get("/api/scheduled-posts/:id", requireAuth, async (req: any, res) => {
     try {
       const post = await storage.getScheduledPost(req.params.id);
       if (!post) {
         return res.status(404).json({ error: "Scheduled post not found" });
+      }
+      if (post.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
       res.json(post);
     } catch (error: any) {
@@ -6752,15 +6771,23 @@ Provide analysis in this JSON structure:
   });
 
   // Update a scheduled post
-  app.patch("/api/scheduled-posts/:id", async (req, res) => {
+  app.patch("/api/scheduled-posts/:id", requireAuth, async (req: any, res) => {
     try {
-      const { scheduledFor, ...rest } = req.body;
+      const existing = await storage.getScheduledPost(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Scheduled post not found" });
+      }
+      if (existing.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const { scheduledFor, userId: _ignoredUserId, ...rest } = req.body;
       const updateData: any = { ...rest };
-      
+
       if (scheduledFor) {
         updateData.scheduledFor = new Date(scheduledFor);
       }
-      
+
       const post = await storage.updateScheduledPost(req.params.id, updateData);
       if (!post) {
         return res.status(404).json({ error: "Scheduled post not found" });
@@ -6773,8 +6800,15 @@ Provide analysis in this JSON structure:
   });
 
   // Delete a scheduled post
-  app.delete("/api/scheduled-posts/:id", async (req, res) => {
+  app.delete("/api/scheduled-posts/:id", requireAuth, async (req: any, res) => {
     try {
+      const existing = await storage.getScheduledPost(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ error: "Scheduled post not found" });
+      }
+      if (existing.userId !== req.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       await storage.deleteScheduledPost(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
@@ -6787,7 +6821,7 @@ Provide analysis in this JSON structure:
 
   // Middleware to check Creator Studio access (owners always have access)
   const requireCreatorStudio = async (req: any, res: any, next: any) => {
-    const userId = (req.user as any)?.id;
+    const userId = req.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     
     const [user] = await db.select().from(users).where(eq(users.id, userId));
@@ -6808,7 +6842,7 @@ Provide analysis in this JSON structure:
   // Get Creator Studio status and usage
   app.get("/api/creator-studio/status", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const stats = await getUsageStats(userId);
       
       // Check if user is owner - owners always have access
@@ -6882,7 +6916,7 @@ Provide analysis in this JSON structure:
   // Voice Cloning
   app.post("/api/creator-studio/voice-clone", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { audioUrl, voiceName } = req.body;
 
       if (!audioUrl || !voiceName) {
@@ -6918,7 +6952,7 @@ Provide analysis in this JSON structure:
   // Talking Photo
   app.post("/api/creator-studio/talking-photo", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { imageUrl, text, voiceId } = req.body;
 
       if (!imageUrl || !text) {
@@ -6943,7 +6977,7 @@ Provide analysis in this JSON structure:
   // Talking Video
   app.post("/api/creator-studio/talking-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { videoUrl, text, voiceId } = req.body;
 
       if (!videoUrl || !text) {
@@ -6968,7 +7002,7 @@ Provide analysis in this JSON structure:
   // Face Swap
   app.post("/api/creator-studio/face-swap", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { sourceImageUrl, targetVideoUrl } = req.body;
 
       if (!sourceImageUrl || !targetVideoUrl) {
@@ -6993,7 +7027,7 @@ Provide analysis in this JSON structure:
   // AI Dubbing
   app.post("/api/creator-studio/dubbing", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { videoUrl, targetLanguage } = req.body;
 
       if (!videoUrl || !targetLanguage) {
@@ -7018,7 +7052,7 @@ Provide analysis in this JSON structure:
   // Image to Video
   app.post("/api/creator-studio/image-to-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { imageUrl, text } = req.body;
 
       if (!imageUrl) {
@@ -7043,7 +7077,7 @@ Provide analysis in this JSON structure:
   // Caption Removal
   app.post("/api/creator-studio/caption-removal", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { videoUrl } = req.body;
 
       if (!videoUrl) {
@@ -7068,7 +7102,7 @@ Provide analysis in this JSON structure:
   // Video to Video (Style Transfer)
   app.post("/api/creator-studio/video-to-video", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { videoUrl, prompt } = req.body;
 
       if (!videoUrl || !prompt) {
@@ -7093,7 +7127,7 @@ Provide analysis in this JSON structure:
   // Virtual Try-On
   app.post("/api/creator-studio/virtual-tryon", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { personImageUrl, clothingImageUrl } = req.body;
 
       if (!personImageUrl || !clothingImageUrl) {
@@ -7118,7 +7152,7 @@ Provide analysis in this JSON structure:
   // Image Reformat (portrait to landscape or vice versa using DALL-E)
   app.post("/api/creator-studio/image-reformat", isAuthenticated, requireCreatorStudio, async (req, res) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = (req as any).user?.claims?.sub || (req as any).user?.id;
       const { imageUrl, targetAspectRatio } = req.body;
 
       if (!imageUrl || !targetAspectRatio) {
@@ -7174,7 +7208,7 @@ Provide analysis in this JSON structure:
   });
 
   // YouTube metadata fetch endpoint - with full transcript support
-  app.post("/api/youtube/fetch-metadata", async (req, res) => {
+  app.post("/api/youtube/fetch-metadata", requireAuth, async (req: any, res) => {
     try {
       const { url } = req.body;
       if (!url) {
@@ -8569,7 +8603,7 @@ Focus on virality, relatability, and calls to action.`
   });
 
   // Help chatbot endpoint
-  app.post("/api/help-chat", async (req, res) => {
+  app.post("/api/help-chat", requireAuth, async (req: any, res) => {
     try {
       const { message, history = [] } = req.body;
       
@@ -9545,7 +9579,7 @@ Requirements:
 
   app.post("/api/motion-control/generate", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.userId!;
+      const userId = ((req as any).user?.claims?.sub || (req as any).user?.id) as string;
       const { characterImageUrl, motionVideoUrl, model } = req.body;
 
       if (!characterImageUrl || !motionVideoUrl || !model) {
@@ -9607,7 +9641,7 @@ Requirements:
 
   app.get("/api/motion-control/jobs", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.userId!;
+      const userId = ((req as any).user?.claims?.sub || (req as any).user?.id) as string;
       
       const jobs = await db.select()
         .from(motionJobs)
@@ -9623,7 +9657,7 @@ Requirements:
 
   app.get("/api/motion-control/jobs/:id", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.userId!;
+      const userId = ((req as any).user?.claims?.sub || (req as any).user?.id) as string;
       const jobId = req.params.id;
 
       const [job] = await db.select()
