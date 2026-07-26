@@ -130,6 +130,9 @@ app.use((req, res, next) => {
   const { seedModelCatalog } = await import("./engines/registry");
   await seedModelCatalog();
 
+  const { seedPromptPresets } = await import("./presets");
+  await seedPromptPresets();
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -154,6 +154,24 @@ export const aiModels = pgTable("ai_models", {
 
 export type AiModel = typeof aiModels.$inferSelect;
 
+// Prompt presets - Ava's 13 "wrapper tools" become presets over the engine
+// gateway instead of separate fake tools. Fabricated-metric prompts are
+// stripped or relabeled at seed time (no invented search volumes or
+// engagement numbers presented as data).
+export const promptPresets = pgTable("prompt_presets", {
+  id: varchar("id").primaryKey(), // kebab-case key, e.g. "hook-library"
+  name: text("name").notNull(),
+  category: text("category"), // "strategy" | "analysis" | "creation" | ...
+  modality: text("modality").notNull().default("text"),
+  template: text("template").notNull(), // {{placeholder}} tokens
+  responseFormat: text("response_format"),
+  notes: text("notes"),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type PromptPreset = typeof promptPresets.$inferSelect;
+
 export const insertUserApiKeysSchema = createInsertSchema(userApiKeys).omit({
   id: true,
   createdAt: true,

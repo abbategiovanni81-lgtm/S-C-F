@@ -1546,6 +1546,44 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // ==================== PROMPT PRESETS ====================
+
+  // List presets with the input fields each one expects
+  app.get("/api/presets", requireAuth, async (_req: any, res) => {
+    try {
+      const { promptPresets: presetsTable } = await import("@shared/schema");
+      const { templatePlaceholders } = await import("./presets");
+      const rows = await db.select().from(presetsTable);
+      res.json({
+        presets: rows
+          .filter((p) => p.enabled)
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            modality: p.modality,
+            responseFormat: p.responseFormat,
+            notes: p.notes,
+            inputs: templatePlaceholders(p.template),
+          })),
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to list presets" });
+    }
+  });
+
+  // Run a preset through the engine gateway (user's own key)
+  app.post("/api/presets/:id/run", requireAuth, async (req: any, res) => {
+    try {
+      const { runPreset } = await import("./presets");
+      const { inputs, modelId } = req.body || {};
+      const result = await runPreset(req.userId, req.params.id, inputs || {}, modelId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(error.status || 500).json({ error: error.message || "Preset run failed", missing: error.missing });
+    }
+  });
+
   // ==================== STRIPE ENDPOINTS ====================
   
   // Get Stripe publishable key

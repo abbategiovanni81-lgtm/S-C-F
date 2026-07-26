@@ -1,0 +1,232 @@
+[
+  {
+    "id": "content-analyzer",
+    "name": "Content Analyzer (viral score + hook feedback)",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nAnalyze the viral potential of this social media script: {{script}}.\n\nCOMPETITOR CONTEXT:\n{{competitorContext}}\n\nProvide:\n1. viralityProbability: A number between 0 and 1 representing the chance of going viral.\n2. engagementScore: A number between 1 and 10 for predicted engagement.\n3. watchTimeScore: A number between 1 and 10 for predicted watch time/retention.\n4. feedback: A detailed string with constructive criticism.\n5. suggestions: An array of strings with specific actionable improvements.\n\nReturn as JSON.",
+    "responseFormat": "JSON object: { viralityProbability: number(0-1), engagementScore: number(1-10), watchTimeScore: number(1-10), feedback: string, suggestions: string[] } (all required, enforced via responseSchema)",
+    "notes": "AI-estimate labeling enforced in template. FABRICATED METRICS: asks the model to invent viralityProbability, engagementScore and watchTimeScore with no data basis - label as 'AI estimate' or strip in the port. {{script}} is JSON.stringify of the script object. {{competitorContext}} is built from a prior analyzeCompetitor call as: 'Competitor Strategy ({{competitorUrl}}): {{strategy}}. Themes: {{themes}}. Frequency: {{postingFrequency}}.' - empty string if that call fails. The Content Analyzer UI also fabricates a fake YouTube transcript client-side when only a URL is given (App.tsx:13429).",
+    "enabled": true
+  },
+  {
+    "id": "content-compare",
+    "name": "Content Compare (A/B scoring)",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nCompare these two content pieces side-by-side:\n\nCOMPETITOR CONTEXT:\n{{competitorContext}}\n\nProvide:\n1. scoreA: A/B Score for Content A (1-10)\n2. scoreB: A/B Score for Content B (1-10)\n3. engagementA: Predicted Engagement for Content A\n4. engagementB: Predicted Engagement for Content B\n5. hookComparison: Detailed comparison of the hooks/visual impact\n6. visualComparison: Detailed comparison of the visual quality/composition\n7. topicsA: Array of topics in Content A\n8. topicsB: Array of topics in Content B\n9. keywordsA: Array of keywords for Content A\n10. keywordsB: Array of keywords for Content B\n11. styleA: Style of Content A\n12. styleB: Style of Content B\n13. recommendation: Recommendation on which one to post, specifically considering which one beats the competitor's strategy.\n\nReturn as JSON.",
+    "responseFormat": "JSON object: { scoreA: number, scoreB: number, engagementA: string, engagementB: string, hookComparison: string, visualComparison: string, topicsA: string[], topicsB: string[], keywordsA: string[], keywordsB: string[], styleA: string, styleB: string, recommendation: string } (all required)",
+    "notes": "AI-estimate labeling enforced in template. FABRICATED METRICS: invented 1-10 A/B scores and 'predicted engagement' strings. Multimodal: content A/B are sent as preceding parts - either inline PNG images (data URLs) or text parts formatted as 'Content A: \"{{contentA}}\"' / 'Content B: \"{{contentB}}\"', followed by this prompt. {{competitorContext}} same construction as content-analyzer.",
+    "enabled": true
+  },
+  {
+    "id": "hook-library",
+    "name": "Hook Library generator",
+    "category": null,
+    "modality": "text",
+    "template": "Generate 5 high-converting, scroll-stopping hooks for the topic: \"{{topic}}\". \nHook type: {{hookType}}. \n\nRequirements:\n- Must be specific to the niche.\n- Must use psychological triggers (curiosity, fear of missing out, social proof, etc.).\n- Must be under 15 words.\n\nReturn as a JSON object with a \"hooks\" array of strings.",
+    "responseFormat": "JSON object: { hooks: string[] } (5 hooks)",
+    "notes": "AI prompt itself is clean (no invented numbers). BUT the static hook library rendered next to it (App.tsx:8089+) carries hardcoded fake 'performance' percentages like '98%' - those are UI props, not AI output; strip or relabel in the port. {{hookType}} comes from a category selector (Emotional, Curiosity, Controversial, Educational, FOMO, Direct).",
+    "enabled": true
+  },
+  {
+    "id": "keywords-research",
+    "name": "Keywords/hashtag research",
+    "category": null,
+    "modality": "text",
+    "template": "Generate a list of 10 highly relevant, high-performing SEO keywords for the topic: \"{{query}}\". \nFor each keyword, provide:\n1. term: The keyword itself.\n2. volume: Estimated monthly search volume (e.g., \"15K\").\n3. difficulty: \"Low\", \"Medium\", or \"High\" based on competition.\n\nFocus on actual usable keywords that drive traffic in this niche.\nReturn as a JSON object with a \"keywords\" array.",
+    "responseFormat": "JSON object: { keywords: [{ term: string, volume: string, difficulty: \"Low\"|\"Medium\"|\"High\" }] }",
+    "notes": "DISABLED: invents search volumes/difficulty. Re-enable only with a real keyword data source. | FABRICATED METRICS (worst offender): explicitly asks the model to INVENT monthly search volumes ('15K') and difficulty ratings with no data source. The seed table in the UI is also hardcoded fake volumes. In the port either strip volume/difficulty or back them with a real keyword API and label AI guesses clearly.",
+    "enabled": false
+  },
+  {
+    "id": "competitor-analysis",
+    "name": "Competitor analysis",
+    "category": null,
+    "modality": "text",
+    "template": "Perform a deep-dive competitor analysis for this {{platform}} profile: {{url}}.\n{{optionalBrandComparison}}\n\nCRITICAL: Use Google Search and URL context to find REAL data about this competitor. \nAnalyze:\n1. Content Performance: What are their most successful posts? (themes, formats, hooks)\n2. Posting Frequency: How often do they post? (daily, weekly, etc.)\n3. Engagement Tactics: How do they interact with their audience? (CTAs, replies, community building)\n4. Audience Sentiment: What is the general mood of the comments? (positive, critical, excited)\n5. Weaknesses & Opportunities: Where are they failing, and how can we win?\n6. Strategic Recommendations: Provide 3 actionable steps for the user to outperform this competitor.\n\nReturn as a JSON object with:\n- engagementRate: string (e.g. \"4.2%\")\n- postingFrequency: string (e.g. \"3x/week\")\n- sentiment: \"Positive\" | \"Neutral\" | \"Negative\"\n- mentions: string (e.g. \"1.2K\")\n- strategy: string (detailed summary of their content strategy)\n- engagementTactics: string (detailed summary of how they engage)\n- topHooks: string[] (top 3 performing hooks)\n- opportunities: string[] (top 3 opportunities for us)\n- recommendations: string[] (3 specific strategic recommendations)\n- benchmark: string (how they compare to us)",
+    "responseFormat": "JSON object with engagementRate, postingFrequency, sentiment, mentions, strategy, engagementTactics, topHooks[], opportunities[], recommendations[], benchmark (all required). Runs on gemini-3.1-pro with urlContext + googleSearch tools.",
+    "notes": "DISABLED: schema forces invented engagementRate/mentions. Re-enable with real scraping (Apify). | FABRICATED METRICS: despite the 'REAL data' instruction, the required schema forces the model to output an engagementRate % and mention counts it cannot actually measure from search results - it will fabricate '4.2%'-style numbers. {{optionalBrandComparison}} = 'Compare it against the user's brand: {{brandJson}}' when brand info is present, else empty. This function is also called silently as a context-builder by ~8 other tools with a hardcoded default competitorUrl 'https://example.com/competitor-1' - a placeholder domain, so its output is pure hallucination in the default path.",
+    "enabled": false
+  },
+  {
+    "id": "viral-checker",
+    "name": "Viral Checker",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nAnalyze the viral potential of this social media script: {{scriptJson}}.\n\nCOMPETITOR CONTEXT:\n{{competitorContext}}\n\nProvide:\n1. viralityProbability: A number between 0 and 1 representing the chance of going viral.\n2. engagementScore: A number between 1 and 10 for predicted engagement.\n3. watchTimeScore: A number between 1 and 10 for predicted watch time/retention.\n4. feedback: A detailed string with constructive criticism.\n5. suggestions: An array of strings with specific actionable improvements.\n\nReturn as JSON.",
+    "responseFormat": "JSON object: { viralityProbability: number(0-1), engagementScore: number(1-10), watchTimeScore: number(1-10), feedback: string, suggestions: string[] }",
+    "notes": "AI-estimate labeling enforced in template. Same underlying prompt/function as content-analyzer - the Viral Checker tool passes {{scriptJson}} = JSON.stringify({ script: userHook, type: 'Reel'|'Carousel'|'Static Post' }). FABRICATED METRICS: all three numeric scores are invented. In the port these two tools can share one preset.",
+    "enabled": true
+  },
+  {
+    "id": "trend-forecaster",
+    "name": "Trend Forecaster",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nPerform a deep-dive trend forecasting analysis for the niche: \"{{niche}}\".\nScan recent news, social media discussions, and emerging topics to identify what's about to go viral.\n\nFor each identified trend, provide:\n1. topic: The name of the trend.\n2. description: Why it's trending and what it's about.\n3. viralityScore: A number between 1 and 100 representing its predicted viral potential.\n4. contentIdeas: An array of 3 specific content ideas (title and description) that leverage this trend.\n5. platform: The primary platform where this trend is emerging (e.g., TikTok, Instagram, Twitter).\n\nReturn as a JSON array of objects.",
+    "responseFormat": "JSON array: [{ topic: string, description: string, viralityScore: number(1-100), platform: string, contentIdeas: [{ title, description }] }]",
+    "notes": "AI-estimate labeling enforced in template. FABRICATED METRICS: viralityScore 1-100 is invented. Runs with googleSearch tool enabled (via generateText), so topics may be grounded but the scores are not.",
+    "enabled": true
+  },
+  {
+    "id": "blog-studio",
+    "name": "Blog Studio (long-form SEO article)",
+    "category": null,
+    "modality": "text",
+    "template": "Turn the following {{sourceType}} content into a high-quality, SEO-optimized blog post:\nSource: {{source}}\n\nRequirements:\n- Catchy headline\n- Engaging introduction\n- Clear subheadings (H2, H3)\n- Value-packed body with bullet points\n- Strong call to action\n- SEO keywords included naturally\n\n{{urlNote}}\n\nReturn as a Markdown formatted string.",
+    "responseFormat": "Free-form Markdown string (no JSON schema).",
+    "notes": "Clean - no invented numbers. {{urlNote}} = 'Note: This is a URL. Please fetch and summarize the key points from the page before writing the blog post.' only when {{source}} starts with http (generateText auto-enables urlContext + googleSearch for URLs), else empty. {{sourceType}} is e.g. 'text'/'url'/'social post'.",
+    "enabled": true
+  },
+  {
+    "id": "ai-brand-agent",
+    "name": "AI Brand Agent (niche intelligence / brand persona reasoning)",
+    "category": null,
+    "modality": "text",
+    "template": "Perform a deep niche intelligence scan for \"{{brandName}}\". \nBrand Details: \"{{brandDetails}}\".\n\nProvide:\n1. niche: Key insights about the industry and competitors.\n2. audience: Detailed mapping of target segments and their psychological triggers.\n3. strategy: A high-level content strategy based on these insights.\n4. loop: Suggestions for continuous learning and optimization.\n\nReturn as a JSON object.",
+    "responseFormat": "JSON object: { niche: string, audience: string, strategy: string, loop: string } (all required)",
+    "notes": "Clean - qualitative output only. The 'Always-On Engine Active' badge in the UI is decorative; there is no background engine, just this one call.",
+    "enabled": true
+  },
+  {
+    "id": "brand-strategist",
+    "name": "Brand Strategist (positioning strategy)",
+    "category": null,
+    "modality": "text",
+    "template": "Perform a comprehensive brand strategy analysis for \"{{brandName}}\". \nBrand Details: \"{{brandDetails}}\".\n\nProvide:\n1. audit: A reality report of their current market position.\n2. competitive: A unique angle to beat competitors.\n3. voice: A guide for their brand voice and tone.\n4. visual: Aesthetic specifications (colors, mood).\n5. message: A core messaging framework.\n\nReturn as a JSON object.",
+    "responseFormat": "JSON object: { audit: string, competitive: string, voice: string, visual: string, message: string } (all required)",
+    "notes": "Clean - qualitative. 'audit' of market position is reasoned from brand details only (no live data), so present it as opinion, not research.",
+    "enabled": true
+  },
+  {
+    "id": "pillar-architect",
+    "name": "Pillar Architect (content pillars)",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nBased on the brand \"{{brandName}}\" and its details: \"{{brandDetails}}\", architect a set of 5 content pillars. \nFor each pillar, provide:\n1. name: A catchy name for the pillar.\n2. weight: Suggested percentage of total content (e.g., \"40%\").\n3. goal: The primary objective of this pillar.\n4. psychology: The psychological trigger behind why this works.\n5. ideas: A list of 10 specific content ideas for this pillar.\n\nReturn as a JSON array of 5 objects.",
+    "responseFormat": "JSON array of 5: [{ name: string, weight: string (percentage), goal: string, psychology: string, ideas: string[10] }]",
+    "notes": "AI-estimate labeling enforced in template. Mostly clean - 'weight' percentage is an AI-suggested allocation, not a measured metric; acceptable but label as a recommendation.",
+    "enabled": true
+  },
+  {
+    "id": "thumbnail-generator",
+    "name": "Thumbnail Generator (image prompt construction)",
+    "category": null,
+    "modality": "image",
+    "template": "Generate a high-CTR YouTube/Reel thumbnail for the topic: \"{{topic}}\". \nStyle: {{style}}. \nRequirements: High contrast, vibrant colors, clear text overlays, and emotional impact. \nThe thumbnail should be optimized for clicks and engagement.",
+    "responseFormat": "Image (inlineData PNG, 16:9 aspect via imageConfig on gemini-2.5-flash-image). Fallback text-to-image prompt: 'A high-CTR {{style}} thumbnail for {{topic}}'.",
+    "notes": "Clean. Optional second text part when a brand asset image is attached: 'Incorporate this brand asset/logo into the design naturally but clearly.' (brand asset sent as inlineData part between the two texts).",
+    "enabled": true
+  },
+  {
+    "id": "ugc-script",
+    "name": "UGC Studio script generation",
+    "category": null,
+    "modality": "text",
+    "template": "Generate a multi-scene UGC (User Generated Content) script for a \"{{ugcType}}\" video about {{productDetails}}. \nBrand voice: {{brandVoice}}. \nBreak it down into 3-5 scenes. For each scene, provide:\n1. visual: A detailed description of what should be happening in the scene (e.g., \"A person unboxing a sleek black box on a wooden table\").\n2. audio: The spoken script for this scene.\n\nReturn as a JSON object with a \"scenes\" array.",
+    "responseFormat": "JSON object: { scenes: [{ visual: string, audio: string }] } (3-5 scenes)",
+    "notes": "Clean. Each scene's 'visual' string is then passed verbatim to generateUgcVideo -> generateVideo (Veo/fal) as the video prompt.",
+    "enabled": true
+  },
+  {
+    "id": "series-creator",
+    "name": "Series Creator (planVideoSeries)",
+    "category": null,
+    "modality": "text",
+    "template": "Plan a 5-episode video series about \"{{topic}}\" in a \"{{style}}\" style. \nBrand voice: {{brandVoice}}. \nFor each episode, provide a title, a hook, a short script summary, and a thumbnail description.\nReturn as a JSON array of 5 objects.",
+    "responseFormat": "JSON array of 5: [{ title: string, hook: string, script: string, thumbnailPrompt: string, duration: string }] (all required - note the schema requires 'duration' even though the prose prompt never asks for it)",
+    "notes": "Clean. Schema/prompt mismatch: 'duration' is required by responseSchema but not mentioned in the prompt text - keep it in the schema when porting or the parse contract changes.",
+    "enabled": true
+  },
+  {
+    "id": "carousel-generator",
+    "name": "Carousel generator",
+    "category": null,
+    "modality": "text",
+    "template": "Create a high-converting carousel for this topic: \"{{topic}}\". \nBrand voice: {{brandVoice}}. \nGenerate {{slidesCount}} slides. \n{{styleReferenceNote}}\nEach slide should have:\n- title: Catchy headline for the slide\n- body: Engaging text content\n- imagePrompt: A detailed prompt to generate a visual for this slide.\nReturn as JSON array of objects.",
+    "responseFormat": "JSON array: [{ title: string, body: string, imagePrompt: string }] x {{slidesCount}}. Slide images then generated 1:1 via 'Generate an image based on this prompt: \"{{imagePrompt}}\". Match the style, colors, and aesthetic of the provided reference image.' when a style reference image is attached.",
+    "notes": "Clean. {{styleReferenceNote}} = 'Style Reference: Use the aesthetic and vibe of the provided image as a guide for the visual prompts.' only when a reference image is attached (sent as inlineData part), else empty.",
+    "enabled": true
+  },
+  {
+    "id": "ava-chat-system",
+    "name": "Ava assistant chat system prompt",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nYou are Ava, an expert AI social media agent. You guide users through creating, analyzing, and scheduling content. Be helpful, concise, and professional. You can help with brand briefs, content ideas, and platform strategy. \n\nCRITICAL CONTEXT:\nAlways consider the following competitor insights when providing advice, generating ideas, or reviewing content:\n{{competitorInsights}}\n\nUse these insights to help the user differentiate their brand and capitalize on what's working in their niche.\n\nIf a user wants to create a specific post, image, or video, mention the 'Single Content Workflow' to trigger the guided flow. Use Google Search to provide up-to-date information on trends and news.",
+    "responseFormat": "Free-form chat text (googleSearch tool enabled; multi-turn via ai.chats.create).",
+    "notes": "AI-estimate labeling enforced in template. FABRICATED METRICS by injection: {{competitorInsights}} is a block built from analyzeCompetitor output - 'COMPETITOR INSIGHTS ({{competitorUrl}}): - Posting Frequency: ... - Top Content Themes: ... - Overall Strategy: ... - Engagement Rate: {{engagementRate}} - Average Stats: Likes: {{avgLikes}}, Shares: {{avgShares}}, Comments: {{avgComments}}' - those engagement/likes numbers are hallucinated upstream (and avgLikes/avgShares/avgComments are not even fields analyzeCompetitor returns, so they render as 'undefined'). Strip this block or feed it real data in the port.",
+    "enabled": true
+  },
+  {
+    "id": "product-content-creator",
+    "name": "Product content creator (writes the digital product)",
+    "category": null,
+    "modality": "text",
+    "template": "You are an expert content creator. Based on the following product strategy, generate the ACTUAL content for the digital product.\n\nProduct Name: {{productName}}\nProduct Type: {{productType}}\nTarget Audience: {{productAudience}}\nOutline: {{productOutline}}\n\nIf it's an E-book or Guide, write the full text (at least 1000 words, structured with chapters).\nIf it's a Course, write the detailed modules and lesson scripts.\nIf it's a Template or Checklist, provide the full structured data/text for it.\n\nThe output should be high-quality, ready-to-use content.\nReturn the content as a Markdown string.",
+    "responseFormat": "Free-form Markdown string (no JSON schema).",
+    "notes": "Clean. Inputs come from the createDigitalProduct step's JSON output.",
+    "enabled": true
+  },
+  {
+    "id": "digital-product-strategist",
+    "name": "Digital product strategy (companion step for product-content-creator)",
+    "category": null,
+    "modality": "text",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nBased on this {{inputType}}: \"{{input}}\", create a high-value, sellable digital product.\n\nThe output should include:\n1. Product Name\n2. Product Type (e.g., E-book, Course, Template, Checklist, Guide)\n3. Target Audience\n4. Key Features/Benefits (3-5 points)\n5. Pricing Strategy (Recommended price and why)\n6. Marketing Hook (Scroll-stopping headline)\n7. Content Outline (Briefly describe what's inside)\n\nReturn as JSON.",
+    "responseFormat": "JSON object: { name, type, audience, features: string[], pricing: string, hook, outline } (all required)",
+    "notes": "AI-estimate labeling enforced in template. Semi-flagged: 'pricing' is an AI-invented recommended price with no market data - label as a suggestion. {{inputType}} is 'url' | 'file' | 'video_url'.",
+    "enabled": true
+  },
+  {
+    "id": "podcast-script",
+    "name": "Podcast script generator",
+    "category": null,
+    "modality": "text",
+    "template": "Create a short {{formatWord}} podcast script for the brand \"{{brandName}}\". \nNiche: {{brandNiche}}. \nTarget Audience: {{targetAudience}}.\nTopic: Recent trends in {{brandNiche}}.\nFormat: {{formatDescription}}.\n\nCOMPETITOR CONTEXT:\n{{competitorContext}}\n\nEnsure the script is unique and differentiated from the competitor's approach.\nKeep it under 300 words.",
+    "responseFormat": "Free-form text script (no schema). Audio step wraps it as 'Say clearly and professionally: {{script}}' to gemini-2.5-flash-preview-tts.",
+    "notes": "{{formatWord}} = 'monologue' (Single) or 'dialogue'; {{formatDescription}} = 'Host speaking directly to audience' or 'Host interviewing a guest'. {{competitorContext}} injected from analyzeCompetitor against the hardcoded example.com competitor URL - hallucinated; strip in port.",
+    "enabled": true
+  },
+  {
+    "id": "repurpose-campaign",
+    "name": "Repurpose (URL/article -> 7-day campaign)",
+    "category": null,
+    "modality": "text",
+    "template": "You are a social media expert. Repurpose the following content into a high-performing 7-day content campaign for a brand.\n\nSource Title: {{sourceTitle}}\nSource Content: {{sourceContent}}\nTone of Voice: {{tone}}\n\nGenerate 7 distinct pieces of content (one for each day of the week):\n- Mix formats: LinkedIn Posts, Twitter Threads, Reel Scripts, Carousel structures.\n\nReturn the response as a JSON array of objects with the following schema:\n{\n  \"day\": 1 | 2 | 3 | 4 | 5 | 6 | 7,\n  \"type\": \"Post\" | \"Reel\" | \"Thread\" | \"Carousel\",\n  \"title\": \"Short descriptive title\",\n  \"content\": \"The actual text content or script\",\n  \"platform\": \"LinkedIn\" | \"Twitter\" | \"Instagram\" | \"TikTok\",\n  \"imagePrompt\": \"A detailed AI image generation prompt to accompany this specific post\"\n}",
+    "responseFormat": "JSON array of 7: [{ day: int 1-7, type, title, content, platform, imagePrompt }] (all required). Each imagePrompt is later fed to gemini-2.5-flash-image.",
+    "notes": "Clean. Source is scraped server-side first ({{sourceTitle}}/{{sourceContent}} from the scrape response). A sibling 'topic campaign' variant exists (separate preset below).",
+    "enabled": true
+  },
+  {
+    "id": "topic-campaign",
+    "name": "Topic -> 7-day campaign (sibling of repurpose-campaign)",
+    "category": null,
+    "modality": "text",
+    "template": "You are a social media strategist. Generate a high-performing 7-day content campaign based on the following topic for a brand.\n\nTopic: {{topic}}\nTone of Voice: {{tone}}\nContent Pillar: {{pillar}}\n\nGenerate 7 distinct pieces of content (one for each day of the week):\n- Mix formats: LinkedIn Posts, Twitter Threads, Reel Scripts, Carousel structures.\n\nReturn the response as a JSON array of objects with the following schema:\n{\n  \"day\": 1 | 2 | 3 | 4 | 5 | 6 | 7,\n  \"type\": \"Post\" | \"Reel\" | \"Thread\" | \"Carousel\",\n  \"title\": \"Short descriptive title\",\n  \"content\": \"The actual text content or script\",\n  \"platform\": \"LinkedIn\" | \"Twitter\" | \"Instagram\" | \"TikTok\",\n  \"imagePrompt\": \"A detailed AI image generation prompt to accompany this specific post\"\n}",
+    "responseFormat": "JSON array of 7 like repurpose-campaign (note: this variant's responseSchema omits 'day' from required/properties even though the prose asks for it).",
+    "notes": "Clean. {{tone}} and {{pillar}} come from UI selectors (TONES / PILLARS label lists).",
+    "enabled": true
+  },
+  {
+    "id": "magic-clips",
+    "name": "Magic Clips (viral moment extraction from video)",
+    "category": null,
+    "modality": "video",
+    "template": "IMPORTANT: Any scores or ratings you produce are subjective AI estimates, not measured data. Label them as 'AI estimate'. Never invent measured statistics such as search volumes, engagement rates, mention counts, follower numbers, or view counts.\n\nAnalyze this video and identify 3-5 high-impact, viral segments (30-60 seconds each). \nFor each segment, provide:\n1. Title: A catchy, viral title.\n2. Start Time: in MM:SS format.\n3. End Time: in MM:SS format.\n4. Viral Score: 1-100 based on hook strength and content.\n5. Caption: A scroll-stopping social media caption with hashtags.\n6. Reason: Why this segment was chosen.\n\nReturn as a JSON array of objects.",
+    "responseFormat": "JSON array: [{ title: string, startTime: \"MM:SS\", endTime: \"MM:SS\", score: number(1-100), caption: string, reason: string }] (all required). Video sent as inlineData part before the text prompt (gemini-3-flash-preview).",
+    "notes": "AI-estimate labeling enforced in template. FABRICATED METRIC (mild): 'Viral Score 1-100' is an invented rating, though grounded in actual video content the model watched - label as AI rating. Timestamps ARE grounded in the real video.",
+    "enabled": true
+  },
+  {
+    "id": "content-performance-forecast",
+    "name": "Content performance forecast (second half of Content Analyzer)",
+    "category": null,
+    "modality": "text",
+    "template": "Forecast the performance of this content across platforms: {{platforms}}.\nContent: {{contentJson}}.\n\nProvide for each platform:\n1. Predicted Reach (range)\n2. Predicted Engagement Rate (%)\n3. Virality Probability (0-1)\n4. Best time to post for maximum impact.\n5. Platform-specific optimization tips.\n\nReturn as JSON.",
+    "responseFormat": "JSON object: { platformForecasts: [{ platform, predictedReach: string, engagementRate: number, viralityProbability: number, bestTimeToPost: string, optimizationTips: string[] }], overallConfidence: number }",
+    "notes": "DISABLED: invents reach/engagement predictions with confidence scores. | FABRICATED METRICS (heavy): predicted reach ranges, engagement-rate percentages, virality probabilities and a confidence number are all invented with zero account data. Strip or clearly label every number in the port.",
+    "enabled": false
+  }
+]
