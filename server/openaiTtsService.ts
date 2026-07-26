@@ -4,7 +4,7 @@ import * as path from "path";
 import { randomUUID } from "crypto";
 
 const ttsClient = new OpenAI({
-  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY || "missing-openai-key",
 });
 
 export type OpenAIVoice = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";

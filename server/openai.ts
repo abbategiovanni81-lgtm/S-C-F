@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 
+// Fallback keeps the server booting with no platform key (BYOK/self-host);
+// calls then fail per-request with a 401 instead of crashing at import.
 export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "missing-openai-key",
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
@@ -1866,7 +1868,7 @@ export interface DalleImageResult {
 
 // Create a separate OpenAI client for GPT-Image using the dedicated key
 const dalleClient = new OpenAI({
-  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY || "missing-openai-key",
 });
 
 export async function generateDalleImage(request: DalleImageRequest): Promise<DalleImageResult> {

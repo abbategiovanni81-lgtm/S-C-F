@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 const soraClient = new OpenAI({
-  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_DALLE_API_KEY || process.env.OPENAI_API_KEY || "missing-openai-key",
 });
 
 export interface SoraVideoRequest {
