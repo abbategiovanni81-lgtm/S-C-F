@@ -1546,6 +1546,24 @@ Provide analysis in this JSON structure:
     }
   });
 
+  // ==================== SCHEDULER TICK (external cron) ====================
+  // No always-on loop (cost). An external cron (Replit Scheduled
+  // Deployment, cron-job.org, etc.) POSTs here to fire due direct-platform
+  // posts. Zernio/YouTube posts schedule natively and never need this.
+  app.post("/api/scheduler/tick", async (req, res) => {
+    try {
+      const secret = process.env.CRON_SECRET;
+      if (!secret || req.headers["x-cron-secret"] !== secret) {
+        return res.status(401).json({ error: "Bad or missing X-Cron-Secret header" });
+      }
+      const { runSchedulerTick } = await import("./scheduler");
+      const result = await runSchedulerTick();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Tick failed" });
+    }
+  });
+
   // ==================== PROMPT PRESETS ====================
 
   // List presets with the input fields each one expects

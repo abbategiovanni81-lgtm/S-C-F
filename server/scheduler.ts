@@ -147,8 +147,8 @@ async function dispatchOne(row: DueRow): Promise<void> {
   }
 }
 
-async function tick(): Promise<void> {
-  if (running) return; // Never overlap ticks
+export async function runSchedulerTick(): Promise<{ dispatched: number }> {
+  if (running) return { dispatched: 0 }; // Never overlap ticks
   running = true;
   try {
     const due = await claimDuePosts();
@@ -159,19 +159,36 @@ async function tick(): Promise<void> {
         await dispatchOne(row);
       }
     }
+    return { dispatched: due.length };
   } catch (error) {
     console.error("[scheduler] Tick failed:", error);
+    return { dispatched: 0 };
   } finally {
     running = false;
   }
 }
 
+/**
+ * COST NOTE (Gio, 2026-07-26): an always-on poll loop keeps a Replit app
+ * awake 24/7 and bills compute around the clock (the May incident).
+ * Therefore the in-process loop is OPT-IN ONLY (SCHEDULER_MODE=interval,
+ * for self-hosted/VPS). Default: NO loop. Scheduling still works:
+ * - Zernio-routed platforms + YouTube: NATIVE scheduling (the platform's
+ *   own servers fire at publish time - no process of ours involved).
+ * - Direct platforms (Bluesky/Reddit/Pinterest/LinkedIn): an external
+ *   cron (e.g. Replit Scheduled Deployment - runs and exits) pings
+ *   POST /api/scheduler/tick with the CRON_SECRET header.
+ */
 export function startScheduler(): void {
+  if (process.env.SCHEDULER_MODE !== "interval") {
+    console.log("[scheduler] In-process loop disabled (native platform scheduling + external tick). Set SCHEDULER_MODE=interval to enable on always-on hosts.");
+    return;
+  }
   if (timer) return;
-  timer = setInterval(() => void tick(), POLL_INTERVAL_MS);
+  timer = setInterval(() => void runSchedulerTick(), POLL_INTERVAL_MS);
   timer.unref?.();
   console.log(`[scheduler] Started (poll every ${POLL_INTERVAL_MS / 1000}s)`);
-  void tick(); // Catch up immediately on boot
+  void runSchedulerTick(); // Catch up immediately on boot
 }
 
 export function stopScheduler(): void {
